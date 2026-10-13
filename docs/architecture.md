@@ -51,7 +51,7 @@
 | 路径 | 内容 | 元数据（Zod 校验） |
 | --- | --- | --- |
 | `src/content/route.yaml` | **路线图**：章节、分叉点、步骤序列（见下文） | 由 M2 校验 |
-| `src/content/steps/<step-id>.md` | 一个步骤：操作内容 + 内嵌的 `[!why]` 原理块 | `title`（必填）；`skippable`（默认 false）；`placeholder`（默认 false，FR-21）；`video: { bilibili?: BV号, youtube?: 视频ID }`（可空，FR-40）；`placeholderHint`（可选，写原文里已有的提示） |
+| `src/content/steps/<step-id>.md` | 一个步骤：操作内容 + 内嵌的 `[!why]` 原理块 | `title`（必填）；`skippable`（默认 false）；`placeholder`（默认 false，FR-21）；`video: { bilibili?: BV号, youtube?: 视频ID }`（可空，FR-40）；`placeholderHint`（可选，写原文里已有的提示）；`skipLabel`（可选，跳过按钮文案，默认“已有，跳过”） |
 | `src/content/choices/<fork-id>.md` | 一个分叉点的选择页：引导语 | `question`；`options: { <option-id>: { title, path?, effort?, audience? } }`（对应原文的对比表） |
 | `src/content/faq/<faq-id>.md` | 一条常见问题 | `title` |
 | `src/content/pages/home.md`、`done.md` | 首页前言；完成页的致谢、后记、联系方式 | `title` |
@@ -60,26 +60,40 @@
 **route.yaml 格式（计划）**：章节和分叉点的唯一来源，满足 FR-02 中“所属章节、所属路线”的要求。步骤文件不重复写这两项，避免两处数据不一致。
 
 ```yaml
-defaults: { node-plan: plan-1, desktop-proxy: v2rayn, subscribe-device: iphone }  # 默认路线（Ask first）
+defaults: { node-plan: plan-1, desktop-proxy: v2rayn, phone: iphone }  # 默认路线（Ask first）
 chapters:
   - id: start
     title: 开始
-    items: [before-you-start, overview]
+    items: [before-you-start, overview, clean-claude-code]
   - id: residential-ip
     title: 一、准备住宅 IP
     items:
       - choose: node-plan                  # 选择页 /choose/node-plan/
       - branch: node-plan                  # 各选项的步骤段
         options:
-          plan-1: [plan1-buy-vps, plan1-free-residential-ip, plan1-ssh, plan1-run-script]
-          plan-2: [plan2-buy-residential-vps, plan2-run-script]
-          plan-3: [plan3-buy-node, plan3-import-node, plan3-split-routing]
-      - check-exit-ip                      # 汇合点
-  # ……二、配置代理软件里有 choose: desktop-proxy；三、防泄漏里的 DNS 是
-  #   branch: desktop-proxy（没有选择页，沿用第二章的选择）
+          plan-1: [plan1-buy-vps, plan1-free-residential-ip, ssh-connect, run-script]
+          plan-2: [plan2-buy-residential-vps, ssh-connect, run-script]   # 共享步骤：同一段内可出现在多个选项里
+          plan-3: [plan3-buy-node]
+  - id: desktop-proxy
+    title: 二、电脑代理
+    items:
+      - choose: desktop-proxy              # F1 的汇合点可以是选择页
+      - branch: desktop-proxy
+        options:
+          v2rayn: [v2rayn-import, v2rayn-tun]
+          clash-verge: [clash-verge-import, clash-verge-tun]
+  - id: leak-protection
+    title: 三、防泄漏
+    items:
+      - branch: desktop-proxy              # 同一分叉点的第二段，没有选择页，沿用第二章的选择
+        options: { v2rayn: [v2rayn-dns], clash-verge: [clash-verge-dns] }
+      - webrtc                             # F2 的汇合点
+      - ipv6
+  # ……四、电脑改时区；五、检查 IP 质量；六、手机代理（choose: phone）；七、准备 Google 账号、
+  #   十、订阅里各有一段 branch: phone。完整清单见需求 §5.2
 ```
 
-步骤标识用上例那样的英文 kebab-case（最终清单在内容迁移时确定）。
+步骤标识用上例那样的英文 kebab-case（最终清单在内容迁移时确定）。可跳过步骤在 frontmatter 里可以写 `skipLabel`（默认“已有，跳过”，FR-15）。
 
 **Obsidian 写法**（自研 remark 插件 `src/lib/content/remark-obsidian.ts` + `rehype-callouts`）：
 
@@ -110,10 +124,11 @@ function buildRouteMap(spec: RouteSpec, steps: StepMeta[]): RouteMap;
 interface RouteMap {
   /** 一个页面需要的全部导航信息。stored = 本机保存的选择，可以为空 */
   view(at: At, stored: Choices): {
-    choices: Choices;          // 实际生效的选择 = 默认路线 ← 本机保存的选择 ← 当前页所属分支（S5）
+    choices: Choices;          // 实际生效的选择 = 默认路线 ← 本机保存的选择 ← 当前页所属选项（S5）；
+                               // 共享步骤属于多个选项时：已生效的选择在其中就保留，否则取其中第一个
     prev: Stop | null;         // 路线第一项时为 null
     next: Stop;                // 最后一步之后是 { kind: 'done' }（FR-11）
-    skipTo: Stop | null;       // 只有可跳过步骤才有（FR-15）
+    skipTo: Stop | null;       // 只有可跳过步骤才有：跳过本章内连续的可跳过步骤后的第一项（FR-15）
     progress: { chapter: string; index: number; total: number } | null; // 选择页没有步数
     outline: OutlineChapter[]; // 目录：全部步骤，标出是否在当前路线上（FR-16）
   };
@@ -127,10 +142,10 @@ function pathOf(stop: Stop): string;
 
 **规则**（构建时校验，任何一条不满足就失败，对应 FR-61）：
 
-- 每个步骤标识在路线图里只出现一次，所以看 URL 就知道一个步骤属于哪个分叉选项（S5）；路线图引用的步骤必须有对应文件，步骤文件也必须出现在路线图里。
+- 每个步骤标识只属于路线图里的一个位置：要么是普通项，要么属于**一个** `branch` 段，可以出现在这一段的多个选项里（共享步骤）。所以看 URL 就知道一个步骤属于哪个分叉点的哪几个选项（S5）。路线图引用的步骤必须有对应文件，步骤文件也必须出现在路线图里。
 - `branch` 引用的分叉点，前面必须已经出现过它的 `choose`；`options` 必须和选择页文件里的选项一一对应；`defaults` 必须覆盖每个分叉点。
-- `branch` 后面至少还要有一个普通步骤，也就是必须有汇合点。汇合点可以在后面的章节：F3 的两个分支都汇合到第七章的“订阅之后”。
-- 可跳过步骤的 `skipTo` 按 AC-05 取当前路线里的下一项（和 `next` 目标相同，区别只在按钮文案和目录标记），见需求 Q-09。
+- 同一分叉点的 `branch` 段之后，必须有一个所有选项共用的项（普通步骤或另一个分叉点的选择页），也就是必须有汇合点。汇合点可以在后面的章节；同一分叉点的两段 `branch` 可以紧挨着（第二、三章的 F2），汇合点算在最后一段之后。
+- 可跳过步骤的 `skipTo`：沿当前路线，跳过本章内从当前步骤开始连续的可跳过步骤，取其后的第一项（可能在下一章或是完成页）。
 - 枚举所有选项组合（首期是 3 × 2 × 2 = 12 条路线）：每条路线都要从“开始之前”走到完成页，中间不重复经过同一步，也就是没有环。
 - 步骤标识不能和保留路径重名：`choose`、`faq`、`done`、`404`、`_astro`。
 - 占位步骤（`placeholder: true`）不让构建失败，只在构建输出里列出清单（FR-21）。清单由 `astro.config.mjs` 里的一个小集成在 `astro:build:done` 时打印，格式为每行一个 `占位步骤：<step-id> <标题>`。
@@ -140,7 +155,7 @@ function pathOf(stop: Stop): string;
 **职责**：把内容和路线渲染成页面；实现 [design.md](design.md) 的全部页面和组件。
 
 - **构建时**：每个页面调用 `loadSite()`（`src/lib/site.ts`，计划）。它读取内容集合，调用 `buildRouteMap`，结果在一次构建内缓存。页面再调用 `view(at, {})`，把导航直接写进 HTML。这时生效的是默认路线，加上当前页所属的分支，所以不运行 JS 也能顺着走完。
-- **浏览器里**：布局用 `<script type="application/json">` 内嵌 `RouteData`（首期约 40 个步骤，几 KB）。页面脚本读取 M4 保存的选择，调用 `routeMapFromData(data).view(at, stored)`，再改写上一步/下一步链接、进度和目录状态。这种做法是渐进增强：没有 JS 时，页面就保持构建时写好的默认导航。
+- **浏览器里**：布局用 `<script type="application/json">` 内嵌 `RouteData`（首期约 45 个步骤，几 KB）。页面脚本读取 M4 保存的选择，调用 `routeMapFromData(data).view(at, stored)`，再改写上一步/下一步链接、进度和目录状态。这种做法是渐进增强：没有 JS 时，页面就保持构建时写好的默认导航。
 - **视图**：`<head>` 里放一段几十字节的内联脚本，在首次绘制前设置 `<html data-view="operation|principle">`，避免页面闪一下。`[!why]` 块的显示和隐藏只用 CSS 控制（[ADR-0003](adr/0003-principle-content-as-why-callouts.md)）。
 - **视频门面**：不发任何外部请求。读者点击后才插入 iframe：B 站用 `player.bilibili.com/player.html?bvid=…`（参数在实施时实测），YouTube 用 `www.youtube-nocookie.com/embed/<id>`。播放器下方总有一行平台外链：浏览器无法可靠判断 iframe 有没有加载失败，所以这行链接一直显示（FR-42）。
 - **常见问题的“返回”**：根据 `?from=<step-id>` 查到步骤标题，再显示返回链接。参数里只有公开的步骤标识，没有个人数据。
@@ -186,9 +201,9 @@ function createReaderStore(storage: Storage | null): ReaderStore;
 ## 5. 数据流（以 AC-03/AC-08 为例）
 
 1. **构建**：读取 `route.yaml` 和 `steps/*.md`，经过 M1 校验，再由 M2 `buildRouteMap` 编译。之后对每个步骤调用 `view(at, {})` 生成 HTML，HTML 里内嵌 `RouteData`。
-2. **读者在无痕窗口打开 `/plan3-import-node/`**：页面先显示构建时写好的导航。生成这个页面时，路线已经由当前页所属分支确定为 `node-plan=plan-3`，所以上一步/下一步一开始就在方案三的路线里（AC-08）。
+2. **读者在无痕窗口打开 `/plan3-buy-node/`**：页面先显示构建时写好的导航。生成这个页面时，路线已经由当前页所属分支确定为 `node-plan=plan-3`，所以上一步/下一步一开始就在方案三的路线里（AC-08）。
 3. **页面脚本运行**：调用 M4 的 `read()`，存储为空或不可用时返回默认值；再调用 `view(at, stored)`。结果和构建时一样，所以链接不需要改写。最后写入 `lastStep`，以及 `choices.node-plan = plan-3`。
-4. **读者到达 `check-exit-ip`**：这个页面构建时写的是默认路线，上一步指向方案一。页面脚本按本机保存的 `plan-3` 重新计算，把“上一步”改写为 `plan3-split-routing`（AC-03）。
+4. **读者到达 `/choose/desktop-proxy/`**：这个页面构建时写的是默认路线，上一步指向方案一的 `run-script`。页面脚本按本机保存的 `plan-3` 重新计算，把“上一步”改写为 `plan3-buy-node`（AC-03）。
 
 ## 6. 目录结构（计划）
 
@@ -283,3 +298,17 @@ function createReaderStore(storage: Storage | null): ReaderStore;
 | R9 | 占位清单“在构建输出里列出”没有落点（FR-21） | 实现位置不明 | 已修正 §3 M2 规则：`astro:build:done` 打印 | 否 |
 
 - 依赖方向（M1 ← M2 ← M3，M4 独立）无环；M2 纯函数在构建和浏览器两端复用，规模合适，没有发现过度设计。
+
+### 11.1 补评：步骤地图 v0.2（2026-10-13）
+
+作者要求不再沿用原文的七节，需求 §5 改为按“一个地方、一口气、可确认”拆步骤（需求 v0.2）。只补评受影响的部分：
+
+| 编号 | 发现 | 处理 | 阻塞？ |
+| --- | --- | --- | --- |
+| R10 | 方案一、二共用“连上服务器”“运行脚本”，原规则“每个步骤只出现一次”放不下 | 已修正 §3 M2：允许同一 `branch` 段内的共享步骤；URL 确定“属于哪几个选项”；[ADR-0002](adr/0002-url-scheme.md) 同步更新；新增 AC-19 | 否 |
+| R11 | F1 的汇合点变成第二章的选择页；F2 有两段紧挨着的 `branch` | 已修正汇合规则 | 否 |
+| R12 | 安卓读者已有 Gmail 时要连跳两页；三个可跳过步骤的“已有”文案不合适 | 已修正：跳过本章内连续的可跳过步骤，`skipLabel` 可自定；Q-09 关闭 | 否 |
+| R13 | 手机改时区随 F3 不同，放在第四章会出现“用到选择在做选择之前”（和 R3 同类） | 已修正需求 §5.2：手机改时区并入第六章 | 否 |
+| R14 | 原文没有的步骤增加到约 14 个占位 | FR-21 机制不变；占位清单在构建输出里给作者跟踪 | 否 |
+
+R3（Clash Verge 导入放常见问题）、R4（跳过目标等于下一步）已被 v0.2 取代。结论仍为**通过**。

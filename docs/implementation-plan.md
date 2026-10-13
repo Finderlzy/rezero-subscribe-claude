@@ -1,6 +1,6 @@
 # 实施计划：Re:从零开始订阅 claude
 
-- 状态：v0.1（2026-10-13），首期（需求 v0.1）全部范围
+- 状态：v0.2（2026-10-13），首期（需求 v0.2，步骤地图按作者意见重排为十一章）全部范围
 - 输入：[需求](requirements.md)、[架构](architecture.md)（含 [§11 实施前评审](architecture.md#11-实施前架构评审2026-10-13)）、[设计](design.md)、[复用调研](reuse-research.md)、[术语](../CONTEXT.md)
 - 任务记录：**GitHub Issues 尚未发布**。仓库还没有 Git 远端，本机也没有 `gh`，所以下文“Issue 草稿”就是当前的任务权威记录。发布后在“任务索引”回填编号和链接，删掉草稿正文，之后状态以 Issues 为准。
 - 档位规则见开发流程契约“模型档位”：`强` / `标准`。
@@ -11,8 +11,8 @@
 
 | 里程碑 | 交付的可用能力 | 覆盖需求 | 任务 |
 | --- | --- | --- | --- |
-| **MS1 端到端骨架** | 首页 →“直接开始”→ 开始之前 → 整体思路 → 节点方案选择页 → 默认路线的第一章 → 完成页，全部是构建时写死的导航；内容校验在构建里生效 | FR-01–04、FR-10–13（静态部分）、FR-17、FR-18（无进度）、FR-60、FR-61；AC-01、AC-08（静态部分）、AC-18（找不到页） | T01–T06 |
-| **MS2 完整 P0** | 全部七章和常见问题迁完；任意路线按本机选择计算上一步/下一步；操作/原理视图；内容待补占位；构建失败用例；迁移核对 | FR-03、FR-11–15、FR-20、FR-21、FR-30、FR-31、FR-50（写入）；AC-02、03、05、06、08、11、12、13、14、18 | T07–T15 |
+| **MS1 端到端骨架** | 首页 →“直接开始”→ 开始之前 → 整体思路 → 节点方案选择页 → 默认路线的第一章 → 检查 IP 质量 → 完成页，全部是构建时写死的导航；内容校验在构建里生效 | FR-01–04、FR-10–13（静态部分）、FR-17、FR-18（无进度）、FR-60、FR-61；AC-01、AC-08 与 AC-19（静态部分）、AC-18（找不到页） | T01–T06 |
+| **MS2 完整 P0** | 全部十一章和常见问题迁完；任意路线按本机选择计算上一步/下一步；操作/原理视图；内容待补占位；构建失败用例；迁移核对 | FR-03、FR-11–15、FR-20、FR-21、FR-30、FR-31、FR-50（写入）；AC-02、03、05、06、08、11、12、13、14、18、19 | T07–T15、T22 |
 | **MS3 P1** | 视频门面、步骤目录（改路线、清除进度）、继续上次、代码复制与看大图 | FR-14、FR-16、FR-18、FR-19、FR-40–42、FR-50、FR-51、NFR-02；AC-04、07、09、10 | T16–T19 |
 | **MS4 P2 与交付准备** | 两种宽度和两种主题下的视觉、可访问性；子路径部署；屏蔽境外域名后完整显示 | NFR-01、NFR-03、NFR-04、NFR-05、design §7；AC-15、16、17 | T20–T21 |
 
@@ -22,7 +22,7 @@ MS1、MS2 结束各有一个检查点（§4）。MS2 之后的任务先保留目
 
 ```
 T01 ─┬─ T02 ── T04 ─┐
-     ├─ T03 ────────┴─ T05 ── T06 ──┬─ T10 ── T11 ── T12 ── T13 ── T15
+     ├─ T03 ────────┴─ T05 ── T06 ──┬─ T10 ── T11 ── T12 ── T22 ── T13 ── T15
      │                              ├─ T14
      │                              ├─ T16 ── T21
      │                              ├─ T19 ─────────────────┐
@@ -32,7 +32,7 @@ T01 ─┬─ T02 ── T04 ─┐
 
 - **立即可开工**：T01。
 - T01 完成后可以并行：T02、T03、T07（互不改同一目录）。
-- T06 完成后可以并行：T08（需 T07）、T09（需 T07）、T10、T14、T16、T19。内容迁移 T10 → T11 → T12 → T13 **串行**，因为都要改 `route.yaml`。
+- T06 完成后可以并行：T08（需 T07）、T09（需 T07）、T10、T14、T16、T19。内容迁移 T10 → T11 → T12 → T22 → T13 **串行**，因为都要改 `route.yaml`。
 - 并行写代码时各用独立 worktree，按上图从左到右合并；没有循环依赖。
 
 ## 3. 任务索引
@@ -48,10 +48,11 @@ T01 ─┬─ T02 ── T04 ─┐
 | T07 | 实现本机状态模块 M4 | MS2 | T01 | 标准 | 可执行 | 未发布 |
 | T08 | 浏览器按本机选择改写导航 | MS2 | T06、T07 | 强 | 待细化 | 未发布 |
 | T09 | 实现操作/原理视图切换 | MS2 | T06、T07 | 标准 | 待细化 | 未发布 |
-| T10 | 迁移第二、三章并实现内容待补占位 | MS2 | T06 | 标准 | 待细化 | 未发布 |
-| T11 | 迁移第四、五章并实现“已有，跳过” | MS2 | T10 | 标准 | 待细化 | 未发布 |
-| T12 | 迁移第六、七章与完成页内容 | MS2 | T11 | 标准 | 待细化 | 未发布 |
-| T13 | 迁移常见问题并实现常见问题页 | MS2 | T12 | 标准 | 待细化 | 未发布 |
+| T10 | 迁移电脑代理、防泄漏、电脑改时区并实现内容待补占位 | MS2 | T06 | 标准 | 待细化 | 未发布 |
+| T11 | 迁移清理配置、IP 不合格与手机代理并实现跳过 | MS2 | T10 | 标准 | 待细化 | 未发布 |
+| T12 | 迁移 Google 账号、养号与注册 claude | MS2 | T11 | 标准 | 待细化 | 未发布 |
+| T22 | 迁移订阅、订阅之后与完成页内容 | MS2 | T12 | 标准 | 待细化 | 未发布 |
+| T13 | 迁移常见问题并实现常见问题页 | MS2 | T22 | 标准 | 待细化 | 未发布 |
 | T14 | 补齐构建失败用例 | MS2 | T06 | 标准 | 待细化 | 未发布 |
 | T15 | 完成迁移核对 | MS2 | T13 | 标准 | 待细化 | 未发布 |
 | T16 | 实现步骤视频门面 | MS3 | T06 | 标准 | 待细化 | 未发布 |
@@ -69,8 +70,8 @@ T01 ─┬─ T02 ── T04 ─┐
 - [ ] 截图入库前已逐张核对打码（R8）
 - [ ] 回看本计划：MS2 任务的顺序和档位是否仍然合适
 
-**MS2 结束（T07–T15 合并后）**
-- [ ] AC-02、03、05、06、08、11、12、13、14、18 全部有对应的 e2e 用例或人工核对记录
+**MS2 结束（T07–T15、T22 合并后）**
+- [ ] AC-02、03、05、06、08、11、12、13、14、18、19 全部有对应的 e2e 用例或人工核对记录
 - [ ] 构建输出的占位清单和作者确认一致
 
 **全部完成**：AC-01–AC-18 都有证据，交给 project-delivery 做整体验收。
@@ -87,7 +88,7 @@ T01 ─┬─ T02 ── T04 ─┐
 
 ## 6. 待决事项（不阻塞）
 
-需求 Q-01（部署位置）、Q-02（F2 选项）、Q-07（联系方式，T12 用占位）、Q-09（“已有，跳过”的位置，按 AC-05 实现）。
+需求 Q-01（部署位置）、Q-02（F2 选项）、Q-07（联系方式，T22 用占位）、Q-10（注册 claude 单独成章，作者可改）。
 
 ---
 
@@ -145,7 +146,7 @@ T01 ─┬─ T02 ── T04 ─┐
 
 #### T03 实现路线图模块 M2
 
-**目标**：实现架构 §3 M2 的 `buildRouteMap`、`RouteMap.view`、`routeMapFromData`、`pathOf`，以及全部校验规则，用测试用路线图覆盖默认路线、分支、汇合、可跳过、跨章节汇合和每一种校验错误。关联 FR-11、FR-12、FR-13、FR-15、FR-16、FR-61，AC-02–05、AC-14（逻辑层）。
+**目标**：实现架构 §3 M2 的 `buildRouteMap`、`RouteMap.view`、`routeMapFromData`、`pathOf`，以及全部校验规则，用测试用路线图覆盖默认路线、分支、共享步骤、汇合、可跳过、跨章节汇合和每一种校验错误。关联 FR-11、FR-12、FR-13、FR-15、FR-16、FR-17、FR-61，AC-02–05、AC-14、AC-19（逻辑层）。
 
 **涉及范围**：`src/lib/route/`（`types.ts`、`route-map.ts`、`route-map.test.ts`、`fixtures/`）、`package.json`（如需 `yaml` 解析库）。不碰页面和内容。
 
@@ -154,15 +155,15 @@ T01 ─┬─ T02 ── T04 ─┐
 **建议档位**：`强` — 跨模块接口：M3 构建时和浏览器端都依赖它的签名和 `RouteData` 格式。
 
 **参照**：
-- 接口以架构 §3 M2 为准（含评审 R1、R2、R4 的修正）：`RouteData` 必须带步骤/选择页标题、章节标题、`skippable`、`placeholder`。
-- 生效选择 = 默认路线 ← stored ← 当前页所属分支；选择页 `progress` 为 `null`；路线第一项 `prev` 为 `null`；最后一项 `next` 为 `{ kind: 'done' }`。
+- 接口以架构 §3 M2 为准（含评审 R1、R10–R12 的修正）：`RouteData` 必须带步骤/选择页标题、章节标题、`skippable`、`skipLabel`、`placeholder`。夹具照需求 §5.2 的形状缩写（三个分叉点、方案一二共享两步、F2 两段、F3 三段）。
+- 生效选择 = 默认路线 ← stored ← 当前页所属选项（共享步骤：已生效的选择在其中就保留，否则取其中第一个）；选择页 `progress` 为 `null`；路线第一项 `prev` 为 `null`；最后一项 `next` 为 `{ kind: 'done' }`。
 - 错误用 `RouteError[]` 一次报全，每条含 `file`（`route.yaml` 或 `steps/<id>.md`）和可读消息。
-- 必测边界：步骤重复出现；路线图引用不存在的步骤；步骤文件不在路线图里；`branch` 在 `choose` 之前；`options` 与选择页不一致；`defaults` 缺分叉点；分支后没有汇合；保留字 `choose/faq/done/404/_astro` 作标识；枚举全部组合（夹具里 3×2×2）都能走到 done；stored 里有已不存在的选项时回退默认；F3 式跨章节汇合；同一分叉点出现两个 `branch` 段（如 DNS 沿用 F2）。
+- 必测边界：步骤重复出现；路线图引用不存在的步骤；步骤文件不在路线图里；`branch` 在 `choose` 之前；`options` 与选择页不一致；`defaults` 缺分叉点；分支后没有汇合；保留字 `choose/faq/done/404/_astro` 作标识；枚举全部组合（夹具里 3×2×2）都能走到 done；stored 里有已不存在的选项时回退默认；F3 式跨章节汇合；同一分叉点出现两个 `branch` 段且紧挨着（F2）；共享步骤在 stored 为 plan-2 / plan-3 / 空时的 `choices` 和 `prev`；同一步骤出现在两个不同 `branch` 段里要报错；汇合点是另一个分叉点的选择页；`skipTo` 跳过本章内连续的可跳过步骤（含跨越分支末尾和到达下一章、到达 done 的情况）。
 
 **验收**：
 - [ ] 测试：`npx vitest run src/lib/route` → 上面每个边界都有用例且通过
 - [ ] 构建：`npm run check` 通过
-- [ ] 手工验证：对夹具调用 `view({kind:'step',id:<汇合点>}, {node-plan:'plan-3'})` → `prev` 是方案三最后一步（等价于 AC-03 的逻辑）
+- [ ] 手工验证：对夹具调用 `view({kind:'choose',fork:'desktop-proxy'}, {'node-plan':'plan-3'})` → `prev` 是方案三最后一步（等价于 AC-03 的逻辑）
 
 #### T04 实现内容格式与 Obsidian 写法插件 M1
 
@@ -175,7 +176,7 @@ T01 ─┬─ T02 ── T04 ─┐
 **建议档位**：`强` — 跨模块接口：内容格式和链接索引被 M2、M3 和全部迁移任务使用。
 
 **参照**：
-- schema 以架构 §3 M1 的表为准：`steps`（`title` 必填，`skippable`/`placeholder` 默认 false，`video`、`placeholderHint` 可选）、`choices`（`question`、`options`）、`faq`、`pages`。
+- schema 以架构 §3 M1 的表为准：`steps`（`title` 必填，`skippable`/`placeholder` 默认 false，`video`、`placeholderHint`、`skipLabel` 可选）、`choices`（`question`、`options`）、`faq`、`pages`。
 - `createLinkIndex(contentRoot)` 同步扫描文件名，返回步骤、常见问题、选择页标识和截图文件名集合。
 - 双链：`[[id]]`、`[[id|文字]]`、`[[id#小标题|文字]]`、`[[faq/<id>|文字]]`（加 `?from=<当前步骤>`，当前文件不是步骤时不加）、`[[choose/<fork>|文字]]`、`[[done]]`；生成的 href 一律经过 `withBase`。
 - 嵌入：`![[文件名|宽度]]` 和无宽度写法，只接受裸文件名（评审 R5），带 `09附件/` 前缀视为错误并提示去掉前缀；替代文字默认取文件名去掉扩展名。
@@ -210,9 +211,9 @@ T01 ─┬─ T02 ── T04 ─┐
 
 #### T06 迁移第一章并实现节点方案选择页
 
-**目标**：迁移第一章（F1 选择页、方案一/二/三、确认出口 IP）及其截图，实现选择页，使默认路线从“开始之前”经方案一走到“确认出口 IP”再到完成页；直接打开方案三的步骤 URL 时，构建时写好的导航就在方案三路线内。关联 FR-03、FR-04、FR-12、FR-13、FR-17，AC-02（第一章部分）、AC-08（静态部分）。
+**目标**：迁移第一章（F1 选择页、方案一/二/三、共享的“连上服务器”“运行脚本”）和第五章的“检查 IP 质量”及其截图，实现选择页。“检查 IP 质量”暂时充当 F1 的汇合点（T10 在它前面插入第二到四章）。默认路线从“开始之前”经方案一走到“检查 IP 质量”再到完成页；直接打开方案三或共享步骤的 URL 时，构建时写好的导航就在对应路线内。关联 FR-03、FR-04、FR-12、FR-13、FR-17，AC-02（第一章部分）、AC-08、AC-19（静态部分）。
 
-**涉及范围**：`src/content/route.yaml`、`src/content/choices/node-plan.md`、`src/content/steps/plan1-*.md`、`plan2-*.md`、`plan3-*.md`、`check-exit-ip.md`、截图目录（T02 定）、`src/pages/choose/[fork].astro`、`src/components/ChoiceOption.astro`、`docs/migration-checklist.md`、`tests/e2e/ac-02-default-route.spec.ts`、`tests/e2e/ac-08-direct-url.spec.ts`。
+**涉及范围**：`src/content/route.yaml`、`src/content/choices/node-plan.md`、`src/content/steps/plan1-*.md`、`plan2-*.md`、`plan3-*.md`、`ssh-connect.md`、`run-script.md`、`check-ip-quality.md`、截图目录（T02 定）、`src/pages/choose/[fork].astro`、`src/components/ChoiceOption.astro`、`docs/migration-checklist.md`、`tests/e2e/ac-02-default-route.spec.ts`、`tests/e2e/ac-08-direct-url.spec.ts`、`tests/e2e/ac-19-shared-step.spec.ts`。
 
 **依赖**：`依赖 T05`
 
@@ -220,7 +221,8 @@ T01 ─┬─ T02 ── T04 ─┐
 
 **参照**：
 - 页面写法参照 T05 的 `src/pages/[step].astro` 与 `StepNav.astro`；选择页结构按 design §4.2（整块 `<a>`、标“默认”、不计入步数、原文对比表拆进各选项块）。本任务的选择页链接只是普通链接，记录选择在 T08 做。
-- 步骤标识按架构 §3 示例：`plan1-buy-vps`、`plan1-free-residential-ip`、`plan1-ssh`、`plan1-run-script`、`plan2-buy-residential-vps`、`plan2-run-script`、`plan3-buy-node`、`plan3-import-node`、`plan3-split-routing`、`check-exit-ip`；`defaults` 先只写 `node-plan: plan-1`。
+- 步骤标识按架构 §3 示例：`plan1-buy-vps`、`plan1-free-residential-ip`、`plan2-buy-residential-vps`、`ssh-connect`、`run-script`（共享步骤）、`plan3-buy-node`、`check-ip-quality`；`defaults` 先只写 `node-plan: plan-1`。
+- 共享步骤“运行脚本”里方案二的差别（问到住宅代理时直接回车）原文写在方案二小节，迁移时原样放进“运行脚本”正文，标明“方案二：”。方案三原文的“导入代理软件”“分流”两句，导入部分移到 T10 的导入步骤，分流部分改为链到常见问题“分流规则怎么写”（先写纯文本，标“待 T13 改链接”）。
 - 方案二、三只有原理版有正文，操作内容取原理版正文、“为什么”放进 `[!why]`；纯操作版独有的 8 张 SSH/脚本截图放进方案一对应步骤（评审 R5）。
 - 原文“附：打开面板排查”等常见问题的链接本任务先写成纯文本并在核对表里标“待 T13 改链接”。
 - 截图入库前逐张检查服务器 IP、节点链接、面板账号是否已打码（评审 R8）；未打码的停下来问作者，不自行涂抹后入库。
@@ -228,7 +230,7 @@ T01 ─┬─ T02 ── T04 ─┐
 **验收**：
 - [ ] 测试：`npm test` 通过
 - [ ] 构建：`npm run check` 通过，路线校验覆盖 3 个方案
-- [ ] e2e：`npm run test:e2e` → 默认路线从“开始之前”连续点“下一步”到完成页，依次经过方案一四步和“确认出口 IP”；新上下文直接打开 `/plan3-import-node/`，上一步是 `plan3-buy-node`、下一步是 `plan3-split-routing`
+- [ ] e2e：`npm run test:e2e` → 默认路线从“开始之前”连续点“下一步”到完成页，依次经过方案一四步和“检查 IP 质量”；新上下文直接打开 `/plan3-buy-node/`，上一步是 `/choose/node-plan/`、下一步是“检查 IP 质量”；打开 `/ssh-connect/`，上一步是 `plan1-free-residential-ip`
 - [ ] 手工验证：核对表第一章逐项勾选；截图逐张核对结果写在提交说明里
 
 ### MS2 完整 P0
@@ -255,7 +257,7 @@ T01 ─┬─ T02 ── T04 ─┐
 
 #### T08 浏览器按本机选择改写导航（待细化）
 
-**目标**：页面脚本读取内嵌 `RouteData` 和 M4 状态，用 `routeMapFromData(...).view(at, stored)` 改写上一步/下一步、进度；打开步骤页写 `lastStep`、`visited` 和所属分支选择；选择页点选项时记录选择。关联 FR-11–14、FR-50，AC-03、AC-08、AC-18（存储禁用）。
+**目标**：页面脚本读取内嵌 `RouteData` 和 M4 状态，用 `routeMapFromData(...).view(at, stored)` 改写上一步/下一步、进度；打开步骤页写 `lastStep`、`visited` 和所属分支选择；选择页点选项时记录选择。关联 FR-11–14、FR-50，AC-03、AC-08、AC-18（存储禁用）、AC-19（本机已选方案二）。
 
 **涉及范围**：`src/scripts/route-enhance.ts`、`src/layouts/`、`src/pages/choose/[fork].astro`、`tests/e2e/ac-03-branch-merge.spec.ts`、`ac-08-direct-url.spec.ts`、`ac-18-storage-disabled.spec.ts`。
 
@@ -264,7 +266,7 @@ T01 ─┬─ T02 ── T04 ─┐
 **建议档位**：`强` — 跨模块接口：首次在浏览器里组合 M2、M4，并与构建时输出保持一致。
 
 **验收**：
-- [ ] e2e：`npm run test:e2e` → AC-03、AC-08、AC-18（注入让 `localStorage` 抛异常的脚本后走默认路线不报错）
+- [ ] e2e：`npm run test:e2e` → AC-03、AC-08、AC-19、AC-18（注入让 `localStorage` 抛异常的脚本后走默认路线不报错）
 - [ ] 构建：`npm run check`
 
 #### T09 实现操作/原理视图切换（待细化）
@@ -281,9 +283,9 @@ T01 ─┬─ T02 ── T04 ─┐
 - [ ] e2e：`npm run test:e2e` → AC-06
 - [ ] 构建：`npm run check`
 
-#### T10 迁移第二、三章并实现内容待补占位（待细化）
+#### T10 迁移电脑代理、防泄漏、电脑改时区并实现内容待补占位（待细化）
 
-**目标**：迁移“配置代理软件”“防泄漏”，加入 F2 选择页（v2rayN / Clash Verge）和 DNS 的 `branch: desktop-proxy`；Clash Verge 下原文没有的步骤用 `placeholder: true`；实现“内容待补”面板和构建占位清单。关联 FR-03、FR-21，需求 §5（评审 R3）。
+**目标**：在第一章和“检查 IP 质量”之间插入第二章“电脑代理”（F2 选择页，v2rayN / Clash Verge 的“下载并导入节点”“开 tun”）、第三章“防泄漏”（DNS 随 F2 分两段，WebRTC、IPv6）、第四章“电脑改时区”；实现“内容待补”面板和构建占位清单。关联 FR-03、FR-21，需求 §5.2。
 
 **涉及范围**：`src/content/route.yaml`、`src/content/choices/desktop-proxy.md`、对应 `steps/*.md`、`src/components/PlaceholderNotice.astro`、`docs/migration-checklist.md`。
 
@@ -292,49 +294,63 @@ T01 ─┬─ T02 ── T04 ─┐
 **建议档位**：`标准` — 迁移规则和页面模式沿用 T05、T06。
 
 **验收**：
-- [ ] 构建：`npm run check`，构建输出列出 Clash Verge 的占位步骤
-- [ ] 手工验证：核对表第二、三章逐项勾选；Clash Verge 路线的页面只有“内容待补”和原文已有提示
+- [ ] 构建：`npm run check`，构建输出列出本任务的占位步骤（下载 v2rayN、Clash Verge 的 tun 和 DNS）
+- [ ] 手工验证：核对表对应小节逐项勾选；占位页面只有“内容待补”和原文已有提示
 
-#### T11 迁移第四、五章并实现“已有，跳过”（待细化）
+#### T11 迁移清理配置、IP 不合格与手机代理并实现跳过（待细化）
 
-**目标**：迁移“改时区”“注册 claude”；“准备 Gmail”“修改 Google 账号地区”标 `skippable`；页面在“下一步”上方显示“已有，跳过 →”。关联 FR-03、FR-15，AC-05，需求 Q-09。
+**目标**：实现跳过按钮（`skipLabel`、跳过本章内连续的可跳过步骤）；加入“清理本机的 Claude Code 配置”（占位，“没用过，跳过”）、“IP 不合格：换 IP 或退款”（占位，“IP 合格，跳过”）、第六章“手机代理”（F3 选择页；iPhone：App Store 改到奥地利、v2Box、手机改时区；安卓：v2rayNG、手机改时区）。关联 FR-15、FR-21，AC-05（文案部分）。
 
-**涉及范围**：`src/content/route.yaml`、对应 `steps/*.md`、`src/components/StepNav.astro`、`tests/e2e/ac-05-skip.spec.ts`、`docs/migration-checklist.md`。
+**涉及范围**：`src/content/route.yaml`、`src/content/choices/phone.md`、对应 `steps/*.md`、`src/components/StepNav.astro`、`tests/e2e/ac-05-skip.spec.ts`、`docs/migration-checklist.md`。
 
 **依赖**：`依赖 T10`
 
-**建议档位**：`标准` — 在已有导航组件上加一个按钮。
+**建议档位**：`标准` — 跳过逻辑已在 T03 实现，本任务只渲染按钮并迁移内容。
 
 **验收**：
-- [ ] e2e：`npm run test:e2e` → AC-05
-- [ ] 手工验证：核对表第四、五章逐项勾选
+- [ ] e2e：`npm run test:e2e` → “清理本机的 Claude Code 配置”的跳过按钮文案是“没用过，跳过”，点击后到第一章选择页
+- [ ] 手工验证：核对表对应小节逐项勾选；“App Store 改到奥地利”页面的视频信息等作者提供
 
-#### T12 迁移第六、七章与完成页内容（待细化）
+#### T12 迁移 Google 账号、养号与注册 claude（待细化）
 
-**目标**：迁移“订阅”（F3 选择页，iPhone 四步，安卓占位）、“订阅之后”（汇合点）、致谢和后记；完成页联系方式在作者提供前留占位（Q-07）；`defaults` 补齐三个分叉点；默认路线全程走通。关联 FR-03、FR-19、FR-21，AC-02（完整）、AC-12。
+**目标**：迁移第七章“准备 Google 账号”（随 F3：iPhone 下载 Gmail；安卓安装 Google Play、下载 Gmail；汇合到“创建 Gmail 邮箱和 Google 账号”）、第八章“养号”（先用几天、申诉解封、改关联地区）、第九章“注册 claude”。关联 FR-03、FR-15、FR-21，AC-05（连续跳过部分），需求 Q-10。
 
-**涉及范围**：`src/content/route.yaml`、`src/content/choices/subscribe-device.md`、对应 `steps/*.md`、`src/content/pages/done.md`、`src/pages/done.astro`、截图目录、`tests/e2e/ac-02-default-route.spec.ts`、`ac-12-placeholder.spec.ts`、`docs/migration-checklist.md`。
+**涉及范围**：`src/content/route.yaml`、对应 `steps/*.md`、`tests/e2e/ac-05-skip.spec.ts`、`docs/migration-checklist.md`。
 
 **依赖**：`依赖 T11`
+
+**建议档位**：`标准` — 迁移规则和跳过按钮沿用 T10、T11。
+
+**验收**：
+- [ ] e2e：`npm run test:e2e` → AC-05（已选安卓时在“安装 Google Play”点跳过，到第八章第一步）
+- [ ] 手工验证：核对表对应小节逐项勾选
+
+#### T22 迁移订阅、订阅之后与完成页内容（待细化）
+
+**目标**：迁移第十章“订阅”（随 F3。iPhone：注册美区 Apple ID、登录 App Store 并设置账单地址、下载 Claude 并允许 App 内购买、买礼品卡、充值、在 app 内订阅、购买无法完成：问 AI；安卓：订阅占位）、第十一章“订阅之后”（注意事项、关于 KYC）、致谢和后记；完成页联系方式在作者提供前留占位（Q-07）；`defaults` 补齐三个分叉点；默认路线全程走通。关联 FR-03、FR-19、FR-21，AC-02（完整）、AC-12。
+
+**涉及范围**：`src/content/route.yaml`、对应 `steps/*.md`、`src/content/pages/done.md`、`src/pages/done.astro`、截图目录、`tests/e2e/ac-02-default-route.spec.ts`、`ac-12-placeholder.spec.ts`、`docs/migration-checklist.md`。
+
+**依赖**：`依赖 T12`
 
 **建议档位**：`标准` — 迁移规则和页面模式沿用 T06、T10。
 
 **验收**：
 - [ ] e2e：`npm run test:e2e` → AC-02 完整路线、AC-12
-- [ ] 手工验证：核对表第六、七章、致谢、后记逐项勾选；截图逐张核对打码
+- [ ] 手工验证：核对表对应小节、致谢、后记逐项勾选；截图逐张核对打码
 
 #### T13 迁移常见问题并实现常见问题页（待细化）
 
-**目标**：迁移六条常见问题（购买未完成、打开面板排查、Clash Verge 导入、重装、1 人独享确认、分流规则）；`/faq/`、`/faq/<id>/` 页面，按 `?from=` 显示“← 返回刚才的步骤”，没有上一步/下一步；把前面任务标“待 T13 改链接”的地方改成双链。关联 FR-20，AC-11。
+**目标**：迁移四条常见问题（打开面板排查、装过了想重装、1 人独享确认、分流规则）；`/faq/`、`/faq/<id>/` 页面，按 `?from=` 显示“← 返回刚才的步骤”，没有上一步/下一步；把前面任务标“待 T13 改链接”的地方改成双链。关联 FR-20，AC-11。
 
 **涉及范围**：`src/content/faq/*.md`、`src/pages/faq/index.astro`、`src/pages/faq/[faq].astro`、相关 `steps/*.md`、`tests/e2e/ac-11-faq-return.spec.ts`、`docs/migration-checklist.md`。
 
-**依赖**：`依赖 T12`
+**依赖**：`依赖 T22`
 
 **建议档位**：`标准` — 页面模式沿用 T05。
 
 **验收**：
-- [ ] e2e：`npm run test:e2e` → AC-11
+- [ ] e2e：`npm run test:e2e` → AC-11（从“运行脚本”进入“打开面板排查”再返回）
 - [ ] 手工验证：核对表中“待 T13 改链接”全部清零
 
 #### T14 补齐构建失败用例（待细化）

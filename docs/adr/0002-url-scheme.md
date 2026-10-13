@@ -2,7 +2,9 @@
 
 - 状态：accepted（2026-10-13）
 
-已经发布的步骤 URL 不能再改（需求三级边界 Always），改 URL 规则属于 Ask first。所以 URL 规则在首期就定下来：步骤页是 `/<step-id>/`，选择页是 `/choose/<fork-id>/`，常见问题是 `/faq/<faq-id>/`，完成页是 `/done/`。`step-id` 是英文 kebab-case，也是步骤文件的文件名。每个步骤在 `route.yaml` 里只出现一次，所以只看 URL 就能知道它属于哪个分叉选项（S5）。
+已经发布的步骤 URL 不能再改（需求三级边界 Always），改 URL 规则属于 Ask first。所以 URL 规则在首期就定下来：步骤页是 `/<step-id>/`，选择页是 `/choose/<fork-id>/`，常见问题是 `/faq/<faq-id>/`，完成页是 `/done/`。`step-id` 是英文 kebab-case，也是步骤文件的文件名。每个步骤在 `route.yaml` 里只属于一个位置（普通项，或某个分叉点的一个 `branch` 段里的一个或几个选项），所以只看 URL 就能知道它属于哪个分叉点的哪几个选项（S5）。
+
+> 2026-10-13 修订：步骤地图 v0.2 出现方案一、二共用的步骤，把“只出现一次”放宽为“只属于一个 `branch` 段”。共享步骤不复制成两个 URL。此时还没有发布任何 URL，不涉及跳转。
 
 ## Considered Options
 
