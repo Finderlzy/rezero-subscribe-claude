@@ -11,7 +11,7 @@
 | 改代码结构、接口、目录 | [docs/architecture.md](docs/architecture.md)、[docs/adr/](docs/adr/) |
 | 改页面或样式 | [docs/design.md](docs/design.md)：设计令牌、页面结构、拒绝清单 |
 | 选依赖 | [docs/reuse-research.md](docs/reuse-research.md) |
-| 选任务、看顺序和档位 | [docs/implementation-plan.md](docs/implementation-plan.md)：里程碑、依赖、任务（Issues 发布前草稿也在这里） |
+| 选任务、看顺序和档位 | [docs/implementation-plan.md](docs/implementation-plan.md)：里程碑、依赖和 Issue 链接；任务范围与状态以 GitHub Issues 为准 |
 
 ## 项目结构（计划，详见架构 §6）
 
