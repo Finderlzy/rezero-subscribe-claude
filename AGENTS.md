@@ -1,0 +1,48 @@
+# 仓库指南
+
+「Re:从零开始订阅 claude」是把《如何订阅claude》拆成分步引导的静态网站。当前状态：需求、架构和设计已定稿，**还没有源码**；下文标“计划”的部分由首个实施任务建立，建立后把这里的“计划”改成现状。
+
+## 文档入口
+
+| 何时读 | 文档 |
+| --- | --- |
+| 任何任务前 | [CONTEXT.md](CONTEXT.md)：术语（步骤、路线、分叉点、操作视图……），命名和文案要用这里的词 |
+| 判断做不做、怎么验收 | [docs/requirements.md](docs/requirements.md)：范围、三级边界、FR/AC 编号 |
+| 改代码结构、接口、目录 | [docs/architecture.md](docs/architecture.md)、[docs/adr/](docs/adr/) |
+| 改页面或样式 | [docs/design.md](docs/design.md)：设计令牌、页面结构、拒绝清单 |
+| 选依赖 | [docs/reuse-research.md](docs/reuse-research.md) |
+
+## 项目结构（计划，详见架构 §6）
+
+- `src/content/`：内容。`route.yaml` 是路线图（章节、分叉点、步骤顺序），`steps/<step-id>.md` 每步一个文件，另有 `choices/`、`faq/`、`pages/`。截图放在 `src/assets/screenshots/`。
+- `src/lib/`：纯逻辑模块，单元测试放在旁边（`*.test.ts`）。其中 `content/` 是 M1，`route/` 是 M2，`reader-state/` 是 M4。
+- `src/pages/`、`src/layouts/`、`src/components/`、`src/styles/`：页面（M3）。
+- `tests/e2e/`：Playwright 测试，文件按验收编号命名，如 `ac-03-branch-merge.spec.ts`；`tests/fixtures/`：故意写坏的内容。
+- `docs/`：文档；新的难以逆转的决策写进 `docs/adr/NNNN-slug.md`。一次性的开发脚本放在 `scripts/`。
+
+## 构建、测试与开发命令（计划）
+
+Node ≥ 22.12，使用 npm。`npm run dev`、`npm run build`（含全部内容校验，可用 `BASE_PATH=/sub/` 生成子路径版本）、`npm test`（Vitest）、`npm run test:e2e`（Playwright）、`npm run check`（提交前运行）。脚手架建立前，这些命令都不存在。
+
+## 代码风格与命名
+
+- TypeScript（固定 6.x）、原生 CSS，不引入 UI 框架和 CSS 框架。颜色、间距只用 `src/styles/tokens.css` 里的令牌。
+- 步骤、分叉点、常见问题的标识用英文 kebab-case，同时也是文件名和 URL。**已发布的标识不能改**（ADR-0002）。
+- 原理版独有的内容写进 `> [!why]` 块（ADR-0003）。迁移原文章时只拆分和排版，不改命令、链接、优惠码、商家。
+
+## 测试指南
+
+- 路线、内容解析、本机状态用单元测试覆盖；每条 AC 至少有一个 e2e 用例或写明的人工核对方式。
+- 内容出错时，构建必须失败。**不许放宽校验或删断言来让检查通过。**
+
+## 安全
+
+不提交凭据、真实服务器 IP、节点链接、面板账号；截图要先打码再入库。页面不加载统计脚本和第三方字体。
+
+## 提交与合并
+
+提交信息用中文祈使句，概括本次改动，例如“新增路线图校验”。
+
+```
+合并策略: auto   # auto：验收通过后自动合并 main | confirm：推送分支后等确认再合并 | pr：走 PR
+```
