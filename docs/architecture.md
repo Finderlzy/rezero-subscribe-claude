@@ -3,11 +3,11 @@
 - 状态：v0.1 定稿（2026-10-13），没有阻塞决策；待定事项见 §10
 - 输入：[术语](../CONTEXT.md)、[需求 v0.1](requirements.md)、[复用调研](reuse-research.md)、[界面设计契约](design.md)
 - 决策记录：[ADR-0001 Astro 静态站 + 自建路线图](adr/0001-astro-static-site-with-own-route-map.md)、[ADR-0002 URL 规则](adr/0002-url-scheme.md)、[ADR-0003 原理内容内嵌为 why 块](adr/0003-principle-content-as-why-callouts.md)
-- 现状：仓库里只有文档和项目级 Skill。下文的目录、依赖和命令都还**没有落地**，标“计划”的部分由首个实施任务创建。
+- 现状：工程脚手架、依赖和 §7 的命令已由 #1 建立（版本以 `package-lock.json` 为准）；其余标“计划”的目录和模块由后续任务创建。
 
 ## 1. 技术栈与选型理由
 
-| 项 | 选择（计划） | 理由 / 核实来源 |
+| 项 | 选择 | 理由 / 核实来源 |
 | --- | --- | --- |
 | 运行时 | Node ≥ 22.12（本机 24.21.0），npm | Astro 7 要求 Node ≥ 22.12（npm 元数据）；npm 随 Node 自带，作者不用再装其他工具 |
 | 框架 | Astro 7.3.x，`output: 'static'`，不用文档主题 | 见 [ADR-0001](adr/0001-astro-static-site-with-own-route-map.md)。内容集合 + Zod 校验 frontmatter；页面默认不带 JS；`<script>` 会打包成本地文件，满足 NFR-03 |
@@ -182,7 +182,7 @@ function createReaderStore(storage: Storage | null): ReaderStore;
   1. Zod 校验 frontmatter，缺少必填项时报出文件；
   2. Obsidian 插件校验双链和图片，报出文件和行号；
   3. `buildRouteMap` 校验路线图。
-- 配置（计划）：`output: 'static'`、`build.format: 'directory'`、`trailingSlash: 'always'`、`base: process.env.BASE_PATH ?? '/'`、`site: process.env.SITE_URL`（可选）。站内链接一律通过 `withBase()` 生成，不手写以 `/` 开头的路径。
+- 配置（已建立）：`output: 'static'`、`build.format: 'directory'`、`trailingSlash: 'always'`、`base: process.env.BASE_PATH ?? '/'`、`site: process.env.SITE_URL`（可选）。站内链接一律通过 `withBase()` 生成，不手写以 `/` 开头的路径。
 - 禁止通过放宽 Zod 规则、跳过校验来让构建通过（三级边界 Never）。
 
 ## 4. URL 规则
@@ -205,7 +205,7 @@ function createReaderStore(storage: Storage | null): ReaderStore;
 3. **页面脚本运行**：调用 M4 的 `read()`，存储为空或不可用时返回默认值；再调用 `view(at, stored)`。结果和构建时一样，所以链接不需要改写。最后写入 `lastStep`，以及 `choices.node-plan = plan-3`。
 4. **读者到达 `/choose/desktop-proxy/`**：这个页面构建时写的是默认路线，上一步指向方案一的 `run-script`。页面脚本按本机保存的 `plan-3` 重新计算，把“上一步”改写为 `plan3-buy-node`（AC-03）。
 
-## 6. 目录结构（计划）
+## 6. 目录结构（`src/content/`、`src/lib/` 下的模块和 `tests/fixtures/` 为计划，其余已由 #1 建立）
 
 ```
 .
@@ -239,12 +239,12 @@ function createReaderStore(storage: Storage | null): ReaderStore;
 - 构建输出 `dist/`、Astro 缓存 `.astro/`、`node_modules/`、`test-results/`、`playwright-report/`、`coverage/` 都不提交。截图和报告属于临时产物，统一放在这些目录里，不散落到其他地方。
 - **版本来源**：`package.json` 的 `version`，按 SemVer 维护，脚手架建立时从 `0.1.0` 开始。
 
-## 7. 命令（计划，脚手架建立后以 `package.json` 为准）
+## 7. 命令（已由 #1 建立，以 `package.json` 为准）
 
 | 命令 | 作用 |
 | --- | --- |
 | `npm run dev` | 本地开发服务器 |
-| `npm run build` | 构建到 `dist/`，同时执行全部内容校验；`BASE_PATH=/sub/ npm run build` 生成子路径版本 |
+| `npm run build` | 构建到 `dist/`，同时执行全部内容校验（校验由 #4 起接入）；`BASE_PATH=/sub/ npm run build` 生成子路径版本 |
 | `npm run preview` | 预览构建产物 |
 | `npm test` | Vitest 单元测试 |
 | `npm run test:e2e` | 构建后运行 Playwright 测试（360 和 1280 两种视口） |

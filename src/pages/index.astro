@@ -1,0 +1,33 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout>
+  <main class="home">
+    <h1 class="home-title">Re:从零开始订阅 claude</h1>
+    <p class="home-subtitle" lang="en">Re:Zero − Starting Life with Claude</p>
+  </main>
+</BaseLayout>
+
+<style>
+  .home {
+    max-width: var(--measure);
+    margin: 0 auto;
+    padding: var(--space-7) var(--space-4);
+  }
+
+  .home-title {
+    margin: 0;
+    font-size: var(--fs-home-title);
+    line-height: var(--lh-home-title);
+    font-weight: 700;
+  }
+
+  .home-subtitle {
+    margin: var(--space-2) 0 0;
+    color: var(--text-muted);
+    font-size: var(--fs-meta);
+    line-height: var(--lh-meta);
+    font-weight: 500;
+  }
+</style>

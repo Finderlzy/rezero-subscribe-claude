@@ -1,0 +1,7 @@
+/* 全站基础：只放系统字体栈和页面底色，排版细节留给后续任务。 */
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+}

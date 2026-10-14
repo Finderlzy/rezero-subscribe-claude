@@ -1,0 +1,25 @@
+---
+import '../styles/tokens.css';
+import '../styles/base.css';
+
+interface Props {
+  /** 页面自身的标题；省略时（首页）只用站名。 */
+  title?: string;
+}
+
+const SITE_NAME = 'Re:从零开始订阅 claude';
+const { title } = Astro.props;
+const fullTitle = title ? `${title} - ${SITE_NAME}` : SITE_NAME;
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>
