@@ -36,6 +36,13 @@ const DEFAULT_ROUTE = [
   '/plan1-free-residential-ip/',
   '/ssh-connect/',
   '/run-script/',
+  '/choose/desktop-proxy/',
+  '/v2rayn-import/',
+  '/v2rayn-tun/',
+  '/v2rayn-dns/',
+  '/webrtc/',
+  '/ipv6/',
+  '/desktop-timezone/',
   '/check-ip-quality/',
   '/done/',
 ];
@@ -90,7 +97,7 @@ for (const [name, disable] of DISABLERS) {
       await page.waitForLoadState();
       await expectScriptRan(page);
       const nav = page.getByRole('navigation', { name: '上一步和下一步' });
-      await expect(nav.getByRole('link', { name: /下一步.*检查 IP 质量/ })).toHaveAttribute('href', /\/check-ip-quality\/$/);
+      await expect(nav.getByRole('link', { name: /下一步.*你用哪个电脑代理软件/ })).toHaveAttribute('href', /\/choose\/desktop-proxy\/$/);
       expect(errors).toEqual([]);
     });
 

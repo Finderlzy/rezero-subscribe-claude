@@ -20,7 +20,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Finderlzy/reality-setup/v1.2
 4. 最后会打印两个节点，**通过剪贴板**或扫二维码导入代理软件，**不要发给别人**：
    - **主节点**：`vless://` 开头的链接，平时用这个。忘了就运行 `cat /root/vless.txt`。
    - **备用节点**：`hysteria2://` 开头的链接，主节点连不上或很慢时换它。忘了就运行 `cat /root/hy2.txt`。
-   - v2rayN：配置项 → 从剪贴板导入；手机 Shadowrocket 也是从剪贴板导入。用 Clash Verge 的看“下载 Clash Verge 并导入节点”。
+   - v2rayN：配置项 → 从剪贴板导入；手机 Shadowrocket 也是从剪贴板导入。用 Clash Verge 的看[[clash-verge-import]]。
 5. 最后打印的“面板”几行**截图保存**，排查问题时要用。
 6. 商家后台有防火墙/安全组的话，放行 **TCP 443 和 UDP 443**。
 

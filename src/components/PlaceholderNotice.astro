@@ -1,0 +1,38 @@
+---
+/**
+ * 内容待补面板（FR-21，design §4.7）：中性面板写“这一步的内容待补”，下面放原文章里已有的提示；不画插图。
+ * 步骤正文里原文已有的部分照常显示在面板下面，作者补写时只替换内容文件。
+ * 它经 slot 渲染在 StepLayout 的 `.prose` 里面，靠 scoped 样式压过 `.prose p` 的外边距；改 prose.css 时留意。
+ * 用 role="note" 而不是 <aside>：它说明本页正文的状态，不是附属内容，也不该成为 <main> 里的地标。
+ */
+interface Props {
+  /** frontmatter 的 placeholderHint：原文章里已有的提示 */
+  hint?: string | undefined;
+}
+
+const { hint } = Astro.props;
+---
+
+<div class="placeholder-notice" role="note" aria-labelledby="placeholder-title">
+  <p class="placeholder-title" id="placeholder-title">这一步的内容待补</p>
+  {hint && <p class="placeholder-hint">{hint}</p>}
+</div>
+
+<style>
+  .placeholder-notice {
+    margin: 0 0 var(--space-5);
+    padding: var(--space-3) var(--space-4);
+    background: var(--surface);
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-panel);
+  }
+
+  .placeholder-title {
+    margin: 0;
+    font-weight: 600;
+  }
+
+  .placeholder-hint {
+    margin: var(--space-2) 0 0;
+  }
+</style>

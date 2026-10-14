@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
-// AC-02（FR-10、FR-11，第一章部分）：从“开始之前”沿默认路线一直点“下一步”，依次经过方案一的四步和
-// “检查 IP 质量”，最后到完成页。第二到四章和手机章节迁入后，这条路线由对应任务接着补长。
+// AC-02（FR-10、FR-11，前五章部分）：从“开始之前”沿默认路线一直点“下一步”，依次经过方案一的四步、
+// v2rayN、防泄漏、电脑改时区和“检查 IP 质量”，最后到完成页。手机章节迁入后，这条路线由对应任务接着补长。
 // 导航在构建时写进 HTML（design §5），所以禁用 JS 走一遍。
 test.use({ javaScriptEnabled: false });
 
@@ -14,10 +14,17 @@ const DEFAULT_ROUTE: [string, string, string][] = [
   ['/plan1-free-residential-ip/', '白嫖住宅 IP', '一、准备住宅 IP · 第 2 步，共 4 步'],
   ['/ssh-connect/', '连上服务器', '一、准备住宅 IP · 第 3 步，共 4 步'],
   ['/run-script/', '运行脚本', '一、准备住宅 IP · 第 4 步，共 4 步'],
+  ['/choose/desktop-proxy/', '你用哪个电脑代理软件？', '二、电脑代理'],
+  ['/v2rayn-import/', '下载 v2rayN 并导入节点', '二、电脑代理 · 第 1 步，共 2 步'],
+  ['/v2rayn-tun/', '开 tun 模式并固定节点', '二、电脑代理 · 第 2 步，共 2 步'],
+  ['/v2rayn-dns/', '防 DNS 泄漏', '三、防泄漏 · 第 1 步，共 3 步'],
+  ['/webrtc/', '防 WebRTC 泄漏', '三、防泄漏 · 第 2 步，共 3 步'],
+  ['/ipv6/', '防 IPv6 泄漏', '三、防泄漏 · 第 3 步，共 3 步'],
+  ['/desktop-timezone/', '电脑改时区', '四、电脑改时区 · 第 1 步，共 1 步'],
   ['/check-ip-quality/', '检查 IP 质量', '五、检查 IP 质量 · 第 1 步，共 1 步'],
 ];
 
-test('从“开始之前”一直点“下一步”，经过方案一和“检查 IP 质量”到完成页', async ({ page }) => {
+test('从“开始之前”一直点“下一步”，经过方案一、v2rayN 和“检查 IP 质量”到完成页', async ({ page }) => {
   await page.goto('./before-you-start/');
   const nav = page.getByRole('navigation', { name: '上一步和下一步' });
 
