@@ -167,11 +167,20 @@ function pathOf(stop: Stop): string;
 ```ts
 interface ReaderState { lastStep?: StepId; choices: Choices; view: 'operation' | 'principle'; visited: StepId[] }
 interface ReaderStore { read(): ReaderState; write(patch: Partial<ReaderState>): void; clear(): void }
-function createReaderStore(storage: Storage | null): ReaderStore;
+interface ReaderStoreOptions {
+  isKnownStep?: (id: StepId) => boolean;                      // 步骤是否仍在路线图里
+  isKnownChoice?: (fork: ForkId, option: OptionId) => boolean; // 选项是否仍在路线图里
+}
+function createReaderStore(storage: Storage | null, options?: ReaderStoreOptions): ReaderStore;
+/** 安全地取 localStorage：没有或访问就抛异常时返回 null */
+function getLocalStorage(): Storage | null;
 ```
 
+M4 不依赖 M2：`StepId`、`Choices` 等在 M4 里是同义的字符串别名；标识过滤由调用方（M3 页面脚本）用 `RouteData` 构造 `options` 传入，不传时接受任何非空字符串。
+
 - 存储接缝有两个适配器：`localStorage` 和内存。`localStorage` 不可用、读写时抛异常（无痕模式、禁用存储）时，自动换成内存适配器，不报错（异常分支、AC-18）。测试也用内存适配器。
-- 存储键是 `rezero-subscribe-claude:v1`，值是 JSON。读出来的数据如果格式不对，或者里面的标识已经不在路线图里，就丢掉这一项，用默认值代替。
+- 存储键是 `rezero-subscribe-claude:v1`，值是 JSON。读出来的数据如果格式不对，或者里面的标识已经不在路线图里，就丢掉这一项，用默认值代替（值不是 JSON 对象时整体用默认值；某字段类型不对只丢该字段；`view` 默认 `operation`；`visited` 去重）。
+- `write` 是合并：patch 里没有、为 `undefined` 或不合法的字段保持原值；`choices` 按分叉点合并，`visited` 与已有记录合并去重。
 - 写入时机：打开步骤页时，写 `lastStep`、`visited`，以及当前页所属分支的选择；在选择页或目录里改选项时，写 `choices`；切换视图时，写 `view`。“清除进度”调用 `clear()`（FR-51）。
 
 ### M5 构建（`astro.config.mjs`、`package.json`）
