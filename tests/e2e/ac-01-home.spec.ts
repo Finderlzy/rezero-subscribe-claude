@@ -25,11 +25,11 @@ test.describe('AC-01 首页', () => {
   });
 });
 
-// 导航在构建时写进 HTML（FR-11、design §5）：禁用 JS 也能从“开始之前”顺着“下一步”走到完成页。
+// 导航在构建时写进 HTML（FR-11、design §5）：禁用 JS 也能顺着“下一步”往下走。走完整条默认路线见 ac-02。
 test.describe('禁用 JS 时的导航', () => {
   test.use({ javaScriptEnabled: false });
 
-  test('从“开始之前”点两次“下一步”到完成页，上一步指回前一步', async ({ page }) => {
+  test('从“开始之前”点“下一步”到“整体思路”，上一步指回前一步，再往下是节点方案选择页', async ({ page }) => {
     await page.goto('./before-you-start/');
     const nav = page.getByRole('navigation', { name: '上一步和下一步' });
     await expect(nav.getByRole('link', { name: /上一步/ })).toHaveCount(0);
@@ -39,10 +39,6 @@ test.describe('禁用 JS 时的导航', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('整体思路');
     await expect(page.getByText('开始 · 第 2 步，共 2 步')).toBeVisible();
     await expect(nav.getByRole('link', { name: /上一步.*开始之前/ })).toHaveAttribute('href', /\/before-you-start\/$/);
-
-    await nav.getByRole('link', { name: /下一步.*完成/ }).click();
-    await expect(page).toHaveURL(/\/done\/$/);
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('这条路线走完了');
-    await expect(page.getByRole('link', { name: '重新开始' })).toHaveAttribute('href', /\/before-you-start\/$/);
+    await expect(nav.getByRole('link', { name: /下一步.*准备住宅 IP/ })).toHaveAttribute('href', /\/choose\/node-plan\/$/);
   });
 });

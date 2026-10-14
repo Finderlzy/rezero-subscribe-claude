@@ -3,7 +3,7 @@
 - 状态：v0.1 定稿（2026-10-13），没有阻塞决策；待定事项见 §10
 - 输入：[术语](../CONTEXT.md)、[需求 v0.1](requirements.md)、[复用调研](reuse-research.md)、[界面设计契约](design.md)
 - 决策记录：[ADR-0001 Astro 静态站 + 自建路线图](adr/0001-astro-static-site-with-own-route-map.md)、[ADR-0002 URL 规则](adr/0002-url-scheme.md)、[ADR-0003 原理内容内嵌为 why 块](adr/0003-principle-content-as-why-callouts.md)
-- 现状：工程脚手架、依赖和 §7 的命令已由 #1 建立（版本以 `package-lock.json` 为准）；M1、M2、M4 已实现（#4、#3、#7），#5 接通了“开始”章的页面和构建时装配 `loadSite()`；其余标“计划”的部分由后续任务创建。
+- 现状：工程脚手架、依赖和 §7 的命令已由 #1 建立（版本以 `package-lock.json` 为准）；M1、M2、M4 已实现（#4、#3、#7），#5 接通了“开始”章的页面和构建时装配 `loadSite()`，#6 迁入第一章并加上选择页 `/choose/<fork>/`；其余标“计划”的部分由后续任务创建。
 
 ## 1. 技术栈与选型理由
 
@@ -46,7 +46,7 @@
 
 **职责**：定义内容文件的格式；加载并校验元数据；把 Obsidian 写法转换成 HTML。
 
-**内容文件**（`route.yaml`、`steps/`、`pages/` 已由 #5 建立，`choices/`、`faq/` 随迁移任务建立）
+**内容文件**（`route.yaml`、`steps/`、`pages/` 已由 #5 建立，`choices/` 由 #6 建立，`faq/` 随迁移任务建立）
 
 | 路径 | 内容 | 元数据（Zod 校验） |
 | --- | --- | --- |
@@ -57,7 +57,7 @@
 | `src/content/pages/home.md`、`done.md` | 首页前言；完成页的致谢、后记、联系方式 | `title` |
 | `src/assets/screenshots/` | 截图（从博客的 `09附件/` 复制过来，FR-04） | — |
 
-**route.yaml 格式**（下例是完整路线图的样子；目前只迁入“开始”章）：章节和分叉点的唯一来源，满足 FR-02 中“所属章节、所属路线”的要求。步骤文件不重复写这两项，避免两处数据不一致。
+**route.yaml 格式**（下例是完整路线图的样子；目前迁入了“开始”、第一章和“五、检查 IP 质量”）：章节和分叉点的唯一来源，满足 FR-02 中“所属章节、所属路线”的要求。步骤文件不重复写这两项，避免两处数据不一致。
 
 ```yaml
 defaults: { node-plan: plan-1, desktop-proxy: v2rayn, phone: iphone }  # 默认路线（Ask first）
@@ -275,8 +275,8 @@ M4 不依赖 M2：`StepId`、`Choices` 等在 M4 里是同义的字符串别名�
 │   │   ├── reader-state/            M4：reader-store.ts（+ *.test.ts）
 │   │   └── site.ts                  构建时装配：loadSite()、assembleRoute()（+ site.test.ts）
 │   ├── layouts/                     BaseLayout、StepLayout（内嵌 RouteData；head 里的视图脚本由视图任务补上）
-│   ├── components/                  M3 组件：StepNav（已有）；Toc、ViewToggle、VideoFacade、CodeCopy、ImageZoom …（计划）
-│   ├── pages/                       index、[step]、done、404（已有）；choose/[fork]、faq/index、faq/[faq]（计划）
+│   ├── components/                  M3 组件：StepNav、ChoiceOption（已有）；Toc、ViewToggle、VideoFacade、CodeCopy、ImageZoom …（计划）
+│   ├── pages/                       index、[step]、choose/[fork]、done、404（已有）；faq/index、faq/[faq]（计划）
 │   └── styles/                      tokens.css、base.css、prose.css
 ├── public/                          直接复制的文件（favicon 等）
 └── tests/

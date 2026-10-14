@@ -1,6 +1,6 @@
 # 仓库指南
 
-「Re:从零开始订阅 claude」是把《如何订阅claude》拆成分步引导的静态网站。当前状态：需求、架构和设计已定稿；Astro 工程脚手架和命令（#1）、内容格式 M1（#4）、路线 M2（#3）、本机状态 M4（#7）已建立，“开始”章已走通（#5）；其余内容和页面由后续 Issue 逐步实现。下文标“计划”的目录由对应任务建立，建立后改成现状。
+「Re:从零开始订阅 claude」是把《如何订阅claude》拆成分步引导的静态网站。当前状态：需求、架构和设计已定稿；Astro 工程脚手架和命令（#1）、内容格式 M1（#4）、路线 M2（#3）、本机状态 M4（#7）已建立，“开始”章已走通（#5），第一章和节点方案选择页已迁入（#6）；其余内容和页面由后续 Issue 逐步实现。下文标“计划”的目录由对应任务建立，建立后改成现状。
 
 ## 文档入口
 
@@ -17,7 +17,7 @@
 
 工程配置在仓库根目录（`astro.config.mjs`、`tsconfig.json`、`vitest.config.ts`、`playwright.config.ts`）。站内链接一律经 `src/lib/with-base.ts` 的 `withBase()` 生成。标“计划”的目录由后续任务建立：
 
-- `src/content/`（集合定义在 `src/content.config.ts`）：内容。`route.yaml` 是路线图（章节、分叉点、步骤顺序），`steps/<step-id>.md` 每步一个文件，另有 `choices/`、`faq/`（随迁移任务建立）和 `pages/`（首页 `home.md`、完成页 `done.md`）。迁移规则和逐节核对记录在 [docs/migration-checklist.md](docs/migration-checklist.md)。截图放在 `src/assets/screenshots/`（已建立），嵌入写裸文件名 `![[文件名|宽度]]`。
+- `src/content/`（集合定义在 `src/content.config.ts`）：内容。`route.yaml` 是路线图（章节、分叉点、步骤顺序），`steps/<step-id>.md` 每步一个文件，另有 `choices/`（选择页，#6 已建立）、`faq/`（随迁移任务建立）和 `pages/`（首页 `home.md`、完成页 `done.md`）。迁移规则和逐节核对记录在 [docs/migration-checklist.md](docs/migration-checklist.md)。截图放在 `src/assets/screenshots/`（已建立），嵌入写裸文件名 `![[文件名|宽度]]`。
 - `src/lib/`：纯逻辑模块，单元测试放在旁边（`*.test.ts`）。其中 `content/` 是 M1，`route/` 是 M2，`reader-state/` 是 M4。
 - `src/pages/`、`src/layouts/`、`src/components/`、`src/styles/`：页面（M3）。
 - `tests/e2e/`：Playwright 测试，文件按验收编号命名，如 `ac-03-branch-merge.spec.ts`；`tests/fixtures/`：故意写坏的内容。

@@ -1,8 +1,22 @@
 # 路线图：章节、分叉点和步骤顺序的唯一来源（架构 §3 M1、需求 §5.2）。
 # 步骤标识是 steps/<id>.md 的文件名，也是 URL；已发布的标识不能改（ADR-0002）。
-# 目前只迁入“开始”章；清理 Claude Code 配置和后面的章节、分叉点由后续迁移任务补上。
-defaults: {}
+# 目前迁入了“开始”“一、准备住宅 IP”和“五、检查 IP 质量”；清理 Claude Code 配置、第二到四章和
+# 后面的章节、分叉点由后续迁移任务补上（第二到四章插在第一章和第五章之间，#10）。
+defaults: { node-plan: plan-1 }
 chapters:
   - id: start
     title: 开始
     items: [before-you-start, overview]
+  - id: residential-ip
+    title: 一、准备住宅 IP
+    items:
+      - choose: node-plan
+      - branch: node-plan
+        options:
+          plan-1: [plan1-buy-vps, plan1-free-residential-ip, ssh-connect, run-script]
+          plan-2: [plan2-buy-residential-vps, ssh-connect, run-script]
+          plan-3: [plan3-buy-node]
+  # 暂时充当 F1 的汇合点；第二到四章迁入后，汇合点变成电脑代理软件选择页。
+  - id: ip-quality
+    title: 五、检查 IP 质量
+    items: [check-ip-quality]

@@ -1,0 +1,111 @@
+---
+/**
+ * 选择页上的一个选项（design §4.2，FR-12）：整块是一个链接，进入这个选项的第一步。
+ * 原文的对比表拆进各个选项块（链路、折腾程度、适合谁），手机上不用横向滚动表格。
+ * 记录选择、标“当前选择”由本机选择任务（#8）补上；这里只是普通链接。
+ */
+interface Props {
+  href: string;
+  title: string;
+  path?: string | undefined;
+  effort?: string | undefined;
+  audience?: string | undefined;
+  /** 默认路线上的选项，右上角标“默认” */
+  isDefault: boolean;
+}
+
+const { href, title, path, effort, audience, isDefault } = Astro.props;
+const facts = [
+  ['链路', path],
+  ['折腾程度', effort],
+  ['适合谁', audience],
+].filter((fact): fact is [string, string] => fact[1] !== undefined);
+---
+
+<a class="choice-option" href={href}>
+  <span class="choice-option-head">
+    <span class="choice-option-title">{title}</span>
+    {isDefault && <span class="choice-option-badge">默认</span>}
+  </span>
+  {
+    facts.length > 0 && (
+      <dl class="choice-option-facts">
+        {facts.map(([term, value]) => (
+          <div>
+            <dt>{term}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+      </dl>
+    )
+  }
+</a>
+
+<style>
+  .choice-option {
+    display: block;
+    padding: var(--space-4);
+    background: var(--surface);
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-panel);
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  .choice-option:hover {
+    border-color: var(--accent);
+  }
+
+  .choice-option-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  .choice-option-title {
+    color: var(--accent);
+    font-size: var(--fs-h3);
+    line-height: var(--lh-heading);
+    font-weight: 600;
+  }
+
+  .choice-option-badge {
+    flex: none;
+    padding: 0 var(--space-2);
+    border: var(--border-width) solid var(--accent);
+    border-radius: var(--radius-control);
+    color: var(--accent);
+    font-size: var(--fs-meta);
+    line-height: var(--lh-meta);
+    font-weight: 600;
+  }
+
+  .choice-option-facts {
+    display: grid;
+    gap: var(--space-1);
+    margin: var(--space-3) 0 0;
+    font-size: var(--fs-meta);
+    line-height: var(--lh-meta);
+  }
+
+  .choice-option-facts div {
+    display: flex;
+    gap: var(--space-2);
+  }
+
+  .choice-option-facts dt {
+    flex: none;
+    color: var(--text-muted);
+  }
+
+  .choice-option-facts dt::after {
+    content: "：";
+  }
+
+  .choice-option-facts dd {
+    margin: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+</style>

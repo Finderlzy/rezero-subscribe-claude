@@ -6,18 +6,22 @@ import '../styles/prose.css';
 
 /**
  * 步骤页骨架（design §4.1）：顶部“章节名 · 第 n 步，共 m 步”和标题，正文，底部上一步/下一步。
+ * 选择页也用它（design §4.2）：不计入步数，顶部只写章节名（传 `chapter`，`progress` 为 null）。
  * 页面末尾内嵌 RouteData，供页面脚本按本机选择重新计算导航（架构 §3 M3；读取由后续任务实现）。
  */
 interface Props {
   title: string;
   progress: Progress | null;
+  /** 没有步数时（选择页）顶部只显示的章节名 */
+  chapter?: string;
   prev: Stop | null;
   next: Stop;
   doneTitle: string;
   routeData: RouteData;
 }
 
-const { title, progress, prev, next, doneTitle, routeData } = Astro.props;
+const { title, progress, chapter, prev, next, doneTitle, routeData } = Astro.props;
+const meta = progress ? `${progress.chapter} · 第 ${progress.index} 步，共 ${progress.total} 步` : chapter;
 // 内嵌在 <script> 里的 JSON 不能出现 `</script>`，把 `<` 转义掉。
 const routeJson = JSON.stringify(routeData).replace(/</g, '\\u003c');
 ---
@@ -25,13 +29,7 @@ const routeJson = JSON.stringify(routeData).replace(/</g, '\\u003c');
 <BaseLayout title={title}>
   <main id="main" class="step">
     <header class="step-header">
-      {
-        progress && (
-          <p class="step-progress">
-            {progress.chapter} · 第 {progress.index} 步，共 {progress.total} 步
-          </p>
-        )
-      }
+      {meta && <p class="step-progress">{meta}</p>}
       <h1 class="step-title">{title}</h1>
     </header>
     <div class="prose">

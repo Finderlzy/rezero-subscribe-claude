@@ -16,6 +16,8 @@ export interface Site {
   start: Stop;
   /** 步骤条目，按标识查找 */
   steps: ReadonlyMap<string, CollectionEntry<'steps'>>;
+  /** 选择页条目，按分叉点标识查找 */
+  choices: ReadonlyMap<string, CollectionEntry<'choices'>>;
   /** 首页前言 `pages/home.md` */
   home: CollectionEntry<'pages'>;
   /** 完成页 `pages/done.md` */
@@ -102,6 +104,7 @@ async function readSite(): Promise<Site> {
     route,
     start: startOf(route),
     steps: new Map(steps.map((entry) => [entry.id, entry])),
+    choices: new Map(choices.map((entry) => [entry.id, entry])),
     home,
     done,
   };
