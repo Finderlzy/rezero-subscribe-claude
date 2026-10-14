@@ -1,6 +1,8 @@
 ---
 import StepNav from '../components/StepNav.astro';
+import ViewToggle from '../components/ViewToggle.astro';
 import { progressText } from '../lib/nav-text';
+import { VIEW_BOOT_SCRIPT } from '../lib/reader-state/view-boot';
 import type { At, Progress, RouteData, Stop } from '../lib/route/types';
 import BaseLayout from './BaseLayout.astro';
 import '../styles/prose.css';
@@ -8,6 +10,7 @@ import '../styles/prose.css';
 /**
  * 步骤页骨架（design §4.1）：顶部“章节名 · 第 n 步，共 m 步”和标题，正文，底部上一步/下一步。
  * 选择页也用它（design §4.2）：不计入步数，顶部只写章节名（传 `chapter`，`progress` 为 null）。
+ * 顶部右侧是操作｜原理切换（design §4.3）；正文里没有 `[!why]` 块时，原理视图显示“这一步没有额外原理”（FR-31）。
  * 页面末尾内嵌 RouteData，页面脚本 route-enhance 按本机选择重新计算导航（架构 §3 M3）。
  */
 interface Props {
@@ -27,17 +30,24 @@ const { at, title, progress, chapter, prev, next, doneTitle, routeData } = Astro
 const meta = progress ? progressText(progress) : chapter;
 // 内嵌在 <script> 里的 JSON 不能出现 `</script>`，把 `<` 转义掉。
 const routeJson = JSON.stringify(routeData).replace(/</g, '\\u003c');
+// 先把正文渲染成 HTML，才知道里面有没有原理块（rehype-callouts 输出 data-callout="why"，格式由 AC-06 的 e2e 锁住）。
+// 代码块里的文字会被转义成 &quot;，不会误判。
+const body = await Astro.slots.render('default');
+const hasWhy = body.includes('data-callout="why"');
 ---
 
 <BaseLayout title={title}>
+  <script is:inline slot="head" set:html={VIEW_BOOT_SCRIPT} />
   <main id="main" class="step" data-route-at={JSON.stringify(at)}>
     <header class="step-header">
-      {meta && <p class="step-progress" data-route-progress>{meta}</p>}
+      <div class="step-topbar">
+        {meta && <p class="step-progress" data-route-progress>{meta}</p>}
+        <ViewToggle />
+      </div>
       <h1 class="step-title">{title}</h1>
     </header>
-    <div class="prose">
-      <slot />
-    </div>
+    {!hasWhy && <p class="no-why">这一步没有额外原理</p>}
+    <div class="prose" set:html={body} />
     <StepNav prev={prev} next={next} doneTitle={doneTitle} />
   </main>
   <script type="application/json" id="route-data" set:html={routeJson} />
@@ -45,8 +55,10 @@ const routeJson = JSON.stringify(routeData).replace(/</g, '\\u003c');
 
 <script>
   import { initRouteEnhance } from '../scripts/route-enhance';
+  import { initViewToggle } from '../scripts/view-toggle';
 
   initRouteEnhance(document);
+  initViewToggle(document);
 </script>
 
 <style>
@@ -56,8 +68,21 @@ const routeJson = JSON.stringify(routeData).replace(/</g, '\\u003c');
     padding: var(--space-6) var(--space-4) var(--space-7);
   }
 
-  .step-progress {
+  .step-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
     margin: 0 0 var(--space-2);
+  }
+
+  /* 没有进度文字时，切换控件仍靠右。 */
+  .step-topbar > :last-child {
+    margin-left: auto;
+  }
+
+  .step-progress {
+    margin: 0;
     color: var(--text-muted);
     font-size: var(--fs-meta);
     line-height: var(--lh-meta);

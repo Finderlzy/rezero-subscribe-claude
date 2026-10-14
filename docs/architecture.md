@@ -3,7 +3,7 @@
 - 状态：v0.1 定稿（2026-10-13），没有阻塞决策；待定事项见 §10
 - 输入：[术语](../CONTEXT.md)、[需求 v0.1](requirements.md)、[复用调研](reuse-research.md)、[界面设计契约](design.md)
 - 决策记录：[ADR-0001 Astro 静态站 + 自建路线图](adr/0001-astro-static-site-with-own-route-map.md)、[ADR-0002 URL 规则](adr/0002-url-scheme.md)、[ADR-0003 原理内容内嵌为 why 块](adr/0003-principle-content-as-why-callouts.md)
-- 现状：工程脚手架、依赖和 §7 的命令已由 #1 建立（版本以 `package-lock.json` 为准）；M1、M2、M4 已实现（#4、#3、#7），#5 接通了“开始”章的页面和构建时装配 `loadSite()`，#6 迁入第一章并加上选择页 `/choose/<fork>/`，#8 接上按本机选择改写导航的页面脚本 `src/scripts/route-enhance.ts`；其余标“计划”的部分由后续任务创建。
+- 现状：工程脚手架、依赖和 §7 的命令已由 #1 建立（版本以 `package-lock.json` 为准）；M1、M2、M4 已实现（#4、#3、#7），#5 接通了“开始”章的页面和构建时装配 `loadSite()`，#6 迁入第一章并加上选择页 `/choose/<fork>/`，#8 接上按本机选择改写导航的页面脚本 `src/scripts/route-enhance.ts`，#9 接上操作/原理视图切换；其余标“计划”的部分由后续任务创建。
 
 ## 1. 技术栈与选型理由
 
@@ -198,6 +198,7 @@ function pathOf(stop: Stop): string;
 - **浏览器里**：布局用 `<script type="application/json">` 内嵌 `RouteData`（首期约 45 个步骤，几 KB）。页面脚本读取 M4 保存的选择，调用 `routeMapFromData(data).view(at, stored)`，再改写上一步/下一步链接、进度和目录状态。这种做法是渐进增强：没有 JS 时，页面就保持构建时写好的默认导航。
   - 实现（#8）：`src/scripts/route-enhance.ts` 由 `StepLayout` 加载，步骤页和选择页都运行。它从 `data-route-*` 挂载点读当前页（`<main data-route-at>`，`At` 的 JSON），改写 `[data-route-nav="prev|next"]` 的链接和目标标题、`[data-route-progress]` 的进度；文案由 `src/lib/nav-text.ts` 生成，与构建时同一份代码。选择页上每个选项的链接按“本机选择 + 这个选项”重算，本机保存的选项显示“当前选择”并标 `aria-current`（只看本机保存的：没点过选项、也没打开过这个分叉点的分支步骤时，默认选项不算选过；打开分支步骤会记下它所属的选项，见下文），点击时同步写入 `choices` 再跳转。打开步骤页时写入的内容由纯函数 `openPatch()` 决定：`lastStep`、`visited`，以及步骤所属分支的实际生效选项；普通步骤不写选择，没选过的分叉点继续跟随默认路线。从往返缓存恢复的页面（`pageshow` 且 `persisted`）重新计算一次。目录状态由目录任务接入。
 - **视图**：`<head>` 里放一段几十字节的内联脚本，在首次绘制前设置 `<html data-view="operation|principle">`，避免页面闪一下。`[!why]` 块的显示和隐藏只用 CSS 控制（[ADR-0003](adr/0003-principle-content-as-why-callouts.md)）。
+  - 实现（#9）：内联脚本是 `src/lib/reader-state/view-boot.ts` 的 `VIEW_BOOT_SCRIPT`，由 `StepLayout` 经 `BaseLayout` 的 `head` slot 放进 `<head>`；它只按 M4 的格式取 `view`，取不到或不合法时用 `operation`。切换控件是 `src/components/ViewToggle.astro`，放在步骤页和选择页标题上方的一行里（吸顶顶栏由目录任务统一安排）；按下状态由 CSS 按 `data-view` 画，没有 JS（没有 `data-view`）时整个隐藏。页面脚本 `src/scripts/view-toggle.ts` 处理点击、同步 `aria-pressed`、写 M4 的 `view`，并在每个原理块前插入提示行“为什么：<标题> · 在原理视图中查看”（点它切到原理视图并滚到该块）；提示行由脚本插入，所以没有 JS 时不显示。“这一步没有额外原理”在构建时决定：`StepLayout` 先渲染正文，HTML 里没有 `data-callout="why"` 才输出这一行，只在原理视图下显示。显示规则都在 `src/styles/prose.css` 末尾。
 - **视频门面**：不发任何外部请求。读者点击后才插入 iframe：B 站用 `player.bilibili.com/player.html?bvid=…`（参数在实施时实测），YouTube 用 `www.youtube-nocookie.com/embed/<id>`。播放器下方总有一行平台外链：浏览器无法可靠判断 iframe 有没有加载失败，所以这行链接一直显示（FR-42）。
 - **常见问题的“返回”**：根据 `?from=<step-id>` 查到步骤标题，再显示返回链接。参数里只有公开的步骤标识，没有个人数据。
 
@@ -273,12 +274,12 @@ M4 不依赖 M2：`StepId`、`Choices` 等在 M4 里是同义的字符串别名�
 │   ├── lib/
 │   │   ├── content/                 M1：schemas.ts、link-index.ts、remark-obsidian.ts、markdown.ts（管线配置与全量校验）、integration.ts（构建校验与占位清单集成）（+ *.test.ts、test-fixture.ts）
 │   │   ├── route/                   M2：route-map.ts、types.ts（+ route-map.test.ts、fixtures/sample-route.ts 测试用路线图）
-│   │   ├── reader-state/            M4：reader-store.ts（+ *.test.ts）
+│   │   ├── reader-state/            M4：reader-store.ts、view-boot.ts（视图内联脚本，#9）（+ *.test.ts）
 │   │   ├── nav-text.ts              导航文案（进度、目标标题），构建时和页面脚本共用（+ *.test.ts）
 │   │   └── site.ts                  构建时装配：loadSite()、assembleRoute()（+ site.test.ts）
-│   ├── scripts/                     M3 页面脚本：route-enhance.ts（按本机选择改写导航，#8；+ *.test.ts）
-│   ├── layouts/                     BaseLayout、StepLayout（内嵌 RouteData、加载 route-enhance；head 里的视图脚本由视图任务补上）
-│   ├── components/                  M3 组件：StepNav、ChoiceOption（已有）；Toc、ViewToggle、VideoFacade、CodeCopy、ImageZoom …（计划）
+│   ├── scripts/                     M3 页面脚本：route-enhance.ts（按本机选择改写导航，#8；+ *.test.ts）、view-toggle.ts（视图切换，#9）
+│   ├── layouts/                     BaseLayout（`head` slot）、StepLayout（内嵌 RouteData、视图内联脚本，加载 route-enhance 和 view-toggle）
+│   ├── components/                  M3 组件：StepNav、ChoiceOption、ViewToggle（已有）；Toc、VideoFacade、CodeCopy、ImageZoom …（计划）
 │   ├── pages/                       index、[step]、choose/[fork]、done、404（已有）；faq/index、faq/[faq]（计划）
 │   └── styles/                      tokens.css、base.css、prose.css
 ├── public/                          直接复制的文件（favicon 等）

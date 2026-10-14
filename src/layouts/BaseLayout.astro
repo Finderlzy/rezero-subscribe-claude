@@ -18,6 +18,7 @@ const fullTitle = title ? `${title} - ${SITE_NAME}` : SITE_NAME;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{fullTitle}</title>
+    <slot name="head" />
   </head>
   <body>
     <a class="skip-link" href="#main">跳到正文</a>

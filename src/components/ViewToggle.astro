@@ -1,0 +1,47 @@
+---
+/**
+ * 操作｜原理两段式切换（design §4.3，FR-30）。当前视图由 `<html data-view>` 决定：
+ * 首次绘制前由 head 里的内联脚本设好，CSS 按它画出按下状态；页面脚本 view-toggle
+ * 再同步 `aria-pressed`、处理点击。没有 JS 时没有 `data-view`，切换控件整个隐藏（design §5）。
+ */
+---
+
+<div class="view-toggle" role="group" aria-label="视图" data-view-toggle>
+  <button type="button" class="view-toggle-option" data-view-option="operation" aria-pressed="true">操作</button>
+  <button type="button" class="view-toggle-option" data-view-option="principle" aria-pressed="false">原理</button>
+</div>
+
+<style>
+  .view-toggle {
+    display: inline-flex;
+    flex: none;
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+  }
+
+  :global(:root:not([data-view])) .view-toggle {
+    display: none;
+  }
+
+  .view-toggle-option {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 var(--space-3);
+    border: 0;
+    border-radius: calc(var(--radius-control) - var(--border-width));
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: var(--fs-meta);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* 按下状态跟着 data-view 画，不等页面脚本同步 aria-pressed，避免首屏闪一下。 */
+  :global(:root:not([data-view='principle'])) .view-toggle-option[data-view-option='operation'],
+  :global(:root[data-view='principle']) .view-toggle-option[data-view-option='principle'] {
+    background: var(--accent);
+    color: var(--accent-contrast);
+  }
+</style>

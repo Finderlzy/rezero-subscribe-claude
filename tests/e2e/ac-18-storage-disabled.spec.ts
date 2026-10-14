@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 // AC-18（禁用本机存储部分）：浏览器禁用本机存储时，页面脚本换用内存保存状态，导航按默认路线
-// （加上当前页所属的选项）计算，页面不报错。找不到页的部分见 ac-18-not-found.spec.ts。
+// （加上当前页所属的选项）计算，视图切换照常生效，页面不报错。找不到页的部分见 ac-18-not-found.spec.ts。
 
 /** 两种“禁用”：访问 localStorage 本身就抛异常（Safari 禁用网站数据等），或读写时抛异常。 */
 const DISABLERS: [string, () => void][] = [
@@ -91,6 +91,23 @@ for (const [name, disable] of DISABLERS) {
       await expectScriptRan(page);
       const nav = page.getByRole('navigation', { name: '上一步和下一步' });
       await expect(nav.getByRole('link', { name: /下一步.*检查 IP 质量/ })).toHaveAttribute('href', /\/check-ip-quality\/$/);
+      expect(errors).toEqual([]);
+    });
+
+    // FR-30：存储不可用时视图从操作视图开始，切换在本页内照常生效（只是不保存）。
+    test('切换操作/原理视图照常生效、不报错', async ({ page }) => {
+      const errors = collectErrors(page);
+      await page.goto('./run-script/');
+      await expectScriptRan(page);
+      const why = page.locator('.prose .callout[data-callout="why"]');
+      const toggle = page.getByRole('group', { name: '视图' });
+
+      await expect(toggle.getByRole('button', { name: '操作' })).toHaveAttribute('aria-pressed', 'true');
+      await expect(why).toBeHidden();
+      await toggle.getByRole('button', { name: '原理' }).click();
+      await expect(why).toBeVisible();
+      await toggle.getByRole('button', { name: '操作' }).click();
+      await expect(why).toBeHidden();
       expect(errors).toEqual([]);
     });
   });

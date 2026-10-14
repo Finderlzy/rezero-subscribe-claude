@@ -41,6 +41,7 @@ export interface ReaderStoreOptions {
 
 export const READER_STATE_KEY = 'rezero-subscribe-claude:v1';
 
+// 改默认视图或视图取值时，同步 view-boot.ts 里的内联脚本（它不能导入本模块）。
 const DEFAULT_VIEW: View = 'operation';
 
 /** 存储接缝：只关心本站这一个键。 */

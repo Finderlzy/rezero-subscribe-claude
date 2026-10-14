@@ -1,6 +1,6 @@
 /*
  * 正文排版（design §3.2、§4.7）：步骤、首页前言、完成页里由 Markdown 渲染出的内容。
- * 代码复制、看大图、视图切换由各自的任务补上，这里只管排版。
+ * 代码复制、看大图由各自的任务补上。末尾是两种视图下原理块的显示规则（design §4.3）。
  */
 .prose > :first-child {
   margin-top: 0;
@@ -116,4 +116,54 @@
 
 .prose .callout-content > :last-child {
   margin-bottom: 0;
+}
+
+/*
+ * 两种视图（design §4.3，ADR-0003）：原理块只在 <html data-view="principle"> 下展开；
+ * 其他情况（操作视图、没有 JS 时没有 data-view）收起，由页面脚本插入的提示行代替。
+ */
+:root:not([data-view='principle']) .prose .callout[data-callout='why'],
+:root[data-view='principle'] .why-hint,
+:root:not([data-view='principle']) .no-why {
+  display: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-view='principle'] .prose .callout[data-callout='why'] {
+    animation: why-fade-in 150ms ease-out;
+  }
+}
+
+@keyframes why-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* 操作视图里原理块的位置只留一行提示，左侧竖线和原理块同色，点它切到原理视图。 */
+.prose .why-hint {
+  padding-left: var(--space-3);
+  border-left: 4px solid var(--why-rule);
+}
+
+.why-hint-button {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: var(--fs-meta);
+  line-height: var(--lh-meta);
+  text-align: left;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* 原理视图下，没有原理块的步骤显示这一行（FR-31）。它在 .prose 外面（StepLayout 标题下），和视图规则放在一起维护。 */
+.no-why {
+  margin: 0 0 var(--space-5);
+  color: var(--text-muted);
+  font-size: var(--fs-meta);
+  line-height: var(--lh-meta);
 }
