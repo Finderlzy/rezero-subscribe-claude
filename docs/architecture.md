@@ -24,7 +24,7 @@
 依据 [reuse-research.md](reuse-research.md)：
 
 - **采用为框架**：Astro 7（MIT）。上游版本以 `package-lock.json` 锁定的为准。
-- **采用为组件**：`@astrojs/markdown-remark`（MIT）、`rehype-callouts`（MIT，先核实能不能加自定义 `why` 类型，不能的话自己写一个 rehype 插件替代）。
+- **采用为组件**：`@astrojs/markdown-remark`（MIT）、`rehype-callouts`（MIT；已在 #2 实测能注册自定义 `why` 类型，见 [reuse-research.md §4.1](reuse-research.md)）。
 - **仅作参考**：Starlight（侧栏和分页的做法）、Material for MkDocs（博客现有写法）、lite-youtube-embed（门面模式）、Google Codelabs（每步一页 + 记住进度）、`@flowershow/remark-wiki-link`（双链语法解析）。
 - **自研**：路线图（M2）、Obsidian 双链与嵌入解析、视图切换、视频门面、目录、本机状态（M4）、全部页面与样式。
 
@@ -107,6 +107,12 @@ chapters:
 | `> [!caution]`、`> [!note]` | 两种视图都显示的提示框 | — |
 
 插件需要一份**链接索引**：步骤、常见问题、选择页的标识，以及截图文件名。索引由 `createLinkIndex(contentRoot)` 在加载配置时同步扫描文件名生成，不依赖内容集合，所以图片和链接校验不受页面渲染顺序影响。指向博客其他文章的双链，在迁移时就改成普通的外部链接（博客根地址 `https://finderlzy.github.io/Writing/`，迁移时逐条打开核对），插件不处理。原文的嵌入写成 `![[09附件/文件名|宽度]]`，迁移时去掉 `09附件/` 前缀，插件只接受裸文件名（文件名可以含空格和中文）。
+
+**管线实测结论**（#2，详见 [reuse-research.md §4.1](reuse-research.md)）：
+
+- `rehype-callouts` 在 `astro.config.mjs` 里注册 `why` 类型，输出 `data-callout="why"`，视图切换用 CSS 选择器 `[data-callout='why']`，不自写 rehype 插件；关闭库自带图标（`showIndicator: false`，design §3.3）。
+- 嵌入图片由插件生成 mdast `image` 节点，`url` 写成从 Markdown 文件到 `src/assets/screenshots/<文件名>` 的相对路径（经 `encodeURI`），宽度写进 `data.hProperties.width`；Astro 的 `remarkCollectImages` 在用户插件之后运行，会把它交给图片服务（输出 webp 并写上宽高）。截图因此放在 `src/assets/screenshots/`，不放 `public/`。文件名含空格和中文也能构建和访问。
+- 换成 unified 处理器后 Shiki 仍默认开启（`github-dark`，样式内联），构建产物不引用外部资源。
 
 ### M2 路线（`src/lib/route/`）
 
@@ -285,7 +291,7 @@ M4 不依赖 M2：`StepId`、`Choices` 等在 M4 里是同义的字符串别名�
 | --- | --- | --- | --- |
 | Q-01 | 部署位置和域名（需求遗留） | 交付阶段；`BASE_PATH` 已经同时支持根路径和子路径 | 否 |
 | A-01 | AC-15“任意子路径”按“构建时设置 `BASE_PATH`”理解：每个部署位置各构建一次，不做一份产物适配所有路径 | 想要一份产物放到任何路径都能用的话，所有链接都要改成相对路径，复杂度会明显增加 | 否（已按推荐选定；有异议请提出） |
-| A-02 | `rehype-callouts` 能否加自定义 `why` 类型；remark 插件生成的图片能否进入 Astro 图片处理流程；B 站嵌入参数；Shiki 是否默认开启 | 首个切片里核实；不行就用 [reuse-research.md §4](reuse-research.md) 里写好的替代方案 | 否 |
+| A-02 | B 站嵌入参数（`bvid`、是否自动播放）没有官方文档 | 在 #17 里用浏览器实测。原列的 `why` Callout、插件图片进 Astro 图片处理、Shiki 三项已在 #2 验证可行（[reuse-research.md §4.1](reuse-research.md)，结论见 §3 M1） | 否 |
 | A-03 | 视觉令牌的具体色值要用真实内容截图复核（P2） | [design.md](design.md) | 否 |
 | Q-02、Q-07 | 需求遗留：F2 是否增加选项；联系方式的具体内容 | 只影响内容和 `route.yaml`，不影响架构 | 否 |
 
@@ -301,7 +307,7 @@ M4 不依赖 M2：`StepId`、`Choices` 等在 M4 里是同义的字符串别名�
 | R3 | 需求 §5 说 F2 影响“导入节点”，但导入节点在第一章，F2 的选择页在第二章（原文也是“以 v2rayN 为例”+ 常见问题讲 Clash Verge） | 按原写法会出现“用到选择在做选择之前” | 已修正需求 §5：导入节点按原文写，F2 只分 tun、DNS；不新增、不移动分叉点 | 否 |
 | R4 | FR-15 的跳过目标和“下一步”相同（AC-05） | 功能价值有限，但和验收一致 | 已修正 §3 规则，按 AC-05 实现；记为需求 Q-09 待作者决定 | 否 |
 | R5 | 原文的“为什么”框写作 `>[!note] 为什么：…`，嵌入写作 `![[09附件/…\|262]]`，文件名含空格和中文；纯操作版独有 8 张 SSH/脚本截图；方案二、三只有原理版有正文 | 迁移和插件规则需要写明 | 已修正 §3 M1；迁移规则写进 T05/T06（`docs/migration-checklist.md`） | 否 |
-| R6 | A-02 的四个技术疑点（自定义 `why` Callout、插件图片进 Astro 图片流程、Shiki、B 站参数） | 影响 M1 插件写法和截图放 `src/assets` 还是 `public` | 任务：T02 先做验证；B 站参数在 T16 实测 | 否 |
+| R6 | A-02 的四个技术疑点（自定义 `why` Callout、插件图片进 Astro 图片流程、Shiki、B 站参数） | 影响 M1 插件写法和截图放 `src/assets` 还是 `public` | 已验证（#2）：前三项可行，截图放 `src/assets/screenshots/`（§3 M1）；B 站参数在 T16（#17）实测 | 否 |
 | R7 | AC-14 的“构建级失败用例”能否在 Vitest 或脚本里稳定跑（§8 已注明待确认） | 只影响测试写法 | 任务：T14 先确认可行性，再写用例 | 否 |
 | R8 | 纯操作版的 SSH 截图可能露出服务器 IP（安全红线） | 截图入库前必须逐张核对 | 任务：T06 的验收项 | 否 |
 | R9 | 占位清单“在构建输出里列出”没有落点（FR-21） | 实现位置不明 | 已修正 §3 M2 规则：`astro:build:done` 打印 | 否 |

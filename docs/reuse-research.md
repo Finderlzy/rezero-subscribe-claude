@@ -3,7 +3,7 @@
 - 检索日期：2026-10-13
 - 依据：[CONTEXT.md](../CONTEXT.md)、[docs/requirements.md](requirements.md)（v0.1）
 - 检索方式：网页检索 + 官方文档 + npm registry 元数据（`npm view`）。本机没有 `gh`，没有用 GitHub API；没有克隆、安装或运行任何第三方代码。
-- 结论标记：**文档/源码核查** = 只读过 README、官方文档或 npm 元数据，没有实际运行过；**已验证** = 在本项目里跑通过（本次没有这一类）。
+- 结论标记：**文档/源码核查** = 只读过 README、官方文档或 npm 元数据，没有实际运行过；**已验证** = 在本项目里跑通过（2026-10-13 检索时没有这一类；#2 的实测见 §4.1）。
 
 ## 1. 检索词
 
@@ -34,7 +34,7 @@
 | 用途 | 候选 | 证据 | 许可证 / 维护 | 结论 |
 | --- | --- | --- | --- | --- |
 | Markdown 处理器 | `@astrojs/markdown-remark` 7.3.2（unified） | Astro 7 起默认处理器是 Sätteri，它不兼容 remark/rehype 插件；要用插件生态就安装 unified 处理器，配置 `markdown.processor: unified({ remarkPlugins, rehypePlugins })`（[Astro Markdown 文档](https://docs.astro.build/en/guides/markdown-content/)） | MIT；官方 | **采用**（文档核查） |
-| Obsidian Callout | `rehype-callouts` 2.2.0 | 支持 Obsidian 主题和 `[!type]` 语法，可以用 `<details>` 折叠，不需要 JS；纯 ESM，Node ≥ 18 | MIT；2026-06 有更新 | **采用**（文档核查）。首个切片要核实：能否注册自定义类型 `why`，以及输出能不能加上视图属性 |
+| Obsidian Callout | `rehype-callouts` 2.2.0 | 支持 Obsidian 主题和 `[!type]` 语法，可以用 `<details>` 折叠，不需要 JS；纯 ESM，Node ≥ 18 | MIT；2026-06 有更新 | **采用**（已验证，见 §4.1）：可以注册 `why` 类型，输出自带 `data-callout` |
 | Obsidian Callout | `remark-obsidian-callout` 1.5.1 | 能用 | Apache-2.0；最后更新 2024-10 | 备选 |
 | Obsidian Callout | `@r4ai/remark-callout` 0.6.2 | 标题里可以写行内元素 | MIT；最后更新 2024-09 | 备选 |
 | 双链 / 嵌入 | `@flowershow/remark-wiki-link` 4.0.0 | 解析 `[[...]]` | MIT；2026-06 有更新 | **仅作参考**：本项目的双链要按步骤和常见问题标识解析，找不到目标时要让构建失败（FR-61），这部分逻辑现成插件给不了，自己写一个小 remark 插件更直接 |
@@ -49,12 +49,33 @@
 
 - **推荐**：Astro 7（静态输出，不用文档主题）+ unified Markdown 处理器 + `rehype-callouts`。路线图、双链解析、视图切换、视频门面、目录、本机状态都自己写；这些正是项目的核心逻辑，现成方案都没有覆盖。
 - **自研部分**：M2 路线（含构建校验）、Obsidian 双链和嵌入解析、视图切换、视频门面、步骤目录、M4 本机状态、全部页面和视觉设计。
-- **缺口 / 待实施核实**：
-  1. `rehype-callouts` 能否注册自定义 `why` 类型并输出视图属性（不行的话自己写一个约 50 行的 rehype 插件）；
-  2. 自定义 remark 插件生成的图片节点，能否进入 Astro 的图片处理流程（不行的话把截图放进 `public/`，用普通 `<img>` 输出）；
-  3. B 站嵌入参数（`bvid`、是否自动播放）没有官方文档，只有社区说法，实施时要在浏览器里实测；
-  4. 换成 unified 处理器以后，Shiki 代码高亮是否仍然默认开启。
+- **缺口 / 待实施核实**（原列四条，第 1、2、4 条和中文文件名已在 #2 实测，见 §4.1）：
+  1. ~~`rehype-callouts` 能否注册自定义 `why` 类型并输出视图属性~~ → 能；
+  2. ~~自定义 remark 插件生成的图片节点，能否进入 Astro 的图片处理流程~~ → 能，截图放 `src/assets/screenshots/`；
+  3. B 站嵌入参数（`bvid`、是否自动播放）没有官方文档，只有社区说法，留到 #17 在浏览器里实测；
+  4. ~~换成 unified 处理器以后，Shiki 代码高亮是否仍然默认开启~~ → 仍默认开启。
 - 架构设计见 [architecture.md](architecture.md)，设计调研见 [design.md](design.md)。
+
+### 4.1 Markdown 管线实测（#2，2026-10-14，已验证）
+
+做法：在任务分支上临时加了一个内容集合、一篇演示步骤、一个约 25 行的 remark 插件（把 `![[文件名|宽度]]` 换成 mdast `image` 节点：`url` 是从 Markdown 文件到 `src/assets/screenshots/<文件名>` 的相对路径，宽度写进 `data.hProperties.width`）和三张用 sharp 生成的 800×600 测试图，然后跑 `npx astro build` 和 `astro preview`。实验代码和图片验证后已删除，只保留 `astro.config.mjs` 里的 `rehype-callouts` 配置。版本：astro 7.3.8、@astrojs/markdown-remark 7.3.2、rehype-callouts 2.2.0。
+
+| # | 疑点 | 结论 | 依据 |
+| --- | --- | --- | --- |
+| 1 | `rehype-callouts` 能否注册 `why` 类型并带出视图属性 | **能，不用自写插件。** 配置 `callouts: { why: { title: '为什么' } }` 即可；输出自带 `data-callout="why"`，CSS 可以用 `[data-callout='why']` 按视图展开或收起；标题文字原样保留在 `.callout-title-text`，足够生成操作视图的“为什么：<原标题>”提示行（design §4.3）。另设 `showIndicator: false`：库默认给 `note`/`caution` 内联 Lucide 图标，和 design §3.3“图标全部自画，不引入图标库”冲突 | 产物：`<div class="callout" data-callout="why" data-collapsible="false"><div class="callout-title"><div class="callout-title-text">为什么：要先装 Git</div></div><div class="callout-content"><p>…</p></div></div>`；`caution`、`note` 同样输出各自的 `data-callout` |
+| 2 | 自写 remark 插件生成的图片节点能否进入 Astro 图片处理 | **能，截图放 `src/assets/screenshots/`。** `@astrojs/markdown-remark` 先跑用户的 remark 插件，再跑 `remarkCollectImages`（源码 `dist/index.js`），所以插件生成的相对路径 `image` 节点会被收集并交给图片服务：输出 webp，自动写上 `width`/`height`。`hProperties.width` 被当作目标宽度（按比例算高度，并缩放到该宽度）。引用不存在的文件时构建失败 | 构建日志：`generating optimized images` → `/_astro/demo.CDULYUoC_ZjUVyx.webp …(1/3)`；产物：`<img alt="" loading="lazy" decoding="async" width="262" height="197" src="/_astro/demo.CDULYUoC_ZjUVyx.webp">`，不写宽度的图得到 `width="800" height="600"`；`BASE_PATH=/sub/` 时 `src` 变成 `/sub/_astro/…`；文件不存在时：`[ImageNotFound] Could not find requested image ../../assets/screenshots/missing.jpg`，退出码 1 |
+| 3 | 换成 unified 处理器后 Shiki 是否仍默认开启；产物是否引用外部资源 | **Shiki 仍默认开启**（`markdown.syntaxHighlight` 默认 `shiki`，主题 `github-dark`，样式内联，不发外部请求）。产物里的 `https?://` 只剩正文外链和代码块文字；关掉 Callout 图标后，连 SVG 的 `xmlns` 也没有了 | 产物：`<pre class="astro-code github-dark" style="background-color:#24292e;…" data-language="bash">`；`grep -rhoE 'https?://[^"<> ]+' dist --include=*.html` 只输出 `https://docs.astro.build/`（正文链接）和 `https://example.com/install.sh`（代码块里的文字）；非 HTML 产物没有匹配 |
+| 4 | 含空格和中文的文件名在第 2 条方案下能否构建和访问 | **能。** 插件写原始文件名或写 `encodeURI` 后的路径都能构建（Astro 收集图片时会 `decodeURI`）；产物文件名保留原名，HTML 里的 `src` 已做百分号编码，预览服务器返回 200 | 产物：`/_astro/Pasted image 20261012190537.DozFJPLc_Z1rF4mv.webp`、`/_astro/微信图片_20261012190537.BvSmf42U_1d0FOd.webp`；`src="/_astro/Pasted%20image%2020261012190537…webp"`、`src="/_astro/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_…webp"`；`curl` 三张图均为 `200 image/webp` |
+
+给 #4 的实现提示：
+
+- 插件按 vfile 路径算出相对路径写进 `image.url`。Astro 会对 `url` 做 `decodeURI`，文件名含 `%` 时原样写会出错，统一写 `encodeURI(相对路径)` 更稳。
+- `hProperties` 的键会**原样**成为 `<img>` 属性（写 `dataZoom` 就输出 `dataZoom="true"`），要用 `'data-zoom'` 这样的字面键名。
+- 写了显示宽度后，图片服务只生成该宽度的文件，“点开看大图”（design §4.7）会糊。可以同时传 `densities: [1, 2]`（实测生成 1x/2x 的 `srcset`），或另给大图一个链接；由 #4 或负责图片放大的任务决定。
+- 输出文件名里的哈希按图片内容计算：两张字节完全相同、名字不同的截图会合并成同一个产物文件（实测两张同色测试图共用 `demo.<hash>.webp`），页面显示不受影响；做测试样例时要用内容不同的图片，否则会误以为文件名没生效。
+- `showIndicator: false` 只关掉标题图标：写成可折叠的 `> [!why]-`、`> [!note]+` 时，库仍会输出 `<details>` 和自带的折叠箭头 SVG（`.callout-fold-icon`，源码 `rehype-callouts/dist/index.js` 的 `getFoldIcon`），与 design §3.3 冲突。#4 要么让这类写法构建失败，要么用 `foldIconTagName`/`foldIconProperties` 换掉。上表“没有 SVG”的结论只针对不可折叠写法。
+- Shiki 默认主题 `github-dark` 的底色是内联样式（`#24292e`），和 design 里代码块用 `--surface` 令牌冲突，内联样式还会压过令牌。实现代码块样式的任务需要配置 `markdown.shikiConfig` 的主题（例如 CSS 变量主题）。
+- 实验插件只匹配单独成段的嵌入：紧跟在同段其他文字后的 `![[…]]` 被当成普通文字原样输出，构建也不报错（实测）。#4 要决定是否支持行内嵌入，并让无法识别的写法构建失败。
 
 ## 5. 证据链接
 

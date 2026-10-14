@@ -80,7 +80,7 @@ T01 ─┬─ T02 ── T04 ─┐
 
 | 风险 | 影响 | 应对 |
 | --- | --- | --- |
-| `rehype-callouts` 不支持自定义 `why`，或插件图片进不了 Astro 图片流程 | 中 | T02 先验证；不行就按 reuse-research §4 的替代方案（自写 rehype 插件 / 截图放 `public/`） |
+| `rehype-callouts` 不支持自定义 `why`，或插件图片进不了 Astro 图片流程 | 中 | 已在 T02（#2）验证可行，风险解除（reuse-research §4.1） |
 | Astro 7 / Vitest 5 / TS 6 组合有未知兼容问题 | 中 | T01 锁版本并跑通全部命令后再开其他任务 |
 | 迁移时漏内容或改了命令、链接 | 高 | 每个迁移任务更新 `docs/migration-checklist.md`；T15 用脚本比对命令和链接 |
 | 截图露出服务器 IP 等敏感信息 | 高 | T06 起每个迁移任务的验收都有逐张核对项 |
