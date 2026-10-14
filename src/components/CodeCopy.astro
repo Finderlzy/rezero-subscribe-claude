@@ -1,0 +1,17 @@
+---
+import '../styles/code-zoom.css';
+
+/**
+ * 代码块的“复制”按钮（design §4.7，NFR-02）。
+ *
+ * 组件不输出 DOM：代码块由 Markdown 渲染，数量不定，按钮由页面脚本 `src/scripts/code-zoom.ts`
+ * 逐个挂到 `.prose pre` 上。这样没有 JS 时正文里不会多出点不动的空按钮，
+ * 也避免为了让每个代码块配一个组件去改写 Markdown 管线。
+ *
+ * 这里只负责把复制和看大图的样式带进页面（两个功能同属 NFR-02，样式放同一个文件）。
+ * 标记契约（脚本生成，样式据此选中）：
+ *   .code-block > pre + button.code-copy[data-state="idle|copied"] + span[data-code-copy-status]
+ */
+---
+
+<!-- 无 DOM 输出：见文件头。 -->
