@@ -1,11 +1,12 @@
 ---
+import { stopTitle } from '../lib/nav-text';
 import { pathOf } from '../lib/route/route-map';
 import type { Stop } from '../lib/route/types';
 import { withBase } from '../lib/with-base';
 
 /**
  * 上一步 / 下一步（design §4.1，FR-11）。按钮里写出目标标题，不只写“下一步”（design §6）。
- * 链接在构建时按当前页的路线写好，不运行 JS 也能顺着走完。
+ * 链接在构建时按当前页的路线写好，不运行 JS 也能顺着走完；页面脚本再按本机选择改写（data-route-* 挂载点）。
  */
 interface Props {
   prev: Stop | null;
@@ -15,26 +16,25 @@ interface Props {
 }
 
 const { prev, next, doneTitle } = Astro.props;
-const titleOf = (stop: Stop) => (stop.kind === 'done' ? doneTitle : stop.title);
 ---
 
-<nav class="step-nav" aria-label="上一步和下一步">
+<nav class="step-nav" aria-label="上一步和下一步" data-done-title={doneTitle}>
   {
     prev && (
-      <a class="step-nav-link step-nav-prev" href={withBase(pathOf(prev))} rel="prev">
+      <a class="step-nav-link step-nav-prev" href={withBase(pathOf(prev))} rel="prev" data-route-nav="prev">
         <span class="step-nav-dir"><span aria-hidden="true">← </span>上一步</span>
         <span class="step-nav-title">
           <span class="visually-hidden">：</span>
-          {titleOf(prev)}
+          <span data-route-title>{stopTitle(prev, doneTitle)}</span>
         </span>
       </a>
     )
   }
-  <a class="step-nav-link step-nav-next" href={withBase(pathOf(next))} rel="next">
+  <a class="step-nav-link step-nav-next" href={withBase(pathOf(next))} rel="next" data-route-nav="next">
     <span class="step-nav-dir">下一步<span aria-hidden="true"> →</span></span>
     <span class="step-nav-title">
       <span class="visually-hidden">：</span>
-      {titleOf(next)}
+      <span data-route-title>{stopTitle(next, doneTitle)}</span>
     </span>
   </a>
 </nav>

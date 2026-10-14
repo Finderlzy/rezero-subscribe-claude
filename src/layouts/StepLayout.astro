@@ -1,15 +1,18 @@
 ---
 import StepNav from '../components/StepNav.astro';
-import type { Progress, RouteData, Stop } from '../lib/route/types';
+import { progressText } from '../lib/nav-text';
+import type { At, Progress, RouteData, Stop } from '../lib/route/types';
 import BaseLayout from './BaseLayout.astro';
 import '../styles/prose.css';
 
 /**
  * 步骤页骨架（design §4.1）：顶部“章节名 · 第 n 步，共 m 步”和标题，正文，底部上一步/下一步。
  * 选择页也用它（design §4.2）：不计入步数，顶部只写章节名（传 `chapter`，`progress` 为 null）。
- * 页面末尾内嵌 RouteData，供页面脚本按本机选择重新计算导航（架构 §3 M3；读取由后续任务实现）。
+ * 页面末尾内嵌 RouteData，页面脚本 route-enhance 按本机选择重新计算导航（架构 §3 M3）。
  */
 interface Props {
+  /** 当前页在路线图里的位置，页面脚本据此重新计算导航 */
+  at: At;
   title: string;
   progress: Progress | null;
   /** 没有步数时（选择页）顶部只显示的章节名 */
@@ -20,16 +23,16 @@ interface Props {
   routeData: RouteData;
 }
 
-const { title, progress, chapter, prev, next, doneTitle, routeData } = Astro.props;
-const meta = progress ? `${progress.chapter} · 第 ${progress.index} 步，共 ${progress.total} 步` : chapter;
+const { at, title, progress, chapter, prev, next, doneTitle, routeData } = Astro.props;
+const meta = progress ? progressText(progress) : chapter;
 // 内嵌在 <script> 里的 JSON 不能出现 `</script>`，把 `<` 转义掉。
 const routeJson = JSON.stringify(routeData).replace(/</g, '\\u003c');
 ---
 
 <BaseLayout title={title}>
-  <main id="main" class="step">
+  <main id="main" class="step" data-route-at={JSON.stringify(at)}>
     <header class="step-header">
-      {meta && <p class="step-progress">{meta}</p>}
+      {meta && <p class="step-progress" data-route-progress>{meta}</p>}
       <h1 class="step-title">{title}</h1>
     </header>
     <div class="prose">
@@ -39,6 +42,12 @@ const routeJson = JSON.stringify(routeData).replace(/</g, '\\u003c');
   </main>
   <script type="application/json" id="route-data" set:html={routeJson} />
 </BaseLayout>
+
+<script>
+  import { initRouteEnhance } from '../scripts/route-enhance';
+
+  initRouteEnhance(document);
+</script>
 
 <style>
   .step {

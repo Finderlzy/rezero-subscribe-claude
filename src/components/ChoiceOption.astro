@@ -2,9 +2,12 @@
 /**
  * 选择页上的一个选项（design §4.2，FR-12）：整块是一个链接，进入这个选项的第一步。
  * 原文的对比表拆进各个选项块（链路、折腾程度、适合谁），手机上不用横向滚动表格。
- * 记录选择、标“当前选择”由本机选择任务（#8）补上；这里只是普通链接。
+ * 链接在构建时按“选了这个选项”的路线写好；页面脚本 route-enhance 在点击时记录选择，
+ * 并给本机选过的选项显示“当前选择”（data-route-* 挂载点）。
  */
 interface Props {
+  /** 选项标识 */
+  option: string;
   href: string;
   title: string;
   path?: string | undefined;
@@ -14,7 +17,7 @@ interface Props {
   isDefault: boolean;
 }
 
-const { href, title, path, effort, audience, isDefault } = Astro.props;
+const { option, href, title, path, effort, audience, isDefault } = Astro.props;
 const facts = [
   ['链路', path],
   ['折腾程度', effort],
@@ -22,10 +25,13 @@ const facts = [
 ].filter((fact): fact is [string, string] => fact[1] !== undefined);
 ---
 
-<a class="choice-option" href={href}>
+<a class="choice-option" href={href} data-route-option={option}>
   <span class="choice-option-head">
     <span class="choice-option-title">{title}</span>
-    {isDefault && <span class="choice-option-badge">默认</span>}
+    <span class="choice-option-badges">
+      <span class="choice-option-badge" data-route-current hidden>当前选择</span>
+      {isDefault && <span class="choice-option-badge">默认</span>}
+    </span>
   </span>
   {
     facts.length > 0 && (
@@ -70,8 +76,15 @@ const facts = [
     font-weight: 600;
   }
 
-  .choice-option-badge {
+  .choice-option-badges {
+    display: flex;
     flex: none;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-1);
+  }
+
+  .choice-option-badge {
     padding: 0 var(--space-2);
     border: var(--border-width) solid var(--accent);
     border-radius: var(--radius-control);
@@ -79,6 +92,11 @@ const facts = [
     font-size: var(--fs-meta);
     line-height: var(--lh-meta);
     font-weight: 600;
+  }
+
+  /* “当前选择”由页面脚本切换 hidden；以后给徽标设 display 时也不能让它露出来。 */
+  .choice-option-badge[hidden] {
+    display: none;
   }
 
   .choice-option-facts {

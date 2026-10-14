@@ -33,6 +33,7 @@ const { Content } = await render(entry);
 ---
 
 <StepLayout
+  at={{ kind: 'choose', fork }}
   title={entry.data.question}
   progress={null}
   chapter={chapter.title}
@@ -47,6 +48,7 @@ const { Content } = await render(entry);
       options.map((option) => (
         <li>
           <ChoiceOption
+            option={option.id}
             href={option.href}
             title={option.title}
             path={option.path}
