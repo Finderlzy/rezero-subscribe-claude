@@ -1,0 +1,134 @@
+---
+import { pathOf } from '../lib/route/route-map';
+import type { Stop } from '../lib/route/types';
+import { withBase } from '../lib/with-base';
+
+/**
+ * 上一步 / 下一步（design §4.1，FR-11）。按钮里写出目标标题，不只写“下一步”（design §6）。
+ * 链接在构建时按当前页的路线写好，不运行 JS 也能顺着走完。
+ */
+interface Props {
+  prev: Stop | null;
+  next: Stop;
+  /** 完成页的标题，用于最后一步的“下一步：完成” */
+  doneTitle: string;
+}
+
+const { prev, next, doneTitle } = Astro.props;
+const titleOf = (stop: Stop) => (stop.kind === 'done' ? doneTitle : stop.title);
+---
+
+<nav class="step-nav" aria-label="上一步和下一步">
+  {
+    prev && (
+      <a class="step-nav-link step-nav-prev" href={withBase(pathOf(prev))} rel="prev">
+        <span class="step-nav-dir"><span aria-hidden="true">← </span>上一步</span>
+        <span class="step-nav-title">
+          <span class="visually-hidden">：</span>
+          {titleOf(prev)}
+        </span>
+      </a>
+    )
+  }
+  <a class="step-nav-link step-nav-next" href={withBase(pathOf(next))} rel="next">
+    <span class="step-nav-dir">下一步<span aria-hidden="true"> →</span></span>
+    <span class="step-nav-title">
+      <span class="visually-hidden">：</span>
+      {titleOf(next)}
+    </span>
+  </a>
+</nav>
+
+<style>
+  .step-nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+    margin-top: var(--space-7);
+  }
+
+  .step-nav-link {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-height: 44px;
+    padding: var(--space-4);
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-panel);
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  .step-nav-link:hover {
+    border-color: var(--accent);
+  }
+
+  .step-nav-next {
+    grid-column: 2;
+    text-align: right;
+    border-color: var(--accent);
+  }
+
+  .step-nav-dir {
+    color: var(--text-muted);
+    font-size: var(--fs-meta);
+    line-height: var(--lh-meta);
+    font-weight: 500;
+  }
+
+  .step-nav-title {
+    font-weight: 600;
+  }
+
+  .step-nav-next .step-nav-title {
+    color: var(--accent);
+  }
+
+  /* 手机：吸底的底栏，“下一步”是主按钮，约占 2/3 宽；正文末尾的留白见 StepLayout。 */
+  @media (max-width: 719px) {
+    .step-nav {
+      position: fixed;
+      inset: auto 0 0;
+      z-index: 1;
+      grid-template-columns: 1fr 2fr;
+      gap: var(--space-2);
+      margin: 0;
+      padding: var(--space-2) var(--space-4) calc(var(--space-2) + env(safe-area-inset-bottom));
+      background: var(--bg);
+      border-top: var(--border-width) solid var(--border);
+    }
+
+    .step-nav-link {
+      min-height: 56px;
+      justify-content: center;
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-control);
+    }
+
+    .step-nav-next {
+      background: var(--accent);
+      border-color: var(--accent);
+      text-align: left;
+    }
+
+    .step-nav-next .step-nav-dir,
+    .step-nav-next .step-nav-title {
+      color: var(--accent-contrast);
+    }
+
+    .step-nav-title {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    /* 次按钮只写方向，目标标题仍留给读屏软件。只在手机断点隐藏，所以不能直接套全局的 .visually-hidden。 */
+    .step-nav-prev .step-nav-title {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+  }
+</style>

@@ -1,21 +1,43 @@
 ---
+import { render } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { pathOf } from '../lib/route/route-map';
+import { loadSite } from '../lib/site';
+import { withBase } from '../lib/with-base';
+import '../styles/prose.css';
+
+/**
+ * 首页（design §4.4，FR-18）：站名、前言、“直接开始”，再列出全部章节名预告全程有多长。
+ * 不放致谢和后记。“继续上次”由阅读进度任务补上。
+ */
+const site = await loadSite();
+const { Content } = await render(site.home);
 ---
 
 <BaseLayout>
-  <main class="home">
+  <main id="main" class="page home">
     <h1 class="home-title">Re:从零开始订阅 claude</h1>
     <p class="home-subtitle" lang="en">Re:Zero − Starting Life with Claude</p>
+
+    <section class="prose" aria-labelledby="home-preface">
+      <h2 id="home-preface">{site.home.data.title}</h2>
+      <Content />
+    </section>
+
+    <p class="page-actions">
+      <a class="button" href={withBase(pathOf(site.start))}>直接开始</a>
+    </p>
+
+    <section aria-labelledby="home-chapters">
+      <h2 id="home-chapters" class="home-chapters-title">全程分为这些章节</h2>
+      <ol class="home-chapters">
+        {site.route.data.chapters.map((chapter) => <li>{chapter.title}</li>)}
+      </ol>
+    </section>
   </main>
 </BaseLayout>
 
 <style>
-  .home {
-    max-width: var(--measure);
-    margin: 0 auto;
-    padding: var(--space-7) var(--space-4);
-  }
-
   .home-title {
     margin: 0;
     font-size: var(--fs-home-title);
@@ -24,10 +46,25 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   }
 
   .home-subtitle {
-    margin: var(--space-2) 0 0;
+    margin: var(--space-2) 0 var(--space-6);
     color: var(--text-muted);
     font-size: var(--fs-meta);
     line-height: var(--lh-meta);
     font-weight: 500;
+  }
+
+  .home-chapters-title {
+    margin: var(--space-7) 0 var(--space-3);
+    font-size: var(--fs-h3);
+    line-height: var(--lh-heading);
+    font-weight: 600;
+  }
+
+  /* 章节名自带“一、二、……”，列表本身不再加编号。 */
+  .home-chapters {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    line-height: var(--lh-body);
   }
 </style>

@@ -1,0 +1,74 @@
+---
+import StepNav from '../components/StepNav.astro';
+import type { Progress, RouteData, Stop } from '../lib/route/types';
+import BaseLayout from './BaseLayout.astro';
+import '../styles/prose.css';
+
+/**
+ * 步骤页骨架（design §4.1）：顶部“章节名 · 第 n 步，共 m 步”和标题，正文，底部上一步/下一步。
+ * 页面末尾内嵌 RouteData，供页面脚本按本机选择重新计算导航（架构 §3 M3；读取由后续任务实现）。
+ */
+interface Props {
+  title: string;
+  progress: Progress | null;
+  prev: Stop | null;
+  next: Stop;
+  doneTitle: string;
+  routeData: RouteData;
+}
+
+const { title, progress, prev, next, doneTitle, routeData } = Astro.props;
+// 内嵌在 <script> 里的 JSON 不能出现 `</script>`，把 `<` 转义掉。
+const routeJson = JSON.stringify(routeData).replace(/</g, '\\u003c');
+---
+
+<BaseLayout title={title}>
+  <main id="main" class="step">
+    <header class="step-header">
+      {
+        progress && (
+          <p class="step-progress">
+            {progress.chapter} · 第 {progress.index} 步，共 {progress.total} 步
+          </p>
+        )
+      }
+      <h1 class="step-title">{title}</h1>
+    </header>
+    <div class="prose">
+      <slot />
+    </div>
+    <StepNav prev={prev} next={next} doneTitle={doneTitle} />
+  </main>
+  <script type="application/json" id="route-data" set:html={routeJson} />
+</BaseLayout>
+
+<style>
+  .step {
+    max-width: var(--measure);
+    margin: 0 auto;
+    padding: var(--space-6) var(--space-4) var(--space-7);
+  }
+
+  .step-progress {
+    margin: 0 0 var(--space-2);
+    color: var(--text-muted);
+    font-size: var(--fs-meta);
+    line-height: var(--lh-meta);
+    font-weight: 500;
+  }
+
+  .step-title {
+    margin: 0 0 var(--space-5);
+    font-size: var(--fs-step-title);
+    line-height: var(--lh-step-title);
+    font-weight: 700;
+  }
+
+  /* 手机上底栏吸底：正文末尾预留等高留白，最后一段不被挡住（design §5）。
+     72px ≈ 底栏按钮 56px + 上下内边距各 8px（另有 1px 上边框，由 --space-7 兜住）；改底栏高度时同步这里。 */
+  @media (max-width: 719px) {
+    .step {
+      padding-bottom: calc(72px + var(--space-7) + env(safe-area-inset-bottom));
+    }
+  }
+</style>

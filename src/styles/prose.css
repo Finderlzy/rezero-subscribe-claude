@@ -1,0 +1,119 @@
+/*
+ * 正文排版（design §3.2、§4.7）：步骤、首页前言、完成页里由 Markdown 渲染出的内容。
+ * 代码复制、看大图、视图切换由各自的任务补上，这里只管排版。
+ */
+.prose > :first-child {
+  margin-top: 0;
+}
+
+.prose p,
+.prose ul,
+.prose ol,
+.prose pre,
+.prose table,
+.prose .callout {
+  margin: var(--paragraph-gap) 0;
+}
+
+.prose h2 {
+  margin: var(--space-6) 0 var(--space-3);
+  font-size: var(--fs-h2);
+  line-height: var(--lh-heading);
+  font-weight: 600;
+}
+
+.prose h3 {
+  margin: var(--space-5) 0 var(--space-2);
+  font-size: var(--fs-h3);
+  line-height: var(--lh-heading);
+  font-weight: 600;
+}
+
+/* 原文的加粗是“照做的关键点”：只加字重，不改颜色。 */
+.prose strong {
+  font-weight: 600;
+}
+
+/* 列表编号和正文左对齐，不缩进太深。 */
+.prose ul,
+.prose ol {
+  padding-left: 1.25em;
+}
+
+.prose li + li {
+  margin-top: var(--list-item-gap);
+}
+
+.prose code {
+  font-family: var(--font-mono);
+  font-size: var(--fs-code);
+}
+
+/* 代码块：长行在块内横向滚动，不折行，命令必须原样复制（NFR-02）。 */
+.prose pre {
+  overflow-x: auto;
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-control);
+  line-height: var(--lh-code);
+  white-space: pre;
+}
+
+.prose pre code {
+  font-size: inherit;
+}
+
+.prose pre:not(.astro-code) {
+  background: var(--surface);
+}
+
+.prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-image);
+}
+
+/* 表格在自己的容器里横向滚动（NFR-01）。 */
+.prose table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+.prose th,
+.prose td {
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--border);
+  text-align: left;
+}
+
+/* Callout（rehype-callouts 输出 .callout[data-callout]）：note 中性面板，caution 风险色，why 暖色。 */
+.prose .callout {
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border: var(--border-width) solid var(--border);
+  border-left-width: 4px;
+  border-radius: var(--radius-panel);
+}
+
+.prose .callout[data-callout='caution'] {
+  background: var(--caution-bg);
+  border-color: var(--caution-rule);
+}
+
+.prose .callout[data-callout='why'] {
+  background: var(--why-bg);
+  border-color: var(--why-rule);
+}
+
+.prose .callout-title {
+  font-weight: 600;
+}
+
+.prose .callout-content > :first-child {
+  margin-top: var(--space-2);
+}
+
+.prose .callout-content > :last-child {
+  margin-bottom: 0;
+}

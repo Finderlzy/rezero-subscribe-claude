@@ -1,7 +1,79 @@
-/* 全站基础：只放系统字体栈和页面底色，排版细节留给后续任务。 */
+/* 全站基础：页面底色、正文字体、焦点环，以及几个跨页面共用的小样式。 */
 body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+}
+
+a {
+  color: var(--accent);
+}
+
+/* 焦点环 2px 并留 2px 间隔，不能去掉（design §5）。 */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* “跳到正文”：平时隐藏，键盘聚焦时出现（design §5）。 */
+.skip-link {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: 2;
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-control);
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+/* 首页以外的普通页面：完成页、找不到页。 */
+.page {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: var(--space-7) var(--space-4);
+}
+
+.page-title {
+  margin: 0 0 var(--space-5);
+  font-size: var(--fs-step-title);
+  line-height: var(--lh-step-title);
+  font-weight: 700;
+}
+
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: var(--space-6) 0 0;
+}
+
+/* 主按钮：页面里唯一的强调色块。 */
+.button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-5);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-radius: var(--radius-control);
+  font-weight: 600;
+  text-decoration: none;
 }

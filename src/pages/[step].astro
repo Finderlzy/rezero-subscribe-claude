@@ -1,0 +1,28 @@
+---
+import { render } from 'astro:content';
+import StepLayout from '../layouts/StepLayout.astro';
+import { loadSite } from '../lib/site';
+
+/** 每个步骤一页：/<step-id>/（ADR-0002）。导航按默认路线加上当前页所属分支在构建时写好（架构 §5）。 */
+export async function getStaticPaths() {
+  const site = await loadSite();
+  return [...site.steps.keys()].map((step) => ({ params: { step } }));
+}
+
+const { step } = Astro.params;
+const site = await loadSite();
+const entry = site.steps.get(step)!;
+const view = site.route.view({ kind: 'step', id: step }, {});
+const { Content } = await render(entry);
+---
+
+<StepLayout
+  title={entry.data.title}
+  progress={view.progress}
+  prev={view.prev}
+  next={view.next}
+  doneTitle={site.done.data.title}
+  routeData={site.route.data}
+>
+  <Content />
+</StepLayout>

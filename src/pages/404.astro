@@ -1,0 +1,16 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { withBase } from '../lib/with-base';
+
+/** 找不到页（design §4.6，AC-18）。“打开目录”在步骤目录任务里补上。 */
+---
+
+<BaseLayout title="找不到这一步">
+  <main id="main" class="page">
+    <h1 class="page-title">找不到这一步</h1>
+    <p>这个地址没有对应的页面，可能是链接写错了。</p>
+    <p class="page-actions">
+      <a class="button" href={withBase('/')}>回首页</a>
+    </p>
+  </main>
+</BaseLayout>

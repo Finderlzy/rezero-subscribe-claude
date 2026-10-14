@@ -1,0 +1,8 @@
+# 路线图：章节、分叉点和步骤顺序的唯一来源（架构 §3 M1、需求 §5.2）。
+# 步骤标识是 steps/<id>.md 的文件名，也是 URL；已发布的标识不能改（ADR-0002）。
+# 目前只迁入“开始”章；清理 Claude Code 配置和后面的章节、分叉点由后续迁移任务补上。
+defaults: {}
+chapters:
+  - id: start
+    title: 开始
+    items: [before-you-start, overview]

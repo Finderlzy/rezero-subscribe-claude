@@ -40,6 +40,7 @@
 | 双链 / 嵌入 | `@flowershow/remark-wiki-link` 4.0.0 | 解析 `[[...]]` | MIT；2026-06 有更新 | **仅作参考**：本项目的双链要按步骤和常见问题标识解析，找不到目标时要让构建失败（FR-61），这部分逻辑现成插件给不了，自己写一个小 remark 插件更直接 |
 | 双链 / 嵌入 | `remark-obsidian`（heavycircle） | 支持链接、嵌入、Callout | MIT；1 star，2025-05 后无提交 | 不采用：维护不足 |
 | 视频门面 | `lite-youtube-embed`（Paul Irish） | web.dev 推荐的门面模式实现；默认用 youtube-nocookie | 开源（未核实具体许可证） | **仅作参考**：它会从 `i.ytimg.com` 加载封面图，国内打不开，而且等于点击前就请求了第三方（NFR-03、NFR-04）。采用它的思路，自己写一个不发外部请求的门面 |
+| 解析 route.yaml | `yaml` 2.9.1 | 路线图是单个对象，Astro 的 `file()` loader 要的是“标识 → 条目”的集合，形状不合；`yaml` 已在依赖树里（`@astrojs/check` 等引入），`parseDocument` 能给出出错行号 | ISC；活跃 | **采用**（#5），只在构建时用；`js-yaml` 也能用，但不在依赖树里，且不带行号定位 |
 | 单元测试 | `vitest` 5.0.4 | Node `^22.12 \|\| ^24 \|\| >=26` | MIT；活跃 | 采用 |
 | 端到端测试 | `@playwright/test` 1.64.0 | 可以设置视口、拦截域名，正好用来测 AC-16、AC-17 | Apache-2.0；活跃 | 采用 |
 | 类型检查 | `@astrojs/check` 0.9.10 | peer 依赖 `typescript ^5 \|\| ^6`，而 TypeScript 最新版已经是 7.0.2 | MIT | 采用，**TypeScript 固定 6.x**，安装时再核实一遍 |

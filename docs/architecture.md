@@ -3,7 +3,7 @@
 - 状态：v0.1 定稿（2026-10-13），没有阻塞决策；待定事项见 §10
 - 输入：[术语](../CONTEXT.md)、[需求 v0.1](requirements.md)、[复用调研](reuse-research.md)、[界面设计契约](design.md)
 - 决策记录：[ADR-0001 Astro 静态站 + 自建路线图](adr/0001-astro-static-site-with-own-route-map.md)、[ADR-0002 URL 规则](adr/0002-url-scheme.md)、[ADR-0003 原理内容内嵌为 why 块](adr/0003-principle-content-as-why-callouts.md)
-- 现状：工程脚手架、依赖和 §7 的命令已由 #1 建立（版本以 `package-lock.json` 为准）；其余标“计划”的目录和模块由后续任务创建。
+- 现状：工程脚手架、依赖和 §7 的命令已由 #1 建立（版本以 `package-lock.json` 为准）；M1、M2、M4 已实现（#4、#3、#7），#5 接通了“开始”章的页面和构建时装配 `loadSite()`；其余标“计划”的部分由后续任务创建。
 
 ## 1. 技术栈与选型理由
 
@@ -46,7 +46,7 @@
 
 **职责**：定义内容文件的格式；加载并校验元数据；把 Obsidian 写法转换成 HTML。
 
-**内容文件（计划）**
+**内容文件**（`route.yaml`、`steps/`、`pages/` 已由 #5 建立，`choices/`、`faq/` 随迁移任务建立）
 
 | 路径 | 内容 | 元数据（Zod 校验） |
 | --- | --- | --- |
@@ -57,7 +57,7 @@
 | `src/content/pages/home.md`、`done.md` | 首页前言；完成页的致谢、后记、联系方式 | `title` |
 | `src/assets/screenshots/` | 截图（从博客的 `09附件/` 复制过来，FR-04） | — |
 
-**route.yaml 格式（计划）**：章节和分叉点的唯一来源，满足 FR-02 中“所属章节、所属路线”的要求。步骤文件不重复写这两项，避免两处数据不一致。
+**route.yaml 格式**（下例是完整路线图的样子；目前只迁入“开始”章）：章节和分叉点的唯一来源，满足 FR-02 中“所属章节、所属路线”的要求。步骤文件不重复写这两项，避免两处数据不一致。
 
 ```yaml
 defaults: { node-plan: plan-1, desktop-proxy: v2rayn, phone: iphone }  # 默认路线（Ask first）
@@ -103,7 +103,7 @@ chapters:
 | `[[faq/<id>\|文字]]` | 常见问题链接，自动带上 `?from=<当前步骤>`（FR-20） | 同上 |
 | `[[choose/<fork-id>\|文字]]`、`[[done]]` | 选择页 / 完成页链接 | 同上 |
 | `![[文件名.jpg\|262]]` | 图片，显示宽度 262px，可以点开看大图 | 同上 |
-| `> [!why] 为什么：…` | 原理块，只在原理视图展开（[ADR-0003](adr/0003-principle-content-as-why-callouts.md)） | — |
+| `> [!why] <标题>` | 原理块（标题去掉原文的“为什么：”前缀，见 [迁移规则](migration-checklist.md#迁移规则)），只在原理视图展开（[ADR-0003](adr/0003-principle-content-as-why-callouts.md)） | — |
 | `> [!caution]`、`> [!note]` | 两种视图都显示的提示框 | — |
 
 插件需要一份**链接索引**：步骤、常见问题、选择页的标识，以及截图文件名。索引由 `createLinkIndex(contentRoot)` 在加载配置时同步扫描文件名生成，不依赖内容集合，所以图片和链接校验不受页面渲染顺序影响。指向博客其他文章的双链，在迁移时就改成普通的外部链接（博客根地址 `https://finderlzy.github.io/Writing/`，迁移时逐条打开核对），插件不处理。原文的嵌入写成 `![[09附件/文件名|宽度]]`，迁移时去掉 `09附件/` 前缀，插件只接受裸文件名（文件名可以含空格和中文）。
@@ -140,7 +140,7 @@ function contentValidation(o: { base; linkIndex }): AstroIntegration;
 - **管线配置**：关闭 SmartyPants（它在用户插件之前改写引号、`--`、`...`，会改坏 `[[…]]` 里的文件名和正文里的命令，FR-03）；`note`、`caution` 的默认标题改为“提示”“注意”。
 - **双链**：href 经 `joinBase(base, …)`（`withBase` 的纯函数版本，base 与 `astro.config.mjs` 相同）；`[[id#小标题]]` 的锚点用 `github-slugger`，与 Astro 生成标题 id 的算法相同（不校验目标小标题是否存在）；不写链接文字时用目标标题，`[[done]]` 用完成页标题，没有完成页文件时用“完成页”。普通 Markdown 链接文字里写双链、双链里夹格式或换行、未知前缀（如 `[[blog/…]]`）都判为错误，不会原样输出。
 - **嵌入**：支持单独成段和行内两种位置；宽度只接受正整数；`09附件/` 前缀和其他路径都报错；截图文件名不能含 `#`、`?`、`%`（会让图片路径出错）。GFM 表格里写作 `[[id\|文字]]`、`![[文件名\|宽度]]`。图片节点带 `data-zoom` 属性（看大图组件的识别标记）；写了宽度时同时传 `densities: [1, 2]`，产物带 1x/2x `srcset`，看大图组件可用 2x 版本。看大图要不要原图链接由负责看大图的任务决定。
-- **Callout 白名单**：只允许小写的 `[!why]`、`[!note]`、`[!caution]`；可折叠写法（`[!why]-`、`[!note]+`，库会插入自带的折叠箭头 SVG）、其他类型、标记不在引用第一行开头（库仍会把它当成 Callout 并吞掉前面的文字）都报错。原理块标题（是否保留“为什么：”前缀）原样输出，由迁移规则决定。
+- **Callout 白名单**：只允许小写的 `[!why]`、`[!note]`、`[!caution]`；可折叠写法（`[!why]-`、`[!note]+`，库会插入自带的折叠箭头 SVG）、其他类型、标记不在引用第一行开头（库仍会把它当成 Callout 并吞掉前面的文字）都报错。原理块标题原样输出；迁移时去掉原文的“为什么：”前缀（[迁移规则](migration-checklist.md#迁移规则) 第 3 条），操作视图的提示行自己加上“为什么：”。
 - 内容文件名必须是以字母开头的英文 kebab-case，否则构建失败。
 
 ### M2 路线（`src/lib/route/`）
@@ -188,13 +188,13 @@ function pathOf(stop: Stop): string;
 - 可跳过步骤的 `skipTo`：沿当前路线，跳过本章内从当前步骤开始连续的可跳过步骤，取其后的第一项（可能在下一章或是完成页）。
 - 枚举所有选项组合（首期是 3 × 2 × 2 = 12 条路线）：每条路线都要从“开始之前”走到完成页，中间不重复经过同一步，也就是没有环。
 - 步骤标识不能和保留路径重名：`choose`、`faq`、`done`、`404`、`_astro`。
-- 占位步骤（`placeholder: true`）不让构建失败，只在构建输出里列出清单（FR-21）。清单由 `astro.config.mjs` 里的一个小集成在 `astro:build:done` 时打印，格式为每行一个 `占位步骤：<step-id> <标题>`。
+- 占位步骤（`placeholder: true`）不让构建失败，只在构建输出里列出清单（FR-21）。清单由 `astro.config.mjs` 里的 `placeholderReport` 集成（`src/lib/content/integration.ts`，#5）在 `astro:build:done` 时直接读步骤文件的 frontmatter 打印，格式为每行一个 `占位步骤：<step-id> <标题>`。
 
 ### M3 页面（`src/pages/`、`src/layouts/`、`src/components/`、`src/styles/`）
 
 **职责**：把内容和路线渲染成页面；实现 [design.md](design.md) 的全部页面和组件。
 
-- **构建时**：每个页面调用 `loadSite()`（`src/lib/site.ts`，计划）。它读取内容集合，调用 `buildRouteMap`，结果在一次构建内缓存。页面再调用 `view(at, {})`，把导航直接写进 HTML。这时生效的是默认路线，加上当前页所属的分支，所以不运行 JS 也能顺着走完。
+- **构建时**：每个页面调用 `loadSite()`（`src/lib/site.ts`，#5）。它读取内容集合和 `route.yaml`（`?raw` 导入，用 `yaml` 解析），经纯函数 `assembleRoute()` 映射成 `StepMeta`/`ChoiceMeta` 后调用 `buildRouteMap`，结果在一次构建内缓存（开发服务器里每次重新读取）。路线图有错时 `getStaticPaths` 抛错、构建失败；`RouteValidationError` 会转成普通 `Error` 再抛，因为 Astro 打印带 `errors` 数组的异常时会丢掉“文件：”前缀。页面再调用 `view(at, {})`，把导航直接写进 HTML。这时生效的是默认路线，加上当前页所属的分支，所以不运行 JS 也能顺着走完。
 - **浏览器里**：布局用 `<script type="application/json">` 内嵌 `RouteData`（首期约 45 个步骤，几 KB）。页面脚本读取 M4 保存的选择，调用 `routeMapFromData(data).view(at, stored)`，再改写上一步/下一步链接、进度和目录状态。这种做法是渐进增强：没有 JS 时，页面就保持构建时写好的默认导航。
 - **视图**：`<head>` 里放一段几十字节的内联脚本，在首次绘制前设置 `<html data-view="operation|principle">`，避免页面闪一下。`[!why]` 块的显示和隐藏只用 CSS 控制（[ADR-0003](adr/0003-principle-content-as-why-callouts.md)）。
 - **视频门面**：不发任何外部请求。读者点击后才插入 iframe：B 站用 `player.bilibili.com/player.html?bvid=…`（参数在实施时实测），YouTube 用 `www.youtube-nocookie.com/embed/<id>`。播放器下方总有一行平台外链：浏览器无法可靠判断 iframe 有没有加载失败，所以这行链接一直显示（FR-42）。
@@ -254,7 +254,7 @@ M4 不依赖 M2：`StepId`、`Choices` 等在 M4 里是同义的字符串别名�
 3. **页面脚本运行**：调用 M4 的 `read()`，存储为空或不可用时返回默认值；再调用 `view(at, stored)`。结果和构建时一样，所以链接不需要改写。最后写入 `lastStep`，以及 `choices.node-plan = plan-3`。
 4. **读者到达 `/choose/desktop-proxy/`**：这个页面构建时写的是默认路线，上一步指向方案一的 `run-script`。页面脚本按本机保存的 `plan-3` 重新计算，把“上一步”改写为 `plan3-buy-node`（AC-03）。
 
-## 6. 目录结构（`src/content/` 下的内容文件、`src/lib/site.ts` 和 `tests/fixtures/` 为计划，其余已建立）
+## 6. 目录结构（`tests/fixtures/` 和标注的后续页面、组件为计划，其余已建立）
 
 ```
 .
@@ -270,13 +270,13 @@ M4 不依赖 M2：`StepId`、`Choices` 等在 M4 里是同义的字符串别名�
 │   ├── content/                     M1 内容：route.yaml、steps/、choices/、faq/、pages/
 │   ├── assets/screenshots/          截图（会经过 Astro 的图片处理；#4 建立目录）
 │   ├── lib/
-│   │   ├── content/                 M1：schemas.ts、link-index.ts、remark-obsidian.ts、markdown.ts（管线配置与全量校验）、integration.ts（构建校验集成）（+ *.test.ts、test-fixture.ts）
+│   │   ├── content/                 M1：schemas.ts、link-index.ts、remark-obsidian.ts、markdown.ts（管线配置与全量校验）、integration.ts（构建校验与占位清单集成）（+ *.test.ts、test-fixture.ts）
 │   │   ├── route/                   M2：route-map.ts、types.ts（+ route-map.test.ts、fixtures/sample-route.ts 测试用路线图）
 │   │   ├── reader-state/            M4：reader-store.ts（+ *.test.ts）
-│   │   └── site.ts                  构建时装配：loadSite()
-│   ├── layouts/                     页面骨架（head 里的视图脚本、RouteData）
-│   ├── components/                  M3 组件：StepNav、Toc、ViewToggle、VideoFacade、CodeCopy、ImageZoom …
-│   ├── pages/                       index、[step]、choose/[fork]、faq/index、faq/[faq]、done、404
+│   │   └── site.ts                  构建时装配：loadSite()、assembleRoute()（+ site.test.ts）
+│   ├── layouts/                     BaseLayout、StepLayout（内嵌 RouteData；head 里的视图脚本由视图任务补上）
+│   ├── components/                  M3 组件：StepNav（已有）；Toc、ViewToggle、VideoFacade、CodeCopy、ImageZoom …（计划）
+│   ├── pages/                       index、[step]、done、404（已有）；choose/[fork]、faq/index、faq/[faq]（计划）
 │   └── styles/                      tokens.css、base.css、prose.css
 ├── public/                          直接复制的文件（favicon 等）
 └── tests/
@@ -293,7 +293,7 @@ M4 不依赖 M2：`StepId`、`Choices` 等在 M4 里是同义的字符串别名�
 | 命令 | 作用 |
 | --- | --- |
 | `npm run dev` | 本地开发服务器 |
-| `npm run build` | 构建到 `dist/`，同时执行全部内容校验（frontmatter 与 Obsidian 写法校验已由 #4 接入，路线图校验随 `loadSite()` 接入）；`BASE_PATH=/sub/ npm run build` 生成子路径版本 |
+| `npm run build` | 构建到 `dist/`，同时执行全部内容校验（frontmatter 与 Obsidian 写法校验已由 #4 接入，路线图校验由 #5 随 `loadSite()` 接入）；`BASE_PATH=/sub/ npm run build` 生成子路径版本 |
 | `npm run preview` | 预览构建产物 |
 | `npm test` | Vitest 单元测试 |
 | `npm run test:e2e` | 构建后运行 Playwright 测试（360 和 1280 两种视口） |
@@ -306,7 +306,7 @@ M4 不依赖 M2：`StepId`、`Choices` 等在 M4 里是同义的字符串别名�
 | AC-02、03、04、05、11 | M2 单元测试（测试用路线图）+ Playwright 走真实页面 |
 | AC-01、06、07、09、10、12、18 | Playwright。AC-09 在同一个浏览器上下文里关掉页面再重新打开；AC-18 在测试前注入一段让 `localStorage` 抛异常的脚本 |
 | AC-08 | Playwright 新建上下文（相当于无痕窗口）直接打开方案三步骤的 URL |
-| AC-13 | 人工逐节核对，核对表在内容迁移任务中建立（计划放在 `docs/migration-checklist.md`），并用脚本比对原文与站内的命令和链接 |
+| AC-13 | 人工逐节核对，核对表在 [`docs/migration-checklist.md`](migration-checklist.md)（#5 建立，各迁移任务补充），并用脚本比对原文与站内的命令和链接 |
 | AC-14 | M1、M2 单元测试覆盖每一种错误；外加一个构建级用例：用 `tests/fixtures/` 里的坏内容执行构建，断言构建失败并报出文件名（可行性在实施时确认） |
 | AC-15 | 分别用 `BASE_PATH=/` 和 `/sub/` 构建，再用 Playwright 抽查导航和图片 |
 | AC-16 | Playwright 360 和 1280 两种视口，断言 `scrollWidth <= innerWidth` 并检查按钮可点 |
