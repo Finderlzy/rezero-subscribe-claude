@@ -109,6 +109,8 @@ function resilientAdapter(storage: Storage | null): Adapter {
 }
 
 const isNonEmptyString = (v: unknown): v is string => typeof v === 'string' && v.length > 0;
+/** 不能用作分叉点标识的键：写进普通对象会触碰原型，一律丢掉。 */
+const RESERVED_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 const isPlainObject = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v);
 
@@ -128,7 +130,12 @@ function normalize(input: unknown, options: ReaderStoreOptions): ReaderState {
 
   if (isPlainObject(src.choices)) {
     for (const [fork, option] of Object.entries(src.choices)) {
-      if (isNonEmptyString(fork) && isNonEmptyString(option) && (options.isKnownChoice?.(fork, option) ?? true)) {
+      if (
+        isNonEmptyString(fork) &&
+        !RESERVED_KEYS.has(fork) &&
+        isNonEmptyString(option) &&
+        (options.isKnownChoice?.(fork, option) ?? true)
+      ) {
         state.choices[fork] = option;
       }
     }
@@ -173,6 +180,7 @@ export function createReaderStore(storage: Storage | null, options: ReaderStoreO
         visited: [...new Set([...current.visited, ...valid.visited])],
       };
       if (valid.lastStep !== undefined) next.lastStep = valid.lastStep;
+      // view 直接看 patch：normalize 会把缺失的 view 补成默认值，用 valid.view 会误覆盖原值。
       if (patch.view === 'operation' || patch.view === 'principle') next.view = patch.view;
       adapter.set(JSON.stringify(next));
     },

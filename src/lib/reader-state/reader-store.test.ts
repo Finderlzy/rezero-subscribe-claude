@@ -240,6 +240,22 @@ describe('createReaderStore：clear', () => {
   });
 });
 
+describe('createReaderStore：恶意或异常的键', () => {
+  it('choices 里的 __proto__、constructor、prototype 键被丢掉，不污染原型', () => {
+    const raw = '{"choices":{"__proto__":"x","constructor":"y","prototype":"z","node-plan":"plan-1"},"visited":["dns"]}';
+    const store = createReaderStore(fakeStorage(raw));
+    const state = store.read();
+    expect(state.choices).toEqual({ 'node-plan': 'plan-1' });
+    expect(Object.keys(state.choices)).toEqual(['node-plan']);
+    expect(Object.getPrototypeOf(state.choices)).toBe(Object.prototype);
+    expect(({} as Record<string, unknown>).x).toBeUndefined();
+
+    store.write({ choices: JSON.parse('{"__proto__":"evil","constructor":"evil"}') });
+    expect(store.read().choices).toEqual({ 'node-plan': 'plan-1' });
+    expect(Object.prototype.hasOwnProperty.call(Object.prototype, 'evil')).toBe(false);
+  });
+});
+
 describe('createReaderStore：标识过滤（调用方传入，不依赖路线模块）', () => {
   const known = {
     isKnownStep: (id: string) => ['dns', 'ip-check'].includes(id),
