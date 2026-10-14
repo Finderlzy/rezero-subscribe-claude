@@ -118,26 +118,29 @@ chapters:
 
 **职责**：根据路线图、步骤元数据和读者的选择，算出页面需要的全部导航信息；在构建时校验路线图。
 
-**接口**（计划，签名可在实现时微调，但对外只保留这两个入口）：
+**接口**（已由 #3 实现：`src/lib/route/route-map.ts`，类型在 `types.ts`）：
 
 ```ts
 type Choices = Partial<Record<ForkId, OptionId>>;
 type At = { kind: 'step'; id: StepId } | { kind: 'choose'; fork: ForkId };
 
-// 校验并编译；失败时抛出 RouteError[]，每条错误都写明 route.yaml 或步骤文件的路径
-function buildRouteMap(spec: RouteSpec, steps: StepMeta[]): RouteMap;
+// 校验并编译。spec 是 route.yaml 解析后的值（unknown，M2 逐项校验形状）；choices 是选择页元数据（标题、选项顺序）。
+// 失败时抛出 RouteValidationError，其 errors: RouteError[] 一次列全，每条写明 route.yaml、steps/<id>.md 或 choices/<id>.md
+function buildRouteMap(spec: unknown, steps: StepMeta[], choices: ChoiceMeta[]): RouteMap;
 
 interface RouteMap {
   /** 一个页面需要的全部导航信息。stored = 本机保存的选择，可以为空 */
   view(at: At, stored: Choices): {
-    choices: Choices;          // 实际生效的选择 = 默认路线 ← 本机保存的选择 ← 当前页所属选项（S5）；
-                               // 共享步骤属于多个选项时：已生效的选择在其中就保留，否则取其中第一个
+    choices: Record<ForkId, OptionId>; // 实际生效的选择 = 默认路线 ← 本机保存的选择（失效项忽略）← 当前页所属选项（S5），总是覆盖全部分叉点；
+                               // 共享步骤属于多个选项时：本机已选的在其中就沿用，否则用默认选项，默认也不在其中时取第一个（FR-17）
+    current: Stop;             // 当前页（带标题）
     prev: Stop | null;         // 路线第一项时为 null
     next: Stop;                // 最后一步之后是 { kind: 'done' }（FR-11）
     skipTo: Stop | null;       // 只有可跳过步骤才有：跳过本章内连续的可跳过步骤后的第一项（FR-15）
-    progress: { chapter: string; index: number; total: number } | null; // 选择页没有步数
+    progress: { chapterId: string; chapter: string; index: number; total: number } | null; // 选择页没有步数
     outline: OutlineChapter[]; // 目录：全部步骤，标出是否在当前路线上（FR-16）
   };
+  // at 不在路线图里时抛错
   readonly data: RouteData;    // 可以序列化，给浏览器重建 RouteMap 用；含步骤和选择页的标题、章节标题、skippable/placeholder 标记，
                                // 浏览器改写“下一步：<标题>”、目录、首页“继续上次：<步骤名>”都只靠它，不再另取数据
 }
@@ -145,6 +148,8 @@ function routeMapFromData(data: RouteData): RouteMap;
 /** Stop → 站内路径（不含 BASE_PATH）；构建时和浏览器共用，再由 withBase() 加前缀 */
 function pathOf(stop: Stop): string;
 ```
+
+- 输入类型 `StepMeta`、`ChoiceMeta` 定义在 `route/types.ts`，只含路线需要的字段。M2 不读文件，也不引用 M1 的集合类型：由 `loadSite()` 把 M1 的内容条目和解析后的 `route.yaml` 映射成这两种形状传入。标题等必填元数据由 M1 的 Zod 校验，M2 只校验标识和路线结构。
 
 **规则**（构建时校验，任何一条不满足就失败，对应 FR-61）：
 
@@ -237,7 +242,7 @@ M4 不依赖 M2：`StepId`、`Choices` 等在 M4 里是同义的字符串别名�
 │   ├── assets/screenshots/          截图（会经过 Astro 的图片处理）
 │   ├── lib/
 │   │   ├── content/                 M1：remark-obsidian.ts、link-index.ts（+ *.test.ts）
-│   │   ├── route/                   M2：route-map.ts（+ route-map.test.ts、测试用路线图）
+│   │   ├── route/                   M2：route-map.ts、types.ts（+ route-map.test.ts、fixtures/sample-route.ts 测试用路线图）
 │   │   ├── reader-state/            M4：reader-store.ts（+ *.test.ts）
 │   │   └── site.ts                  构建时装配：loadSite()
 │   ├── layouts/                     页面骨架（head 里的视图脚本、RouteData）
