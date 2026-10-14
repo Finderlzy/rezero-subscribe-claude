@@ -17,7 +17,7 @@
 
 工程配置在仓库根目录（`astro.config.mjs`、`tsconfig.json`、`vitest.config.ts`、`playwright.config.ts`）。站内链接一律经 `src/lib/with-base.ts` 的 `withBase()` 生成。标“计划”的目录由后续任务建立：
 
-- `src/content/`（计划）：内容。`route.yaml` 是路线图（章节、分叉点、步骤顺序），`steps/<step-id>.md` 每步一个文件，另有 `choices/`、`faq/`、`pages/`。截图放在 `src/assets/screenshots/`。
+- `src/content/`（计划；集合定义 `src/content.config.ts` 已建立）：内容。`route.yaml` 是路线图（章节、分叉点、步骤顺序），`steps/<step-id>.md` 每步一个文件，另有 `choices/`、`faq/`、`pages/`。截图放在 `src/assets/screenshots/`（已建立），嵌入写裸文件名 `![[文件名|宽度]]`。
 - `src/lib/`：纯逻辑模块，单元测试放在旁边（`*.test.ts`）。其中 `content/` 是 M1，`route/` 是 M2，`reader-state/` 是 M4。
 - `src/pages/`、`src/layouts/`、`src/components/`、`src/styles/`：页面（M3）。
 - `tests/e2e/`：Playwright 测试，文件按验收编号命名，如 `ac-03-branch-merge.spec.ts`；`tests/fixtures/`：故意写坏的内容。
@@ -25,7 +25,7 @@
 
 ## 构建、测试与开发命令
 
-Node ≥ 22.12，使用 npm，以 `package.json` 为准。`npm run dev`、`npm run build`（含全部内容校验，校验由 #4 起接入；可用 `BASE_PATH=/sub/` 生成子路径版本）、`npm run preview`、`npm test`（Vitest）、`npm run test:e2e`（先构建，再用 Playwright 在 360 和 1280 两种宽度下测试；首次运行前执行 `npx playwright install chromium`）、`npm run check`（`astro check` + 单元测试 + 构建，提交前运行）。
+Node ≥ 22.12，使用 npm，以 `package.json` 为准。`npm run dev`、`npm run build`（含全部内容校验：frontmatter 与 Obsidian 写法校验已接入，路线图校验随 `loadSite()` 接入；可用 `BASE_PATH=/sub/` 生成子路径版本）、`npm run preview`、`npm test`（Vitest）、`npm run test:e2e`（先构建，再用 Playwright 在 360 和 1280 两种宽度下测试；首次运行前执行 `npx playwright install chromium`）、`npm run check`（`astro check` + 单元测试 + 构建，提交前运行）。
 
 在 AI Agent 里运行时，Astro 会把 `astro dev`/`astro preview` 自动转入后台，用 `npx astro dev stop`/`npx astro preview stop` 停止；需要前台运行时加 `--ignore-lock`。
 

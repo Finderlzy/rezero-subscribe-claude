@@ -114,6 +114,35 @@ chapters:
 - 嵌入图片由插件生成 mdast `image` 节点，`url` 写成从 Markdown 文件到 `src/assets/screenshots/<文件名>` 的相对路径（经 `encodeURI`），宽度写进 `data.hProperties.width`；Astro 的 `remarkCollectImages` 在用户插件之后运行，会把它交给图片服务（输出 webp 并写上宽高）。截图因此放在 `src/assets/screenshots/`，不放 `public/`。文件名含空格和中文也能构建和访问。
 - 换成 unified 处理器后 Shiki 仍默认开启（`github-dark`，样式内联），构建产物不引用外部资源。
 
+**实现（#4）**：集合与 schema 在 `src/content.config.ts`（schema 本体在 `src/lib/content/schemas.ts`，用 `strictObject`，写错的键直接报错），插件和管线在 `src/lib/content/`。对外接口：
+
+```ts
+// link-index.ts：同步扫描文件名和 frontmatter 标题；目录不存在视为空
+function createLinkIndex(contentRoot: string, screenshotsDir?: string /* 默认 <contentRoot>/../assets/screenshots */): LinkIndex;
+interface LinkIndex {
+  contentRoot: string; screenshotsDir: string;
+  steps: ReadonlyMap<StepId, string>;   // 标识 → title
+  faq: ReadonlyMap<FaqId, string>;      // 标识 → title
+  choices: ReadonlyMap<ForkId, string>; // 标识 → question
+  screenshots: ReadonlySet<string>;     // 截图文件名
+  doneTitle: string | undefined;        // pages/done.md 的 title
+}
+// markdown.ts：Markdown 管线的唯一配置（astro.config.mjs、构建校验、单元测试共用）
+function markdownPipeline(o: { base: string; linkIndex: LinkIndex | (() => LinkIndex); onProblems? }): UnifiedProcessorOptions;
+function validateContent(o: { base; linkIndex }): Promise<ContentProblem[]>; // 逐个处理 steps/choices/faq/pages 下的 *.md
+// integration.ts：astro:build:start 时调用 validateContent，有问题就终止构建
+function contentValidation(o: { base; linkIndex }): AstroIntegration;
+// remark-obsidian.ts：默认导出插件；问题记为 ContentProblem { file, line, column, message }，整篇处理完一次性抛出 ContentError
+```
+
+- **构建失败的落点**：Astro 的内容渲染会捕获异常、只打日志并继续构建，所以插件在渲染时报的错不能让构建失败；由 `contentValidation` 集成在 `astro:build:start` 用同一条管线重新处理全部源文件（保留 frontmatter 占位，行号与源文件一致），逐条打印“文件:行:列 说明”后抛错（`astro build` 退出码 1）。渲染时的报错也换算回源文件行号，开发服务器里同样能看到。
+- **集合用 `deferRender: true`**：同步阶段渲染的结果按引用方文件的摘要缓存，目标改了标题而引用方没改时，缺省链接文字会一直是旧的；推迟到页面渲染时处理就没有这个问题（已实测改标题后重建即更新，图片仍输出 webp 和 1x/2x `srcset`）。M3 渲染条目照常用 `render(entry)`。
+- **管线配置**：关闭 SmartyPants（它在用户插件之前改写引号、`--`、`...`，会改坏 `[[…]]` 里的文件名和正文里的命令，FR-03）；`note`、`caution` 的默认标题改为“提示”“注意”。
+- **双链**：href 经 `joinBase(base, …)`（`withBase` 的纯函数版本，base 与 `astro.config.mjs` 相同）；`[[id#小标题]]` 的锚点用 `github-slugger`，与 Astro 生成标题 id 的算法相同（不校验目标小标题是否存在）；不写链接文字时用目标标题，`[[done]]` 用完成页标题，没有完成页文件时用“完成页”。普通 Markdown 链接文字里写双链、双链里夹格式或换行、未知前缀（如 `[[blog/…]]`）都判为错误，不会原样输出。
+- **嵌入**：支持单独成段和行内两种位置；宽度只接受正整数；`09附件/` 前缀和其他路径都报错；截图文件名不能含 `#`、`?`、`%`（会让图片路径出错）。GFM 表格里写作 `[[id\|文字]]`、`![[文件名\|宽度]]`。图片节点带 `data-zoom` 属性（看大图组件的识别标记）；写了宽度时同时传 `densities: [1, 2]`，产物带 1x/2x `srcset`，看大图组件可用 2x 版本。看大图要不要原图链接由负责看大图的任务决定。
+- **Callout 白名单**：只允许小写的 `[!why]`、`[!note]`、`[!caution]`；可折叠写法（`[!why]-`、`[!note]+`，库会插入自带的折叠箭头 SVG）、其他类型、标记不在引用第一行开头（库仍会把它当成 Callout 并吞掉前面的文字）都报错。原理块标题（是否保留“为什么：”前缀）原样输出，由迁移规则决定。
+- 内容文件名必须是以字母开头的英文 kebab-case，否则构建失败。
+
 ### M2 路线（`src/lib/route/`）
 
 **职责**：根据路线图、步骤元数据和读者的选择，算出页面需要的全部导航信息；在构建时校验路线图。
@@ -200,7 +229,7 @@ M4 不依赖 M2：`StepId`、`Choices` 等在 M4 里是同义的字符串别名�
 
 - 校验分三层，都发生在 `astro build` 里，不需要额外的命令：
   1. Zod 校验 frontmatter，缺少必填项时报出文件；
-  2. Obsidian 插件校验双链和图片，报出文件和行号；
+  2. Obsidian 插件校验双链、图片和 Callout，报出文件和行号（由 `contentValidation` 集成在 `astro:build:start` 执行，见 §3 M1“实现”）；
   3. `buildRouteMap` 校验路线图。
 - 配置（已建立）：`output: 'static'`、`build.format: 'directory'`、`trailingSlash: 'always'`、`base: process.env.BASE_PATH ?? '/'`、`site: process.env.SITE_URL`（可选）。站内链接一律通过 `withBase()` 生成，不手写以 `/` 开头的路径。
 - 禁止通过放宽 Zod 规则、跳过校验来让构建通过（三级边界 Never）。
@@ -225,7 +254,7 @@ M4 不依赖 M2：`StepId`、`Choices` 等在 M4 里是同义的字符串别名�
 3. **页面脚本运行**：调用 M4 的 `read()`，存储为空或不可用时返回默认值；再调用 `view(at, stored)`。结果和构建时一样，所以链接不需要改写。最后写入 `lastStep`，以及 `choices.node-plan = plan-3`。
 4. **读者到达 `/choose/desktop-proxy/`**：这个页面构建时写的是默认路线，上一步指向方案一的 `run-script`。页面脚本按本机保存的 `plan-3` 重新计算，把“上一步”改写为 `plan3-buy-node`（AC-03）。
 
-## 6. 目录结构（`src/content/`、`src/lib/` 下的模块和 `tests/fixtures/` 为计划，其余已由 #1 建立）
+## 6. 目录结构（`src/content/` 下的内容文件、`src/lib/site.ts` 和 `tests/fixtures/` 为计划，其余已建立）
 
 ```
 .
@@ -237,11 +266,11 @@ M4 不依赖 M2：`StepId`、`Choices` 等在 M4 里是同义的字符串别名�
 ├── tsconfig.json
 ├── vitest.config.ts / playwright.config.ts
 ├── src/
-│   ├── content.config.ts            M1 集合与 Zod schema
+│   ├── content.config.ts            M1 集合（schema 在 lib/content/schemas.ts）
 │   ├── content/                     M1 内容：route.yaml、steps/、choices/、faq/、pages/
-│   ├── assets/screenshots/          截图（会经过 Astro 的图片处理）
+│   ├── assets/screenshots/          截图（会经过 Astro 的图片处理；#4 建立目录）
 │   ├── lib/
-│   │   ├── content/                 M1：remark-obsidian.ts、link-index.ts（+ *.test.ts）
+│   │   ├── content/                 M1：schemas.ts、link-index.ts、remark-obsidian.ts、markdown.ts（管线配置与全量校验）、integration.ts（构建校验集成）（+ *.test.ts、test-fixture.ts）
 │   │   ├── route/                   M2：route-map.ts、types.ts（+ route-map.test.ts、fixtures/sample-route.ts 测试用路线图）
 │   │   ├── reader-state/            M4：reader-store.ts（+ *.test.ts）
 │   │   └── site.ts                  构建时装配：loadSite()
@@ -264,7 +293,7 @@ M4 不依赖 M2：`StepId`、`Choices` 等在 M4 里是同义的字符串别名�
 | 命令 | 作用 |
 | --- | --- |
 | `npm run dev` | 本地开发服务器 |
-| `npm run build` | 构建到 `dist/`，同时执行全部内容校验（校验由 #4 起接入）；`BASE_PATH=/sub/ npm run build` 生成子路径版本 |
+| `npm run build` | 构建到 `dist/`，同时执行全部内容校验（frontmatter 与 Obsidian 写法校验已由 #4 接入，路线图校验随 `loadSite()` 接入）；`BASE_PATH=/sub/ npm run build` 生成子路径版本 |
 | `npm run preview` | 预览构建产物 |
 | `npm test` | Vitest 单元测试 |
 | `npm run test:e2e` | 构建后运行 Playwright 测试（360 和 1280 两种视口） |

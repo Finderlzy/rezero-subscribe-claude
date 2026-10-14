@@ -77,6 +77,8 @@
 - Shiki 默认主题 `github-dark` 的底色是内联样式（`#24292e`），和 design 里代码块用 `--surface` 令牌冲突，内联样式还会压过令牌。实现代码块样式的任务需要配置 `markdown.shikiConfig` 的主题（例如 CSS 变量主题）。
 - 实验插件只匹配单独成段的嵌入：紧跟在同段其他文字后的 `![[…]]` 被当成普通文字原样输出，构建也不报错（实测）。#4 要决定是否支持行内嵌入，并让无法识别的写法构建失败。
 
+#4 的处理（2026-10-14）：`encodeURI`、`'data-zoom'` 字面键、写宽度时加 `densities: [1, 2]`、可折叠 Callout 判为错误、行内嵌入支持、无法识别的写法让构建失败，均已实现；测试样例的截图内容各不相同。Shiki 主题留给代码块样式任务。详见 [architecture.md §3 M1“实现（#4）”](architecture.md)。
+
 ## 5. 证据链接
 
 - Material for MkDocs 维护期：<https://discuss.privacyguides.net/t/mkdocs-material-is-now-in-maintenance-mode/32736>

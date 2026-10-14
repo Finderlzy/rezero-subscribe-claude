@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { withBase } from './with-base';
+import { joinBase, withBase } from './with-base';
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -49,5 +49,13 @@ describe('withBase：子路径部署（BASE_URL = "/sub/"）', () => {
     vi.stubEnv('BASE_URL', '/sub/');
     expect(withBase('//foo//bar/')).toBe('/sub/foo/bar/');
     expect(withBase('//')).toBe('/sub/');
+  });
+});
+
+describe('joinBase：显式传入 base（供构建配置阶段使用）', () => {
+  it('与 withBase 的规则一致', () => {
+    expect(joinBase('/', '/foo/')).toBe('/foo/');
+    expect(joinBase('/sub', '/foo/')).toBe('/sub/foo/');
+    expect(joinBase('/sub/', 'faq/x/?from=a//b#top')).toBe('/sub/faq/x/?from=a//b#top');
   });
 });
