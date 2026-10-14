@@ -56,6 +56,7 @@ function branchForksOf(data: RouteData, id: string): Set<ForkId> {
  * 页面里的挂载点（由 StepLayout、StepNav、ChoiceOption 写出）：
  * - `[data-route-at]`：当前页的 `At`（JSON）；`#route-data`：RouteData；
  * - `[data-route-progress]`：顶部进度；`[data-route-nav="prev|next"]` 内的 `[data-route-title]`：目标标题，
+ *   `[data-route-nav="skip"]`：可跳过步骤的跳过链接（只改地址，文案不变），外层是 `[data-route-skip]`，
  *   `[data-done-title]`：完成页标题；
  * - 选择页的 `[data-route-option]`：选项链接，其中 `[data-route-current]` 是“当前选择”标记。
  * 第一次计算完成后给 `[data-route-at]` 加上 `data-route-ready`，e2e 据此确认脚本已跑完。
@@ -93,14 +94,14 @@ function renderNav(doc: Document, view: RouteView): void {
   if (progressEl && view.progress) progressEl.textContent = progressText(view.progress);
 
   const doneTitle = doc.querySelector<HTMLElement>('[data-done-title]')?.dataset.doneTitle ?? '';
-  for (const dir of ['prev', 'next'] as const) {
+  const links = { prev: view.prev, next: view.next, skip: view.skipTo };
+  for (const [dir, stop] of Object.entries(links)) {
     const link = doc.querySelector<HTMLAnchorElement>(`[data-route-nav="${dir}"]`);
-    const stop = view[dir];
     if (!link) continue;
-    // 只有路线的第一项没有上一步，它和选择无关（M2 保证），所以构建时有没有上一步链接，和这里算出的
-    // 一致：构建时没写的，这里也不会需要补；构建时写了而这里没有的，只为保险删掉。
+    // 只有路线的第一项没有上一步，是否可跳过也只看步骤本身，都和选择无关（M2 保证），所以构建时有没有
+    // 这两个链接，和这里算出的一致：构建时没写的，这里也不会需要补；构建时写了而这里没有的，只为保险删掉。
     if (!stop) {
-      link.remove();
+      (dir === 'skip' ? link.closest('[data-route-skip]') ?? link : link).remove();
       continue;
     }
     link.href = withBase(pathOf(stop));

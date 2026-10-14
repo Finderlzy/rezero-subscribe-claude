@@ -57,7 +57,7 @@
 | `src/content/pages/home.md`、`done.md` | 首页前言；完成页的致谢、后记、联系方式 | `title` |
 | `src/assets/screenshots/` | 截图（从博客的 `09附件/` 复制过来，FR-04） | — |
 
-**route.yaml 格式**（下例是完整路线图的样子；目前迁入了“开始”、第一章和“五、检查 IP 质量”）：章节和分叉点的唯一来源，满足 FR-02 中“所属章节、所属路线”的要求。步骤文件不重复写这两项，避免两处数据不一致。
+**route.yaml 格式**（下例是完整路线图的样子；目前迁入了“开始”到“六、手机代理”，以及第七章的汇合点）：章节和分叉点的唯一来源，满足 FR-02 中“所属章节、所属路线”的要求。步骤文件不重复写这两项，避免两处数据不一致。
 
 ```yaml
 defaults: { node-plan: plan-1, desktop-proxy: v2rayn, phone: iphone }  # 默认路线（Ask first）

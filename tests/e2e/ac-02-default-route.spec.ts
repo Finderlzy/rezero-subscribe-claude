@@ -1,14 +1,16 @@
 import { expect, test } from '@playwright/test';
 
-// AC-02（FR-10、FR-11，前五章部分）：从“开始之前”沿默认路线一直点“下一步”，依次经过方案一的四步、
-// v2rayN、防泄漏、电脑改时区和“检查 IP 质量”，最后到完成页。手机章节迁入后，这条路线由对应任务接着补长。
+// AC-02（FR-10、FR-11，前七章部分）：从“开始之前”沿默认路线一直点“下一步”，依次经过方案一的四步、
+// v2rayN、防泄漏、电脑改时区、检查 IP 质量、iPhone 的手机代理和“创建 Gmail 邮箱和 Google 账号”，最后到完成页。
+// 后面的章节迁入后，这条路线由对应任务接着补长。
 // 导航在构建时写进 HTML（design §5），所以禁用 JS 走一遍。
 test.use({ javaScriptEnabled: false });
 
 /** 默认路线：[URL 路径, h1, 顶部的章节和步数] */
 const DEFAULT_ROUTE: [string, string, string][] = [
-  ['/before-you-start/', '开始之前', '开始 · 第 1 步，共 2 步'],
-  ['/overview/', '整体思路', '开始 · 第 2 步，共 2 步'],
+  ['/before-you-start/', '开始之前', '开始 · 第 1 步，共 3 步'],
+  ['/overview/', '整体思路', '开始 · 第 2 步，共 3 步'],
+  ['/clean-claude-code/', '清理本机的 Claude Code 配置', '开始 · 第 3 步，共 3 步'],
   ['/choose/node-plan/', '你想用哪种方式准备住宅 IP？', '一、准备住宅 IP'],
   ['/plan1-buy-vps/', '买服务器', '一、准备住宅 IP · 第 1 步，共 4 步'],
   ['/plan1-free-residential-ip/', '白嫖住宅 IP', '一、准备住宅 IP · 第 2 步，共 4 步'],
@@ -21,10 +23,16 @@ const DEFAULT_ROUTE: [string, string, string][] = [
   ['/webrtc/', '防 WebRTC 泄漏', '三、防泄漏 · 第 2 步，共 3 步'],
   ['/ipv6/', '防 IPv6 泄漏', '三、防泄漏 · 第 3 步，共 3 步'],
   ['/desktop-timezone/', '电脑改时区', '四、电脑改时区 · 第 1 步，共 1 步'],
-  ['/check-ip-quality/', '检查 IP 质量', '五、检查 IP 质量 · 第 1 步，共 1 步'],
+  ['/check-ip-quality/', '检查 IP 质量', '五、检查 IP 质量 · 第 1 步，共 2 步'],
+  ['/replace-ip-or-refund/', 'IP 不合格：换 IP 或退款', '五、检查 IP 质量 · 第 2 步，共 2 步'],
+  ['/choose/phone/', '你用什么手机？', '六、手机代理'],
+  ['/iphone-app-store-austria/', '把 App Store 改到奥地利', '六、手机代理 · 第 1 步，共 3 步'],
+  ['/iphone-v2box/', '下载 v2Box 并导入节点', '六、手机代理 · 第 2 步，共 3 步'],
+  ['/iphone-timezone/', '手机改时区', '六、手机代理 · 第 3 步，共 3 步'],
+  ['/create-google-account/', '创建 Gmail 邮箱和 Google 账号', '七、准备 Google 账号 · 第 1 步，共 1 步'],
 ];
 
-test('从“开始之前”一直点“下一步”，经过方案一、v2rayN 和“检查 IP 质量”到完成页', async ({ page }) => {
+test('从“开始之前”一直点“下一步”，经过方案一、v2rayN、检查 IP 质量和 iPhone 到完成页', async ({ page }) => {
   await page.goto('./before-you-start/');
   const nav = page.getByRole('navigation', { name: '上一步和下一步' });
 

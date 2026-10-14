@@ -31,6 +31,7 @@ const DISABLERS: [string, () => void][] = [
 const DEFAULT_ROUTE = [
   '/before-you-start/',
   '/overview/',
+  '/clean-claude-code/',
   '/choose/node-plan/',
   '/plan1-buy-vps/',
   '/plan1-free-residential-ip/',
@@ -44,6 +45,12 @@ const DEFAULT_ROUTE = [
   '/ipv6/',
   '/desktop-timezone/',
   '/check-ip-quality/',
+  '/replace-ip-or-refund/',
+  '/choose/phone/',
+  '/iphone-app-store-austria/',
+  '/iphone-v2box/',
+  '/iphone-timezone/',
+  '/create-google-account/',
   '/done/',
 ];
 

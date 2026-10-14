@@ -7,16 +7,33 @@ import { withBase } from '../lib/with-base';
 /**
  * 上一步 / 下一步（design §4.1，FR-11）。按钮里写出目标标题，不只写“下一步”（design §6）。
  * 链接在构建时按当前页的路线写好，不运行 JS 也能顺着走完；页面脚本再按本机选择改写（data-route-* 挂载点）。
+ * 可跳过步骤在“下一步”上方多一个文字按钮（design §4.1，FR-15）。它放在 nav 外面、正文流里：
+ * 手机上底栏吸底，放进底栏会让底栏变高，正文末尾的留白就不够了。
  */
 interface Props {
   prev: Stop | null;
   next: Stop;
+  /** 可跳过步骤才有：跳过本章内连续的可跳过步骤后到达的位置 */
+  skipTo?: Stop | null;
+  /** 跳过按钮文案（frontmatter 的 skipLabel） */
+  skipLabel?: string | undefined;
   /** 完成页的标题，用于最后一步的“下一步：完成” */
   doneTitle: string;
 }
 
-const { prev, next, doneTitle } = Astro.props;
+const { prev, next, skipTo = null, skipLabel = '已有，跳过', doneTitle } = Astro.props;
 ---
+
+{
+  skipTo && (
+    <p class="step-skip" data-route-skip>
+      <a href={withBase(pathOf(skipTo))} data-route-nav="skip">
+        {skipLabel}
+        <span aria-hidden="true"> →</span>
+      </a>
+    </p>
+  )
+}
 
 <nav class="step-nav" aria-label="上一步和下一步" data-done-title={doneTitle}>
   {
@@ -40,6 +57,29 @@ const { prev, next, doneTitle } = Astro.props;
 </nav>
 
 <style>
+  .step-skip {
+    display: flex;
+    justify-content: flex-end;
+    margin: var(--space-7) 0 0;
+  }
+
+  .step-skip a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--accent);
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  .step-skip a:hover {
+    text-decoration: underline;
+  }
+
+  .step-skip + .step-nav {
+    margin-top: var(--space-3);
+  }
+
   .step-nav {
     display: grid;
     grid-template-columns: 1fr 1fr;

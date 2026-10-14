@@ -22,11 +22,14 @@ interface Props {
   chapter?: string;
   prev: Stop | null;
   next: Stop;
+  /** 可跳过步骤才有：跳过后到达的位置和按钮文案（FR-15） */
+  skipTo?: Stop | null;
+  skipLabel?: string | undefined;
   doneTitle: string;
   routeData: RouteData;
 }
 
-const { at, title, progress, chapter, prev, next, doneTitle, routeData } = Astro.props;
+const { at, title, progress, chapter, prev, next, skipTo = null, skipLabel, doneTitle, routeData } = Astro.props;
 const meta = progress ? progressText(progress) : chapter;
 // 内嵌在 <script> 里的 JSON 不能出现 `</script>`，把 `<` 转义掉。
 const routeJson = JSON.stringify(routeData).replace(/</g, '\\u003c');
@@ -48,7 +51,7 @@ const hasWhy = body.includes('data-callout="why"');
     </header>
     {!hasWhy && <p class="no-why">这一步没有额外原理</p>}
     <div class="prose" set:html={body} />
-    <StepNav prev={prev} next={next} doneTitle={doneTitle} />
+    <StepNav prev={prev} next={next} skipTo={skipTo} skipLabel={skipLabel} doneTitle={doneTitle} />
   </main>
   <script type="application/json" id="route-data" set:html={routeJson} />
 </BaseLayout>

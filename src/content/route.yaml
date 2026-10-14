@@ -1,11 +1,11 @@
 # 路线图：章节、分叉点和步骤顺序的唯一来源（架构 §3 M1、需求 §5.2）。
 # 步骤标识是 steps/<id>.md 的文件名，也是 URL；已发布的标识不能改（ADR-0002）。
-# 目前迁入了“开始”到“五、检查 IP 质量”；清理 Claude Code 配置和后面的章节、分叉点由后续迁移任务补上。
-defaults: { node-plan: plan-1, desktop-proxy: v2rayn }
+# 目前迁入了“开始”到“六、手机代理”，以及第七章的汇合点“创建 Gmail 邮箱和 Google 账号”；其余章节由后续迁移任务补上。
+defaults: { node-plan: plan-1, desktop-proxy: v2rayn, phone: iphone }
 chapters:
   - id: start
     title: 开始
-    items: [before-you-start, overview]
+    items: [before-you-start, overview, clean-claude-code]
   - id: residential-ip
     title: 一、准备住宅 IP
     items:
@@ -39,4 +39,16 @@ chapters:
     items: [desktop-timezone]
   - id: ip-quality
     title: 五、检查 IP 质量
-    items: [check-ip-quality]
+    items: [check-ip-quality, replace-ip-or-refund]
+  - id: phone-proxy
+    title: 六、手机代理
+    items:
+      - choose: phone
+      - branch: phone
+        options:
+          iphone: [iphone-app-store-austria, iphone-v2box, iphone-timezone]
+          android: [android-v2rayng, android-timezone]
+  # F3 的汇合点。第七章前面随 F3 的“下载 Gmail”等步骤由 #12 补在它前面。
+  - id: google-account
+    title: 七、准备 Google 账号
+    items: [create-google-account]
