@@ -1,0 +1,28 @@
+---
+import '../styles/code-zoom.css';
+
+/**
+ * 截图看大图（design §4.7，NFR-02）。
+ *
+ * 页面上放一个空的 `<dialog>`，点击截图时由 `src/scripts/code-zoom.ts` 把图填进去再 `showModal()`。
+ * 只留一个 dialog：一页有多张截图（如 plan2-buy-residential-vps），每次打开都是同一份。
+ * 没有 JS 时这个 dialog 不会打开，正文里的截图照常显示，不影响阅读。
+ * 样式和复制按钮同属 NFR-02，放在 styles/code-zoom.css。
+ *
+ * 标记契约（脚本填充，样式据此选中）：
+ *   dialog.image-zoom > button.image-zoom-close + figure > img.image-zoom-image + figcaption.image-zoom-caption
+ */
+---
+
+<dialog class="image-zoom" data-image-zoom aria-label="看大图">
+  <button type="button" class="image-zoom-close" data-image-zoom-close aria-label="关闭大图">
+    <!-- 图标自己画，内联 SVG，1.5px 线宽、24px 网格（design §3.3）。 -->
+    <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+      <path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+    </svg>
+  </button>
+  <figure>
+    <img class="image-zoom-image" data-image-zoom-image alt="" />
+    <figcaption class="image-zoom-caption" data-image-zoom-caption></figcaption>
+  </figure>
+</dialog>

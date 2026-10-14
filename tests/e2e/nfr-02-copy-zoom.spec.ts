@@ -1,0 +1,184 @@
+import { expect, test } from '@playwright/test';
+
+// NFR-02（design §4.7）：命令和代码块一键复制，复制成功后在按钮上显示“已复制”并用 aria-live 播报，
+// 2 秒后复位；长行在代码块内部横向滚动、不折行。截图点击后用 <dialog> 看大图，Esc 或点背景关闭。
+//
+// 剪贴板：Playwright 的 Chromium 需要显式授权 clipboard-read / clipboard-write，
+// 否则 navigator.clipboard.writeText 会被拒（页面的兜底 execCommand 在无头模式下也拿不到系统剪贴板）。
+test.use({ permissions: ['clipboard-read', 'clipboard-write'] });
+
+/** 读回系统剪贴板里的文字。 */
+async function readClipboard(page: import('@playwright/test').Page): Promise<string> {
+  return page.evaluate(() => navigator.clipboard.readText());
+}
+
+test.describe('代码块复制', () => {
+  test('复制后剪贴板内容与代码块原文一致，按钮显示“已复制”并播报', async ({ page }) => {
+    await page.goto('./run-script/');
+
+    // 代码块由 Markdown 渲染，复制按钮由页面脚本挂上（没有 JS 时正文照常可读）。
+    const block = page.locator('.code-block').first();
+    await expect(block).toHaveCount(1);
+
+    const pre = block.locator('pre');
+    const source = (await pre.textContent()) ?? '';
+    expect(source).toContain('bash <(curl -fsSL');
+    // 命令原样复制：末尾换行和内容一起去比。
+    expect(source.length).toBeGreaterThan(0);
+
+    const button = block.getByRole('button', { name: '复制', exact: true });
+    await expect(button).toBeVisible();
+    await button.click();
+
+    // 剪贴板内容和代码块原文完全一致（不是包含、不是去空白后的相等）。
+    expect(await readClipboard(page)).toBe(source);
+
+    // 按钮换成“已复制”，并且用 aria-live 播报（design §4.7 要求播报）。
+    await expect(block.getByRole('button', { name: '已复制', exact: true })).toBeVisible();
+    await expect(block.locator('[data-code-copy-status]')).toHaveText('已复制');
+    await expect(block.locator('[data-code-copy-status]')).toHaveAttribute('aria-live', 'polite');
+  });
+
+  test('“已复制”保持约 2 秒后回到“复制”', async ({ page }) => {
+    await page.goto('./ssh-connect/');
+    const block = page.locator('.code-block').first();
+    // exact: '复制' 是 '已复制' 的子串，用子串匹配会立刻命中仍是“已复制”的按钮，
+    // 断言就永远看不到复位（这条用例本身踩过这个坑）。
+    const idle = block.getByRole('button', { name: '复制', exact: true });
+    const copied = block.getByRole('button', { name: '已复制', exact: true });
+
+    const started = Date.now();
+    await idle.click();
+    await expect(copied).toBeVisible();
+
+    // 先卡住下界：1 秒时还在“已复制”。只有真的等满 2 秒才复位，才说明写的是 2 秒而不是更短。
+    await page.waitForTimeout(1000);
+    await expect(copied).toBeVisible();
+
+    // 再卡上界：复位发生在 2 秒之后、3 秒之内（design §4.7：成功后 2 秒内显示）。
+    await expect(idle).toBeVisible({ timeout: 2500 });
+    const elapsed = Date.now() - started;
+    expect(elapsed).toBeGreaterThanOrEqual(1900);
+    expect(elapsed).toBeLessThan(3500);
+    await expect(block.locator('[data-code-copy-status]')).toHaveText('');
+  });
+
+  test('复制按钮的可点区域至少 44×44px（design §5）', async ({ page }) => {
+    await page.goto('./run-script/');
+    const box = (await page.locator('.code-copy').first().boundingBox())!;
+    expect(box.width).toBeGreaterThanOrEqual(44);
+    expect(box.height).toBeGreaterThanOrEqual(44);
+    // 按钮不能被代码块压住：点在按钮中心命中的应该是按钮自己（B3 的层叠疑问）。
+    const hit = await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.closest('.code-copy') !== null, [
+      box.x + box.width / 2,
+      box.y + box.height / 2,
+    ]);
+    expect(hit).toBe(true);
+  });
+
+  test('复制按钮不随长行横向滚动移出视野', async ({ page }) => {
+    await page.goto('./run-script/');
+    const block = page.locator('.code-block').first();
+    const pre = block.locator('pre');
+
+    // 最长的一行必须真的溢出，这个用例才有意义。
+    const overflow = await pre.evaluate((el) => el.scrollWidth - el.clientWidth);
+    expect(overflow).toBeGreaterThan(0);
+
+    const button = block.getByRole('button', { name: '复制', exact: true });
+    const before = await button.boundingBox();
+    await pre.evaluate((el) => {
+      el.scrollLeft = el.scrollWidth;
+    });
+    const after = await button.boundingBox();
+    // 按钮在代码块容器上，代码块自己滚动：横向滚动后按钮位置不变。
+    expect(after?.x).toBeCloseTo(before?.x ?? -1, 0);
+  });
+});
+
+test.describe('代码块长行不折行（NFR-02）', () => {
+  test('长行在代码块内部横向滚动，white-space 保持 pre', async ({ page }) => {
+    await page.goto('./run-script/');
+    const pre = page.locator('.code-block pre').first();
+    const styles = await pre.evaluate((el) => {
+      const computed = getComputedStyle(el);
+      return { whiteSpace: computed.whiteSpace, overflowX: computed.overflowX };
+    });
+    expect(styles.whiteSpace).toBe('pre');
+    expect(styles.overflowX).toBe('auto');
+  });
+});
+
+test.describe('截图看大图', () => {
+  test('点击截图打开 <dialog>，Esc 关闭', async ({ page }) => {
+    await page.goto('./plan2-buy-residential-vps/');
+
+    const opener = page.locator('[data-image-zoom-opener]').first();
+    await expect(opener).toBeVisible();
+    // 按钮的可访问名来自里面 <img> 的 alt，不是脚本拼的句子（design §4.7：图片必须有替代文字）。
+    await expect(opener).toHaveAccessibleName('VoyraCloud住宅服务器实测-ipinfo');
+    await expect(opener).toHaveAttribute('aria-haspopup', 'dialog');
+    await opener.click();
+
+    // 用原生 <dialog> 的 showModal：打开后是 modal（design §5）。
+    const dialog = page.locator('dialog[data-image-zoom]');
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toHaveJSProperty('open', true);
+
+    // 大图显示的是这一张截图，替代文字沿用正文里的 alt。
+    const big = dialog.locator('[data-image-zoom-image]');
+    await expect(big).toBeVisible();
+    await expect(big).toHaveAttribute('alt', 'VoyraCloud住宅服务器实测-ipinfo');
+
+    await page.keyboard.press('Escape');
+    await expect(dialog).not.toBeVisible();
+    await expect(dialog).toHaveJSProperty('open', false);
+  });
+
+  test('点背景关闭，点大图本身不关闭', async ({ page }) => {
+    await page.goto('./plan2-buy-residential-vps/');
+    await page.locator('[data-image-zoom-opener]').first().click();
+
+    const dialog = page.locator('dialog[data-image-zoom]');
+    await expect(dialog).toBeVisible();
+
+    // 点大图本身不关闭。
+    await dialog.locator('[data-image-zoom-image]').click({ position: { x: 5, y: 5 } });
+    await expect(dialog).toBeVisible();
+
+    // 点背景（dialog 的内边距区域）关闭。
+    const box = (await dialog.boundingBox())!;
+    await page.mouse.click(box.x + box.width - 2, box.y + 2);
+    await expect(dialog).not.toBeVisible();
+  });
+
+  test('关闭按钮可用，关闭后焦点回到触发的那张截图', async ({ page }) => {
+    await page.goto('./plan2-buy-residential-vps/');
+    const opener = page.locator('[data-image-zoom-opener]').first();
+    await opener.click();
+    await expect(page.locator('dialog[data-image-zoom]')).toBeVisible();
+
+    await page.locator('[data-image-zoom-close]').click();
+    const dialog = page.locator('dialog[data-image-zoom]');
+    await expect(dialog).not.toBeVisible();
+    // 键盘用户关掉大图后不丢位置。
+    await expect(opener).toBeFocused();
+  });
+
+  test('一页有多张截图时，各自打开自己的那张', async ({ page }) => {
+    await page.goto('./plan2-buy-residential-vps/');
+    const openers = page.locator('[data-image-zoom-opener]');
+    await expect(openers).toHaveCount(2);
+
+    const dialog = page.locator('dialog[data-image-zoom]');
+    await openers.nth(1).click();
+    await expect(dialog.locator('[data-image-zoom-image]')).toHaveAttribute('alt', 'VoyraCloud住宅服务器实测-scamalytics');
+    // 大图下面写出它的替代文字，看大图时不丢上下文（design §4.7）。
+    await expect(dialog.locator('[data-image-zoom-caption]')).toHaveText('VoyraCloud住宅服务器实测-scamalytics');
+  });
+
+  test('没有截图的步骤不输出空的 <dialog>', async ({ page }) => {
+    await page.goto('./ssh-connect/');
+    await expect(page.locator('dialog[data-image-zoom]')).toHaveCount(0);
+  });
+});

@@ -1,0 +1,167 @@
+/*
+ * 代码复制与看大图（design §4.7，NFR-02）。样式在这里而不是组件里：两块的 DOM 主要由页面脚本
+ * 生成（复制按钮逐个挂在 .prose pre 上），或放在 .prose 外面（看大图的 <dialog>），
+ * Astro 的 scoped 样式选不中它们。
+ * 颜色、间距只用 tokens.css 里的令牌（AGENTS.md）。
+ */
+
+/* ---------------------------------------------------------------- 复制按钮 */
+
+/*
+ * 包住代码块的定位容器。`<pre>` 自己横向滚动（prose.css），按钮放在容器上，
+ * 这样长行滚动时按钮不跟着移出视野。
+ */
+.code-block {
+  position: relative;
+}
+
+.code-copy {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  /* 可点区域在手机上 ≥ 44×44px（design §5）。桌面也照此，免得两种尺寸下热区不一致。 */
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--fs-meta);
+  line-height: var(--lh-meta);
+  cursor: pointer;
+}
+
+.code-copy:hover {
+  color: var(--text);
+}
+
+/* 图标 16px：24px 网格缩到和 14px 文字等高，视觉重量才和文字一致。 */
+.code-copy-icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+/* 复制成功：换成“已复制”和勾。颜色不是唯一的状态标识，文案和图标同时变（design §6）。 */
+.code-copy[data-state='copied'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/*
+ * 按钮在 `.code-block` 这一层（不是 pre 里面），`top/right` 都锚在容器上，
+ * 所以它压在 pre 的内边距区域上方、横向滚动时也不动，不会遮住命令。
+ * 这里仍然留一点右内边距：按钮浮在首行右侧，给首行让出视觉上的空白。
+ * 数值按按钮的最小尺寸（44px）加右偏移估算，只是留白，不要求精确。
+ */
+.code-block > pre {
+  padding-right: calc(var(--space-2) + 44px + var(--space-2) + var(--space-4));
+}
+
+/* 手机上按钮只留图标，命令的可读宽度更重要；文案收成 visually-hidden（clip 而不是 display:none，
+   按钮的可访问名称和 aria-live 播报仍然来自这段文字）。 */
+@media (max-width: 719px) {
+  .code-copy {
+    padding: 0 var(--space-1);
+  }
+
+  .code-copy-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* 按钮仍是 44×44（design §5），这里只是把留白收窄到图标按钮的宽度。 */
+  .code-block > pre {
+    padding-right: calc(var(--space-2) + 44px + var(--space-2));
+  }
+}
+
+/* ---------------------------------------------------------------- 看大图 */
+
+/* 可点区域 ≥ 44×44px（design §5）：截图本身可能只有 262px 宽，点击区域不能更小。 */
+.image-zoom-opener {
+  display: block;
+  max-width: 100%;
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+}
+
+.image-zoom-opener > img {
+  display: block;
+}
+
+/* 浮层是本页唯一的 <dialog>，用 ::backdrop 压暗背景（design §3.3：只有浮层加阴影）。 */
+.image-zoom {
+  position: relative;
+  max-width: 96vw;
+  max-height: 96vh;
+  margin: auto;
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  color: var(--text);
+  overflow: auto;
+}
+
+.image-zoom::backdrop {
+  background: rgb(0 0 0 / 65%);
+}
+
+.image-zoom figure {
+  margin: 0;
+}
+
+.image-zoom-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+  border-radius: var(--radius-image);
+}
+
+/* 替代文字在正文里已经作为图片的 alt 给出，大图下面再写一遍，看大图时不丢上下文。 */
+.image-zoom-caption {
+  margin: var(--space-3) 0 0;
+  color: var(--text-muted);
+  font-size: var(--fs-meta);
+  line-height: var(--lh-meta);
+  text-align: center;
+}
+
+/* 关闭按钮浮在右上角，和复制按钮同一套做法。 */
+.image-zoom-close {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.image-zoom-close:hover {
+  color: var(--text);
+}

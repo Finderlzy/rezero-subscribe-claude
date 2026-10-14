@@ -1,4 +1,6 @@
 ---
+import CodeCopy from '../components/CodeCopy.astro';
+import ImageZoom from '../components/ImageZoom.astro';
 import StepNav from '../components/StepNav.astro';
 import ViewToggle from '../components/ViewToggle.astro';
 import { progressText } from '../lib/nav-text';
@@ -37,6 +39,11 @@ const routeJson = JSON.stringify(routeData).replace(/</g, '\\u003c');
 // 代码块里的文字会被转义成 &quot;，不会误判。
 const body = await Astro.slots.render('default');
 const hasWhy = body.includes('data-callout="why"');
+// 只有正文里真有可放大的截图时才输出看大图的 <dialog>（M1 给嵌入的图片写了 data-zoom）。
+// 这里带上 `<img` 而不是只找 `data-zoom`：`data-zoom` 里没有引号，代码块里出现同样的字面文字
+// 不会被转义（对比上面 hasWhy 的免责说明），会误判成有截图。匹配 `<img ... data-zoom` 更贴近实际产物
+// （图片节点由 remark-obsidian 输出，属性顺序见 remark-obsidian.test.ts 的断言）。
+const hasZoom = /<img[^>]*\sdata-zoom(\s|>)/.test(body);
 ---
 
 <BaseLayout title={title}>
@@ -53,15 +60,19 @@ const hasWhy = body.includes('data-callout="why"');
     <div class="prose" set:html={body} />
     <StepNav prev={prev} next={next} skipTo={skipTo} skipLabel={skipLabel} doneTitle={doneTitle} />
   </main>
+  <CodeCopy />
+  {hasZoom && <ImageZoom />}
   <script type="application/json" id="route-data" set:html={routeJson} />
 </BaseLayout>
 
 <script>
+  import { initCodeZoom } from '../scripts/code-zoom';
   import { initRouteEnhance } from '../scripts/route-enhance';
   import { initViewToggle } from '../scripts/view-toggle';
 
   initRouteEnhance(document);
   initViewToggle(document);
+  initCodeZoom(document);
 </script>
 
 <style>
