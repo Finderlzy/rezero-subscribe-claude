@@ -50,7 +50,12 @@ const DEFAULT_ROUTE = [
   '/iphone-app-store-austria/',
   '/iphone-v2box/',
   '/iphone-timezone/',
+  '/iphone-gmail/',
   '/create-google-account/',
+  '/use-google-few-days/',
+  '/google-appeal/',
+  '/google-region/',
+  '/register-claude/',
   '/done/',
 ];
 

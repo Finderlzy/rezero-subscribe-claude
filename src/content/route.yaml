@@ -1,6 +1,6 @@
 # 路线图：章节、分叉点和步骤顺序的唯一来源（架构 §3 M1、需求 §5.2）。
 # 步骤标识是 steps/<id>.md 的文件名，也是 URL；已发布的标识不能改（ADR-0002）。
-# 目前迁入了“开始”到“六、手机代理”，以及第七章的汇合点“创建 Gmail 邮箱和 Google 账号”；其余章节由后续迁移任务补上。
+# 目前迁入了“开始”到“九、注册 claude”；其余章节由后续迁移任务补上。
 defaults: { node-plan: plan-1, desktop-proxy: v2rayn, phone: iphone }
 chapters:
   - id: start
@@ -48,7 +48,19 @@ chapters:
         options:
           iphone: [iphone-app-store-austria, iphone-v2box, iphone-timezone]
           android: [android-v2rayng, android-timezone]
-  # F3 的汇合点。第七章前面随 F3 的“下载 Gmail”等步骤由 #12 补在它前面。
+  # 第七章前半随 F3 不同，“创建 Gmail 邮箱和 Google 账号”是 F3 的汇合点。
   - id: google-account
     title: 七、准备 Google 账号
-    items: [create-google-account]
+    items:
+      - branch: phone
+        options:
+          iphone: [iphone-gmail]
+          android: [android-google-play, android-gmail]
+      - create-google-account
+  # 需求 §5.2 第八章备注的“注册各种账号”不包括 claude，claude 在第九章单独注册（需求 Q-10）。
+  - id: nurture
+    title: 八、养号
+    items: [use-google-few-days, google-appeal, google-region]
+  - id: claude-signup
+    title: 九、注册 claude
+    items: [register-claude]

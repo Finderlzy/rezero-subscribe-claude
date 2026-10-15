@@ -34,6 +34,13 @@ test('“IP 不合格”的面板里放原文已有的提示', async ({ page }) 
   await expect(notice).toContainText('方案二：确认是住宅/ISP 类型再用；不是的话，商家支持退款。');
 });
 
+test('“安装 Google Play”的面板里放原文已有的提示', async ({ page }) => {
+  await page.goto('./android-google-play/');
+  await expect(page.getByRole('note', { name: '这一步的内容待补' })).toContainText(
+    'Google Play 要从手机自带的应用商店或其他可信来源下载，来路不明的安装包可能被改过。',
+  );
+});
+
 // 全部占位步骤都有面板；构建输出的占位清单也是这些（`npm run build` 人工核对）。
 for (const step of [
   'v2rayn-import',
@@ -45,6 +52,10 @@ for (const step of [
   'iphone-v2box',
   'android-v2rayng',
   'android-timezone',
+  'android-google-play',
+  'android-gmail',
+  'use-google-few-days',
+  'google-appeal',
 ]) {
   test(`占位步骤 ${step} 显示“内容待补”面板`, async ({ page }) => {
     await page.goto(`./${step}/`);
