@@ -2,7 +2,7 @@
  * 代码复制和看大图的纯逻辑（design §4.7，NFR-02）。
  *
  * DOM 操作留在 `src/scripts/code-zoom.ts` 里，这里只放不碰 DOM 的部分，好在单元测试里覆盖：
- * 文案、状态切换的时机（2 秒后回到“复制”）、要复制的文本怎么取。
+ * 文案、状态切换的时机（2 秒后回到“复制”）、要复制的文本怎么取、大图用哪一档。
  */
 
 /** 复制按钮的两种文案（design §4.7）。图标由 CSS 按 `data-state` 切换，不在这里拼 SVG。 */
@@ -41,4 +41,26 @@ export function zoomAltOf(img: HTMLImageElement): string {
     // 保持原样
   }
   return decoded.replace(/\.[^.]+$/, '');
+}
+
+/**
+ * 看大图用的地址：`srcset` 里最宽的一档（M1 写了宽度时生成 1x/2x，2x 封顶为原图宽度）。
+ *
+ * 不能用 `currentSrc`：普通屏幕上它是 1x，和正文里那张一样大，“看大图”等于没放大。
+ * 没有 `srcset`（原文没写宽度，`src` 就是原图）或解析不出描述符时退回 `src`。
+ */
+export function largestSrcOf(img: HTMLImageElement): string {
+  const src = img.getAttribute('src') ?? '';
+  let best = src;
+  let bestSize = 0;
+  // 本站的 srcset 由 Astro 生成，地址已经过百分号编码、不含逗号，按“逗号 + 空白”切分即可。
+  for (const candidate of (img.getAttribute('srcset') ?? '').split(/,\s+/)) {
+    const [url, descriptor = '1x'] = candidate.trim().split(/\s+/);
+    const size = Number.parseFloat(descriptor);
+    if (url && /^[\d.]+[wx]$/.test(descriptor) && size > bestSize) {
+      best = url;
+      bestSize = size;
+    }
+  }
+  return best;
 }

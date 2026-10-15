@@ -18,6 +18,7 @@
   --caution-bg: #fcebe7;
   --caution-rule: #b23a26;
   --focus: #0f5f58;
+  --backdrop: rgb(0 0 0 / 65%);
 
   /* §3.2 字体 */
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
@@ -86,5 +87,6 @@
     --caution-bg: #2e1c18;
     --caution-rule: #e07a66;
     --focus: #5cc2b5;
+    --backdrop: rgb(0 0 0 / 75%);
   }
 }

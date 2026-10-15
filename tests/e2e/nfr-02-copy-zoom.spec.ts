@@ -96,6 +96,22 @@ test.describe('代码块复制', () => {
   });
 });
 
+test.describe('剪贴板接口不可用时的兜底', () => {
+  test('退回 execCommand 复制后，焦点回到复制按钮', async ({ page }) => {
+    // 模拟 http 部署这类非安全上下文：没有 navigator.clipboard，脚本只能走临时文本框兜底。
+    await page.addInitScript(() => {
+      Object.defineProperty(Navigator.prototype, 'clipboard', { get: () => undefined });
+    });
+    await page.goto('./run-script/');
+    const button = page.locator('.code-copy').first();
+    await button.focus();
+    await page.keyboard.press('Enter');
+    // 兜底要把焦点挪到临时文本框才能选中文字；复制完必须还给按钮，键盘用户不丢位置。
+    await expect(button).toBeFocused();
+    await expect(page.locator('body > textarea')).toHaveCount(0);
+  });
+});
+
 test.describe('代码块长行不折行（NFR-02）', () => {
   test('长行在代码块内部横向滚动，white-space 保持 pre', async ({ page }) => {
     await page.goto('./run-script/');
@@ -133,6 +149,43 @@ test.describe('截图看大图', () => {
     await page.keyboard.press('Escape');
     await expect(dialog).not.toBeVisible();
     await expect(dialog).toHaveJSProperty('open', false);
+  });
+
+  test('大图用 srcset 里最宽的一档，比正文里那张大', async ({ page }, testInfo) => {
+    await page.goto('./plan2-buy-residential-vps/');
+    const inline = page.locator('[data-image-zoom-opener] img').first();
+    await inline.scrollIntoViewIfNeeded();
+    const inlineBox = (await inline.boundingBox())!;
+    const inlineNatural = await inline.evaluate((el: HTMLImageElement) => el.naturalWidth);
+
+    await page.locator('[data-image-zoom-opener]').first().click();
+    const big = page.locator('dialog[data-image-zoom] [data-image-zoom-image]');
+    await expect(big).toBeVisible();
+    await expect.poll(() => big.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth)).toBeTruthy();
+
+    // 正文写的是 |600，1x 是 600px；大图要拿 2x（封顶为原图宽度），像素必须更多。
+    const bigNatural = await big.evaluate((el: HTMLImageElement) => el.naturalWidth);
+    expect(bigNatural).toBeGreaterThan(inlineNatural);
+
+    const bigBox = (await big.boundingBox())!;
+    // 整张图在视口内，不用在浮层里滚动。
+    expect(bigBox.y).toBeGreaterThanOrEqual(0);
+    expect(bigBox.y + bigBox.height).toBeLessThanOrEqual(page.viewportSize()!.height);
+    // 桌面上有空间，显示出来也要比正文里那张大；手机上两者都被屏宽限住，不比显示尺寸。
+    if (testInfo.project.name === 'desktop-1280') {
+      expect(bigBox.width).toBeGreaterThan(inlineBox.width + 100);
+    }
+  });
+
+  test('关闭按钮不压在大图上', async ({ page }) => {
+    await page.goto('./plan2-buy-residential-vps/');
+    await page.locator('[data-image-zoom-opener]').first().click();
+    const dialog = page.locator('dialog[data-image-zoom]');
+    const big = dialog.locator('[data-image-zoom-image]');
+    await expect(big).toBeVisible();
+    const close = (await dialog.locator('[data-image-zoom-close]').boundingBox())!;
+    const image = (await big.boundingBox())!;
+    expect(close.y + close.height).toBeLessThanOrEqual(image.y);
   });
 
   test('点背景关闭，点大图本身不关闭', async ({ page }) => {

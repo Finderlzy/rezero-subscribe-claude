@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { COPIED_LABEL, COPIED_RESET_MS, COPY_LABEL, codeTextOf, zoomAltOf } from './labels';
+import { COPIED_LABEL, COPIED_RESET_MS, COPY_LABEL, codeTextOf, largestSrcOf, zoomAltOf } from './labels';
 
 describe('复制按钮的文案和时机（design §4.7）', () => {
   it('默认是“复制”，成功后是“已复制”', () => {
@@ -61,5 +61,30 @@ describe('zoomAltOf：看大图的替代文字（design §4.7）', () => {
 
   it('alt 和 src 都没有时得到空串', () => {
     expect(zoomAltOf(img({}))).toBe('');
+  });
+});
+
+describe('largestSrcOf：看大图用 srcset 里最宽的一档', () => {
+  const img = (attrs: Record<string, string>) => ({ getAttribute: (name: string) => attrs[name] ?? null }) as HTMLImageElement;
+
+  it('有 1x/2x 时取 2x，不管先后顺序', () => {
+    expect(largestSrcOf(img({ src: '/a.1x.webp', srcset: '/a.1x.webp 1x, /a.2x.webp 2x' }))).toBe('/a.2x.webp');
+    expect(largestSrcOf(img({ src: '/a.1x.webp', srcset: '/a.2x.webp 2x, /a.1x.webp 1x' }))).toBe('/a.2x.webp');
+  });
+
+  it('宽度描述符取最宽的', () => {
+    expect(largestSrcOf(img({ src: '/a.webp', srcset: '/a-600.webp 600w, /a-1065.webp 1065w' }))).toBe('/a-1065.webp');
+  });
+
+  it('没有描述符的候选按 1x 算', () => {
+    expect(largestSrcOf(img({ src: '/a.webp', srcset: '/a.webp, /a.2x.webp 2x' }))).toBe('/a.2x.webp');
+  });
+
+  it('没有 srcset 时用 src', () => {
+    expect(largestSrcOf(img({ src: '/a.webp' }))).toBe('/a.webp');
+  });
+
+  it('描述符写坏时退回 src', () => {
+    expect(largestSrcOf(img({ src: '/a.webp', srcset: '/b.webp big' }))).toBe('/a.webp');
   });
 });

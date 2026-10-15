@@ -1,4 +1,4 @@
-import { COPIED_LABEL, COPIED_RESET_MS, COPY_LABEL, codeTextOf, zoomAltOf } from '../lib/code-zoom/labels';
+import { COPIED_LABEL, COPIED_RESET_MS, COPY_LABEL, codeTextOf, largestSrcOf, zoomAltOf } from '../lib/code-zoom/labels';
 
 /**
  * 代码复制与看大图的页面脚本（design §4.7，NFR-02）。
@@ -8,7 +8,7 @@ import { COPIED_LABEL, COPIED_RESET_MS, COPY_LABEL, codeTextOf, zoomAltOf } from
  * - 每个代码块的右上角加一个“复制”按钮，成功后换成“已复制”并播报，2 秒后复位；
  * - 每张带 `data-zoom` 的截图变成按钮，点击后用 `<dialog>` 看大图。
  *
- * 看大图照 DOM 里已有的 `<img>` 复制一份放进 `<dialog>`，不改原图：原图保持原文的显示宽度，
+ * 看大图把 DOM 里已有的 `<img>` 的地址填进 `<dialog>`，不改原图：原图保持原文的显示宽度，
  * 大图用 `srcset` 里最宽的一档（M1 写了宽度时生成了 1x/2x，见 remark-obsidian）。
  */
 
@@ -36,6 +36,7 @@ function svg(doc: Document, markup: string): SVGElement {
  * 优先用 `navigator.clipboard`；它需要安全上下文（https 或 localhost），在本机预览或
  * 通过 http 访问的部署上可能没有。没有时退回 `document.execCommand('copy')`，
  * 让老浏览器上按钮仍然可用。两条路都失败时返回 false，按钮保持“复制”，不谎报成功。
+ * 兜底要先把焦点移到临时文本框上才能选中，复制完把焦点还回去，键盘用户不丢位置。
  */
 async function writeClipboard(doc: Document, text: string): Promise<boolean> {
   const clipboard = doc.defaultView?.navigator.clipboard;
@@ -47,6 +48,7 @@ async function writeClipboard(doc: Document, text: string): Promise<boolean> {
       // 落到下面的兜底：权限被拒或不是安全上下文
     }
   }
+  const active = doc.activeElement instanceof HTMLElement ? doc.activeElement : null;
   try {
     const field = doc.createElement('textarea');
     field.value = text;
@@ -62,6 +64,8 @@ async function writeClipboard(doc: Document, text: string): Promise<boolean> {
     return ok;
   } catch {
     return false;
+  } finally {
+    active?.focus();
   }
 }
 
@@ -171,15 +175,11 @@ export function initImageZoom(doc: Document): void {
 
     trigger.addEventListener('click', () => {
       const label = zoomAltOf(img);
-      // 用当前解析出的地址（含 srcset 的 2x），大图不至于糊（reuse-research §4.1）。
-      big.src = img.currentSrc || img.src;
+      // 用 srcset 里最宽的一档（reuse-research §4.1）。不写 width/height：大图按自身像素宽度显示，
+      // 由 CSS 限制在视口内，否则会被钉在正文那档的宽度上，等于没放大。
+      big.src = largestSrcOf(img);
       // 和正文用同一份替代文字；缺 alt 时由 zoomAltOf 用文件名兜底，不留空 alt。
       big.alt = label;
-      // 大图重新加载前先按原图比例占位，避免打开时高度跳一下。
-      if (img.naturalWidth > 0) {
-        big.width = img.naturalWidth;
-        big.height = img.naturalHeight;
-      }
       if (caption) caption.textContent = label;
       opener = trigger;
       dialog.showModal();
