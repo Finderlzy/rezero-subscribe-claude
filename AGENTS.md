@@ -1,6 +1,6 @@
 # 仓库指南
 
-「Re:从零开始订阅 claude」是把《如何订阅claude》拆成分步引导的静态网站。当前状态：需求、架构和设计已定稿；Astro 工程脚手架和命令（#1）、内容格式 M1（#4）、路线 M2（#3）、本机状态 M4（#7）已建立，“开始”章已走通（#5），第一章和节点方案选择页已迁入（#6），浏览器按本机选择改写导航（#8），操作/原理视图切换已接上（#9），第二到四章（电脑代理、防泄漏、电脑改时区）和“内容待补”面板已迁入（#10）；跳过按钮、“清理本机的 Claude Code 配置”“IP 不合格”、第六章“手机代理”和第七章的汇合点已迁入（#11）；代码块复制和截图看大图已实现（#20）；第七章“准备 Google 账号”、第八章“养号”和第九章“注册 claude”已迁入（#12）；第十章“订阅”、第十一章“订阅之后”和完成页的致谢、后记已迁入，联系方式暂为占位（#13）；常见问题和常见问题页已迁入，步骤里的常见问题链接可“返回刚才的步骤”（#14）；坏内容让构建失败的构建级用例已补齐（#15）；原文与站内的命令、链接全文比对脚本 `scripts/compare-migration.mjs` 已建立，差异为零，视频和 8 张未打码截图仍待补（#16）；步骤视频门面已实现，原文的配套视频按作者决定暂不放，各步骤显示“视频制作中”（#17）；步骤目录（侧栏/抽屉、在目录里切换路线、已读 ✓）和目录里的“清除进度”已实现，常见问题页和找不到页有“打开目录”（#18）；首页有进度时显示“继续上次”，完成页有“重新开始”“回到目录”“清除进度”（#19）；对比度实测（`src/styles/tokens.test.ts`）、AC-16 响应式和 axe/键盘可访问性 e2e 已建立，截图复核通过（#21）；子路径部署（AC-15，根路径和 `/sub/` 各测一次）和屏蔽 Google/YouTube 域名后的完整性（AC-17）e2e 已建立（#22）；首期整体验收已完成（2026-10-15，见 [docs/delivery.md](docs/delivery.md)，作者待补的素材列在其中）。v2.0 增量需求已定稿（2026-10-15，需求 v0.3）：内容改用 `docs/rewrite/` 的重写稿，原理/操作整页切换，路线和 URL 按原理版目录重建，取消默认路线和阅读记录，重做视觉和 logo；待架构阶段做增量影响分析，下文的目录和命令描述的仍是 1.0.0 的现状。下文标“计划”的目录由对应任务建立，建立后改成现状。
+「Re:从零开始订阅 claude」是把《如何订阅claude》做成分步引导的静态网站。当前状态：**1.0.0 已交付**（2026-10-15，按旧文章和 11 章路线，见 [docs/delivery.md](docs/delivery.md)）；**v2.0 规划已完成**（需求 v0.3、架构 v2.0、设计 v2.0、ADR-0004/0005，2026-10-15）：内容改为从 `docs/rewrite/` 的重写稿原样导入，原理/操作整页切换，路线和 URL 按原理版目录重建，取消默认路线和阅读记录，重做视觉和 logo；v2.0 任务见 [实施计划](docs/implementation-plan.md) 和 `[v2.0]` 开头的 Issues。下文“现状”指 1.0.0 的代码，标“v2.0 计划”的由对应任务建立，建立后改成现状。
 
 ## 文档入口
 
@@ -18,11 +18,11 @@
 
 工程配置在仓库根目录（`astro.config.mjs`、`tsconfig.json`、`vitest.config.ts`、`playwright.config.ts`）。站内链接一律经 `src/lib/with-base.ts` 的 `withBase()` 生成。标“计划”的目录由后续任务建立：
 
-- `src/content/`（集合定义在 `src/content.config.ts`）：内容。`route.yaml` 是路线图（章节、分叉点、步骤顺序），`steps/<step-id>.md` 每步一个文件，另有 `choices/`（选择页，#6 已建立）、`faq/`（常见问题，#14 已建立）和 `pages/`（首页 `home.md`、完成页 `done.md`、常见问题列表 `faq.md`）。迁移规则和逐节核对记录在 [docs/migration-checklist.md](docs/migration-checklist.md)。截图放在 `src/assets/screenshots/`（已建立），嵌入写裸文件名 `![[文件名|宽度]]`。
+- `src/content/`（集合定义在 `src/content.config.ts`）：内容。`route.yaml` 是路线图（章节、分叉点、页面顺序）。现状（1.0.0）：`steps/`、`choices/`、`faq/`、`pages/`，迁移记录在 [docs/migration-checklist.md](docs/migration-checklist.md)。v2.0 计划：换成 `principle/<id>.md`（原理版，页面元数据写在它的 frontmatter）、`operation/<id>.md`（同名操作版）、`reference/`（常见问题、实测）和 `blog-links.yaml`，正文由 `scripts/import-rewrite.mjs` 从 `docs/rewrite/` 原样导入，不手改正文（ADR-0005）。截图放在 `src/assets/screenshots/`，嵌入写裸文件名 `![[文件名|宽度]]`；logo 只放 `src/assets/logo/`，只由 `src/components/Logo.astro` 引用（v2.0 计划）。
 - `src/lib/`：纯逻辑模块，单元测试放在旁边（`*.test.ts`；组件的渲染测试用 Astro Container API，放在组件旁边）。其中 `content/` 是 M1，`route/` 是 M2，`reader-state/` 是 M4。
 - `src/pages/`、`src/layouts/`、`src/components/`、`src/styles/`：页面（M3）。`src/scripts/` 放打包进页面的浏览器脚本（如 `route-enhance.ts`），和根目录放一次性开发脚本的 `scripts/` 不是一回事。
 - `tests/e2e/`：Playwright 测试，文件按验收编号命名，如 `ac-03-branch-merge.spec.ts`；`tests/build/`：构建级用例（AC-14）；`tests/fixtures/`：构建级用例用的坏内容，每个用例一个目录，按 `src/content/` 的相对路径覆盖。
-- `docs/`：文档；新的难以逆转的决策写进 `docs/adr/NNNN-slug.md`。一次性的开发脚本放在 `scripts/`。
+- `docs/`：文档；新的难以逆转的决策写进 `docs/adr/NNNN-slug.md`。`docs/rewrite/` 是作者维护的重写稿（素材来源），站点代码不直接读它。一次性的开发脚本放在 `scripts/`（v2.0 计划：`import-rewrite.mjs`、`build-logo.mjs`；logo 转曲用的字体放在不提交的 `.cache/fonts/`）。
 
 ## 构建、测试与开发命令
 
@@ -33,8 +33,8 @@ Node ≥ 22.12，使用 npm，以 `package.json` 为准。`npm run dev`、`npm r
 ## 代码风格与命名
 
 - TypeScript（固定 6.x）、原生 CSS，不引入 UI 框架和 CSS 框架。颜色、间距只用 `src/styles/tokens.css` 里的令牌。
-- 步骤、分叉点、常见问题的标识用英文 kebab-case，同时也是文件名和 URL。**已发布的标识不能改**（ADR-0002）。
-- 原理版独有的内容写进 `> [!why]` 块（ADR-0003）。迁移原文章时只拆分和排版，不改命令、链接、优惠码、商家。
+- 页面（步骤、选择页、旁支页）和分叉点的标识用英文 kebab-case，同时也是文件名和 URL。**v2.0 发布后标识不能改**（ADR-0002）。
+- v2.0 起正文从重写稿原样导入：双链写中文标题 `[[选择方案]]`，不改命令、链接、优惠码、商家；要改内容就改重写稿再重新导入（ADR-0005）。`[!why]` 块不再使用（ADR-0004 取代 ADR-0003）。
 
 ## 测试指南
 

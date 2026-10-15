@@ -1,5 +1,82 @@
 # 实施计划：Re:从零开始订阅 claude
 
+- 状态：**v2.0 计划（2026-10-15）**，对应需求 v0.3、[架构 v2.0](architecture.md)（含 [§11.3 v2.0 实施前评审](architecture.md#113-v20-实施前评审2026-10-15)）、[设计 v2.0](design.md)，目标站点版本 2.0.0。1.0.0 的计划保留在文末，任务已全部关闭（#16 见下文）。
+- 任务记录：[GitHub Issues](https://github.com/Finderlzy/rezero-subscribe-claude/issues)，v2.0 的标题以 `[v2.0]` 开头（2026-10-15 发布，#23–#31；V 编号与 Issue 的对应见 §3）。**任务范围、状态和完成证据以 Issue 为准**，本文只保留里程碑、顺序和链接。
+- 档位规则见开发流程契约“模型档位”：`强` / `标准`。
+
+> **首个可开工任务：[#23 [v2.0] 把重写稿导入 v2 内容集合](https://github.com/Finderlzy/rezero-subscribe-claude/issues/23)**（V01，建议档位：强）。新开会话，用 `task-implement` 指定 #23。**[#24 logo](https://github.com/Finderlzy/rezero-subscribe-claude/issues/24)（V07，强）也可以立即并行开工**（改动范围基本不重叠）。
+
+## 1. 里程碑（v2.0）
+
+| 里程碑 | 交付的可用能力 | 覆盖需求 | 任务 |
+| --- | --- | --- | --- |
+| **MS5 v2 静态骨架** | 重写稿全部 50 页导入；站点换成 v2 路线图和 URL，不运行 JS 也能从首页走到后记；两版正文都在页面里（固定操作视图）；1.0.0 的页面、内容和过时的测试删干净 | FR-01–04、FR-10、FR-11、FR-13、FR-17、FR-19（静态）、FR-21、FR-41、FR-60、FR-61；AC-07、08、09、12、14、15、17、18（找不到页） | V01、V02 |
+| **MS6 v2 交互** | 按本机选择和视图改写导航；整页视图切换；选择页选项块；目录与首页；参考页返回；迁移核对 | FR-12、FR-14–16、FR-18、FR-20、FR-30、FR-31、FR-50；AC-01–06、10、11、13、18、19 | V03–V06、V09 |
+| **MS7 v2 视觉与 logo** | logo 和 favicon；全部页面按设计 v2.0 重做 | FR-70、FR-71、NFR-01、NFR-06；AC-16、20、21 | V07、V08 |
+
+全部完成后交给 project-delivery 做 2.0.0 整体验收（AC-01–21），版本号在那时定为 `2.0.0`。
+
+## 2. 依赖与顺序（v2.0）
+
+```
+V01 ── V02 ──┬── V03 ──┬── V04 ──┐
+             │         └── V05 ──┤
+             ├── V06 ────────────┼── V08
+             └── V09             │
+V07（可立即开工）─────────────────┘
+```
+
+- **立即可开工**：V01、V07。两者并行时各用独立 worktree；都会改 `package.json` / `.gitignore`，后合并的一方解决冲突。
+- V01 是 expand（新集合与 1.0.0 内容并存，1.0.0 站点照常构建），V02 是 contract（换路线和页面，删掉 1.0.0 的内容、页面和测试）。之后 `main` 上只有 v2。
+- V02 之后可以并行：V03、V06、V09。V04、V05 都改 `route-enhance` 周边，排在 V03 之后，二者之间按“先合并的先来”，后者变基。
+- V08 最后做：要等页面结构（V03–V06）和 logo（V07）都定型。
+
+## 3. 任务索引（v2.0）
+
+| 任务 | 标题 | 里程碑 | 依赖 | 档位 | 细化 | Issue |
+| --- | --- | --- | --- | --- | --- | --- |
+| V01 | 把重写稿导入 v2 内容集合 | MS5 | 无 | 强 | 已细化 | [#23](https://github.com/Finderlzy/rezero-subscribe-claude/issues/23) |
+| V02 | 切换到 v2 路线图和静态页面 | MS5 | V01 | 强 | 已细化 | [#25](https://github.com/Finderlzy/rezero-subscribe-claude/issues/25) |
+| V03 | 按本机选择和视图改写导航 | MS6 | V02 | 强 | 待细化 | [#26](https://github.com/Finderlzy/rezero-subscribe-claude/issues/26) |
+| V04 | 实现选择页的选项块 | MS6 | V03 | 标准 | 待细化 | [#29](https://github.com/Finderlzy/rezero-subscribe-claude/issues/29) |
+| V05 | 实现目录与首页 | MS6 | V03 | 标准 | 待细化 | [#30](https://github.com/Finderlzy/rezero-subscribe-claude/issues/30) |
+| V06 | 实现旁支页和参考页的返回 | MS6 | V02 | 标准 | 待细化 | [#27](https://github.com/Finderlzy/rezero-subscribe-claude/issues/27) |
+| V07 | 制作 logo 和 favicon | MS7 | 无 | 强 | 已细化 | [#24](https://github.com/Finderlzy/rezero-subscribe-claude/issues/24) |
+| V08 | 按设计 v2.0 重做全站视觉 | MS7 | V04、V05、V06、V07 | 标准 | 待细化 | [#31](https://github.com/Finderlzy/rezero-subscribe-claude/issues/31) |
+| V09 | 对照重写稿完成迁移核对 | MS6 | V02 | 标准 | 待细化 | [#28](https://github.com/Finderlzy/rezero-subscribe-claude/issues/28) |
+
+## 4. 检查点（v2.0）
+
+**MS5 结束（V01、V02 合并后）**
+- [ ] `npm run check`、`npm run test:e2e` 通过
+- [ ] 关掉 JS，在 360 和 1280 宽下从首页点到后记（选方案三、iPhone），没有断链
+- [ ] 新入库的截图已逐张核对打码；`docs/rewrite/附件/` 没有进仓库
+- [ ] 回看本计划：MS6 任务的拆分和档位是否仍然合适
+
+**MS6 结束**
+- [ ] AC-01–06、08–13、18、19 都有 e2e 或写明的人工核对记录
+- [ ] 构建输出的内容提示（操作版缺失、作者待补、博客链接待填）与作者确认一致
+
+**全部完成**：AC-01–21 都有证据，交给 project-delivery。
+
+## 5. 风险（v2.0）
+
+| 风险 | 影响 | 应对 |
+| --- | --- | --- |
+| 重写稿引用的 `截图 2026-10-15 13-43-53 1.png` 不存在（需求 Q-13） | V01 导入后构建失败 | V01 请作者提供打码后的文件；不能为了构建通过删引用或放宽校验 |
+| 作者导入期间继续改重写稿 | 内容和路线图对不上 | 导入脚本可重复运行；新页面、删页面只报告，由作者决定 |
+| logo 风格作者不认可 | V08 的主色和页眉要返工 | V07 先出 logo 并取得作者确认，V08 排在最后；`--accent` 跟 logo 的“Re”紫走 |
+| V02 改动面大（M2 + 全部页面 + 删旧代码） | 一次做不完、`main` 不绿 | V02 只做静态版，浏览器脚本整体留给 V03/V05，参照 `v1.0.0` 标签里的旧实现 |
+| 本机存储禁用时选择丢失导致绕圈（评审 V11） | AC-18 | V03 实现 M4 的 `window.name` 兜底 |
+
+## 6. 待决事项（不阻塞）
+
+需求 Q-01（部署位置）、Q-07（联系方式）、Q-11（博客地址）、Q-13（缺失截图）。1.0.0 的 [#16 完成迁移核对](https://github.com/Finderlzy/rezero-subscribe-claude/issues/16) 核对的是旧文章，已被 V09 取代，建议关闭（需作者同意）。
+
+---
+
+## 附：1.0.0 实施计划（v0.2，2026-10-13，历史）
+
 - 状态：v0.2（2026-10-13），首期（需求 v0.2，步骤地图按作者意见重排为十一章）全部范围
 - 输入：[需求](requirements.md)、[架构](architecture.md)（含 [§11 实施前评审](architecture.md#11-实施前架构评审2026-10-13)）、[设计](design.md)、[复用调研](reuse-research.md)、[术语](../CONTEXT.md)
 - 任务记录：[GitHub Issues](https://github.com/Finderlzy/rezero-subscribe-claude/issues)（私密仓库，2026-10-13 发布）。**任务范围、状态和完成证据以 Issue 为准**，本文只保留里程碑、顺序和链接。Issue 正文里的依赖已写成 Issue 编号；T01–T12 与 #1–#12 一一对应；T22 是 #13，T13–T21 依次是 #14–#22，以下表为准。
@@ -7,7 +84,7 @@
 
 > **首个可开工任务：[#1 建立 Astro 工程脚手架与命令](https://github.com/Finderlzy/rezero-subscribe-claude/issues/1)**（建议档位：强）。新开会话，用 `task-implement` 指定 #1。
 
-## 1. 里程碑
+### 1. 里程碑
 
 | 里程碑 | 交付的可用能力 | 覆盖需求 | 任务 |
 | --- | --- | --- | --- |
@@ -18,7 +95,7 @@
 
 MS1、MS2 结束各有一个检查点（§4）。MS2 之后的任务先保留目标和依赖，开工前由 `task-implement` 细化并补参照。
 
-## 2. 依赖与顺序
+### 2. 依赖与顺序
 
 ```
 T01 ─┬─ T02 ── T04 ─┐
@@ -35,7 +112,7 @@ T01 ─┬─ T02 ── T04 ─┐
 - T06 完成后可以并行：T08（需 T07）、T09（需 T07）、T10、T14、T16、T19。内容迁移 T10 → T11 → T12 → T22 → T13 **串行**，因为都要改 `route.yaml`。
 - 并行写代码时各用独立 worktree，按上图从左到右合并；没有循环依赖。
 
-## 3. 任务索引
+### 3. 任务索引
 
 | 任务 | 标题 | 里程碑 | 依赖 | 档位 | 细化 | Issue |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -62,7 +139,7 @@ T01 ─┬─ T02 ── T04 ─┐
 | T20 | 视觉打磨、响应式与可访问性验收 | MS4 | T17、T18、T19 | 标准 | 待细化 | [#21](https://github.com/Finderlzy/rezero-subscribe-claude/issues/21) |
 | T21 | 子路径部署与国内可访问验收 | MS4 | T16 | 标准 | 待细化 | [#22](https://github.com/Finderlzy/rezero-subscribe-claude/issues/22) |
 
-## 4. 检查点
+### 4. 检查点
 
 **MS1 结束（T01–T06 合并后）**
 - [ ] `npm run check` 通过；`npm run test:e2e` 通过
@@ -76,7 +153,7 @@ T01 ─┬─ T02 ── T04 ─┐
 
 **全部完成**：AC-01–AC-18 都有证据，交给 project-delivery 做整体验收。
 
-## 5. 风险
+### 5. 风险
 
 | 风险 | 影响 | 应对 |
 | --- | --- | --- |
@@ -86,6 +163,6 @@ T01 ─┬─ T02 ── T04 ─┐
 | 截图露出服务器 IP 等敏感信息 | 高 | T06 起每个迁移任务的验收都有逐张核对项 |
 | Playwright 浏览器需要联网下载 | 低 | T01 安装 chromium 一次；离线时 e2e 无法运行要如实报告 |
 
-## 6. 待决事项（不阻塞）
+### 6. 待决事项（不阻塞）
 
 需求 Q-01（部署位置）、Q-02（F2 选项）、Q-07（联系方式，T22 用占位）、Q-10（注册 claude 单独成章，作者可改）。

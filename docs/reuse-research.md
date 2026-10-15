@@ -3,6 +3,7 @@
 - 检索日期：2026-10-13
 - 依据：[CONTEXT.md](../CONTEXT.md)、[docs/requirements.md](requirements.md)（v0.1）
 - 检索方式：网页检索 + 官方文档 + npm registry 元数据（`npm view`）。本机没有 `gh`，没有用 GitHub API；没有克隆、安装或运行任何第三方代码。
+- v2.0 补充（2026-10-15）：只为新增的 logo 转曲需求补做检索，见 §5；其余能力没有新的复用需求，沿用下文结论。本次用 `gh api` 和 npm registry 查询。
 - 结论标记：**文档/源码核查** = 只读过 README、官方文档或 npm 元数据，没有实际运行过；**已验证** = 在本项目里跑通过（2026-10-13 检索时没有这一类；#2 的实测见 §4.1）。
 
 ## 1. 检索词
@@ -80,7 +81,21 @@
 
 #4 的处理（2026-10-14）：`encodeURI`、`'data-zoom'` 字面键、写宽度时加 `densities: [1, 2]`、可折叠 Callout 判为错误、行内嵌入支持、无法识别的写法让构建失败，均已实现；测试样例的截图内容各不相同。Shiki 主题留给代码块样式任务。详见 [architecture.md §3 M1“实现（#4）”](architecture.md)。
 
-## 5. 证据链接
+## 5. v2.0 补充：logo 转曲（2026-10-15）
+
+需求 FR-70：logo 用开源字体排出文字、按参考图调整字形大小和位置，再转成 SVG 路径；页面不加载字体文件。检索词：`opentype font to svg path node`、`text to svg path`、`fonttools pens svg`。
+
+| 候选 | 覆盖 | 复用方式 | 许可证 | 维护状态 | 结论 |
+| --- | --- | --- | --- | --- | --- |
+| [opentype.js](https://github.com/opentypejs/opentype.js) 2.0.0 | 读 OTF/TTF，`Font.getPath()`/`getPaths()` 得到逐字形路径，可输出 SVG path data | 开发脚本的依赖（devDependency） | MIT | 最近发布 2026-05-06，仓库 2026-08 仍有提交，约 5k star | **采用**（文档/源码核查）。逐字形取路径，正好做“E 小一号上移、R 下沉”这种单字调整 |
+| [text-to-svg](https://github.com/shrhdk/text-to-svg) | 基于 opentype.js 的封装，整串文字转一条路径 | — | GitHub 未识别许可证（NOASSERTION） | 最后提交 2023-09 | 不采用：许可证不明确，而且不便单字调整 |
+| [fontTools](https://github.com/fonttools/fonttools) | Python，`SVGPathPen` 可输出路径；还能子集化 | — | MIT | 活跃 | 仅作参考：要多一套 Python 环境，本项目工具链是 Node |
+
+**字体许可**（只在开发机上用于转曲，不入库、不进页面产物）：Cormorant Garamond、Cinzel、Roboto Condensed（google/fonts 的 `ofl/<名称>/OFL.txt`）和思源黑体（adobe-fonts/source-han-sans 的 `LICENSE.txt`）都是 **SIL OFL 1.1**，允许把字形转成路径后嵌入作品发布。定稿换字体时，同样先核对许可证并补进本表。
+
+缺口：没有现成工具做“仿某个标题字风格”的版式，这部分是 `scripts/build-logo.mjs` 里的自研排版参数，由作者对照参考图确认（AC-20）。
+
+## 6. 证据链接
 
 - Material for MkDocs 维护期：<https://discuss.privacyguides.net/t/mkdocs-material-is-now-in-maintenance-mode/32736>
 - Zensical 路线图：<https://zensical.org/about/roadmap/>
@@ -97,3 +112,5 @@
 - 第三方门面模式：<https://web.dev/third-party-facades>
 - B 站嵌入参数（社区）：<https://meta.discourse.org/t/discourse-embed-bilibili/282491>
 - npm registry 元数据：2026-10-13 用 `npm view <包> version license` 查询
+- opentype.js `Font.getPath()`：<https://github.com/opentypejs/opentype.js#fontgetpathtext-x-y-fontsize-options>（2026-10-15）
+- 字体许可：<https://github.com/google/fonts/tree/main/ofl/cinzel>、<https://github.com/google/fonts/tree/main/ofl/cormorantgaramond>、<https://github.com/google/fonts/tree/main/ofl/robotocondensed>、<https://github.com/adobe-fonts/source-han-sans/blob/release/LICENSE.txt>（2026-10-15）

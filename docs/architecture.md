@@ -1,382 +1,392 @@
 # 架构：Re:从零开始订阅 claude
 
-- 状态：v0.1 定稿（2026-10-13），没有阻塞决策；待定事项见 §10
-- 输入：[术语](../CONTEXT.md)、[需求 v0.1](requirements.md)、[复用调研](reuse-research.md)、[界面设计契约](design.md)
-- 决策记录：[ADR-0001 Astro 静态站 + 自建路线图](adr/0001-astro-static-site-with-own-route-map.md)、[ADR-0002 URL 规则](adr/0002-url-scheme.md)、[ADR-0003 原理内容内嵌为 why 块](adr/0003-principle-content-as-why-callouts.md)
-- 现状：工程脚手架、依赖和 §7 的命令已由 #1 建立（版本以 `package-lock.json` 为准）；M1、M2、M4 已实现（#4、#3、#7），#5 接通了“开始”章的页面和构建时装配 `loadSite()`，#6 迁入第一章并加上选择页 `/choose/<fork>/`，#8 接上按本机选择改写导航的页面脚本 `src/scripts/route-enhance.ts`，#9 接上操作/原理视图切换，#18 接上步骤目录和“清除进度”；其余标“计划”的部分由后续任务创建。
+- 状态：**v2.0 定稿（2026-10-15）**，对应需求 v0.3（目标站点版本 2.0.0），没有阻塞决策；待定事项见 §10。上一版 v0.1（2026-10-13）对应已交付的 1.0.0，其中仍然有效的实现细节保留在各节里，标“1.0.0 已有”。
+- 输入：[术语](../CONTEXT.md)、[需求 v0.3](requirements.md)、[复用调研](reuse-research.md)、[界面设计契约](design.md)、[重写稿](rewrite/)
+- 决策记录：[ADR-0001 Astro 静态站 + 自建路线图](adr/0001-astro-static-site-with-own-route-map.md)、[ADR-0002 URL 规则](adr/0002-url-scheme.md)（v2.0 修订）、[ADR-0003 原理块](adr/0003-principle-content-as-why-callouts.md)（已被取代）、[ADR-0004 整页视图切换](adr/0004-whole-page-view-switch.md)、[ADR-0005 重写稿原样导入、双链按标题解析](adr/0005-import-rewrite-verbatim.md)
+- 现状：代码仍是 1.0.0（见 [delivery.md](delivery.md)）。本文 §3–§8 描述 v2.0 的目标结构；没有实现的部分标“计划”，由 [实施计划](implementation-plan.md) 的 v2.0 任务建立，建立后改成现状。
+
+## 0. v2.0 增量影响分析
+
+需求 §0 的改动落到各模块上。“保留”指 1.0.0 的代码和测试可以沿用，“改动”指接口或数据形状变化，“重做”指按新设计重写。
+
+| 模块 | 影响 | v2.0 改动 | 保留 |
+| --- | --- | --- | --- |
+| M1 内容 | 改动（大） | 内容目录改成 `principle/`、`operation/`、`reference/` 三个集合，两版同名文件合成一个页面（§3 M1）；正文从重写稿**原样导入**，双链按中文标题解析（[ADR-0005](adr/0005-import-rewrite-verbatim.md)）；新增：去掉手写页脚、`TODO：` 段落转成“作者待补”、锚点校验、博客外链映射、选择页的选项块、操作版正文的标题 id 加前缀；去掉 `[!why]`、`placeholder`、`choices/`、`faq/`、`pages/` | Markdown 管线（unified + 自研 remark 插件）、嵌入图片进 Astro 图片处理、`contentValidation` 在 `astro:build:start` 失败的机制、SmartyPants 关闭、`deferRender`、星号检查 |
+| M2 路线 | 改动 | 去掉默认路线：未选的分叉点让相邻页指向选择页；导航按视图计算，操作视图绕过原理独有步骤；选择页、旁支页和步骤共用 `/<id>/` 标识空间；旁支页（`returnTo`）；最后一页的下一步是首页；路线枚举 6 种选择 × 2 种视图 | 纯函数、构建和浏览器共用一份代码、`RouteData` 序列化、`branch` 段与共享步骤、汇合校验、无环校验、目录 outline |
+| M3 页面 | 重做 | 全部页面按新 [design.md](design.md) 重做；两版正文同页输出，CSS 整页切换（[ADR-0004](adr/0004-whole-page-view-switch.md)）；新增 logo 组件、页眉、参考页（常见问题一页 + 实测）；去掉完成页、“继续上次”、已读 ✓、清除进度 | 渐进增强（构建时写好导航、脚本按本机选择改写）、视频门面、代码复制与看大图、目录的侧栏/抽屉外壳、参考页的 `?from=` 返回 |
+| M4 本机状态 | 改动（缩减） | 只存 `choices` 和 `view`；去掉 `lastStep`、`visited`、`clear()`；存储键升到 `:v2` | 适配器接缝（localStorage / 内存）、失效项过滤、合并写入、视图内联脚本 |
+| M5 构建 | 改动 | 校验规则随 M1、M2 调整（FR-61）；构建结束列出“内容提示”：操作版缺失的页面、TODO 段落、未填地址的博客外链（FR-21、Q-11） | `astro build` 内三层校验、`BASE_PATH`、静态产物 |
+| 开发脚本 | 新增 | `scripts/import-rewrite.mjs`（从重写稿导入）、`scripts/build-logo.mjs`（logo 转曲），改写 `scripts/compare-migration.mjs`（AC-13 改为对照重写稿） | — |
+| 测试 | 改动 | e2e 按 v2 的 AC 编号重写；构建级坏内容用例换成新目录结构 | Playwright 配置、两种视口、子路径 webServer、屏蔽域名、axe、对比度实测 |
+
+**不能倒退的已有行为**（需求 §0）都落在“保留”列的机制上：一页一步和页脚导航（M2/M3）、独立 URL（ADR-0002）、复制和看大图（M3）、无横向滚动和可访问性（design + e2e）、国内可访问（不加载外部资源）、纯静态和子路径（M5）、内容出错构建失败（M1/M2/M5）。
+
+**没有新的复用需求的部分**不再调研；新增的 logo 转曲依赖见 [reuse-research.md §5](reuse-research.md)。
 
 ## 1. 技术栈与选型理由
 
 | 项 | 选择 | 理由 / 核实来源 |
 | --- | --- | --- |
-| 运行时 | Node ≥ 22.12（本机 24.21.0），npm | Astro 7 要求 Node ≥ 22.12（npm 元数据）；npm 随 Node 自带，作者不用再装其他工具 |
-| 框架 | Astro 7.3.x，`output: 'static'`，不用文档主题 | 见 [ADR-0001](adr/0001-astro-static-site-with-own-route-map.md)。内容集合 + Zod 校验 frontmatter；页面默认不带 JS；`<script>` 会打包成本地文件，满足 NFR-03 |
-| Markdown | `@astrojs/markdown-remark`（unified 处理器）+ `rehype-callouts` + 自研 remark 插件 | Astro 7 的默认处理器 Sätteri 不兼容 remark/rehype 插件（[官方文档](https://docs.astro.build/en/guides/markdown-content/)） |
-| 前端交互 | 原生 TypeScript 模块，通过 Astro `<script>` 打包；不引入 UI 框架 | 交互只有视图切换、改写导航链接、目录、视频门面、复制、看大图，用不着框架；满足需求里“不引入重型前端框架”（Ask first） |
-| 样式 | 原生 CSS + 自定义属性（设计令牌），不用 CSS 框架 | 令牌来自 [design.md §3](design.md) |
-| 类型检查 | TypeScript **6.x**（固定）+ `@astrojs/check` | `@astrojs/check` 0.9.10 的 peer 依赖是 `typescript ^5 \|\| ^6`；TS 7 不兼容 |
-| 单元测试 | Vitest 5 | 测 M1、M2、M4 的纯逻辑 |
-| 端到端测试 | Playwright 1.64 + `@axe-core/playwright` | 视口（AC-16）、拦截域名（AC-17）、无痕和存储禁用（AC-08/18）、可访问性扫描 |
-| 部署 | 纯静态 `dist/`；具体部署位置待定（Q-01） | 构建时用 `BASE_PATH` 指定根路径或子路径（AC-15） |
+| 运行时 | Node ≥ 22.12，npm | Astro 7 要求 Node ≥ 22.12（npm 元数据）（1.0.0 已有） |
+| 框架 | Astro 7.3.x，`output: 'static'`，不用文档主题 | 见 [ADR-0001](adr/0001-astro-static-site-with-own-route-map.md)（1.0.0 已有） |
+| Markdown | `@astrojs/markdown-remark`（unified 处理器）+ 自研 remark/rehype 插件 + `rehype-callouts` | Astro 7 默认的 Sätteri 不兼容 remark/rehype 插件（[官方文档](https://docs.astro.build/en/guides/markdown-content/)）。重写稿没有 Callout；`rehype-callouts` 只为 `[!note]`、`[!caution]` 保留，`why` 类型删掉 |
+| 前端交互 | 原生 TypeScript 模块，经 Astro `<script>` 打包；不引入 UI 框架 | 交互只有视图切换、改写导航、目录、视频门面、复制、看大图 |
+| 样式 | 原生 CSS + 设计令牌，不用 CSS 框架；不加载网页字体 | 令牌见 [design.md §3](design.md)；NFR-03 |
+| logo | 开源字体转曲后的内联 SVG；转曲用 `opentype.js` 2.x（MIT，**计划**，devDependency） | FR-70：只用允许转曲的 OFL 字体，页面不加载字体文件；见 [reuse-research.md §5](reuse-research.md) |
+| 类型检查 | TypeScript **6.x**（固定）+ `@astrojs/check` | `@astrojs/check` 0.9.10 不兼容 TS 7（1.0.0 已有） |
+| 测试 | Vitest 5；Playwright 1.64 + `@axe-core/playwright` | 1.0.0 已有 |
+| 部署 | 纯静态 `dist/`，`BASE_PATH` 指定根路径或子路径；部署位置待定（Q-01） | 1.0.0 已有 |
 
 ## 2. 复用决策
 
 依据 [reuse-research.md](reuse-research.md)：
 
-- **采用为框架**：Astro 7（MIT）。上游版本以 `package-lock.json` 锁定的为准。
-- **采用为组件**：`@astrojs/markdown-remark`（MIT）、`rehype-callouts`（MIT；已在 #2 实测能注册自定义 `why` 类型，见 [reuse-research.md §4.1](reuse-research.md)）。
-- **仅作参考**：Starlight（侧栏和分页的做法）、Material for MkDocs（博客现有写法）、lite-youtube-embed（门面模式）、Google Codelabs（每步一页 + 记住进度）、`@flowershow/remark-wiki-link`（双链语法解析）。
-- **自研**：路线图（M2）、Obsidian 双链与嵌入解析、视图切换、视频门面、目录、本机状态（M4）、全部页面与样式。
+- **采用为框架**：Astro 7（MIT）。
+- **采用为组件**：`@astrojs/markdown-remark`（MIT）、`rehype-callouts`（MIT，只剩 note/caution）、`github-slugger`（ISC，标题锚点）、`yaml`（ISC）；v2.0 新增 `opentype.js`（MIT，只在开发脚本里用，不进页面）。
+- **字体（只用于 logo 转曲，不入库、不进页面）**：需求 FR-70 列的草稿字体 Cormorant Garamond、Cinzel、思源黑体、Roboto Condensed 都是 OFL-1.1（允许嵌入和转曲）；定稿换字体时同样只用 OFL 或同等许可，许可证核对写进 reuse-research §5。
+- **仅作参考**：Starlight、Material for MkDocs、lite-youtube-embed、Google Codelabs、`@flowershow/remark-wiki-link`（1.0.0 已有结论）。
+- **自研**：路线图（M2）、Obsidian 写法插件、视图切换、视频门面、目录、本机状态（M4）、全部页面与样式、导入脚本、logo 转曲脚本。
 
 ## 3. 模块与依赖方向
 
-沿用需求 §2 的能力地图，模块 ID 不变。术语用 [codebase-design](../.claude/skills/mattpocock/codebase-design/SKILL.md)：每个模块对外只暴露一个小接口（**interface**），复杂度藏在实现里。
+沿用需求 §2 的能力地图，模块 ID 不变。术语用 [codebase-design](../.claude/skills/mattpocock/codebase-design/SKILL.md)：每个模块对外只暴露一个小接口，复杂度藏在实现里。
 
 ```
-          ┌─────────────── 构建时（Node） ───────────────┐      ┌──── 浏览器 ────┐
- 内容文件 ─▶ M1 内容 ──▶ M2 路线（RouteMap）──▶ M3 页面 ──▶ dist/*.html ──▶ 页面脚本
- route.yaml   │  ▲          │ 序列化为 RouteData JSON ──────────────┘    │   │
- steps/*.md   │  └ Obsidian 插件（双链/嵌入/why）                       M2(同一份代码) M4
-              └──────────── M5 构建：校验失败就终止 ─────────────┘
+                 ┌──────────────── 构建时（Node） ────────────────┐      ┌──── 浏览器 ────┐
+ docs/rewrite/ ─▶ import-rewrite ─▶ src/content/ ─▶ M1 内容 ──▶ M2 路线 ──▶ M3 页面 ──▶ dist/*.html ──▶ 页面脚本
+ （重写稿）       （开发脚本，手动跑）  principle/     │  └ Obsidian 插件       │ RouteData JSON ────────┘   │   │
+                                     operation/    │                        M2（同一份代码） M4
+                                     reference/    └─────── M5 构建：校验失败就终止 ───────┘
 ```
 
-依赖只朝一个方向：M1 ← M2 ← M3；M4 不依赖其他模块，只被 M3 的页面脚本调用。M2 是纯函数，不碰文件系统，也不碰浏览器 API，所以构建时和浏览器里用的是**同一份代码**，上一步/下一步的规则只写在一个地方。
+依赖只朝一个方向：M1 ← M2 ← M3；M4 不依赖其他模块，只被 M3 的页面脚本调用。M2 是纯函数，构建时和浏览器里用同一份代码（1.0.0 已有）。导入脚本只写 `src/content/`，不被任何模块引用。
 
 ### M1 内容（`src/content/`、`src/content.config.ts`、`src/lib/content/`）
 
-**职责**：定义内容文件的格式；加载并校验元数据；把 Obsidian 写法转换成 HTML。
+**职责**：定义内容文件的格式；加载并校验元数据；把重写稿的 Obsidian 写法转换成 HTML。
 
-**内容文件**（`route.yaml`、`steps/`、`pages/` 已由 #5 建立，`choices/` 由 #6 建立，`faq/` 由 #14 建立）
+**内容文件**（计划，v2.0 由导入任务建立，替换 1.0.0 的 `steps/`、`choices/`、`faq/`、`pages/`）
 
-| 路径 | 内容 | 元数据（Zod 校验） |
+| 路径 | 内容 | 元数据 |
 | --- | --- | --- |
-| `src/content/route.yaml` | **路线图**：章节、分叉点、步骤序列（见下文） | 由 M2 校验 |
-| `src/content/steps/<step-id>.md` | 一个步骤：操作内容 + 内嵌的 `[!why]` 原理块 | `title`（必填）；`skippable`（默认 false）；`placeholder`（默认 false，FR-21）；`video: { bilibili?: BV号, youtube?: 视频ID }`（可空，FR-40）；`placeholderHint`（可选，写原文里已有的提示）；`skipLabel`（可选，跳过按钮文案，默认“已有，跳过”） |
-| `src/content/choices/<fork-id>.md` | 一个分叉点的选择页：引导语 | `question`；`options: { <option-id>: { title, path?, effort?, audience? } }`（对应原文的对比表） |
-| `src/content/faq/<faq-id>.md` | 一条常见问题 | `title` |
-| `src/content/pages/home.md`、`done.md`、`faq.md` | 首页前言；完成页的致谢、后记、联系方式；常见问题列表页的引导语和条目列表（列表项写 `[[faq/…]]` 双链，决定列表顺序；漏列条目时 `loadSite()` 报错、构建失败，规则见 `site.ts` 的 `unlistedFaq()`，#14） | `title` |
-| `src/assets/screenshots/` | 截图（从博客的 `09附件/` 复制过来，FR-04） | — |
+| `src/content/route.yaml` | **路线图**：章节、分叉点、各选项的页面顺序、旁支页（见下文） | 由 M2 校验 |
+| `src/content/principle/<id>.md` | 一个页面的原理版：步骤、选择页、旁支页各一份。正文第一行是 `# <标题>`，与重写稿文件名相同 | frontmatter（Zod `strictObject`，都可省）：`principleOnly`（默认 false，原理独有步骤）、`skippable`（默认 false）、`skipLabel`（可选，默认“跳过”）、`video: { bilibili?, youtube? }`（可选）；选择页另有必填的 `options: { <option-id>: { title, heading } }` |
+| `src/content/operation/<id>.md` | 同一页面的操作版，文件名与原理版相同 | 不写 frontmatter |
+| `src/content/reference/faq.md`、`ip-tests.md`、`ip-tests/<id>.md` | 参考页：常见问题（一页，条目是二级标题）、IP 质量实测合集、各篇实测；只有原理版 | 不写 frontmatter |
+| `src/content/blog-links.yaml` | 指向博客其他文章的双链目标（如 `04技术/自建梯子：VPS + 3x-ui + VLESS Reality`）→ 博客 URL；地址待作者提供时写 `null`（Q-11） | 由 M1 校验 |
+| `src/assets/screenshots/` | 截图（从重写稿的 `附件/` 导入，只导入被引用的） | — |
 
-**route.yaml 格式**（下例是完整路线图的样子；目前迁入了“开始”到“九、注册 claude”）：章节和分叉点的唯一来源，满足 FR-02 中“所属章节、所属路线”的要求。步骤文件不重复写这两项，避免两处数据不一致。
+- **标题**：页面标题取正文第一行的 `# <标题>`（导入时原样保留），渲染时从正文里去掉，由布局输出 `<h1>`。两版的标题必须相同（FR-03）；全站标题（原理版和参考页）不能重复，因为双链按标题解析。缺少第一行标题、两版标题不同、标题重复都让构建失败。
+- **原理独有步骤**：`principleOnly: true` 且没有操作版文件。写了 `principleOnly: true` 却有操作版文件 → 构建失败；没写却缺操作版 → 按 FR-21 处理（操作视图显示原理版正文并提示“操作版还在写”），构建结束列进内容提示，不阻止构建。
+- **选择页的选项块**（FR-12）：`options` 的 `heading` 是正文里独占一段的加粗文字原文（如 `方案一：普通服务器 + 白嫖ISP（我用的）`、`iPhone`）。插件在两版正文里各找到这一段，把它到下一个“独占一段的加粗文字 / 分隔线 / 标题 / 正文结尾”之前的内容包成 `<section data-option="<option-id>">`，加粗段落变成块标题。块内第一个站内链接是这个选项的第一步，M3 用它做整块的点击区域。找不到 `heading`、块内没有站内链接、第一个链接不是该选项在路线图里的第一步（两种视图各核对一次）都让构建失败。`title`（如“方案一”）用于目录的“或”分组。
+
+**route.yaml 格式**（计划）：章节、分叉点和旁支页的唯一来源。页面文件不重复写所属章节和选项。
 
 ```yaml
-defaults: { node-plan: plan-1, desktop-proxy: v2rayn, phone: iphone }  # 默认路线（Ask first）
 chapters:
   - id: start
     title: 开始
-    items: [before-you-start, overview, clean-claude-code]
-  - id: residential-ip
-    title: 一、准备住宅 IP
+    items: [preface, disclaimer, overview, clean-up]
+  - id: node-and-ip
+    title: 准备节点和住宅 IP
     items:
-      - choose: node-plan                  # 选择页 /choose/node-plan/
-      - branch: node-plan                  # 各选项的步骤段
+      - choose: node-plan          # 分叉点 F1
+        page: choose-plan          # 选择页的标识，也是 URL /choose-plan/
+      - branch: node-plan
         options:
-          plan-1: [plan1-buy-vps, plan1-free-residential-ip, ssh-connect, run-script]
-          plan-2: [plan2-buy-residential-vps, ssh-connect, run-script]   # 共享步骤：同一段内可出现在多个选项里
-          plan-3: [plan3-buy-node]
-  - id: desktop-proxy
-    title: 二、电脑代理
+          plan-1: [plan1-free-isp, plan1-buy-server, plan1-make-node, plan1-buy-isp, plan1-panel]
+          plan-2: [plan2-residential-server]
+          plan-3: [plan3-residential-node]
+      - import-proxy               # F1 的汇合点
+      - check-ip
+      - recap                      # 原理独有（principleOnly），操作视图绕过
+      - leak-protection
+      - timezone
+  - id: register-and-subscribe
+    title: 注册和订阅
     items:
-      - choose: desktop-proxy              # F1 的汇合点可以是选择页
-      - branch: desktop-proxy
+      - { choose: phone, page: choose-phone }
+      - branch: phone
         options:
-          v2rayn: [v2rayn-import, v2rayn-tun]
-          clash-verge: [clash-verge-import, clash-verge-tun]
-  - id: leak-protection
-    title: 三、防泄漏
-    items:
-      - branch: desktop-proxy              # 同一分叉点的第二段，没有选择页，沿用第二章的选择
-        options: { v2rayn: [v2rayn-dns], clash-verge: [clash-verge-dns] }
-      - webrtc                             # F2 的汇合点
-      - ipv6
-  # ……四、电脑改时区；五、检查 IP 质量；六、手机代理（choose: phone）；七、准备 Google 账号、
-  #   十、订阅里各有一段 branch: phone。完整清单见需求 §5.2
+          iphone: [iphone-app-store-austria, iphone-proxy, iphone-gmail]
+          android: [android-proxy, android-google-play, android-gmail]
+      - register-gmail             # F2 第一段的汇合点
+      - chrome-sign-in
+      - use-two-days
+      - google-region
+      - register-claude
+      - subscribe
+      - branch: phone              # 同一分叉点的第二段，没有选择页
+        options:
+          iphone: [iphone-why-us-apple-id, iphone-apple-id, iphone-app-store-login, iphone-gift-card, iphone-subscribe, iphone-purchase-failed]
+          android: [android-subscribe]
+      - after-subscribe
+  - id: ending
+    title: 结尾
+    items: [thanks, afterword]
+side:                              # 旁支页：不在序列里
+  google-appeal: { returnTo: use-two-days }
 ```
 
-步骤标识用上例那样的英文 kebab-case（最终清单在内容迁移时确定）。可跳过步骤在 frontmatter 里可以写 `skipLabel`（默认“已有，跳过”，FR-15）。
+标识用需求 §5.2 的初稿，导入任务可以微调，v2.0 发布后锁定（ADR-0002）。
 
-**Obsidian 写法**（自研 remark 插件 `src/lib/content/remark-obsidian.ts` + `rehype-callouts`）：
+**Obsidian 写法**（自研插件 `src/lib/content/remark-obsidian.ts`，1.0.0 已有，v2.0 改动见表）：
 
 | 写法 | 转换结果 | 找不到目标时 |
 | --- | --- | --- |
-| `[[step-id]]`、`[[step-id\|文字]]`、`[[step-id#小标题\|文字]]` | 步骤链接，文字默认用目标的标题 | 构建失败，报出文件和行号 |
-| `[[faq/<id>\|文字]]` | 常见问题链接，自动带上 `?from=<当前步骤>`（FR-20） | 同上 |
-| `[[choose/<fork-id>\|文字]]`、`[[done]]` | 选择页 / 完成页链接 | 同上 |
-| `![[文件名.jpg\|262]]` | 图片，显示宽度 262px，可以点开看大图 | 同上 |
-| `> [!why] <标题>` | 原理块（标题去掉原文的“为什么：”前缀，见 [迁移规则](migration-checklist.md#迁移规则)），只在原理视图展开（[ADR-0003](adr/0003-principle-content-as-why-callouts.md)） | — |
-| `> [!caution]`、`> [!note]` | 两种视图都显示的提示框 | — |
+| `[[标题]]`、`[[标题\|文字]]` | 按标题找到页面，链接到 `/<id>/`；不写文字时用标题。**v2.0 改动**：1.0.0 按标识解析 | 构建失败，报出文件和行号 |
+| `[[标题#小标题]]` | 链接到 `/<id>/#<slug>`，slug 用 `github-slugger`；**v2.0 新增**：校验目标页有这个小标题 | 同上 |
+| 指向参考页的双链（`[[常见问题#…]]`、`[[IP 质量实测合集]]`、`[[实测：…]]`） | 从步骤页链出时自动加 `?from=<当前页标识>`（FR-20），锚点放在查询串之后 | 同上 |
+| `[[如何订阅claude]]`、`[[如何订阅claude（纯操作版）]]`（重写稿的目录页） | 首页 `/` | — |
+| `[[04技术/…]]` | 查 `blog-links.yaml`：有地址时是外链；`null` 时只输出链接文字，构建结束列进内容提示（Q-11） | 表里没有这一项 → 构建失败 |
+| `![[文件名\|宽度]]`、`![[文件名]]` | 图片，可以点开看大图（1.0.0 已有） | 构建失败 |
+| 正文末尾“分隔线 + `上一步：`/`下一步：`/`回到：` 开头的一段” | 去掉（FR-04：页脚由路线图生成）。**v2.0 新增** | — |
+| 以 `TODO：` 开头的段落 | `<aside class="author-todo">`，文字原样，前面加“作者待补”标签（FR-21）。**v2.0 新增** | — |
+| `> [!note]`、`> [!caution]` | 两种视图都显示的提示框（1.0.0 已有）；`[!why]` 从白名单删掉，出现即报错 | — |
 
-插件需要一份**链接索引**：步骤、常见问题、选择页的标识，以及截图文件名。索引由 `createLinkIndex(contentRoot)` 在加载配置时同步扫描文件名生成，不依赖内容集合，所以图片和链接校验不受页面渲染顺序影响。指向博客其他文章的双链，在迁移时就改成普通的外部链接（博客根地址 `https://finderlzy.github.io/Writing/`，迁移时逐条打开核对），插件不处理。原文的嵌入写成 `![[09附件/文件名|宽度]]`，迁移时去掉 `09附件/` 前缀，插件只接受裸文件名（文件名可以含空格和中文）。
+- **链接索引**：`createLinkIndex(contentRoot)` 同步扫描三个集合的文件，取每个文件第一行的标题和全部小标题的 slug，生成“标题 → 页面”和“页面 → 小标题集合”，外加截图文件名和 `blog-links.yaml`。仍然不依赖内容集合的渲染顺序（1.0.0 已有）。
+- **标题 id**：同一 HTML 里有两版正文（ADR-0004），操作版正文的标题 id 加前缀 `op-`（rehype 插件按文件路径判断），避免重复 id；`[[标题#小标题]]` 指向原理版的 id。
+- **1.0.0 已有、继续生效**：管线配置的唯一来源 `markdownPipeline()`；`contentValidation` 集成在 `astro:build:start` 用同一条管线重新处理全部源文件并在失败时终止构建；集合 `deferRender: true`；关闭 SmartyPants；嵌入的宽度、文件名字符和 1x/2x `srcset` 规则；解析后残留 `**` 报错；Shiki 默认开启且不引用外部资源；内容文件名必须是以字母开头的英文 kebab-case。
 
-**管线实测结论**（#2，详见 [reuse-research.md §4.1](reuse-research.md)）：
+**导入脚本**（计划，`scripts/import-rewrite.mjs`，[ADR-0005](adr/0005-import-rewrite-verbatim.md)）：
 
-- `rehype-callouts` 在 `astro.config.mjs` 里注册 `why` 类型，输出 `data-callout="why"`，视图切换用 CSS 选择器 `[data-callout='why']`，不自写 rehype 插件；关闭库自带图标（`showIndicator: false`，design §3.3）。
-- 嵌入图片由插件生成 mdast `image` 节点，`url` 写成从 Markdown 文件到 `src/assets/screenshots/<文件名>` 的相对路径（经 `encodeURI`），宽度写进 `data.hProperties.width`；Astro 的 `remarkCollectImages` 在用户插件之后运行，会把它交给图片服务（输出 webp 并写上宽高）。截图因此放在 `src/assets/screenshots/`，不放 `public/`。文件名含空格和中文也能构建和访问。
-- 换成 unified 处理器后 Shiki 仍默认开启（`github-dark`，样式内联），构建产物不引用外部资源。
-
-**实现（#4）**：集合与 schema 在 `src/content.config.ts`（schema 本体在 `src/lib/content/schemas.ts`，用 `strictObject`，写错的键直接报错），插件和管线在 `src/lib/content/`。对外接口：
-
-```ts
-// link-index.ts：同步扫描文件名和 frontmatter 标题；目录不存在视为空
-function createLinkIndex(contentRoot: string, screenshotsDir?: string /* 默认 <contentRoot>/../assets/screenshots */): LinkIndex;
-interface LinkIndex {
-  contentRoot: string; screenshotsDir: string;
-  steps: ReadonlyMap<StepId, string>;   // 标识 → title
-  faq: ReadonlyMap<FaqId, string>;      // 标识 → title
-  choices: ReadonlyMap<ForkId, string>; // 标识 → question
-  screenshots: ReadonlySet<string>;     // 截图文件名
-  doneTitle: string | undefined;        // pages/done.md 的 title
-}
-// markdown.ts：Markdown 管线的唯一配置（astro.config.mjs、构建校验、单元测试共用）
-function markdownPipeline(o: { base: string; linkIndex: LinkIndex | (() => LinkIndex); onProblems? }): UnifiedProcessorOptions;
-function validateContent(o: { base; linkIndex }): Promise<ContentProblem[]>; // 逐个处理 steps/choices/faq/pages 下的 *.md
-// integration.ts：astro:build:start 时调用 validateContent，有问题就终止构建
-function contentValidation(o: { base; linkIndex }): AstroIntegration;
-// remark-obsidian.ts：默认导出插件；问题记为 ContentProblem { file, line, column, message }，整篇处理完一次性抛出 ContentError
-```
-
-- **构建失败的落点**：Astro 的内容渲染会捕获异常、只打日志并继续构建，所以插件在渲染时报的错不能让构建失败；由 `contentValidation` 集成在 `astro:build:start` 用同一条管线重新处理全部源文件（保留 frontmatter 占位，行号与源文件一致），逐条打印“文件:行:列 说明”后抛错（`astro build` 退出码 1）。渲染时的报错也换算回源文件行号，开发服务器里同样能看到。
-- **集合用 `deferRender: true`**：同步阶段渲染的结果按引用方文件的摘要缓存，目标改了标题而引用方没改时，缺省链接文字会一直是旧的；推迟到页面渲染时处理就没有这个问题（已实测改标题后重建即更新，图片仍输出 webp 和 1x/2x `srcset`）。M3 渲染条目照常用 `render(entry)`。
-- **管线配置**：关闭 SmartyPants（它在用户插件之前改写引号、`--`、`...`，会改坏 `[[…]]` 里的文件名和正文里的命令，FR-03）；`note`、`caution` 的默认标题改为“提示”“注意”。
-- **双链**：href 经 `joinBase(base, …)`（`withBase` 的纯函数版本，base 与 `astro.config.mjs` 相同）；`[[id#小标题]]` 的锚点用 `github-slugger`，与 Astro 生成标题 id 的算法相同（不校验目标小标题是否存在）；不写链接文字时用目标标题，`[[done]]` 用完成页标题，没有完成页文件时用“完成页”。普通 Markdown 链接文字里写双链、双链里夹格式或换行、未知前缀（如 `[[blog/…]]`）都判为错误，不会原样输出。
-- **嵌入**：支持单独成段和行内两种位置；宽度只接受正整数；`09附件/` 前缀和其他路径都报错；截图文件名不能含 `#`、`?`、`%`（会让图片路径出错）。GFM 表格里写作 `[[id\|文字]]`、`![[文件名\|宽度]]`。图片节点带 `data-zoom` 属性（看大图组件的识别标记）；写了宽度时同时传 `densities: [1, 2]`，产物带 1x/2x `srcset`，看大图组件可用 2x 版本。看大图要不要原图链接由负责看大图的任务决定。
-- **没成加粗的星号**（#21）：解析后仍留在文字里的 `**` 报错。典型是 `**方案二：**问…`：结尾的 `**` 前是全角标点、后面紧跟汉字，按 CommonMark 不算加粗，星号会原样显示；改成 `**方案二**：问…`。代码里的 `**` 不受影响。
-- **Callout 白名单**：只允许小写的 `[!why]`、`[!note]`、`[!caution]`；可折叠写法（`[!why]-`、`[!note]+`，库会插入自带的折叠箭头 SVG）、其他类型、标记不在引用第一行开头（库仍会把它当成 Callout 并吞掉前面的文字）都报错。原理块标题原样输出；迁移时去掉原文的“为什么：”前缀（[迁移规则](migration-checklist.md#迁移规则) 第 3 条），操作视图的提示行自己加上“为什么：”。
-- 内容文件名必须是以字母开头的英文 kebab-case，否则构建失败。
+- `node scripts/import-rewrite.mjs [重写稿目录，默认 docs/rewrite]`。按标题匹配：读 `src/content/principle/*.md` 的第一行标题，与重写稿 `原理版/<标题>.md` 对应；`operation/` 同理；参考页按固定的文件名对应。
+- 对已匹配的页面，**保留目标文件的 frontmatter，正文整段替换成重写稿原文**（只把 Windows 换行统一成 `\n`）；把被引用、但 `src/assets/screenshots/` 里还没有的图片从 `附件/` 复制过去。
+- 重写稿里有、站内没有的页面（新页面）只列出来，不自动建文件：新页面要先手建 `principle/<id>.md`（frontmatter + `# 标题`），再在 `route.yaml` 里放好位置，然后重跑脚本。站内有、重写稿里没有的页面同样列出来，由作者决定是否删除。
+- 脚本不改 `route.yaml`，也不判断截图有没有打码；结束时提醒“新复制的截图要逐张核对打码”（三级边界 Never）。
 
 ### M2 路线（`src/lib/route/`）
 
-**职责**：根据路线图、步骤元数据和读者的选择，算出页面需要的全部导航信息；在构建时校验路线图。
+**职责**：根据路线图、页面元数据、读者的选择和当前视图，算出页面需要的全部导航信息；构建时校验路线图。
 
-**接口**（已由 #3 实现：`src/lib/route/route-map.ts`，类型在 `types.ts`）：
+**接口**（计划，v2.0 改动 1.0.0 的 `route-map.ts`、`types.ts`）：
 
 ```ts
+type PageId = string;                       // 步骤、选择页、旁支页共用一个标识空间，也是 URL
+type ViewMode = 'operation' | 'principle';
 type Choices = Partial<Record<ForkId, OptionId>>;
-type At = { kind: 'step'; id: StepId } | { kind: 'choose'; fork: ForkId };
+type Stop =
+  | { kind: 'step' | 'choose' | 'side'; id: PageId; title: string }
+  | { kind: 'home' };                       // 前言的上一步、后记的下一步
 
-// 校验并编译。spec 是 route.yaml 解析后的值（unknown，M2 逐项校验形状）；choices 是选择页元数据（标题、选项顺序）。
-// 失败时抛出 RouteValidationError，其 errors: RouteError[] 一次列全，每条写明 route.yaml、steps/<id>.md 或 choices/<id>.md
-function buildRouteMap(spec: unknown, steps: StepMeta[], choices: ChoiceMeta[]): RouteMap;
+interface PageMeta {                        // 由 loadSite() 从 M1 映射而来，M2 不读文件
+  id: PageId; title: string;
+  principleOnly: boolean; skippable: boolean; skipLabel?: string;
+  options?: { id: OptionId; title: string }[];   // 只有选择页有
+}
+
+// spec 是 route.yaml 解析后的值（unknown，逐项校验）。失败抛 RouteValidationError，errors 一次列全并写明文件
+function buildRouteMap(spec: unknown, pages: PageMeta[]): RouteMap;
 
 interface RouteMap {
-  /** 一个页面需要的全部导航信息。stored = 本机保存的选择，可以为空 */
-  view(at: At, stored: Choices): {
-    choices: Record<ForkId, OptionId>; // 实际生效的选择 = 默认路线 ← 本机保存的选择（失效项忽略）← 当前页所属选项（S5），总是覆盖全部分叉点；
-                               // 共享步骤属于多个选项时：本机已选的在其中就沿用，否则用默认选项，默认也不在其中时取第一个（FR-17）
-    current: Stop;             // 当前页（带标题）
-    prev: Stop | null;         // 路线第一项时为 null
-    next: Stop;                // 最后一步之后是 { kind: 'done' }（FR-11）
-    skipTo: Stop | null;       // 只有可跳过步骤才有：跳过本章内连续的可跳过步骤后的第一项（FR-15）
-    progress: { chapterId: string; chapter: string; index: number; total: number } | null; // 选择页没有步数
-    outline: OutlineChapter[]; // 目录：全部步骤，标出是否在当前路线上（FR-16）
-  };
-  // at 不在路线图里时抛错
-  /** 只按本机保存的选择画目录（#18）：不让当前页所属选项覆盖本机选择，所以在目录里改选后当前页可以落在“其他路线”上；
-   *  current 为 null 时（常见问题页、找不到页）没有当前项 */
-  outline(stored: Choices, current: At | null): OutlineChapter[];
-  readonly data: RouteData;    // 可以序列化，给浏览器重建 RouteMap 用；含步骤和选择页的标题、章节标题、skippable/placeholder 标记，
-                               // 浏览器改写“下一步：<标题>”、目录、首页“继续上次：<步骤名>”都只靠它，不再另取数据
+  view(at: PageId, stored: Choices, mode: ViewMode): RouteView;   // at 不在路线图里时抛错
+  outline(stored: Choices, current: PageId | null, mode: ViewMode): OutlineChapter[];
+  readonly data: RouteData;                 // 可序列化，浏览器用 routeMapFromData() 重建
+}
+interface RouteView {
+  choices: Choices;          // 生效的选择 = 本机保存的选择（失效项忽略）← 当前页所属选项；没选的分叉点缺省
+  current: Stop;
+  prev: Stop | null;
+  next: Stop | null;         // 选择页未选时为 null（FR-12）
+  skipTo: Stop | null;       // 只有可跳过步骤才有（FR-15）
+  returnTo: Stop | null;     // 只有旁支页才有（FR-19）
+  progress: { chapterId: string; chapter: string; chapterNo: number; index?: number; total?: number };
+                             // chapterNo 从 0 开始（design：“从零开始”的章节号）；数不清时没有 index/total（FR-10）
+  outline: OutlineChapter[];
 }
 function routeMapFromData(data: RouteData): RouteMap;
-/** Stop → 站内路径（不含 BASE_PATH）；构建时和浏览器共用，再由 withBase() 加前缀 */
-function pathOf(stop: Stop): string;
+function pathOf(stop: Stop): string;        // '/<id>/' 或 '/'；再由 withBase() 加前缀
 ```
 
-- 输入类型 `StepMeta`、`ChoiceMeta` 定义在 `route/types.ts`，只含路线需要的字段。M2 不读文件，也不引用 M1 的集合类型：由 `loadSite()` 把 M1 的内容条目和解析后的 `route.yaml` 映射成这两种形状传入。标题等必填元数据由 M1 的 Zod 校验，M2 只校验标识和路线结构。
+**规则**（构建时校验，任何一条不满足就失败，FR-61）：
 
-**规则**（构建时校验，任何一条不满足就失败，对应 FR-61）：
+- **一个标识空间**：`principle/` 下的每个文件在 `route.yaml` 里恰好出现一次——普通项、某个选择页（`page`）、某个 `branch` 段里的一个或几个选项（共享步骤，1.0.0 已有），或 `side` 下的旁支页；反过来，路线图引用的页面必须有原理版文件。保留字：`faq`、`ip-tests`、`404`、`_astro`。
+- **选择页**：`choose` 的 `page` 必须有 `options`，且和 `branch` 的选项一一对应、顺序一致；`branch` 引用的分叉点前面必须已经有它的 `choose`（1.0.0 已有）。
+- **视图**：操作视图的序列去掉 `principleOnly` 的页面。每个选项在两种视图下都至少有一页。原理独有步骤在操作视图下被直接打开时，按原理视图的序列计算它自己的导航（它不在操作序列里），页面再按 FR-30 提示。
+- **未选**（替代 1.0.0 的默认路线）：分叉点没有生效的选择时，它的每个 `branch` 段在序列里都折叠成“指向选择页”：段前一页的“下一步”和段后一页的“上一步”都指向该分叉点的选择页（FR-13：`import-proxy` 的上一步是 `choose-plan`，`subscribe` 的下一步是 `choose-phone`）。选择页自己的“下一步”在未选时为 `null`，已选时是所选选项在当前视图下的第一页。
+- **生效的选择**：本机保存的选择 ← 当前页所属选项（打开只属于一个分支的页面时按它计算，FR-17）；共享步骤属于多个选项时，本机已选的在其中就沿用，否则取第一个（1.0.0 的“默认选项”一环去掉）。
+- **汇合**：同一分叉点的最后一段 `branch` 之后必须有所有选项共用的页（1.0.0 已有）。
+- **旁支页**：`returnTo` 必须是序列里的普通页；旁支页的 `returnTo` 是那一页，`next` 是那一页在当前路线和视图下的“下一步”，`prev` 为 `null`（FR-19）。
+- **首页**：第一页（前言）的上一步、最后一页（后记）的下一步都是 `{ kind: 'home' }`（FR-11）。
+- **可跳过**：`skipTo` 沿当前路线和视图，跳过从当前页开始连续的可跳过步骤，取其后的第一项（可以跨章节，FR-15）。
+- **进度**：步骤在当前路线和视图的本章序列里才有 `index/total`；本章序列里有折叠的未选分支段、或当前页是选择页、旁支页、不在当前视图序列里的原理独有步骤时，只有章节名（FR-10）。
+- **枚举**：3 × 2 种选择组合 × 2 种视图共 12 条序列，每条都要从 `preface` 走到 `afterword`，不重复经过同一页（无环）。
+- **目录 outline**：沿用 1.0.0 的结构（章节 → 普通项 / 选择页 / “或”分组），每一项新增 `principleOnly`；去掉 `placeholder`；`current` 只在一处为真（共享步骤规则 1.0.0 已有）。
 
-- 每个步骤标识只属于路线图里的一个位置：要么是普通项，要么属于**一个** `branch` 段，可以出现在这一段的多个选项里（共享步骤）。所以看 URL 就知道一个步骤属于哪个分叉点的哪几个选项（S5）。路线图引用的步骤必须有对应文件，步骤文件也必须出现在路线图里。
-- `branch` 引用的分叉点，前面必须已经出现过它的 `choose`；`options` 必须和选择页文件里的选项一一对应；`defaults` 必须覆盖每个分叉点。
-- 同一分叉点的 `branch` 段之后，必须有一个所有选项共用的项（普通步骤或另一个分叉点的选择页），也就是必须有汇合点。汇合点可以在后面的章节；同一分叉点的两段 `branch` 可以紧挨着（第二、三章的 F2），汇合点算在最后一段之后。
-- 可跳过步骤的 `skipTo`：沿当前路线，跳过本章内从当前步骤开始连续的可跳过步骤，取其后的第一项（可能在下一章或是完成页）。
-- 枚举所有选项组合（首期是 3 × 2 × 2 = 12 条路线）：每条路线都要从“开始之前”走到完成页，中间不重复经过同一步，也就是没有环。
-- 步骤标识不能和保留路径重名：`choose`、`faq`、`done`、`404`、`_astro`。
-- 占位步骤（`placeholder: true`）不让构建失败，只在构建输出里列出清单（FR-21）。清单由 `astro.config.mjs` 里的 `placeholderReport` 集成（`src/lib/content/integration.ts`，#5）在 `astro:build:done` 时直接读步骤文件的 frontmatter 打印，格式为每行一个 `占位步骤：<step-id> <标题>`。
+### M3 页面（`src/pages/`、`src/layouts/`、`src/components/`、`src/styles/`、`src/scripts/`）
 
-### M3 页面（`src/pages/`、`src/layouts/`、`src/components/`、`src/styles/`）
+**职责**：把内容和路线渲染成页面；实现 [design.md](design.md) v2.0 的全部页面和组件。
 
-**职责**：把内容和路线渲染成页面；实现 [design.md](design.md) 的全部页面和组件。
+| 页面 | URL | 文件（计划） |
+| --- | --- | --- |
+| 首页：logo、站名、英文副标题、“开始”、按章目录 | `/` | `src/pages/index.astro` |
+| 步骤页、选择页、旁支页 | `/<id>/` | `src/pages/[page].astro` + `PageLayout` |
+| 常见问题 | `/faq/` | `src/pages/faq/index.astro` + `ReferenceLayout` |
+| IP 质量实测合集 / 各篇实测 | `/ip-tests/`、`/ip-tests/<id>/` | `src/pages/ip-tests/index.astro`、`[test].astro` |
+| 找不到 | `404.html` | `src/pages/404.astro` |
 
-- **构建时**：每个页面调用 `loadSite()`（`src/lib/site.ts`，#5）。它读取内容集合和 `route.yaml`（`?raw` 导入，用 `yaml` 解析），经纯函数 `assembleRoute()` 映射成 `StepMeta`/`ChoiceMeta` 后调用 `buildRouteMap`，结果在一次构建内缓存（开发服务器里每次重新读取）。路线图有错时 `getStaticPaths` 抛错、构建失败；`RouteValidationError` 会转成普通 `Error` 再抛，因为 Astro 打印带 `errors` 数组的异常时会丢掉“文件：”前缀。页面再调用 `view(at, {})`，把导航直接写进 HTML。这时生效的是默认路线，加上当前页所属的分支，所以不运行 JS 也能顺着走完。
-- **浏览器里**：布局用 `<script type="application/json">` 内嵌 `RouteData`（首期约 45 个步骤，几 KB）。页面脚本读取 M4 保存的选择，调用 `routeMapFromData(data).view(at, stored)`，再改写上一步/下一步链接、进度和目录状态。这种做法是渐进增强：没有 JS 时，页面就保持构建时写好的默认导航。
-  - 实现（#8）：`src/scripts/route-enhance.ts` 由 `StepLayout` 加载，步骤页和选择页都运行。它从 `data-route-*` 挂载点读当前页（`<main data-route-at>`，`At` 的 JSON），改写 `[data-route-nav="prev|next"]` 的链接和目标标题、`[data-route-progress]` 的进度；文案由 `src/lib/nav-text.ts` 生成，与构建时同一份代码。选择页上每个选项的链接按“本机选择 + 这个选项”重算，本机保存的选项显示“当前选择”并标 `aria-current`（只看本机保存的：没点过选项、也没打开过这个分叉点的分支步骤时，默认选项不算选过；打开分支步骤会记下它所属的选项，见下文），点击时同步写入 `choices` 再跳转。打开步骤页时写入的内容由纯函数 `openPatch()` 决定：`lastStep`、`visited`，以及步骤所属分支的实际生效选项；普通步骤不写选择，没选过的分叉点继续跟随默认路线。从往返缓存恢复的页面（`pageshow` 且 `persisted`）重新计算一次。目录见下文（#18）。
-- **目录**（#18，design §4.5）：组件 `src/components/Toc.astro`（外壳：侧栏和 `<dialog>` 抽屉）和 `TocNav.astro`（列表），样式在 `src/styles/toc.css`（全局样式，因为同一个 `<nav>` 会在侧栏和抽屉之间移动）。构建时按 `view(at, {}).outline` 写好全部链接，没有 JS 也能点；常见问题页和找不到页用 `outline({}, null)`，并由目录自己内嵌 `#route-data`。页面脚本 `src/scripts/toc.ts` 在 route-enhance 之后运行（先写入打开这一页的 `visited`，目录才有这一页的 ✓），按 `outline(本机选择, 当前页)` 改写“其他路线”标记、选中的选项、当前项和已读 ✓——标记和 outline 按文档顺序一一对应，不在浏览器里重新生成 HTML。“切换”写入 `choices` 后派发 `reader-choices-changed`，route-enhance 收到后只重画导航，不再执行 `openPatch()`（否则会把当前页所属的选项写回去）；“清除进度”经 `confirm()` 确认后调用 `clear()`，同样派发该事件。两个脚本经 `src/scripts/reader-store.ts` 的 `readerStoreFor()` 共用一个 ReaderStore，本机存储不可用时内存里的改动也能互相看到。共享步骤在每个选项下各列一份，只有当前路线上的那份标 `aria-current="step"`，都不在时标在它所属的第一个选项下。
-  - 在分支步骤上改选（#18 选定）：例如在方案三的“购买住宅节点”里切到方案二，目录立即按方案二显示，这一页标“其他路线”；但这一页自己的上一步/下一步仍按它所属的方案三计算（URL 决定所属选项，S5），沿“下一步”进入方案三的下一页时 `openPatch()` 会把方案三写回去。想走新路线的读者从目录点新路线的步骤或选择页进入，之后的导航都按新路线（FR-14、AC-04）。
-  - 手机顶栏：没有章节缩写（RouteData 里没有短名），完整进度放在吸顶顶栏的第二行；#21 复核后保留这一做法，design §4.1 已同步。
-  - 布局：`StepLayout` 在 ≥1100px 时是“300px 侧栏 + 正文”两栏，侧栏吸顶、自己滚动，打开时把当前项滚到侧栏上部；更窄时侧栏隐藏，顶栏（目录按钮、进度、视图切换）吸顶，脚本打开抽屉时把 `<nav>` 移进 `<dialog>`，关闭时移回。常见问题页、找不到页任何宽度都用抽屉。“目录”“切换”“清除进度”按钮在没有 JS 时隐藏（窄屏没有 JS 时看不到目录，宽屏侧栏照常可点）。
-- **视图**：`<head>` 里放一段几十字节的内联脚本，在首次绘制前设置 `<html data-view="operation|principle">`，避免页面闪一下。`[!why]` 块的显示和隐藏只用 CSS 控制（[ADR-0003](adr/0003-principle-content-as-why-callouts.md)）。
-  - 实现（#9）：内联脚本是 `src/lib/reader-state/view-boot.ts` 的 `VIEW_BOOT_SCRIPT`，由 `StepLayout` 经 `BaseLayout` 的 `head` slot 放进 `<head>`；它只按 M4 的格式取 `view`，取不到或不合法时用 `operation`。切换控件是 `src/components/ViewToggle.astro`，放在步骤页和选择页标题上方的一行里（#18 起这一行在 <1100px 时吸顶，左侧加“目录”按钮）；按下状态由 CSS 按 `data-view` 画，没有 JS（没有 `data-view`）时整个隐藏。页面脚本 `src/scripts/view-toggle.ts` 处理点击、同步 `aria-pressed`、写 M4 的 `view`，并在每个原理块前插入提示行“为什么：<标题> · 在原理视图中查看”（点它切到原理视图并滚到该块）；提示行由脚本插入，所以没有 JS 时不显示。“这一步没有额外原理”在构建时决定：`StepLayout` 先渲染正文，HTML 里没有 `data-callout="why"` 才输出这一行，只在原理视图下显示。显示规则都在 `src/styles/prose.css` 末尾。
-- **视频门面**：不发任何外部请求。读者点击后才插入 iframe：B 站用 `player.bilibili.com/player.html?bvid=…`，YouTube 用 `www.youtube-nocookie.com/embed/<id>`。播放器下方总有一行平台外链：浏览器无法可靠判断 iframe 有没有加载失败，所以这行链接一直显示（FR-42）。
-  - 实现（#17）：组件 `src/components/VideoFacade.astro` 经 `StepLayout` 的 `video` slot 放在标题下面、正文上面（只有步骤页有，选择页没有）；地址和文案由纯函数 `videoSources()`（`src/lib/video/sources.ts`）生成，平台顺序 B 站在前，即默认平台。点击前只有本站画的深色占位（令牌 `--video-bg`/`--video-fg`）、播放图标和平台名，不加载封面图。没有 JS 时播放区域是指向平台视频页的普通链接，平台切换隐藏；页面脚本 `src/scripts/video-facade.ts`（随组件加载，不在 `StepLayout` 里统一引入，只有步骤页用到）把它换成按钮，点击后插入 iframe 并把焦点交给它，换平台时撤掉已插入的播放器、回到门面，外链跟着换。没有视频信息时只输出一行“视频制作中”。
-  - 嵌入参数（#17 实测）：B 站 `https://player.bilibili.com/player.html?bvid=<BV号>&autoplay=1`，只要 `bvid`，不需要 `aid`/`cid`；该页不发 X-Frame-Options 和 CSP，可以嵌入；不写 `autoplay` 时会自动播放，`autoplay=0` 能关掉，读者已经点过播放，所以明写 `autoplay=1`。YouTube `https://www.youtube-nocookie.com/embed/<id>?autoplay=1`。iframe 的 `allow` 为 `autoplay; encrypted-media; fullscreen; picture-in-picture`，`referrerpolicy` 为 `strict-origin-when-cross-origin`。外链：B 站 `https://www.bilibili.com/video/<BV号>/`，YouTube 沿用原文的 `https://youtu.be/<id>`。
-- **常见问题的“返回”**：根据 `?from=<step-id>` 查到步骤标题，再显示返回链接。参数里只有公开的步骤标识，没有个人数据。
-  - 实现（#14）：页面是静态的，返回链接由页面脚本 `src/scripts/faq-return.ts` 填写。条目页 `src/pages/faq/[faq].astro` 内嵌“步骤标识 → 标题”的 JSON，在标题上方和正文末尾各放一个隐藏的返回链接；纯函数 `faqReturn()`（`src/lib/faq-return.ts`）只认路线图里已有的步骤标识，认到时脚本填好链接（`/<step-id>/`）并显示；没有 JS 或参数无效时按直接打开处理。正文末尾总有“常见问题列表”入口。常见问题页不加载视图切换和 route-enhance，也不写本机状态，所以常见问题条目里不写 `[!why]` 块（没有视图切换，会一直收起）。“打开目录”入口由 #18 补上，同找不到页；目录只在读者点“切换”或“清除进度”时写本机状态。
+删除：`choose/[fork].astro`、`done.astro`、`faq/[faq].astro`、`scripts/home.ts`（继续上次）、`scripts/done.ts`。
+
+- **构建时**（1.0.0 已有，改接口）：页面调用 `loadSite()`（`src/lib/site.ts`），它读取三个集合和 `route.yaml`，经纯函数 `assembleRoute()` 映射成 `PageMeta[]` 后调用 `buildRouteMap`，一次构建内缓存。每页用 `view(id, {}, 'operation')` 把导航写进 HTML——没有 JS 时，读者看到的就是“操作视图 + 未选”的导航：未选的分叉点处指向选择页，选择页的选项块是普通链接，进入分支后按所属选项计算。唯一的折返在“订阅”：它的“下一步”指向“选择手机系统”，静态页面上的选项链接只能进入手机的第一段，所以没有 JS 的读者要用“订阅”正文里的链接进入订阅分支（正文原本就列出了两条路的每一步）。这是降级体验，不是验收路径；“禁用存储”（AC-18）时脚本仍运行，靠 M4 的 `window.name` 兜底记住选择。
+- **两版正文**（[ADR-0004](adr/0004-whole-page-view-switch.md)）：`PageLayout` 把原理版和操作版的正文都渲染进 HTML，分别包在 `<div data-body="principle">`、`<div data-body="operation">` 里；`<html data-view>` 决定显示哪一个，另一个 `display: none`（屏幕阅读器和页内查找都跳过它，`loading="lazy"` 的图片也不加载）。原理独有步骤和缺操作版的页面只输出原理版，操作视图下在正文上方显示提示（FR-21、FR-30）。参考页只有一份正文，没有视图切换。
+- **视图**（1.0.0 已有机制，改为整页）：`<head>` 里的内联脚本 `VIEW_BOOT_SCRIPT` 在首次绘制前设置 `data-view`，取不到时用 `operation`。切换控件 `ViewToggle` 在页眉；`src/scripts/view-toggle.ts` 改 `data-view`、写 M4、滚回页面顶部（FR-30），派发 `reader-view-changed`。没有 JS 时切换控件隐藏，固定操作视图。删除 1.0.0 的“为什么：… · 在原理视图中查看”提示行和“这一步没有额外原理”。
+- **导航改写**（1.0.0 已有 `route-enhance.ts`，改动）：读 M4 的 `choices` 和 `view`，调用 `routeMapFromData(data).view(at, stored, view)`，改写上一步/下一步/跳过/回到的链接与目标标题和进度；收到 `reader-view-changed` 或 `reader-choices-changed` 时重算。打开只属于一个分支的页面时，把它所属的选项写进 `choices`（FR-17，纯函数 `openPatch()` 只剩这一项）。选择页：本机保存的选项块标“当前选择”和 `aria-current`，点块内任何站内链接都先写 `choices` 再跳转；**不标默认**。
+- **目录**（1.0.0 已有 `Toc`/`TocNav`/`toc.ts`，改动）：去掉已读 ✓ 和“清除进度”；原理独有步骤标“原理”，在操作视图下弱化；参考页在末尾单列“卡住了再看”。首页的目录用同一个 `TocNav`（首页变体：不吸顶、不折叠）。
+- **logo**（计划）：`src/assets/logo/` 放转曲后的 SVG（中文版、英文版、“Re:”标记），**只由 `src/components/Logo.astro` 引用**（`?raw` 内联，颜色用 `currentColor` 和设计令牌，深浅主题自动适配）；换 logo 只改这一处（需求 Q-15）。favicon 是 `public/favicon.svg`（SVG 内用 `prefers-color-scheme` 切换配色）。
+- **参考页的返回**（1.0.0 已有 `faq-return`，泛化为 `reference-return`）：根据 `?from=<page-id>` 查到页面标题，显示“返回刚才的步骤：<标题>”；实测页另有“回到：IP 质量实测合集”；直接打开时显示“打开目录”。
+- **视频门面、代码复制、看大图**：1.0.0 已有，沿用；只改 FR-41：没有视频信息时不输出视频区域（删掉“视频制作中”）。
 
 ### M4 本机状态（`src/lib/reader-state/`）
 
-**职责**：读写阅读进度、路线选择、视图偏好、已读步骤。数据只存在本机，不发给任何服务器（三级边界 Never）。
+**职责**：读写分叉点选择和视图偏好，只存在本机（三级边界 Never）。v2.0 改动 1.0.0 的 `reader-store.ts`：
 
 ```ts
-interface ReaderState { lastStep?: StepId; choices: Choices; view: 'operation' | 'principle'; visited: StepId[] }
-interface ReaderStore { read(): ReaderState; write(patch: Partial<ReaderState>): void; clear(): void }
-interface ReaderStoreOptions {
-  isKnownStep?: (id: StepId) => boolean;                      // 步骤是否仍在路线图里
-  isKnownChoice?: (fork: ForkId, option: OptionId) => boolean; // 选项是否仍在路线图里
-}
-function createReaderStore(storage: Storage | null, options?: ReaderStoreOptions): ReaderStore;
-/** 安全地取 localStorage：没有或访问就抛异常时返回 null；scope 默认 globalThis，仅供测试注入 */
-function getLocalStorage(scope?: { localStorage?: Storage }): Storage | null;
+interface ReaderState { choices: Choices; view: 'operation' | 'principle' }
+interface ReaderStore { read(): ReaderState; write(patch: Partial<ReaderState>): void }
+function createReaderStore(storage: Storage | null, options?: { isKnownChoice?: (fork, option) => boolean }): ReaderStore;
+function getLocalStorage(scope?): Storage | null;
 ```
 
-M4 不依赖 M2：`StepId`、`Choices` 等在 M4 里是同义的字符串别名；标识过滤由调用方（M3 页面脚本）用 `RouteData` 构造 `options` 传入，不传时接受任何非空字符串。
-
-- 存储接缝有两个适配器：`localStorage` 和内存。`localStorage` 不可用、读写时抛异常（无痕模式、禁用存储）时，自动换成内存适配器，不报错（异常分支、AC-18）。测试也用内存适配器。
-- 存储键是 `rezero-subscribe-claude:v1`，值是 JSON。读出来的数据如果格式不对，或者里面的标识已经不在路线图里，就丢掉这一项，用默认值代替（值不是 JSON 对象时整体用默认值；某字段类型不对只丢该字段；`view` 默认 `operation`；`visited` 去重；`choices` 里的 `__proto__`、`constructor`、`prototype` 键一律丢掉）。
-- `write` 是合并：patch 里没有、为 `undefined` 或不合法的字段保持原值；`choices` 按分叉点合并，`visited` 与已有记录合并去重。
-- 写入时机：打开步骤页时，写 `lastStep`、`visited`，以及当前页所属分支的选择；在选择页或目录里改选项时，写 `choices`；切换视图时，写 `view`。“清除进度”调用 `clear()`（FR-51）。
+- 存储键改为 `rezero-subscribe-claude:v2`。1.0.0 没有部署过，不迁移 `:v1` 的数据，也不去读它。
+- 去掉 `lastStep`、`visited`、`clear()`（FR-50、FR-51）。
+- **适配器顺序改为 localStorage → `window.name` → 内存**（v2.0 新增，评审 V11）：取消默认路线后，本机存储被禁用时如果只存在内存里，换页就会忘掉选择，读者在“订阅”点“下一步”会回到“选择手机系统”、再进入手机的第一段，形成绕圈（AC-18）。`window.name` 在同一标签页的同源跳转之间保留、不随请求发给服务器（三级边界 Never），值写成带前缀的 JSON，只存 `choices` 和 `view`；它也不可用时才用内存。
+- 其余规则 1.0.0 已有：存储不可用时不报错；格式不对的字段丢掉；`choices` 按分叉点合并、过滤 `__proto__` 等键。
+- 写入时机：打开只属于一个分支的页面、在选择页或目录里选选项时写 `choices`；切换视图时写 `view`。
 
 ### M5 构建（`astro.config.mjs`、`package.json`）
 
-**职责**：生成纯静态站点；任何内容错误都让构建失败。
-
-- 校验分三层，都发生在 `astro build` 里，不需要额外的命令：
-  1. Zod 校验 frontmatter，缺少必填项时报出文件；
-  2. Obsidian 插件校验双链、图片和 Callout，报出文件和行号（由 `contentValidation` 集成在 `astro:build:start` 执行，见 §3 M1“实现”）；
-  3. `buildRouteMap` 校验路线图。
-- 配置（已建立）：`output: 'static'`、`build.format: 'directory'`、`trailingSlash: 'always'`、`base: process.env.BASE_PATH ?? '/'`、`site: process.env.SITE_URL`（可选）。站内链接一律通过 `withBase()` 生成，不手写以 `/` 开头的路径。
+- 校验仍分三层，都在 `astro build` 里（1.0.0 已有）：Zod 校验 frontmatter；Obsidian 插件校验双链、锚点、图片、标题、页脚和选项块；`buildRouteMap` 校验路线图。
+- **内容提示**（替代 1.0.0 的占位清单 `placeholderReport`）：`astro:build:done` 时打印三类提示，不让构建失败：`操作版缺失：<id> <标题>`、`作者待补：<id> <标题>（n 处）`、`博客链接待填：<目标>`（FR-21、Q-11）。
+- 配置（1.0.0 已有）：`output: 'static'`、`build.format: 'directory'`、`trailingSlash: 'always'`、`base: process.env.BASE_PATH ?? '/'`、`site: process.env.SITE_URL`。站内链接一律经 `withBase()`。
 - 禁止通过放宽 Zod 规则、跳过校验来让构建通过（三级边界 Never）。
 
 ## 4. URL 规则
 
-见 [ADR-0002](adr/0002-url-scheme.md)：
+见 [ADR-0002](adr/0002-url-scheme.md)（v2.0 修订）：
 
 | 页面 | URL（相对 `BASE_PATH`） |
 | --- | --- |
 | 首页 | `/` |
-| 步骤 | `/<step-id>/` |
-| 选择页 | `/choose/<fork-id>/` |
-| 常见问题列表 / 条目 | `/faq/`、`/faq/<faq-id>/` |
-| 完成页 | `/done/` |
-| 找不到 | `404.html`（GitHub Pages 会自动使用；Nginx 需要配置 `error_page 404`） |
+| 步骤、选择页、旁支页 | `/<id>/` |
+| 常见问题（条目用锚点） | `/faq/`、`/faq/#<slug>` |
+| IP 质量实测合集 / 实测 | `/ip-tests/`、`/ip-tests/<id>/` |
+| 找不到 | `404.html` |
 
-## 5. 数据流（以 AC-03/AC-08 为例）
+从步骤链到参考页时带 `?from=<page-id>`，例如 `/faq/?from=plan3-residential-node#分流规则具体怎么写`。参数里只有公开的页面标识。
 
-1. **构建**：读取 `route.yaml` 和 `steps/*.md`，经过 M1 校验，再由 M2 `buildRouteMap` 编译。之后对每个步骤调用 `view(at, {})` 生成 HTML，HTML 里内嵌 `RouteData`。
-2. **读者在无痕窗口打开 `/plan3-buy-node/`**：页面先显示构建时写好的导航。生成这个页面时，路线已经由当前页所属分支确定为 `node-plan=plan-3`，所以上一步/下一步一开始就在方案三的路线里（AC-08）。
-3. **页面脚本运行**：调用 M4 的 `read()`，存储为空或不可用时返回默认值；再调用 `view(at, stored)`。结果和构建时一样，所以链接不需要改写。最后写入 `lastStep`，以及 `choices.node-plan = plan-3`。
-4. **读者到达 `/choose/desktop-proxy/`**：这个页面构建时写的是默认路线，上一步指向方案一的 `run-script`。页面脚本按本机保存的 `plan-3` 重新计算，把“上一步”改写为 `plan3-buy-node`（AC-03）。
+## 5. 数据流（以 AC-08、AC-09 为例）
 
-## 6. 目录结构（标注的后续页面、组件为计划，其余已建立）
+1. **构建**：`loadSite()` 读三个集合和 `route.yaml`，M1 校验，M2 编译；每页用 `view(id, {}, 'operation')` 写好导航，HTML 内嵌 `RouteData`，两版正文都在 HTML 里。
+2. **读者在无痕窗口打开 `/import-proxy/`**：构建时写的导航里，F1 未选，所以“上一步”已经指向 `choose-plan`（AC-09）。脚本读 M4 得到空选择，重算结果相同。
+3. **读者打开 `/iphone-gmail/`**：它只属于 F2 的 `iphone`，构建时就按 `phone=iphone` 计算：上一步 `iphone-proxy`，下一步 `register-gmail`（AC-08）；脚本把 `phone=iphone` 写进 M4。
+4. **读者在 `/leak-protection/` 切到原理视图**：`data-view` 变成 `principle`，整页换成原理版正文，写 M4 的 `view`；`route-enhance` 收到事件后按原理视图重算，“下一步”不变（`timezone`），但在 `check-ip` 上“下一步”会变成 `recap`（AC-06）。
+
+## 6. 目录结构（v2.0 目标；标“计划”的由 v2.0 任务建立）
 
 ```
 .
-├── AGENTS.md / CLAUDE.md            仓库指南 / Claude Code 入口（已有）
-├── CONTEXT.md                       术语（已有）
-├── docs/                            需求、调研、架构、设计、ADR（已有）；之后加计划、交付
+├── AGENTS.md / CLAUDE.md            仓库指南 / Claude Code 入口
+├── CONTEXT.md                       术语
+├── docs/                            需求、调研、架构、设计、ADR、计划、交付
+│   └── rewrite/                     重写稿（作者维护的素材来源）：原理版/、操作版/ 由导入任务纳入版本管理；附件/ 不提交（计划加进 .gitignore），截图核对打码后只以 src/assets/screenshots/ 的副本入库
 ├── astro.config.mjs                 M5 构建配置
 ├── package.json / package-lock.json 依赖与脚本；version 字段是版本来源
-├── tsconfig.json
-├── vitest.config.ts / playwright.config.ts
 ├── src/
-│   ├── content.config.ts            M1 集合（schema 在 lib/content/schemas.ts）
-│   ├── content/                     M1 内容：route.yaml、steps/、choices/、faq/、pages/
-│   ├── assets/screenshots/          截图（会经过 Astro 的图片处理；#4 建立目录）
+│   ├── content.config.ts            M1 集合：principle、operation、reference（计划，替换 steps/choices/faq/pages）
+│   ├── content/                     route.yaml、principle/、operation/、reference/、blog-links.yaml（计划）
+│   ├── assets/
+│   │   ├── screenshots/             截图（经 Astro 图片处理）
+│   │   └── logo/                    转曲后的 logo SVG（计划，只由 Logo.astro 引用）
 │   ├── lib/
-│   │   ├── content/                 M1：schemas.ts、link-index.ts、remark-obsidian.ts、markdown.ts（管线配置与全量校验）、integration.ts（构建校验与占位清单集成）（+ *.test.ts、test-fixture.ts）
-│   │   ├── route/                   M2：route-map.ts、types.ts（+ route-map.test.ts、fixtures/sample-route.ts 测试用路线图）
-│   │   ├── reader-state/            M4：reader-store.ts、view-boot.ts（视图内联脚本，#9）（+ *.test.ts）
-│   │   ├── nav-text.ts              导航文案（进度、目标标题），构建时和页面脚本共用（+ *.test.ts）
-│   │   ├── faq-return.ts            常见问题页按 ?from= 找回步骤（#14，+ *.test.ts）
-│   │   └── site.ts                  构建时装配：loadSite()、assembleRoute()（+ site.test.ts）
-│   ├── scripts/                     M3 页面脚本：route-enhance.ts（按本机选择改写导航，#8；+ *.test.ts）、view-toggle.ts（视图切换，#9）、faq-return.ts（常见问题的返回链接，#14）
-│   ├── layouts/                     BaseLayout（`head` slot）、StepLayout（内嵌 RouteData、视图内联脚本，加载 route-enhance 和 view-toggle）
-│   ├── components/                  M3 组件：StepNav、ChoiceOption、ViewToggle、PlaceholderNotice、CodeCopy、ImageZoom、VideoFacade、Toc、TocNav（已有）
-│   ├── pages/                       index、[step]、choose/[fork]、done、404、faq/index、faq/[faq]
-│   └── styles/                      tokens.css、base.css、prose.css
-├── public/                          直接复制的文件（favicon 等）
-├── scripts/                         一次性开发脚本：compare-migration.mjs（原文与站内的命令、链接比对，#16），不打包进页面
+│   │   ├── content/                 M1：schemas、link-index、remark-obsidian、markdown、integration（+ *.test.ts）
+│   │   ├── route/                   M2：route-map、types（+ 测试和测试用路线图）
+│   │   ├── reader-state/            M4：reader-store、view-boot（+ *.test.ts）
+│   │   ├── nav-text.ts              导航文案，构建时和页面脚本共用
+│   │   ├── reference-return.ts      参考页按 ?from= 找回步骤（计划，由 faq-return.ts 改名）
+│   │   └── site.ts                  构建时装配 loadSite()、assembleRoute()
+│   ├── scripts/                     页面脚本：route-enhance、view-toggle、toc、reference-return、code-zoom、video-facade
+│   ├── layouts/                     BaseLayout、PageLayout（计划，替换 StepLayout）、ReferenceLayout（计划）
+│   ├── components/                  Logo、SiteHeader（计划）、ViewToggle、StepNav、Toc、TocNav、CodeCopy、ImageZoom、VideoFacade
+│   ├── pages/                       index、[page]、faq/index、ip-tests/index、ip-tests/[test]、404
+│   └── styles/                      tokens.css、base.css、prose.css、toc.css、code-zoom.css
+├── public/                          favicon.svg（计划）
+├── scripts/                         一次性开发脚本：import-rewrite.mjs、build-logo.mjs（计划）、compare-migration.mjs（v2.0 改写）
 └── tests/
-    ├── e2e/                         Playwright：按 AC 编号命名，例如 ac-03-branch-merge.spec.ts
-    ├── build/                       构建级用例（Vitest，单独配置 vitest.build.config.ts）：ac-14-build-fail.test.ts
-    └── fixtures/                    构建失败用例使用的坏内容（AC-14），每个用例一个目录，按 src/content/ 的相对路径覆盖
+    ├── e2e/                         Playwright，按 v2 的 AC 编号命名
+    ├── build/                       构建级用例（AC-14）
+    └── fixtures/                    构建失败用例的坏内容，按 src/content/ 的相对路径覆盖
 ```
 
-- 单元测试放在被测模块旁边（`*.test.ts`）；跨页面的流程测试放在 `tests/e2e/`。
-- 构建输出 `dist/`（含 AC-15 用的 `dist-sub/`）、Astro 缓存 `.astro/`、`node_modules/`、`test-results/`、`playwright-report/`、`coverage/` 都不提交。截图和报告属于临时产物，统一放在这些目录里，不散落到其他地方。
-- **版本来源**：`package.json` 的 `version`，按 SemVer 维护，脚手架建立时从 `0.1.0` 开始，首期验收通过后定为 `1.0.0`（2026-10-15）。
+- 单元测试放在被测模块旁边；跨页面流程测试放在 `tests/e2e/`（1.0.0 已有）。
+- 不提交：`dist/`、`dist-sub/`、`.astro/`、`node_modules/`、`test-results/`、`playwright-report/`、`coverage/`，以及 logo 转曲用的字体文件目录 `.cache/`（计划加进 `.gitignore`）。
+- **版本来源**：`package.json` 的 `version`。v2.0 整体验收通过后定为 `2.0.0`（需求 v0.3）。
 
-## 7. 命令（已由 #1 建立，以 `package.json` 为准）
+## 7. 命令（以 `package.json` 为准）
 
 | 命令 | 作用 |
 | --- | --- |
-| `npm run dev` | 本地开发服务器 |
-| `npm run build` | 构建到 `dist/`，同时执行全部内容校验（frontmatter 与 Obsidian 写法校验已由 #4 接入，路线图校验由 #5 随 `loadSite()` 接入）；`BASE_PATH=/sub/ npm run build` 生成子路径版本 |
-| `npm run preview` | 预览构建产物 |
-| `npm test` | Vitest 单元测试 |
-| `npm run test:build` | 构建级用例（AC-14）：用 `tests/fixtures/` 的坏内容逐个构建，断言失败并报出文件 |
-| `npm run test:e2e` | 构建后运行 Playwright 测试（360 和 1280 两种视口）；AC-15 的 `sub-path` project 由 Playwright 另外按 `BASE_PATH=/sub/` 构建到 `dist-sub/` |
-| `npm run check` | `astro check` + 单元测试 + 构建级用例 + 构建，提交前运行 |
+| `npm run dev` / `build` / `preview` / `test` / `test:build` / `test:e2e` / `check` | 1.0.0 已有，含义不变 |
+| `node scripts/import-rewrite.mjs [目录]` | 从重写稿导入正文和截图（计划） |
+| `node scripts/build-logo.mjs` | 用 `.cache/fonts/` 里的开源字体生成 logo SVG 和 favicon（计划；字体下载地址写在脚本开头） |
+| `node scripts/compare-migration.mjs` | 对照重写稿和构建产物的命令、链接、截图（AC-13，v2.0 改写） |
 
-## 8. 验收对应的验证方式
+## 8. 验收对应的验证方式（需求 v0.3 §8）
 
 | 验收 | 验证方式 |
 | --- | --- |
-| AC-02、03、04、05、11 | M2 单元测试（测试用路线图）+ Playwright 走真实页面 |
-| AC-01、06、07、09、10、12、18 | Playwright。AC-09 在同一个浏览器上下文里关掉页面再重新打开；AC-18 在测试前注入一段让 `localStorage` 抛异常的脚本 |
-| AC-08 | Playwright 新建上下文（相当于无痕窗口）直接打开方案三步骤的 URL |
-| AC-13 | 人工逐节核对，核对表在 [`docs/migration-checklist.md`](migration-checklist.md)（#5 建立，各迁移任务补充），并用脚本比对原文与站内的命令和链接 |
-| AC-14 | M1、M2 单元测试覆盖每一种错误；外加构建级用例 `tests/build/ac-14-build-fail.test.ts`（`npm run test:build`，已含在 `check` 里）：把 `src/`、配置和 `package.json` 复制到临时目录，用 `tests/fixtures/<用例>/` 覆盖 `src/content/` 后执行真实的 `astro build`，断言失败并报出文件名；四种坏内容为引用不存在的图片、引用不存在的步骤、删掉分支的汇合、缺必填元数据，另有一个不加坏内容的对照构建必须成功。依赖包要逐个链接：Astro 的内容缓存在 `node_modules/.astro`，整体链接 `node_modules` 时并行构建会读到彼此的内容 |
-| AC-15 | 分别用 `BASE_PATH=/` 和 `/sub/` 构建，再用 Playwright 抽查导航和图片（#22 已建立 `tests/e2e/ac-15-base-path.spec.ts`）：根路径用 `astro preview` 提供 `dist/`；子路径由 `playwright.config.ts` 的第二个 webServer 构建到 `dist-sub/`，再用照 Nginx 常见配置写的 `tests/e2e/static-server.mjs` 挂在 `/sub/` 下，子路径以外的请求一律 404。逐页检查站内 href/src/srcset 都在 base 下且能打开，并走一段导航、看截图和找不到页 |
-| AC-16 | Playwright 360 和 1280 两种视口，断言 `scrollWidth <= innerWidth` 并检查按钮可点 |
-| AC-17 | Playwright 屏蔽 `*.google.com`、`*.googleapis.com`、`*.gstatic.com`、`*.youtube.com`、`*.youtube-nocookie.com`、`*.ytimg.com`，断言页面没有失败的请求、内容完整（#22 已建立 `tests/e2e/ac-17-blocked-domains.spec.ts`，逐页检查；视频门面点击前不请求视频平台，所以也断言没有请求碰到被屏蔽的域名） |
-| 设计 | [design.md §7](design.md)：截图人工评审 + axe 扫描 + 对比度实测 |
+| AC-02、03、04、05、08、09、19 | M2 单元测试（测试用路线图 + 真实 `route.yaml` 枚举 12 条序列）+ Playwright 走真实页面 |
+| AC-01、06、07、10、11、12、18 | Playwright。AC-10 断言全站 HTML 里没有“默认”“继续上次”“清除进度”和已读标记；AC-18 沿用注入抛异常的 `localStorage` |
+| AC-13 | `scripts/compare-migration.mjs` 对照重写稿与 `dist/`：每页两种视图的命令、链接、截图一致；人工抽查记录写进 `docs/migration-checklist.md` 的 v2 节 |
+| AC-14 | 构建级用例（1.0.0 已有机制），坏内容换成：引用不存在的图片、引用不存在的标题、锚点不存在、删掉分支的汇合、两版标题不同 |
+| AC-15、16、17 | 1.0.0 已有的 e2e，按新页面清单更新；AC-17 另断言 logo 是内联 SVG、没有字体请求 |
+| AC-20 | 人工：logo 和番剧标题并排截图给作者确认，记录在 logo 任务的 Issue；自动：Playwright 在深浅两种配色下截首页、页眉，检查 favicon 文件存在；仓库里搜不到番剧 Logo 文件 |
+| AC-21 | `src/styles/tokens.test.ts` 对比度实测（按新令牌更新组合）+ axe/键盘 e2e |
+| 设计 | [design.md §7](design.md)：截图人工评审 + axe + 对比度实测 |
 
 ## 9. 安全与隐私
 
-- 不加载统计、广告、评论脚本，也不加载第三方字体和图标（NFR-03/04）。只有读者点击视频后才插入第三方 iframe。
-- 截图迁移时逐张检查，确认服务器 IP、节点链接、面板账号都已打码（三级边界 Never）。
-- 仓库里不放任何凭据；`.env*` 文件不提交。
+- 不加载统计、广告、评论脚本，也不加载第三方字体和图标（NFR-03/04）；logo 是内联 SVG，字体只在开发机上用于转曲。只有读者点击视频后才插入第三方 iframe。
+- 截图入库前逐张检查打码（三级边界 Never）。导入脚本只复制、不判断，核对是导入任务的验收项。重写稿的 `附件/` 不提交，截图只以 `src/assets/screenshots/` 里核对过的副本入库（需求 Q-13）。
+- 仓库里不放凭据；`.env*` 不提交。
 
 ## 10. 待定事项
 
 | 编号 | 事项 | 影响 | 阻塞？ |
 | --- | --- | --- | --- |
-| Q-01 | 部署位置和域名（需求遗留） | 交付阶段；`BASE_PATH` 已经同时支持根路径和子路径 | 否 |
-| A-01 | AC-15“任意子路径”按“构建时设置 `BASE_PATH`”理解：每个部署位置各构建一次，不做一份产物适配所有路径 | 想要一份产物放到任何路径都能用的话，所有链接都要改成相对路径，复杂度会明显增加 | 否（已按推荐选定；有异议请提出） |
-| A-02 | B 站嵌入参数（`bvid`、是否自动播放）没有官方文档 | 在 #17 里用浏览器实测。原列的 `why` Callout、插件图片进 Astro 图片处理、Shiki 三项已在 #2 验证可行（[reuse-research.md §4.1](reuse-research.md)，结论见 §3 M1） | 否 |
-| A-03 | 视觉令牌的具体色值要用真实内容截图复核（P2） | 已解决（#21）：截图复核通过；对比度由 `src/styles/tokens.test.ts` 实测，控件边框拆出 `--control-border`，见 [design.md §3.1](design.md) | 否 |
-| Q-02、Q-07 | 需求遗留：F2 是否增加选项；联系方式的具体内容 | 只影响内容和 `route.yaml`，不影响架构 | 否 |
+| Q-01 | 部署位置和域名（需求遗留） | 交付阶段 | 否 |
+| Q-07、Q-11 | 联系方式、博客地址待作者提供 | 后记正文、`blog-links.yaml`；提供前构建照常，内容提示里列出 | 否 |
+| Q-13 | 重写稿引用的 `截图 2026-10-15 13-43-53 1.png` 不在 `附件/` 里（仓库根目录有一张同名去掉“ 1”的截图，未核对打码） | 导入后这一处会让构建失败，导入任务要请作者提供打码后的文件 | 否（只影响一页） |
+| A-01 | `BASE_PATH` 按部署位置各构建一次（1.0.0 已选定） | — | 否 |
+| A-04 | 两版正文都进 HTML，页面体积约翻倍 | 正文是纯文本，最大的页约 6 KB 原文；图片懒加载、隐藏的不加载。可接受 | 否 |
 
-## 11. 实施前架构评审（2026-10-13）
+## 11. 实施前架构评审
 
-- 范围：沿 S1–S6 核对需求 v0.1、本文 §1–§10、ADR-0001–0003、[design.md](design.md)，并抽查两篇原文章（标题结构、Callout、双链、嵌入）。**只是文档评审，没有运行任何代码。**
-- 结论：**通过**，没有阻塞项。下表中标“已修正”的已经改进本文或需求；标“任务”的由 [实施计划](implementation-plan.md) 中对应任务解决。
+### 11.1 1.0.0 实施前评审（2026-10-13，历史）
+
+- 范围：沿 S1–S6 核对需求 v0.1、本文 v0.1、ADR-0001–0003、design.md，并抽查两篇原文章。只是文档评审，没有运行任何代码。结论：**通过**，没有阻塞项。
+- 发现 R1–R9：`RouteData` 带标题（R1）、汇合点可以跨章（R2）、F2 只分 tun/DNS（R3）、跳过目标（R4）、原文写法与迁移规则（R5）、四个管线疑点在 #2 验证（R6）、构建级用例在 #15 验证（R7）、SSH 截图打码（R8）、占位清单落点（R9）。处理结果见 git 历史中本文 v0.1。
+
+### 11.2 1.0.0 补评：步骤地图 v0.2（2026-10-13，历史）
+
+R10 共享步骤、R11 跨章汇合、R12 连续跳过与 `skipLabel`、R13 手机改时区并入第六章、R14 占位步骤增加。结论仍为通过。v2.0 中 R3、R4、R13、R14 随路线图重建失效；R1、R2、R10、R11 的机制保留。
+
+### 11.3 v2.0 实施前评审（2026-10-15）
+
+- 范围：沿需求 v0.3 的 S1–S6 核对本文 v2.0、ADR-0002/0004/0005、design.md v2.0，并逐个检查重写稿的写法（两版文件清单、标题、双链目标、嵌入、页脚、TODO、选择页的加粗小节）。**只是文档评审和对重写稿的文本扫描，没有运行任何代码。**
+- 结论：**通过**，没有阻塞项。
 
 | 编号 | 发现（依据） | 影响 | 处理 | 阻塞？ |
 | --- | --- | --- | --- | --- |
-| R1 | `RouteData` 只写了“可序列化”，没说包含标题（§3 M2/M3；design §4.1 要求按钮写出目标标题，FR-18 首页要显示步骤名） | 浏览器改写导航时拿不到标题，只能再内嵌一份数据 | 已修正：`RouteData` 含标题和标记；新增共用的 `pathOf(stop)` | 否 |
-| R2 | 规则“`branch` 后面至少要有普通步骤”没说能否跨章节；F3 的汇合点在第七章（需求 §5） | 实现时可能误判 F3 没有汇合点 | 已修正：汇合点可以在后续章节 | 否 |
-| R3 | 需求 §5 说 F2 影响“导入节点”，但导入节点在第一章，F2 的选择页在第二章（原文也是“以 v2rayN 为例”+ 常见问题讲 Clash Verge） | 按原写法会出现“用到选择在做选择之前” | 已修正需求 §5：导入节点按原文写，F2 只分 tun、DNS；不新增、不移动分叉点 | 否 |
-| R4 | FR-15 的跳过目标和“下一步”相同（AC-05） | 功能价值有限，但和验收一致 | 已修正 §3 规则，按 AC-05 实现；记为需求 Q-09 待作者决定 | 否 |
-| R5 | 原文的“为什么”框写作 `>[!note] 为什么：…`，嵌入写作 `![[09附件/…\|262]]`，文件名含空格和中文；纯操作版独有 8 张 SSH/脚本截图；方案二、三只有原理版有正文 | 迁移和插件规则需要写明 | 已修正 §3 M1；迁移规则写进 T05/T06（`docs/migration-checklist.md`） | 否 |
-| R6 | A-02 的四个技术疑点（自定义 `why` Callout、插件图片进 Astro 图片流程、Shiki、B 站参数） | 影响 M1 插件写法和截图放 `src/assets` 还是 `public` | 已验证（#2）：前三项可行，截图放 `src/assets/screenshots/`（§3 M1）；B 站参数在 T16（#17）实测 | 否 |
-| R7 | AC-14 的“构建级失败用例”能否在 Vitest 或脚本里稳定跑 | 只影响测试写法 | 已验证（#15）：Vitest 在临时目录里执行真实构建可行，写法和缓存隔离见 §8 | 否 |
-| R8 | 纯操作版的 SSH 截图可能露出服务器 IP（安全红线） | 截图入库前必须逐张核对 | 任务：T06 的验收项 | 否 |
-| R9 | 占位清单“在构建输出里列出”没有落点（FR-21） | 实现位置不明 | 已修正 §3 M2 规则：`astro:build:done` 打印 | 否 |
+| V1 | 重写稿的双链写的是中文标题（`[[选择方案]]`），1.0.0 插件按英文标识解析（§3 M1） | 原样导入就会全部报错；改写成标识则每次重新迁入都要手改（Q-08） | 已修正：双链按标题解析，导入原样（ADR-0005） | 否 |
+| V2 | 两版正文放进同一 HTML 会出现重复的标题 id（ADR-0004） | axe 报重复 id，锚点跳错 | 已修正：操作版标题 id 加 `op-` 前缀，锚点指向原理版 | 否 |
+| V3 | FR-12 要求“每个选项是一块可点击区域”，但重写稿的选择页是普通正文（加粗段落 + 链接列表），没有结构化的选项 | 拿 frontmatter 另写选项文案会和正文重复，违反 FR-03 | 已修正：frontmatter 只写 `heading` 定位正文里的小节，插件包成选项块，块内第一个链接做整块点击区域并与路线图核对（§3 M1） | 否 |
+| V4 | FR-13 未选时“汇合点上一步指向选择页”，但 F2 第二段（订阅）没有选择页，且在 F2 选择页之后很远 | 规则只写了汇合点，没写段前一页 | 已修正：未选分叉点的每段 `branch` 都折叠成指向它的选择页，前后两侧对称（§3 M2），与 AC-09 一致 | 否 |
+| V5 | 原理独有步骤在操作视图下被直接打开时（FR-30）没有导航规则 | 它不在操作序列里，上一步/下一步无定义 | 已修正：按原理视图序列计算它自己的导航（§3 M2） | 否 |
+| V6 | 重写稿 `[[常见问题#…]]` 的小标题含问号和中文引号，`github-slugger` 的结果要和 Astro 的标题 id 一致（1.0.0 已用同一算法）；v1 不校验锚点，FR-61 现在要求校验 | 锚点写错时静默失效 | 已修正：链接索引收集每页小标题的 slug，找不到就失败（§3 M1）；导入任务的单元测试覆盖这三个真实锚点 | 否 |
+| V7 | 重写稿引用的一张截图不在 `附件/`（§10 Q-13） | 导入后构建失败 | 任务：导入任务请作者提供打码后的文件；提供前这一页的构建失败是正确行为，不能放宽校验 | 否 |
+| V8 | `docs/rewrite/` 目前没有纳入版本管理，导入脚本依赖它；`附件/` 未核对打码 | 换机器后无法重新导入；未核对的截图入库违反红线 | 已修正：两版正文纳入版本管理，`附件/` 不提交，截图只以核对过的 `src/assets/screenshots/` 副本入库（§6、§9）；导入任务执行 | 否 |
+| V9 | 需求 FR-71 要求“草图经作者确认后再实现”，Q-12 待决 | 视觉任务可能卡在确认上 | 已决：作者 2026-10-15 授权 Agent 决定前端样式，design.md v2.0 定稿；logo 风格是否像番剧（AC-20）仍由作者确认，单独成任务 | 否 |
+| V11 | 取消默认路线后，本机存储被禁用时选择只存在内存里，换页即丢：“订阅”的下一步指向“选择手机系统”，再选 iPhone 会进入手机的第一段而不是订阅段，形成绕圈（FR-13、AC-18） | AC-18 无法通过 | 已修正：M4 适配器加 `window.name` 一层（§3 M4）；没有 JS 时的同一折返写明为降级体验（§3 M3） | 否 |
+| V10 | 1.0.0 的 e2e 和构建级用例按旧路线和 AC 编号写 | 改路线后旧用例全部失效 | 任务：每个 v2.0 切片同时改写自己覆盖的 e2e；先建骨架任务把旧用例和旧页面一次删干净，避免长期双轨 | 否 |
 
-- 依赖方向（M1 ← M2 ← M3，M4 独立）无环；M2 纯函数在构建和浏览器两端复用，规模合适，没有发现过度设计。
-
-### 11.1 补评：步骤地图 v0.2（2026-10-13）
-
-作者要求不再沿用原文的七节，需求 §5 改为按“一个地方、一口气、可确认”拆步骤（需求 v0.2）。只补评受影响的部分：
-
-| 编号 | 发现 | 处理 | 阻塞？ |
-| --- | --- | --- | --- |
-| R10 | 方案一、二共用“连上服务器”“运行脚本”，原规则“每个步骤只出现一次”放不下 | 已修正 §3 M2：允许同一 `branch` 段内的共享步骤；URL 确定“属于哪几个选项”；[ADR-0002](adr/0002-url-scheme.md) 同步更新；新增 AC-19 | 否 |
-| R11 | F1 的汇合点变成第二章的选择页；F2 有两段紧挨着的 `branch` | 已修正汇合规则 | 否 |
-| R12 | 安卓读者已有 Gmail 时要连跳两页；三个可跳过步骤的“已有”文案不合适 | 已修正：跳过本章内连续的可跳过步骤，`skipLabel` 可自定；Q-09 关闭 | 否 |
-| R13 | 手机改时区随 F3 不同，放在第四章会出现“用到选择在做选择之前”（和 R3 同类） | 已修正需求 §5.2：手机改时区并入第六章 | 否 |
-| R14 | 原文没有的步骤增加到约 14 个占位 | FR-21 机制不变；占位清单在构建输出里给作者跟踪 | 否 |
-
-R3（Clash Verge 导入放常见问题）、R4（跳过目标等于下一步）已被 v0.2 取代。结论仍为**通过**。
+- 依赖方向不变（M1 ← M2 ← M3，M4 独立），无环；M2 的改动集中在序列计算一处，构建和浏览器共用的结构不变，没有发现过度设计。
