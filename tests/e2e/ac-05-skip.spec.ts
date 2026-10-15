@@ -13,6 +13,9 @@ const CASES: [string, string, string, string][] = [
   // “申诉解封”后面是不可跳过的步骤，跳过申诉不会连带跳过改地区
   ['google-appeal', '没被封，跳过', '/use-google-few-days/', '先用 Google 账号几天，期间固定同一个节点'],
   ['google-region', '已经不是中国大陆或香港，跳过', '/register-claude/', '用 Google 账号注册 claude，先正常用几天'],
+  ['iphone-apple-id', '已有美区 Apple ID，跳过', '/iphone-app-store-login/', '在 App Store 登录美区 Apple ID 并设置账单地址'],
+  // 第十章最后一步：跳过后进第十一章
+  ['purchase-failed', '订阅成功，跳过', '/after-subscribe/', '订阅之后的注意事项'],
 ];
 
 for (const [step, label, target, heading] of CASES) {

@@ -41,6 +41,13 @@ test('“安装 Google Play”的面板里放原文已有的提示', async ({ pa
   );
 });
 
+test('安卓的“订阅”面板里放原文已有的提示，正文没有编造的操作步骤', async ({ page }) => {
+  await page.goto('./android-subscribe/');
+  const notice = page.getByRole('note', { name: '这一步的内容待补' });
+  await expect(notice).toContainText('听说可以用美区 Google Play 礼品卡，但我没试过');
+  await expect(page.locator('.prose > :not(.placeholder-notice)')).toHaveCount(0);
+});
+
 // 全部占位步骤都有面板；构建输出的占位清单也是这些（`npm run build` 人工核对）。
 for (const step of [
   'v2rayn-import',
@@ -56,6 +63,7 @@ for (const step of [
   'android-gmail',
   'use-google-few-days',
   'google-appeal',
+  'android-subscribe',
 ]) {
   test(`占位步骤 ${step} 显示“内容待补”面板`, async ({ page }) => {
     await page.goto(`./${step}/`);

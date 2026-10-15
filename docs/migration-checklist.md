@@ -324,3 +324,90 @@ F1 的汇合点是电脑代理软件选择页，第二到四章（#10）插在�
 - `register-claude.md` 第 1 条“前面四节都做完”改为“前面几章都做完”：原文的四节在引导站里分到了第一到六章，注册前还要做完第七、八章。
 - `use-google-few-days.md` 需求 §5.2 标的是“待补（有提示）”，但原文没有关于 Google 账号先用几天、固定节点的句子（原文的“先用几天”说的是 claude，已迁入第九章；“固定用这一个节点”说的是用 claude 时，在 `v2rayn-tun.md`），所以面板不放提示，提示写在标题里。
 - 步骤标题取自需求 §5.2；第七章的两个“下载 Gmail”同名。步骤标识是新定的，沿用路线单元测试样例（`src/lib/route/fixtures/sample-route.ts`）里的 `iphone-gmail`、`android-google-play`、`android-gmail`、`use-google-few-days`，合并后不能再改（ADR-0002）。
+
+## 六、订阅（iPhone）→ 第十章“订阅”
+
+第十章随 F3。iPhone 是 `iphone-apple-id.md` → `iphone-app-store-login.md` → `iphone-download-claude.md` → `iphone-buy-gift-card.md` → `iphone-redeem-gift-card.md` → `iphone-subscribe.md` → `purchase-failed.md`；安卓是 `android-subscribe.md`（占位）。之后汇合到第十一章。步骤标题取自需求 §5.2。
+
+| 原文内容 | 去向 | 核对 |
+| --- | --- | --- |
+| 原理版开头“我用的是 iPhone，所以只写了苹果的方法：……” | `iphone-apple-id.md` 的 `> [!why] 用美区 Apple ID 的余额订阅` 第一段，原文照搬，改动见下 | [x] |
+| 原理版“**安卓用户我没办法给出验证过的方案。** 听说可以用美区 Google Play 礼品卡……” | `android-subscribe.md`（订阅）占位，放进 `placeholderHint`，改动见下 | [x] |
+| 纯操作版“安卓用户看原理版的[[……六、订阅（iPhone）]]。” | 不迁移（规则 7）：安卓读者在第六章选了安卓，直接到 `android-subscribe.md` | [x] |
+| `[!note] 为什么这样付款` | `iphone-apple-id.md` 的同一个原理块第二段，标题改动见下 | [x] |
+| 第 1 步“注册美区 Apple ID”（纯操作版四条） | `iphone-apple-id.md`（可跳过，按钮写“已有美区 Apple ID，跳过”）正文，用纯操作版文字，改动见下 | [x] |
+| 第 2 步“在 App Store 登录”第 1~3 条 | `iphone-app-store-login.md` 正文，用纯操作版文字，改动见下 | [x] |
+| 第 2 步第 4、5 条（下载 Claude、允许 App 内购买） | `iphone-download-claude.md` 正文，用纯操作版文字，重新编号为 1、2 | [x] |
+| `[!note] 为什么：免税州、真实地址、允许 App 内购买` | 拆成两块：前两段放 `iphone-app-store-login.md` 的 `> [!why] 免税州、真实地址`，第三段放 `iphone-download-claude.md` 的 `> [!why] 允许 App 内购买`，正文照搬 | [x] |
+| 第 3 步“买礼品卡充值”第 1~3 条 | `iphone-buy-gift-card.md` 正文，用纯操作版文字 | [x] |
+| “也可以从别的靠谱的渠道买，但不要买来路不明的便宜卡……” | `iphone-buy-gift-card.md` 正文末尾，用原理版文字，改动见下 | [x] |
+| 第 3 步第 4、5 条（兑换代码、余额多一点） | `iphone-redeem-gift-card.md` 正文，用纯操作版文字，重新编号为 1、2 | [x] |
+| `[!note] 为什么：礼品卡买多少` | `iphone-redeem-gift-card.md` 的 `> [!why] 礼品卡买多少`，正文照搬 | [x] |
+| 第 4 步“在 app 内订阅”三条 | `iphone-subscribe.md` 正文，用纯操作版文字 | [x] |
+| “如果提示‘购买未完成’……看「附：购买未完成」” | `iphone-subscribe.md` 正文末尾，用原理版文字，链接改为 `[[purchase-failed]]`，改动见下 | [x] |
+
+## 附：购买未完成 → `purchase-failed.md`（第十章最后一步）
+
+| 原文内容 | 去向 | 核对 |
+| --- | --- | --- |
+| “出问题才需要看这一节。” | 不迁移，改动见下 | [x] |
+| “我遇到过：……**别自己硬扛，让 AI 带着你走完。**” | `purchase-failed.md`（购买无法完成：问 AI，可跳过，按钮写“订阅成功，跳过”）正文开头，原文照搬 | [x] |
+| 五条（先问 AI、联系客服、账号的区别、等 72 小时、72 小时后再买） | `purchase-failed.md` 正文，原文照搬 | [x] |
+
+## 七、订阅之后 → 第十一章“订阅之后”
+
+| 原文内容 | 去向 | 核对 |
+| --- | --- | --- |
+| 原理版“首先恭喜你成功订阅🎉……”和三条注意事项 | `after-subscribe.md`（订阅之后的注意事项）正文，用原理版文字（🌹 同理，🎉 是作者正文，保留），改动见下 | [x] |
+| 纯操作版三条 | 不单独迁移：原理版三条已覆盖，改动见下 | [x] |
+| `### 关于 KYC`（只有原理版有） | `about-kyc.md`（关于 KYC）正文，原文照搬 | [x] |
+
+## 致谢、后记 → `src/content/pages/done.md`（完成页）
+
+| 原文内容 | 去向 | 核对 |
+| --- | --- | --- |
+| 致谢（两版相同） | 完成页“致谢”，原文照搬 | [x] |
+| 后记（两版相同） | 完成页“后记”，原文照搬 | [x] |
+| （原文没有）作者联系方式 | 完成页“联系方式”，写“联系方式待补。”，**等作者提供**（需求 Q-07） | [ ] |
+
+### 截图
+
+16 张截图都已打码，没有 EXIF 信息，入库前逐张核对（2026-10-15）。宽度都照原文写 `|262`。
+
+| 文件 | 用在 | 打码核对 | 核对 |
+| --- | --- | --- | --- |
+| `订阅claude-AppleID-1-打开网址.jpg` | `iphone-apple-id.md` | 只有地址栏和搜索建议，没有个人信息 | [x] |
+| `订阅claude-AppleID-2-创建账户.jpg` | `iphone-apple-id.md` | 只有 Apple 账户菜单，没有个人信息 | [x] |
+| `订阅claude-AppleID-3-选择美国.jpg` | `iphone-apple-id.md` | 表单是空的（占位文字） | [x] |
+| `订阅claude-AppleStore-1-账户设置.jpg` | `iphone-app-store-login.md` | Apple 账户、账单寄送地址已模糊 | [x] |
+| `订阅claude-AppleStore-2-添加付款方式.jpg` | `iphone-app-store-login.md` | 卡号等为空；账单地址已模糊 | [x] |
+| `订阅claude-AppleStore-3-管理付款方式.jpg` | `iphone-app-store-login.md` | 账单地址已模糊 | [x] |
+| `订阅claude-AppleStore-4-账单寄送地址.jpg` | `iphone-app-store-login.md` | 姓名、街道、城市、邮编、电话已模糊，只露出州和国家 | [x] |
+| `订阅claude-pockyt-1-搜索.jpg`（只有原理版有） | `iphone-buy-gift-card.md` 第 1 条 | 只有搜索框 | [x] |
+| `订阅claude-pockyt-2-搜索结果.jpg` | `iphone-buy-gift-card.md` 第 1 条 | 搜索结果，没有个人信息 | [x] |
+| `订阅claude-pockyt-3-游客.jpg` | `iphone-buy-gift-card.md` 第 1 条 | 未登录（游客）；横幅里的邮箱是商家宣传图 | [x] |
+| `微信图片_20261007133655_1_2.jpg` | `iphone-buy-gift-card.md` 第 2 条 | 登录页，表单是空的 | [x] |
+| `订阅claude-pockyt-5-登录后首页.jpg`（只有原理版有） | `iphone-buy-gift-card.md` 第 3 条 | 用户名已模糊；横幅里的邮箱是商家宣传图 | [x] |
+| `订阅claude-pockyt-6-选择礼品卡.jpg` | `iphone-buy-gift-card.md` 第 3 条 | 用户名已模糊；横幅里的邮箱是商家宣传图 | [x] |
+| `订阅claude-pockyt-7-输入面额.jpg` | `iphone-buy-gift-card.md` 第 3 条 | 用户名已模糊 | [x] |
+| `订阅claude-兑换-1-礼品卡号码.jpg` | `iphone-redeem-gift-card.md` | 礼品卡号码已模糊 | [x] |
+| `订阅claude-兑换-2-兑换代码.jpg` | `iphone-redeem-gift-card.md` | 头像、账户名、Game Center 已模糊 | [x] |
+
+**改动（待作者确认）**：
+- 原理版开头介绍方法的一句和 `[!note] 为什么这样付款` 合成一个原理块，放在本章第一步 `iphone-apple-id.md` 末尾：两段都是说为什么用这种付款方式，纯操作版没有。标题“为什么这样付款”按规则 3 去掉“为什么”后不成句，改为“用美区 Apple ID 的余额订阅”。已有美区 Apple ID 的读者会连同这一步一起跳过，看不到这段说明（同 `create-google-account.md` 的“要准备 Gmail”）。
+- 安卓的提示放进 `placeholderHint` 后是纯文本，原文第一句的粗体去掉了。
+- `iphone-apple-id.md` 去掉了纯操作版的“已经有美区 Apple ID 的跳过。”：跳过按钮“已有美区 Apple ID，跳过”代替了它。
+- `iphone-apple-id.md` 第 2 条“邮箱用 Gmail”改用原理版的“邮箱用没注册过 Apple ID 的 Gmail”：多出的是一条操作要求（同 `register-claude.md` 补上“不要边注册边调”）。
+- `iphone-app-store-login.md` 第 2 条末尾补上原理版的“‘设置’里的账号可以还是你原来的账号。”；第 3 条第 2 小条用原理版文字，多了“第一次进入时它可能要求把付款方式也填了才能保存，同样不用管”。都是操作须知，留在正文。
+- 原文把截图放在嵌套列表的小条之间、顶格写，会把列表断开；`iphone-app-store-login.md` 里这几张截图缩进到对应的小条里，显示位置不变。
+- 纯操作版第 2 步拆成两步（需求 §5.2）：第 1~3 条是“在 App Store 登录美区 Apple ID 并设置账单地址”，第 4、5 条是“下载 Claude 并允许 App 内购买”；原理块也跟着拆开，各放在解释的操作后面，标题“免税州、真实地址”“允许 App 内购买”从原标题里拆出来。
+- 纯操作版第 3 步拆成两步（需求 §5.2）：第 1~3 条是“买礼品卡”，第 4、5 条是“把礼品卡充值到 App Store”。“余额要比……多一点”和“礼品卡买多少”的原理块放在充值这一步，因为余额是充值后才看得到的。
+- 原理版比纯操作版多两张截图：`订阅claude-pockyt-1-搜索.jpg` 放在第 1 条（搜索结果之前），`订阅claude-pockyt-5-登录后首页.jpg` 放在第 3 条（选择礼品卡之前），和原理版的位置一致。
+- `iphone-buy-gift-card.md` 第 1 条补上原理版的“认准网址是 shop.pockyt.io”（放在链接后的括号里），第 3 条补上“不要一下子就买 20 美元”：都是操作须知，纯操作版压缩掉了，同 `iphone-apple-id.md` 第 2 条的做法。
+- “不要买来路不明的便宜卡……”用原理版文字：多了“**也可以从别的靠谱的渠道买**”，纯操作版是它的压缩版。
+- `iphone-subscribe.md` 末尾用原理版文字（多了“（Purchase Not Completed）或付款被拒绝”），“看「附：购买未完成」”改为“看下一步“[[purchase-failed]]””：这一节在引导站里是本章最后一步（需求 §5.2）。
+- `purchase-failed.md` 去掉了“出问题才需要看这一节。”：这一步可跳过，按钮“订阅成功，跳过”代替了它。
+- `after-subscribe.md` 用原理版文字：开头一段只有原理版有，三条注意事项原理版也比纯操作版完整（粗体小结 + 说明），都不是“为什么”，所以不拆原理块。
+- 步骤标识是新定的，沿用路线单元测试样例里的 `iphone-subscribe`、`purchase-failed`、`android-subscribe`、`after-subscribe`、`about-kyc`，其余按 `iphone-` 前缀命名；合并后不能再改（ADR-0002）。安卓这一步的标题按需求 §5.2 写“订阅”，和章名重复但不影响导航。
+- 完成页致谢里“X：……”“BiliBili：……”两行之间加了硬换行（行尾反斜杠）：原文在 Obsidian 里分两行显示，不加的话会并成一段。只是排版。
+- 完成页的联系方式写“联系方式待补。”，等作者提供后替换（需求 Q-07）。
