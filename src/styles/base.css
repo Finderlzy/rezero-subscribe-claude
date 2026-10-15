@@ -35,7 +35,7 @@ a {
   z-index: 2;
   padding: var(--space-2) var(--space-3);
   background: var(--surface);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid var(--control-border);
   border-radius: var(--radius-control);
   transform: translateY(-200%);
 }
@@ -82,7 +82,7 @@ a {
 .button-secondary {
   background: var(--surface);
   color: var(--text);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid var(--control-border);
   font: inherit;
   font-weight: 600;
   cursor: pointer;

@@ -338,6 +338,22 @@ describe('Callout', () => {
   });
 });
 
+describe('加粗', () => {
+  // #21：结尾的 ** 前是全角标点、后面紧跟汉字时，按 CommonMark 不算加粗，星号会原样显示在页面上。
+  it('没解析成加粗、原样留在正文里的 ** 报错，并提示把标点移到 ** 外面', async () => {
+    const r = await renderStep('**方案二：**问到住宅代理 IP 时直接回车跳过。');
+    expect(r.problems).toHaveLength(1);
+    expect(r.problems[0].line).toBe(BODY_LINE);
+    expect(r.problems[0].message).toContain('没有解析成加粗');
+  });
+
+  it('标点在 ** 外面、链接文字里的加粗、代码里的 ** 都不报错', async () => {
+    const r = await renderStep('**方案二**：问到 [**住宅 IP**](https://example.com) 时跳过，`a**b` 原样。\n\n```\n**x**\n```');
+    expect(r.problems).toEqual([]);
+    expect(r.html).toContain('<strong>方案二</strong>：');
+  });
+});
+
 describe('管线', () => {
   it('关闭 SmartyPants：正文里的引号、-- 和 ... 原样保留', async () => {
     const r = await renderStep('运行 "install" --force ... 完成');

@@ -11,6 +11,7 @@
   --text: #1d1c1a;
   --text-muted: #5e5a53;
   --border: #ddd8ce;
+  --control-border: #8a8478;
   --accent: #0f5f58;
   --accent-contrast: #ffffff;
   --why-bg: #fbf2df;
@@ -83,6 +84,7 @@
     --text: #e9e6e0;
     --text-muted: #a39e95;
     --border: #34322e;
+    --control-border: #736e65;
     --accent: #5cc2b5;
     --accent-contrast: #0b1f1d;
     --why-bg: #2a2418;
