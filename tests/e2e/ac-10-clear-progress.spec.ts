@@ -38,3 +38,36 @@ test('在目录点“清除进度”，确认后清空本机进度，路线回�
   await page.goto('./');
   await expect(page.getByText(/继续上次/)).toHaveCount(0);
 });
+
+// 完成页也有“清除进度”（design §4.6）：确认后首页的“继续上次”消失，目录回到默认路线。
+test('在完成页点“清除进度”，确认后首页不再显示“继续上次”', async ({ page }) => {
+  await page.goto('./choose/node-plan/');
+  await page.getByRole('list', { name: '选项' }).getByRole('link', { name: /方案三/ }).click();
+  await expect(page).toHaveURL(/\/plan3-buy-node\/$/);
+  await expect(page.locator('main[data-route-ready]')).toHaveCount(1);
+  await page.goto('./');
+  await expect(page.getByRole('link', { name: '继续上次：购买住宅节点' })).toBeVisible();
+
+  await page.goto('./done/');
+  const clear = page.getByRole('button', { name: '清除进度' });
+  page.once('dialog', (dialog) => dialog.dismiss());
+  await clear.click();
+  expect(await page.evaluate((key) => localStorage.getItem(key), KEY)).not.toBeNull();
+
+  page.once('dialog', (dialog) => {
+    expect(dialog.type()).toBe('confirm');
+    void dialog.accept();
+  });
+  await clear.click();
+  await expect(page.locator('main').getByRole('status')).toHaveText('已清除进度');
+  expect(await page.evaluate((key) => localStorage.getItem(key), KEY)).toBeNull();
+
+  // 目录随即重画：不再有已读，方案三的步骤回到“其他路线”。
+  const toc = await openToc(page, '回到目录');
+  await expect(toc.getByRole('link', { name: /已读/ })).toHaveCount(0);
+  await expect(toc.getByRole('link', { name: /购买住宅节点/ })).toHaveAccessibleName(/其他路线/);
+
+  await page.goto('./');
+  await expect(page.locator('main[data-home-ready]')).toHaveCount(1);
+  await expect(page.getByText(/继续上次/)).toHaveCount(0);
+});
