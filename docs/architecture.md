@@ -303,7 +303,7 @@ M4 不依赖 M2：`StepId`、`Choices` 等在 M4 里是同义的字符串别名�
 ```
 
 - 单元测试放在被测模块旁边（`*.test.ts`）；跨页面的流程测试放在 `tests/e2e/`。
-- 构建输出 `dist/`、Astro 缓存 `.astro/`、`node_modules/`、`test-results/`、`playwright-report/`、`coverage/` 都不提交。截图和报告属于临时产物，统一放在这些目录里，不散落到其他地方。
+- 构建输出 `dist/`（含 AC-15 用的 `dist-sub/`）、Astro 缓存 `.astro/`、`node_modules/`、`test-results/`、`playwright-report/`、`coverage/` 都不提交。截图和报告属于临时产物，统一放在这些目录里，不散落到其他地方。
 - **版本来源**：`package.json` 的 `version`，按 SemVer 维护，脚手架建立时从 `0.1.0` 开始。
 
 ## 7. 命令（已由 #1 建立，以 `package.json` 为准）
@@ -315,7 +315,7 @@ M4 不依赖 M2：`StepId`、`Choices` 等在 M4 里是同义的字符串别名�
 | `npm run preview` | 预览构建产物 |
 | `npm test` | Vitest 单元测试 |
 | `npm run test:build` | 构建级用例（AC-14）：用 `tests/fixtures/` 的坏内容逐个构建，断言失败并报出文件 |
-| `npm run test:e2e` | 构建后运行 Playwright 测试（360 和 1280 两种视口） |
+| `npm run test:e2e` | 构建后运行 Playwright 测试（360 和 1280 两种视口）；AC-15 的 `sub-path` project 由 Playwright 另外按 `BASE_PATH=/sub/` 构建到 `dist-sub/` |
 | `npm run check` | `astro check` + 单元测试 + 构建级用例 + 构建，提交前运行 |
 
 ## 8. 验收对应的验证方式
@@ -327,9 +327,9 @@ M4 不依赖 M2：`StepId`、`Choices` 等在 M4 里是同义的字符串别名�
 | AC-08 | Playwright 新建上下文（相当于无痕窗口）直接打开方案三步骤的 URL |
 | AC-13 | 人工逐节核对，核对表在 [`docs/migration-checklist.md`](migration-checklist.md)（#5 建立，各迁移任务补充），并用脚本比对原文与站内的命令和链接 |
 | AC-14 | M1、M2 单元测试覆盖每一种错误；外加构建级用例 `tests/build/ac-14-build-fail.test.ts`（`npm run test:build`，已含在 `check` 里）：把 `src/`、配置和 `package.json` 复制到临时目录，用 `tests/fixtures/<用例>/` 覆盖 `src/content/` 后执行真实的 `astro build`，断言失败并报出文件名；四种坏内容为引用不存在的图片、引用不存在的步骤、删掉分支的汇合、缺必填元数据，另有一个不加坏内容的对照构建必须成功。依赖包要逐个链接：Astro 的内容缓存在 `node_modules/.astro`，整体链接 `node_modules` 时并行构建会读到彼此的内容 |
-| AC-15 | 分别用 `BASE_PATH=/` 和 `/sub/` 构建，再用 Playwright 抽查导航和图片 |
+| AC-15 | 分别用 `BASE_PATH=/` 和 `/sub/` 构建，再用 Playwright 抽查导航和图片（#22 已建立 `tests/e2e/ac-15-base-path.spec.ts`）：根路径用 `astro preview` 提供 `dist/`；子路径由 `playwright.config.ts` 的第二个 webServer 构建到 `dist-sub/`，再用照 Nginx 常见配置写的 `tests/e2e/static-server.mjs` 挂在 `/sub/` 下，子路径以外的请求一律 404。逐页检查站内 href/src/srcset 都在 base 下且能打开，并走一段导航、看截图和找不到页 |
 | AC-16 | Playwright 360 和 1280 两种视口，断言 `scrollWidth <= innerWidth` 并检查按钮可点 |
-| AC-17 | Playwright 屏蔽 `*.google.com`、`*.googleapis.com`、`*.gstatic.com`、`*.youtube.com`、`*.youtube-nocookie.com`、`*.ytimg.com`，断言页面没有失败的请求、内容完整 |
+| AC-17 | Playwright 屏蔽 `*.google.com`、`*.googleapis.com`、`*.gstatic.com`、`*.youtube.com`、`*.youtube-nocookie.com`、`*.ytimg.com`，断言页面没有失败的请求、内容完整（#22 已建立 `tests/e2e/ac-17-blocked-domains.spec.ts`，逐页检查；视频门面点击前不请求视频平台，所以也断言没有请求碰到被屏蔽的域名） |
 | 设计 | [design.md §7](design.md)：截图人工评审 + axe 扫描 + 对比度实测 |
 
 ## 9. 安全与隐私
