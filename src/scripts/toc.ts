@@ -1,13 +1,14 @@
 import { routeMapFromData } from '../lib/route/route-map';
 import type { At, OutlineChapter, OutlineStep, RouteData } from '../lib/route/types';
-import { CHOICES_CHANGED_EVENT, readerStoreFor } from './reader-store';
+import { CHOICES_CHANGED_EVENT, CLEAR_PROGRESS_CONFIRM, readerStoreFor } from './reader-store';
 
 /**
  * 步骤目录的页面脚本（design §4.5，FR-14、FR-16、FR-51）。标记由 `Toc.astro`/`TocNav.astro` 写出。
  *
  * - 按本机选择改写目录：哪个选项在当前路线上、“其他路线”标记、已读 ✓、当前项（M2 `outline()`）；
  * - “切换”：写入这个分叉点的选择，重画目录，并通知 route-enhance 重画上一步/下一步（FR-14）；
- * - “清除进度”：确认后清空本机状态（FR-51），目录和导航回到默认路线；
+ * - “清除进度”：确认后清空本机状态（FR-51），目录和导航回到默认路线；页面上别处（完成页）清除时，
+ *   收到 `CHOICES_CHANGED_EVENT` 同样重画；
  * - 抽屉：`[data-toc-open]` 打开 `<dialog>`；步骤页上（sidebar 模式）把侧栏里的 `<nav>` 移进抽屉，关闭时移回。
  *
  * 步骤页和选择页先运行 route-enhance（写入打开这一页的阅读进度），再运行本脚本，目录里才有这一页的 ✓。
@@ -31,9 +32,10 @@ export function initToc(doc: Document): void {
   const status = nav.querySelector<HTMLElement>('[data-toc-status]');
   const changed = () => {
     if (status) status.textContent = '';
-    render();
     doc.dispatchEvent(new CustomEvent(CHOICES_CHANGED_EVENT));
   };
+  // 目录自己和页面上别处（如完成页的“清除进度”）改了本机状态，都在这里重画。
+  doc.addEventListener(CHOICES_CHANGED_EVENT, render);
 
   for (const button of nav.querySelectorAll<HTMLButtonElement>('[data-toc-switch]')) {
     button.addEventListener('click', () => {
@@ -46,7 +48,7 @@ export function initToc(doc: Document): void {
 
   const clearArea = nav.querySelector<HTMLElement>('[data-toc-clear-area]');
   nav.querySelector('[data-toc-clear]')?.addEventListener('click', () => {
-    if (!doc.defaultView?.confirm('清除本机保存的阅读进度和路线选择？')) return;
+    if (!doc.defaultView?.confirm(CLEAR_PROGRESS_CONFIRM)) return;
     store.clear();
     changed();
     if (status) status.textContent = '已清除进度';

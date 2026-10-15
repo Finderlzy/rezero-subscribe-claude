@@ -31,5 +31,11 @@ export function readerStoreFor(data: RouteData): ReaderStore {
   return pageStore;
 }
 
-/** 在目录里改了选择或清除了进度后派发；route-enhance 收到后按新选择重画导航，但不再写入本机状态。 */
+/** “清除进度”前的确认文字；目录和完成页共用（FR-51）。 */
+export const CLEAR_PROGRESS_CONFIRM = '清除本机保存的阅读进度和路线选择？';
+
+/**
+ * 在目录里改了选择、或在目录/完成页清除了进度后派发；route-enhance 收到后按新选择重画导航
+ * （不再写入本机状态），目录收到后重画。
+ */
 export const CHOICES_CHANGED_EVENT = 'reader-choices-changed';

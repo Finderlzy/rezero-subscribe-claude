@@ -23,7 +23,7 @@ export function resumeOf(store: ReaderStore, titles: Record<string, string>): Re
 
 /**
  * 页面里的挂载点（由 index.astro 写出）：`#home-steps`：“步骤标识 → 标题”（JSON）；
- * `[data-home-resume]`：“继续上次”链接，构建时隐藏；`[data-home-start]`：“直接开始”链接。
+ * `[data-home-resume]`：“继续上次”链接，构建时隐藏、没有文字；`[data-home-start]`：“直接开始”链接。
  * 第一次计算完成后给 `<main>` 加上 `data-home-ready`，e2e 据此确认脚本已跑完。
  */
 export function initHome(doc: Document): void {

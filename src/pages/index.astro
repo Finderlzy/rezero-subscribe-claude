@@ -28,7 +28,7 @@ const stepsJson = JSON.stringify(stepTitles).replace(/</g, '\\u003c');
     </section>
 
     <p class="page-actions">
-      <a class="button" data-home-resume hidden>继续上次</a>
+      <a class="button" data-home-resume hidden></a>
       <a class="button" href={withBase(pathOf(site.start))} data-home-start>直接开始</a>
     </p>
 
@@ -62,17 +62,6 @@ const stepsJson = JSON.stringify(stepTitles).replace(/</g, '\\u003c');
     font-size: var(--fs-meta);
     line-height: var(--lh-meta);
     font-weight: 500;
-  }
-
-  /* 有进度时“直接开始”降为次按钮：只描边，主按钮仍是页面里唯一的强调色块。 */
-  .button-secondary {
-    background: transparent;
-    color: var(--text);
-    border: var(--border-width) solid var(--border);
-  }
-
-  .button[hidden] {
-    display: none;
   }
 
   .home-chapters-title {
