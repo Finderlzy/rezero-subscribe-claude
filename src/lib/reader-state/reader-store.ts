@@ -1,111 +1,124 @@
 /**
- * M4 本机状态：读写阅读进度、路线选择、视图偏好和已读步骤（架构 §3 M4）。
+ * M4 本机状态：读写分叉点选择和视图偏好（架构 §3 M4，FR-50）。
  *
- * 数据只存在读者本机，不发给任何服务器。`localStorage` 不可用或读写抛异常时
- * 自动换成内存适配器，不报错（AC-18）。本模块不依赖路线模块 M2：标识是否仍在
- * 路线图里，由调用方通过 `ReaderStoreOptions` 传入的判断函数决定。
+ * 数据只存在读者本机，不发给任何服务器。适配器按 localStorage → `window.name` → 内存的顺序兜底：
+ * 前一层不可用或读写抛异常时换到下一层，不报错（AC-18）。`window.name` 在同一标签页的同源跳转之间保留，
+ * 本机存储被禁用时换页也能记住选择，读者不会在“订阅”绕回“选择手机系统”（评审 V11）。
+ * 本模块不依赖路线模块 M2：选项是否仍在路线图里，由调用方通过 `ReaderStoreOptions` 传入的判断函数决定。
  */
 
 // 与 M2 的同名类型含义一致；这里用字符串别名，避免 M4 依赖 M2。
-export type StepId = string;
 export type ForkId = string;
 export type OptionId = string;
 export type Choices = Partial<Record<ForkId, OptionId>>;
 export type View = 'operation' | 'principle';
 
 export interface ReaderState {
-  lastStep?: StepId;
   choices: Choices;
   view: View;
-  visited: StepId[];
 }
 
 export interface ReaderStore {
   /** 读出当前状态；存储为空、不可用或格式不对时返回默认值。返回的是副本。 */
   read(): ReaderState;
-  /**
-   * 合并写入：未出现在 patch 里（或值为 undefined）的字段保持不变；
-   * `choices` 按分叉点合并，`visited` 与已有记录合并去重。
-   */
+  /** 合并写入：未出现在 patch 里（或值为 undefined）的字段保持不变；`choices` 按分叉点合并。 */
   write(patch: Partial<ReaderState>): void;
-  /** 清除进度：删除本站的键，之后 read() 返回默认值（FR-51）。 */
-  clear(): void;
+}
+
+/** 有 `name` 的宿主，浏览器里就是 `window`。 */
+export interface NameHost {
+  name: string;
 }
 
 export interface ReaderStoreOptions {
-  /** 步骤标识是否仍在路线图里；不传时接受任何非空字符串。 */
-  isKnownStep?: (id: StepId) => boolean;
   /** 某分叉点的某选项是否仍在路线图里；不传时接受任何非空字符串。 */
   isKnownChoice?: (fork: ForkId, option: OptionId) => boolean;
+  /** localStorage 不可用时的第二层；不传或为 null 时直接用内存。 */
+  nameHost?: NameHost | null;
 }
 
-export const READER_STATE_KEY = 'rezero-subscribe-claude:v1';
+export const READER_STATE_KEY = 'rezero-subscribe-claude:v2';
+/** 写进 `window.name` 的值的前缀，后面接 JSON；不以它开头的 `window.name` 不是本站写的，当作空。 */
+export const WINDOW_NAME_PREFIX = `${READER_STATE_KEY}=`;
 
-// 改默认视图或视图取值时，同步 view-boot.ts 里的内联脚本（它不能导入本模块）。
+// 改默认视图、视图取值或兜底顺序时，同步 view-boot.ts 里的内联脚本（它不能导入本模块）。
 const DEFAULT_VIEW: View = 'operation';
 
-/** 存储接缝：只关心本站这一个键。 */
+/** 存储接缝：只关心本站这一个值。 */
 interface Adapter {
   get(): string | null;
   set(value: string): void;
-  remove(): void;
 }
 
-function memoryAdapter(initial: string | null = null): Adapter {
+function localStorageAdapter(storage: Storage): Adapter {
+  return {
+    get: () => storage.getItem(READER_STATE_KEY),
+    set: (v) => storage.setItem(READER_STATE_KEY, v),
+  };
+}
+
+function windowNameAdapter(host: NameHost): Adapter {
+  return {
+    get: () => {
+      const name = host.name;
+      return name.startsWith(WINDOW_NAME_PREFIX) ? name.slice(WINDOW_NAME_PREFIX.length) : null;
+    },
+    set: (v) => {
+      host.name = WINDOW_NAME_PREFIX + v;
+    },
+  };
+}
+
+function memoryAdapter(initial: string | null): Adapter {
   let value = initial;
   return {
     get: () => value,
     set: (v) => {
       value = v;
     },
-    remove: () => {
-      value = null;
-    },
   };
 }
 
 /**
- * 包一层 Storage：任何一次访问抛异常，就永久换成内存适配器，并在内存上重做这次操作。
- * 内存以最近一次成功读写的值为起点，这样只是写入失败（如配额已满）时，已有进度不会丢。
+ * 依次使用各层：当前层任何一次访问抛异常，就永久换到下一层，并在新的一层上重做这次操作。
+ * 新的一层先写入最近一次成功读写的值，这样只是写入失败（如配额已满）时，已有选择不会丢；
+ * 最近没有成功读写过时保留新一层原有的值（例如上一页写进 `window.name` 的选择）。最后一层是内存，不会抛异常。
  */
-function resilientAdapter(storage: Storage | null): Adapter {
-  if (storage === null) return memoryAdapter();
+function layeredAdapter(layers: Adapter[]): Adapter {
   let lastKnown: string | null = null;
-  let fallback: Adapter | null = null;
+  let index = 0;
 
-  const guard = <T>(viaStorage: () => T, viaMemory: (m: Adapter) => T): T => {
-    if (fallback === null) {
+  const guard = <T>(op: (layer: Adapter) => T): T => {
+    for (;;) {
+      const layer = layers[index]!;
       try {
-        return viaStorage();
+        return op(layer);
       } catch {
-        fallback = memoryAdapter(lastKnown);
+        index += 1;
+        const next = layers[index]!;
+        if (lastKnown !== null) {
+          try {
+            next.set(lastKnown);
+          } catch {
+            // 下一层也不可用：交给下一轮循环继续往下换
+          }
+        }
       }
     }
-    return viaMemory(fallback);
   };
 
   return {
     get: () =>
-      guard(
-        () => (lastKnown = storage.getItem(READER_STATE_KEY)),
-        (m) => m.get(),
-      ),
+      guard((layer) => {
+        const value = layer.get();
+        lastKnown = value;
+        return value;
+      }),
     set: (v) =>
-      guard(
-        () => {
-          storage.setItem(READER_STATE_KEY, v);
-          lastKnown = v;
-        },
-        (m) => m.set(v),
-      ),
-    remove: () =>
-      guard(
-        () => {
-          storage.removeItem(READER_STATE_KEY);
-          lastKnown = null;
-        },
-        (m) => m.remove(),
-      ),
+      guard((layer) => {
+        layer.set(v);
+        lastKnown = v;
+      }),
   };
 }
 
@@ -115,19 +128,13 @@ const RESERVED_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 const isPlainObject = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v);
 
-/** 把任意输入整理成合法的 ReaderState：格式不对的字段或项丢掉，用默认值代替。 */
+/** 把任意输入整理成合法的 ReaderState：格式不对的字段或项丢掉，用默认值代替；其他字段（如 1.0.0 的 visited）忽略。 */
 function normalize(input: unknown, options: ReaderStoreOptions): ReaderState {
   const src = isPlainObject(input) ? input : {};
-  const knownStep = (id: unknown): id is StepId =>
-    isNonEmptyString(id) && (options.isKnownStep?.(id) ?? true);
-
   const state: ReaderState = {
     choices: {},
     view: src.view === 'operation' || src.view === 'principle' ? src.view : DEFAULT_VIEW,
-    visited: Array.isArray(src.visited) ? [...new Set(src.visited.filter(knownStep))] : [],
   };
-
-  if (knownStep(src.lastStep)) state.lastStep = src.lastStep;
 
   if (isPlainObject(src.choices)) {
     for (const [fork, option] of Object.entries(src.choices)) {
@@ -155,7 +162,7 @@ function parse(raw: string | null): unknown {
 
 /**
  * 安全地取浏览器的 localStorage：没有 window、或访问它就抛异常（禁用存储）时返回 null。
- * 页面脚本用 `createReaderStore(getLocalStorage())` 创建 store。
+ * 页面脚本用 `createReaderStore(getLocalStorage(), { nameHost: getNameHost() })` 创建 store。
  */
 export function getLocalStorage(scope: { localStorage?: Storage } = globalThis): Storage | null {
   try {
@@ -165,8 +172,21 @@ export function getLocalStorage(scope: { localStorage?: Storage } = globalThis):
   }
 }
 
+/** 取浏览器的 `window` 作为 `window.name` 的宿主；没有 window（构建时的 Node）时返回 null。 */
+export function getNameHost(scope: { window?: NameHost } = globalThis as { window?: NameHost }): NameHost | null {
+  try {
+    return typeof scope.window?.name === 'string' ? scope.window : null;
+  } catch {
+    return null;
+  }
+}
+
 export function createReaderStore(storage: Storage | null, options: ReaderStoreOptions = {}): ReaderStore {
-  const adapter = resilientAdapter(storage);
+  const layers: Adapter[] = [];
+  if (storage !== null) layers.push(localStorageAdapter(storage));
+  if (options.nameHost) layers.push(windowNameAdapter(options.nameHost));
+  layers.push(memoryAdapter(null));
+  const adapter = layeredAdapter(layers);
   const read = (): ReaderState => normalize(parse(adapter.get()), options);
 
   return {
@@ -175,18 +195,10 @@ export function createReaderStore(storage: Storage | null, options: ReaderStoreO
       const current = read();
       // patch 先单独整理：不合法的值被丢掉，于是对应字段保持原值。
       const valid = normalize(patch, options);
-      const next: ReaderState = {
-        ...current,
-        choices: { ...current.choices, ...valid.choices },
-        visited: [...new Set([...current.visited, ...valid.visited])],
-      };
-      if (valid.lastStep !== undefined) next.lastStep = valid.lastStep;
+      const next: ReaderState = { ...current, choices: { ...current.choices, ...valid.choices } };
       // view 直接看 patch：normalize 会把缺失的 view 补成默认值，用 valid.view 会误覆盖原值。
       if (patch.view === 'operation' || patch.view === 'principle') next.view = patch.view;
       adapter.set(JSON.stringify(next));
-    },
-    clear() {
-      adapter.remove();
     },
   };
 }

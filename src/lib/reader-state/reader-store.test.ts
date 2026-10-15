@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { createReaderStore, getLocalStorage, READER_STATE_KEY, type ReaderState } from './reader-store';
+import {
+  createReaderStore,
+  getLocalStorage,
+  getNameHost,
+  READER_STATE_KEY,
+  WINDOW_NAME_PREFIX,
+  type NameHost,
+  type ReaderState,
+} from './reader-store';
 
-const DEFAULT_STATE: ReaderState = { choices: {}, view: 'operation', visited: [] };
+const DEFAULT_STATE: ReaderState = { choices: {}, view: 'operation' };
 
 /** 最小的 Storage 替身：只实现本模块用到的方法，可以预置内容。 */
 function fakeStorage(initial?: string): Storage & { data: Map<string, string> } {
@@ -38,55 +46,125 @@ function throwingStorage(which: 'all' | 'set' = 'all'): Storage {
   };
 }
 
+/** `window` 的替身：只有 name。 */
+const fakeWindow = (name = ''): NameHost => ({ name });
+
 describe('createReaderStore：默认值', () => {
   it('空存储时 read() 返回默认值', () => {
     expect(createReaderStore(fakeStorage()).read()).toEqual(DEFAULT_STATE);
   });
 
-  it('使用约定的键 rezero-subscribe-claude:v1，值是 JSON', () => {
+  it('使用约定的键 rezero-subscribe-claude:v2，值是 JSON，只有 choices 和 view', () => {
     const storage = fakeStorage();
-    createReaderStore(storage).write({ lastStep: 'dns' });
-    expect(READER_STATE_KEY).toBe('rezero-subscribe-claude:v1');
-    expect(JSON.parse(storage.data.get(READER_STATE_KEY)!)).toMatchObject({ lastStep: 'dns' });
+    createReaderStore(storage).write({ choices: { phone: 'iphone' } });
+    expect(READER_STATE_KEY).toBe('rezero-subscribe-claude:v2');
+    expect(JSON.parse(storage.data.get(READER_STATE_KEY)!)).toEqual({ choices: { phone: 'iphone' }, view: 'operation' });
+  });
+
+  it('不读 1.0.0 的 :v1 键', () => {
+    const storage = fakeStorage();
+    storage.setItem('rezero-subscribe-claude:v1', JSON.stringify({ choices: { phone: 'iphone' }, view: 'principle' }));
+    expect(createReaderStore(storage).read()).toEqual(DEFAULT_STATE);
   });
 });
 
-describe('createReaderStore：存储不可用', () => {
-  it('storage 为 null 时用内存适配器，读写正常', () => {
-    const store = createReaderStore(null);
-    expect(store.read()).toEqual(DEFAULT_STATE);
-    store.write({ lastStep: 'dns', view: 'principle' });
-    expect(store.read()).toMatchObject({ lastStep: 'dns', view: 'principle' });
-    store.clear();
-    expect(store.read()).toEqual(DEFAULT_STATE);
+describe('createReaderStore：三种适配器（localStorage → window.name → 内存）', () => {
+  it('localStorage 可用时只用它，不碰 window.name', () => {
+    const storage = fakeStorage();
+    const win = fakeWindow('别的页面留下的值');
+    createReaderStore(storage, { nameHost: win }).write({ view: 'principle' });
+    expect(JSON.parse(storage.data.get(READER_STATE_KEY)!)).toMatchObject({ view: 'principle' });
+    expect(win.name).toBe('别的页面留下的值');
   });
 
-  it('getItem/setItem/removeItem 都抛异常时不报错，换成内存适配器', () => {
-    const store = createReaderStore(throwingStorage('all'));
-    expect(() => store.read()).not.toThrow();
+  it('localStorage 为空时不去读 window.name', () => {
+    const win = fakeWindow(`${WINDOW_NAME_PREFIX}${JSON.stringify({ view: 'principle' })}`);
+    expect(createReaderStore(fakeStorage(), { nameHost: win }).read()).toEqual(DEFAULT_STATE);
+  });
+
+  it('storage 为 null 时写进 window.name（带前缀的 JSON），换页后新建的 store 能读回（AC-18）', () => {
+    const win = fakeWindow();
+    createReaderStore(null, { nameHost: win }).write({ choices: { phone: 'iphone' }, view: 'principle' });
+    expect(win.name.startsWith(WINDOW_NAME_PREFIX)).toBe(true);
+    expect(JSON.parse(win.name.slice(WINDOW_NAME_PREFIX.length))).toEqual({ choices: { phone: 'iphone' }, view: 'principle' });
+    // 同一标签页里跳到下一页：window 还是同一个，store 重新创建
+    expect(createReaderStore(null, { nameHost: win }).read()).toEqual({ choices: { phone: 'iphone' }, view: 'principle' });
+  });
+
+  it('localStorage 读写都抛异常时换成 window.name', () => {
+    const win = fakeWindow();
+    createReaderStore(throwingStorage('all'), { nameHost: win }).write({ choices: { 'node-plan': 'plan-3' } });
+    expect(createReaderStore(throwingStorage('all'), { nameHost: win }).read().choices).toEqual({ 'node-plan': 'plan-3' });
+  });
+
+  it('访问 localStorage 本身就抛异常时换成 window.name', () => {
+    const win = fakeWindow();
+    const scope = {
+      get localStorage(): Storage {
+        throw new DOMException('denied', 'SecurityError');
+      },
+    };
+    createReaderStore(getLocalStorage(scope), { nameHost: win }).write({ view: 'principle' });
+    expect(createReaderStore(getLocalStorage(scope), { nameHost: win }).read().view).toBe('principle');
+  });
+
+  it('window.name 里不是本站的值时当作空，写入时覆盖', () => {
+    const win = fakeWindow('{"view":"principle"}');
+    const store = createReaderStore(null, { nameHost: win });
     expect(store.read()).toEqual(DEFAULT_STATE);
-    expect(() => store.write({ lastStep: 'dns' })).not.toThrow();
-    expect(store.read().lastStep).toBe('dns');
-    expect(() => store.clear()).not.toThrow();
+    store.write({ choices: { phone: 'android' } });
+    expect(win.name.startsWith(WINDOW_NAME_PREFIX)).toBe(true);
+  });
+
+  it('window.name 带前缀但内容不是 JSON 时返回默认值', () => {
+    expect(createReaderStore(null, { nameHost: fakeWindow(`${WINDOW_NAME_PREFIX}{oops`) }).read()).toEqual(DEFAULT_STATE);
+  });
+
+  it('没有 window.name 可用时用内存：本 store 内读写正常，新建的 store 看不到', () => {
+    const store = createReaderStore(null);
     expect(store.read()).toEqual(DEFAULT_STATE);
+    store.write({ choices: { phone: 'iphone' }, view: 'principle' });
+    expect(store.read()).toEqual({ choices: { phone: 'iphone' }, view: 'principle' });
+    expect(createReaderStore(null).read()).toEqual(DEFAULT_STATE);
+  });
+
+  it('window.name 读写也抛异常时换成内存，不报错', () => {
+    const hostile: NameHost = {
+      get name(): string {
+        throw new Error('denied');
+      },
+      set name(_: string) {
+        throw new Error('denied');
+      },
+    };
+    const store = createReaderStore(throwingStorage('all'), { nameHost: hostile });
+    expect(() => store.write({ view: 'principle' })).not.toThrow();
+    expect(store.read().view).toBe('principle');
   });
 
   it('只有 setItem 抛异常（配额已满）时，已写入的内容仍能读回', () => {
-    const store = createReaderStore(throwingStorage('set'));
-    expect(() => store.write({ view: 'principle', visited: ['a'] })).not.toThrow();
-    expect(store.read()).toMatchObject({ view: 'principle', visited: ['a'] });
+    const store = createReaderStore(throwingStorage('set'), { nameHost: fakeWindow() });
+    expect(() => store.write({ view: 'principle', choices: { f: 'o' } })).not.toThrow();
+    expect(store.read()).toEqual({ view: 'principle', choices: { f: 'o' } });
   });
 
-  it('访问 storage 本身就抛异常（读取 window.localStorage 被拒）时也不报错', () => {
-    const hostile = new Proxy({} as Storage, {
-      get() {
-        throw new DOMException('denied', 'SecurityError');
+  it('换到下一层时以最近一次成功读到的值为起点，已有选择不丢', () => {
+    const storage = fakeStorage(JSON.stringify({ choices: { phone: 'iphone' } }));
+    let broken = false;
+    const flaky: Storage = {
+      ...storage,
+      getItem: (k) => storage.getItem(k),
+      setItem: (k, v) => {
+        if (broken) throw new DOMException('quota', 'QuotaExceededError');
+        storage.setItem(k, v);
       },
-    });
-    const store = createReaderStore(hostile);
-    expect(store.read()).toEqual(DEFAULT_STATE);
-    store.write({ lastStep: 'dns' });
-    expect(store.read().lastStep).toBe('dns');
+    };
+    const win = fakeWindow();
+    const store = createReaderStore(flaky, { nameHost: win });
+    expect(store.read().choices).toEqual({ phone: 'iphone' });
+    broken = true;
+    store.write({ view: 'principle' });
+    expect(store.read()).toEqual({ choices: { phone: 'iphone' }, view: 'principle' });
   });
 });
 
@@ -100,22 +178,13 @@ describe('createReaderStore：读出的数据格式不对', () => {
   });
 
   it('字段类型不对时只丢该字段，其他字段保留', () => {
-    const raw = JSON.stringify({ lastStep: 42, choices: 'plan-1', view: 'principle', visited: ['a', 'b'] });
-    expect(createReaderStore(fakeStorage(raw)).read()).toEqual({
-      choices: {},
-      view: 'principle',
-      visited: ['a', 'b'],
-    });
+    const raw = JSON.stringify({ choices: 'plan-1', view: 'principle' });
+    expect(createReaderStore(fakeStorage(raw)).read()).toEqual({ choices: {}, view: 'principle' });
   });
 
-  it('visited 不是数组时丢掉，lastStep 和 choices 保留', () => {
-    const raw = JSON.stringify({ lastStep: 'dns', choices: { 'node-plan': 'plan-3' }, visited: 'dns' });
-    expect(createReaderStore(fakeStorage(raw)).read()).toEqual({
-      lastStep: 'dns',
-      choices: { 'node-plan': 'plan-3' },
-      view: 'operation',
-      visited: [],
-    });
+  it('1.0.0 的 lastStep、visited 字段被丢掉', () => {
+    const raw = JSON.stringify({ lastStep: 'dns', visited: ['dns'], choices: { phone: 'iphone' } });
+    expect(createReaderStore(fakeStorage(raw)).read()).toEqual({ choices: { phone: 'iphone' }, view: 'operation' });
   });
 
   it('choices 里值不是字符串的项被丢掉，其余保留', () => {
@@ -128,18 +197,9 @@ describe('createReaderStore：读出的数据格式不对', () => {
     expect(createReaderStore(fakeStorage(raw)).read().choices).toEqual({});
   });
 
-  it('lastStep 为空字符串时丢掉', () => {
-    expect(createReaderStore(fakeStorage(JSON.stringify({ lastStep: '' }))).read().lastStep).toBeUndefined();
-  });
-
-  it('visited 里的非字符串项被丢掉', () => {
-    const raw = JSON.stringify({ visited: ['a', 1, null, 'b', {}] });
-    expect(createReaderStore(fakeStorage(raw)).read().visited).toEqual(['a', 'b']);
-  });
-
   it.each(['why', 'Principle', '', 1, null])('view 不是两个合法值之一（%j）时用默认的操作视图', (view) => {
-    const raw = JSON.stringify({ view, lastStep: 'dns' });
-    expect(createReaderStore(fakeStorage(raw)).read()).toMatchObject({ view: 'operation', lastStep: 'dns' });
+    const raw = JSON.stringify({ view, choices: { phone: 'iphone' } });
+    expect(createReaderStore(fakeStorage(raw)).read()).toEqual({ view: 'operation', choices: { phone: 'iphone' } });
   });
 
   it('view 为 principle 时原样读出', () => {
@@ -147,31 +207,12 @@ describe('createReaderStore：读出的数据格式不对', () => {
   });
 });
 
-describe('createReaderStore：visited 去重', () => {
-  it('读出时去重并保留首次出现的顺序', () => {
-    const raw = JSON.stringify({ visited: ['a', 'b', 'a', 'c', 'b'] });
-    expect(createReaderStore(fakeStorage(raw)).read().visited).toEqual(['a', 'b', 'c']);
-  });
-
-  it('写入时与已有记录合并去重', () => {
-    const store = createReaderStore(fakeStorage());
-    store.write({ visited: ['a', 'b'] });
-    store.write({ visited: ['b', 'c', 'c'] });
-    expect(store.read().visited).toEqual(['a', 'b', 'c']);
-  });
-});
-
 describe('createReaderStore：write 是合并而不是覆盖', () => {
   it('只写一个字段时其他字段保留', () => {
     const store = createReaderStore(fakeStorage());
-    store.write({ lastStep: 'dns', view: 'principle', visited: ['dns'] });
-    store.write({ lastStep: 'ip-check' });
-    expect(store.read()).toEqual({
-      lastStep: 'ip-check',
-      choices: {},
-      view: 'principle',
-      visited: ['dns'],
-    });
+    store.write({ choices: { phone: 'iphone' }, view: 'principle' });
+    store.write({ view: 'operation' });
+    expect(store.read()).toEqual({ choices: { phone: 'iphone' }, view: 'operation' });
   });
 
   it('choices 按分叉点合并：写一个分叉点不影响其他分叉点', () => {
@@ -183,66 +224,34 @@ describe('createReaderStore：write 是合并而不是覆盖', () => {
 
   it('patch 里值为 undefined 的顶层字段被忽略', () => {
     const store = createReaderStore(fakeStorage());
-    store.write({ lastStep: 'dns', view: 'principle' });
-    store.write({ lastStep: undefined, view: undefined });
-    expect(store.read()).toMatchObject({ lastStep: 'dns', view: 'principle' });
+    store.write({ choices: { phone: 'iphone' }, view: 'principle' });
+    store.write({ choices: undefined, view: undefined });
+    expect(store.read()).toEqual({ choices: { phone: 'iphone' }, view: 'principle' });
   });
 
   it('写入在同一存储上新建的 store 中可读回（持久化）', () => {
     const storage = fakeStorage();
-    createReaderStore(storage).write({ lastStep: 'dns', choices: { 'node-plan': 'plan-3' } });
-    expect(createReaderStore(storage).read()).toMatchObject({
-      lastStep: 'dns',
-      choices: { 'node-plan': 'plan-3' },
-    });
+    createReaderStore(storage).write({ choices: { 'node-plan': 'plan-3' } });
+    expect(createReaderStore(storage).read().choices).toEqual({ 'node-plan': 'plan-3' });
   });
 
   it('在格式不对的旧值上写入时，先按默认值修复再合并', () => {
     const storage = fakeStorage('garbage');
     createReaderStore(storage).write({ view: 'principle' });
-    expect(JSON.parse(storage.data.get(READER_STATE_KEY)!)).toEqual({
-      choices: {},
-      view: 'principle',
-      visited: [],
-    });
+    expect(JSON.parse(storage.data.get(READER_STATE_KEY)!)).toEqual({ choices: {}, view: 'principle' });
   });
 
   it('写入不合法的值时不会存进去，该字段保持原值', () => {
     const store = createReaderStore(fakeStorage());
-    store.write({ lastStep: 'dns', view: 'principle', choices: { f: 'o' } });
-    store.write({
-      lastStep: 42 as never,
-      view: 'why' as never,
-      visited: [1 as never, 'a'],
-      choices: { f: 7 as never, g: 'p' },
-    });
-    expect(store.read()).toEqual({ lastStep: 'dns', view: 'principle', visited: ['a'], choices: { f: 'o', g: 'p' } });
-  });
-});
-
-describe('createReaderStore：clear', () => {
-  it('clear() 后 read() 返回默认值，且存储里的键被删除', () => {
-    const storage = fakeStorage();
-    const store = createReaderStore(storage);
-    store.write({ lastStep: 'dns', choices: { 'node-plan': 'plan-3' }, view: 'principle', visited: ['dns'] });
-    store.clear();
-    expect(store.read()).toEqual(DEFAULT_STATE);
-    expect(storage.data.has(READER_STATE_KEY)).toBe(false);
-  });
-
-  it('clear() 只删除本站的键，不动其他键', () => {
-    const storage = fakeStorage();
-    storage.setItem('other-site', 'keep');
-    const store = createReaderStore(storage);
-    store.write({ lastStep: 'dns' });
-    store.clear();
-    expect(storage.getItem('other-site')).toBe('keep');
+    store.write({ view: 'principle', choices: { f: 'o' } });
+    store.write({ view: 'why' as never, choices: { f: 7 as never, g: 'p' } });
+    expect(store.read()).toEqual({ view: 'principle', choices: { f: 'o', g: 'p' } });
   });
 });
 
 describe('createReaderStore：恶意或异常的键', () => {
   it('choices 里的 __proto__、constructor、prototype 键被丢掉，不污染原型', () => {
-    const raw = '{"choices":{"__proto__":"x","constructor":"y","prototype":"z","node-plan":"plan-1"},"visited":["dns"]}';
+    const raw = '{"choices":{"__proto__":"x","constructor":"y","prototype":"z","node-plan":"plan-1"}}';
     const store = createReaderStore(fakeStorage(raw));
     const state = store.read();
     expect(state.choices).toEqual({ 'node-plan': 'plan-1' });
@@ -256,23 +265,14 @@ describe('createReaderStore：恶意或异常的键', () => {
   });
 });
 
-describe('createReaderStore：标识过滤（调用方传入，不依赖路线模块）', () => {
+describe('createReaderStore：失效项过滤（调用方传入，不依赖路线模块）', () => {
   const known = {
-    isKnownStep: (id: string) => ['dns', 'ip-check'].includes(id),
     isKnownChoice: (fork: string, option: string) => fork === 'node-plan' && ['plan-1', 'plan-3'].includes(option),
   };
 
-  it('不在路线图里的 lastStep、visited 项、choices 项被丢掉', () => {
-    const raw = JSON.stringify({
-      lastStep: 'removed-step',
-      choices: { 'node-plan': 'plan-3', 'old-fork': 'x', 'node-plan-typo': 'plan-1' },
-      visited: ['dns', 'removed-step', 'ip-check'],
-    });
-    expect(createReaderStore(fakeStorage(raw), known).read()).toEqual({
-      choices: { 'node-plan': 'plan-3' },
-      view: 'operation',
-      visited: ['dns', 'ip-check'],
-    });
+  it('不在路线图里的分叉点或选项被丢掉', () => {
+    const raw = JSON.stringify({ choices: { 'node-plan': 'plan-3', 'old-fork': 'x', 'node-plan-typo': 'plan-1' } });
+    expect(createReaderStore(fakeStorage(raw), known).read()).toEqual({ choices: { 'node-plan': 'plan-3' }, view: 'operation' });
   });
 
   it('分叉点存在但选项已删除时丢掉该选择', () => {
@@ -280,19 +280,20 @@ describe('createReaderStore：标识过滤（调用方传入，不依赖路线�
     expect(createReaderStore(fakeStorage(raw), known).read().choices).toEqual({});
   });
 
+  it('window.name 里读出的值同样过滤', () => {
+    const win = fakeWindow(`${WINDOW_NAME_PREFIX}${JSON.stringify({ choices: { 'node-plan': 'plan-2', phone: 'iphone' } })}`);
+    expect(createReaderStore(null, { ...known, nameHost: win }).read().choices).toEqual({});
+  });
+
   it('没有传过滤函数时接受任何非空字符串标识', () => {
-    const raw = JSON.stringify({ lastStep: 'anything', visited: ['x'], choices: { f: 'o' } });
-    expect(createReaderStore(fakeStorage(raw)).read()).toMatchObject({
-      lastStep: 'anything',
-      visited: ['x'],
-      choices: { f: 'o' },
-    });
+    const raw = JSON.stringify({ choices: { f: 'o' } });
+    expect(createReaderStore(fakeStorage(raw)).read().choices).toEqual({ f: 'o' });
   });
 
   it('过滤函数也作用于写入', () => {
     const store = createReaderStore(fakeStorage(), known);
-    store.write({ lastStep: 'removed-step', visited: ['dns', 'nope'], choices: { 'node-plan': 'plan-9' } });
-    expect(store.read()).toEqual({ choices: {}, view: 'operation', visited: ['dns'] });
+    store.write({ choices: { 'node-plan': 'plan-9' } });
+    expect(store.read()).toEqual(DEFAULT_STATE);
   });
 });
 
@@ -317,13 +318,22 @@ describe('getLocalStorage', () => {
   });
 });
 
+describe('getNameHost', () => {
+  it('有 window.name 时返回 window', () => {
+    const win = fakeWindow('x');
+    expect(getNameHost({ window: win })).toBe(win);
+  });
+
+  it('没有 window（如构建时的 Node）时返回 null', () => {
+    expect(getNameHost({})).toBeNull();
+  });
+});
+
 describe('createReaderStore：read 返回的是副本', () => {
   it('修改 read() 的结果不影响存储', () => {
     const store = createReaderStore(fakeStorage());
-    store.write({ visited: ['a'], choices: { f: 'o' } });
-    const s = store.read();
-    s.visited.push('b');
-    s.choices.f = 'changed';
-    expect(store.read()).toMatchObject({ visited: ['a'], choices: { f: 'o' } });
+    store.write({ choices: { f: 'o' } });
+    store.read().choices.f = 'changed';
+    expect(store.read().choices).toEqual({ f: 'o' });
   });
 });

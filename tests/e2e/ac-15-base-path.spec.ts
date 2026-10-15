@@ -69,13 +69,15 @@ test('从首页点进去，沿“下一步”和选择页走几步，地址一�
   await nav.getByRole('link', { name: /下一步/ }).click();
   await expectAt('./choose-plan/');
 
-  // 选择页的正文链接进入方案二；方案二只属于这个选项，导航按它计算
+  // 选择页的正文链接进入方案二；方案二只属于这个选项，导航按它计算，页面脚本记下这个选项（FR-17）
   await page.locator('.prose').filter({ visible: true }).getByRole('link', { name: '方案二：住宅 IP 服务器', exact: true }).click();
   await expectAt('./plan2-residential-server/');
   await nav.getByRole('link', { name: /下一步/ }).click();
   await expectAt('./import-proxy/');
+  // 汇合点的上一步是所选分支的最后一步（FR-13），由页面脚本按本机选择改写，地址同样要带 base
+  await expect(page.locator('main[data-route-ready]')).toHaveCount(1);
   await nav.getByRole('link', { name: /上一步/ }).click();
-  await expectAt('./choose-plan/');
+  await expectAt('./plan2-residential-server/');
 });
 
 test('截图在 base 下加载出来', async ({ page, baseURL }) => {

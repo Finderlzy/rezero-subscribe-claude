@@ -3,7 +3,7 @@
 - 状态：**v2.0 定稿（2026-10-15）**，对应需求 v0.3（目标站点版本 2.0.0），没有阻塞决策；待定事项见 §10。上一版 v0.1（2026-10-13）对应已交付的 1.0.0，其中仍然有效的实现细节保留在各节里，标“1.0.0 已有”。
 - 输入：[术语](../CONTEXT.md)、[需求 v0.3](requirements.md)、[复用调研](reuse-research.md)、[界面设计契约](design.md)、[重写稿](rewrite/)
 - 决策记录：[ADR-0001 Astro 静态站 + 自建路线图](adr/0001-astro-static-site-with-own-route-map.md)、[ADR-0002 URL 规则](adr/0002-url-scheme.md)（v2.0 修订）、[ADR-0003 原理块](adr/0003-principle-content-as-why-callouts.md)（已被取代）、[ADR-0004 整页视图切换](adr/0004-whole-page-view-switch.md)、[ADR-0005 重写稿原样导入、双链按标题解析](adr/0005-import-rewrite-verbatim.md)
-- 现状：v2 骨架已建立（#23 内容集合，#25 路线图和静态页面，2026-10-15），1.0.0 的内容、页面和依赖旧路线的脚本已删除。本文 §3–§8 描述 v2.0 的目标结构；没有实现的部分标“计划”，由 [实施计划](implementation-plan.md) 的 v2.0 任务建立，建立后改成现状。
+- 现状：v2 骨架已建立（#23 内容集合，#25 路线图和静态页面，2026-10-15），#26 接上了导航改写、整页视图切换和 M4 v2（2026-10-16），1.0.0 的内容、页面和依赖旧路线的脚本已删除。本文 §3–§8 描述 v2.0 的目标结构；没有实现的部分标“计划”，由 [实施计划](implementation-plan.md) 的 v2.0 任务建立，建立后改成现状。
 
 ## 0. v2.0 增量影响分析
 
@@ -230,9 +230,10 @@ function pathOf(stop: Stop): string;        // '/<id>/' 或 '/'；再由 withBas
 | IP 质量实测合集 / 各篇实测 | `/ip-tests/`、`/ip-tests/<id>/` | `src/pages/ip-tests/index.astro`、`[test].astro` |
 | 找不到 | `404.html` | `src/pages/404.astro` |
 
-已删除（#25）：`[step].astro`、`choose/[fork].astro`、`done.astro`、`faq/[faq].astro`、`StepLayout`、`ChoiceOption`、`PlaceholderNotice`，以及依赖旧路线的页面脚本 `home.ts`、`done.ts`、`route-enhance.ts`、`toc.ts`、`view-toggle.ts`、`faq-return.ts`、`reader-store.ts`（#26、#27、#30 参照 `v1.0.0` 标签重写）。
+已删除（#25）：`[step].astro`、`choose/[fork].astro`、`done.astro`、`faq/[faq].astro`、`StepLayout`、`ChoiceOption`、`PlaceholderNotice`，以及依赖旧路线的页面脚本 `home.ts`、`done.ts`、`route-enhance.ts`、`toc.ts`、`view-toggle.ts`、`faq-return.ts`、`reader-store.ts`（#26、#27、#30 参照 `v1.0.0` 标签重写；`route-enhance.ts`、`view-toggle.ts`、`reader-store.ts` 已由 #26 重写）。
 
-- **#25 的静态骨架（现状）**：`PageLayout` 输出两版正文，只有原理版时在正文上方输出提示条 `.view-notice`；`ReferenceLayout` 只有“回首页”，实测页另有“回到：IP 质量实测合集”；首页和找不到页把 `TocNav` 直接写在页面上；步骤页的目录侧栏只在 ≥1100px 显示，抽屉的打开按钮在目录脚本接上前保持隐藏；`ViewToggle` 暂不渲染。页面只加载代码复制/看大图和视频门面两个脚本。
+- **#25 的静态骨架（现状）**：`PageLayout` 输出两版正文，只有原理版时在正文上方输出提示条 `.view-notice`；`ReferenceLayout` 只有“回首页”，实测页另有“回到：IP 质量实测合集”；首页和找不到页把 `TocNav` 直接写在页面上；步骤页的目录侧栏只在 ≥1100px 显示，抽屉的打开按钮在目录脚本接上前保持隐藏。
+- **#26 的交互（现状）**：`PageLayout` 内嵌 `RouteData`（`<script type="application/json" id="route-data">`，`<` 转义），顶栏右侧渲染 `ViewToggle`（页眉在 #31 重做），加载 `view-toggle` 和 `route-enhance`，路线数据由 `readRouteData(document)` 解析一次，两者共用 `src/scripts/reader-store.ts` 的 `pageReaderStore(data)`（一页一个 store，内存兜底时彼此可见；页面脚本的 `reader-store.ts` 和 M4 的 `lib/reader-state/reader-store.ts` 同名沿用 1.0.0，前者只做页面装配）。`StepNav` 总是写出“下一步”的链接，没有目标时带 `hidden`、不写地址，选择页在本机选过之后由脚本显示；脚本跑完给 `<main>` 加 `data-route-ready`。选择页的选项块（#29）和目录（#30）派发 `reader-choices-changed` 即可让导航重算。
 
 - **构建时**（1.0.0 已有，改接口）：页面调用 `loadSite()`（`src/lib/site.ts`），它读取三个集合和 `route.yaml`，经纯函数 `assembleRoute()` 映射成 `PageMeta[]` 后调用 `buildRouteMap`，一次构建内缓存。每页用 `view(id, {}, 'operation')` 把导航写进 HTML——没有 JS 时，读者看到的就是“操作视图 + 未选”的导航：未选的分叉点处指向选择页，选择页的选项块是普通链接，进入分支后按所属选项计算。唯一的折返在“订阅”：它的“下一步”指向“选择手机系统”，静态页面上的选项链接只能进入手机的第一段，所以没有 JS 的读者要用“订阅”正文里的链接进入订阅分支（正文原本就列出了两条路的每一步）。这是降级体验，不是验收路径；“禁用存储”（AC-18）时脚本仍运行，靠 M4 的 `window.name` 兜底记住选择。
 - **两版正文**（[ADR-0004](adr/0004-whole-page-view-switch.md)）：`PageLayout` 把原理版和操作版的正文都渲染进 HTML，分别包在 `<div data-body="principle">`、`<div data-body="operation">` 里；`<html data-view>` 决定显示哪一个，另一个 `display: none`（屏幕阅读器和页内查找都跳过它，`loading="lazy"` 的图片也不加载）。原理独有步骤和缺操作版的页面只输出原理版，操作视图下在正文上方显示提示（FR-21、FR-30）。参考页只有一份正文，没有视图切换。
@@ -250,13 +251,14 @@ function pathOf(stop: Stop): string;        // '/<id>/' 或 '/'；再由 withBas
 ```ts
 interface ReaderState { choices: Choices; view: 'operation' | 'principle' }
 interface ReaderStore { read(): ReaderState; write(patch: Partial<ReaderState>): void }
-function createReaderStore(storage: Storage | null, options?: { isKnownChoice?: (fork, option) => boolean }): ReaderStore;
+function createReaderStore(storage: Storage | null, options?: { isKnownChoice?: (fork, option) => boolean; nameHost?: { name: string } | null }): ReaderStore;
 function getLocalStorage(scope?): Storage | null;
+function getNameHost(scope?): { name: string } | null;   // 浏览器里是 window；nameHost 不传时第二层直接是内存
 ```
 
 - 存储键改为 `rezero-subscribe-claude:v2`。1.0.0 没有部署过，不迁移 `:v1` 的数据，也不去读它。
 - 去掉 `lastStep`、`visited`、`clear()`（FR-50、FR-51）。
-- **适配器顺序改为 localStorage → `window.name` → 内存**（v2.0 新增，评审 V11）：取消默认路线后，本机存储被禁用时如果只存在内存里，换页就会忘掉选择，读者在“订阅”点“下一步”会回到“选择手机系统”、再进入手机的第一段，形成绕圈（AC-18）。`window.name` 在同一标签页的同源跳转之间保留、不随请求发给服务器（三级边界 Never），值写成带前缀的 JSON，只存 `choices` 和 `view`；它也不可用时才用内存。
+- **适配器顺序改为 localStorage → `window.name` → 内存**（v2.0 新增，评审 V11）：取消默认路线后，本机存储被禁用时如果只存在内存里，换页就会忘掉选择，读者在“订阅”点“下一步”会回到“选择手机系统”、再进入手机的第一段，形成绕圈（AC-18）。`window.name` 在同一标签页的同源跳转之间保留、不随请求发给服务器（三级边界 Never），值写成带前缀的 JSON（`WINDOW_NAME_PREFIX` = `rezero-subscribe-claude:v2=`，不以它开头的 `window.name` 当作空），只存 `choices` 和 `view`；它也不可用时才用内存。localStorage 可用时只用它，为空也不去读 `window.name`；`VIEW_BOOT_SCRIPT` 按同样的顺序取视图（#26 实现）。已知局限：localStorage 能读、只有写入失败（配额已满）时，新值写进 `window.name`，但下一页仍只读 localStorage 里的旧值；这个值约 100 字节，实际不会触发，不为它改兜底规则。`window.name` 在 Chrome 88 起、Safari 和新版 Firefox 里，同一标签页跨站跳转时会被清空；更旧的浏览器里外链打开的网站可能读到它。里面只有方案和手机系统的选项标识，不含个人信息，可以接受。
 - 其余规则 1.0.0 已有：存储不可用时不报错；格式不对的字段丢掉；`choices` 按分叉点合并、过滤 `__proto__` 等键。
 - 写入时机：打开只属于一个分支的页面、在选择页或目录里选选项时写 `choices`；切换视图时写 `view`。
 

@@ -6,8 +6,9 @@ import { withBase } from '../lib/with-base';
 
 /**
  * 上一步 / 下一步（design §4.1，FR-11）。按钮里写出目标标题，不只写“下一步”（design §6）。
- * 链接在构建时按当前页的路线写好，不运行 JS 也能顺着走完；按本机选择改写由 #26 的页面脚本接上（data-route-* 挂载点）。
- * 前言的上一步、后记的下一步是首页；选择页未选时没有“下一步”（FR-12）；
+ * 链接在构建时按当前页的路线写好，不运行 JS 也能顺着走完；页面脚本 route-enhance 按本机选择和视图改写（data-route-* 挂载点）。
+ * 前言的上一步、后记的下一步是首页；选择页未选时没有“下一步”（FR-12）：链接照样写出但带 `hidden`、没有地址，
+ * 读者在本机选过之后由页面脚本显示出来。
  * 旁支页没有上一步，左边换成“回到：<挂靠的页面>”（FR-19）。
  * 可跳过步骤在“下一步”上方多一个文字按钮（design §4.1，FR-15）。它放在 nav 外面、正文流里：
  * 手机上底栏吸底，放进底栏会让底栏变高，正文末尾的留白就不够了。
@@ -59,17 +60,21 @@ const backLabel = returnTo ? '回到' : '上一步';
           </span>
         </a>
       )}
-      {next && (
-        <a class="step-nav-link step-nav-next" href={withBase(pathOf(next))} rel="next" data-route-nav="next">
-          <span class="step-nav-dir">
-            下一步<span aria-hidden="true"> →</span>
-          </span>
-          <span class="step-nav-title">
-            <span class="visually-hidden">：</span>
-            <span data-route-title>{stopTitle(next, 'next')}</span>
-          </span>
-        </a>
-      )}
+      <a
+        class="step-nav-link step-nav-next"
+        href={next ? withBase(pathOf(next)) : undefined}
+        hidden={!next}
+        rel="next"
+        data-route-nav="next"
+      >
+        <span class="step-nav-dir">
+          下一步<span aria-hidden="true"> →</span>
+        </span>
+        <span class="step-nav-title">
+          <span class="visually-hidden">：</span>
+          <span data-route-title>{next ? stopTitle(next, 'next') : ''}</span>
+        </span>
+      </a>
     </nav>
   )
 }
@@ -92,6 +97,12 @@ const backLabel = returnTo ? '回到' : '上一步';
 
   .step-skip a:hover {
     text-decoration: underline;
+  }
+
+  /* 页面脚本按本机选择隐藏或显示跳过和“下一步”；下面的 display 会盖过 hidden 属性，这里补回来。 */
+  .step-skip[hidden],
+  .step-nav-link[hidden] {
+    display: none;
   }
 
   .step-skip + .step-nav {

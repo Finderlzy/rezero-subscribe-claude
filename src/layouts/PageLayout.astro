@@ -3,10 +3,11 @@ import CodeCopy from '../components/CodeCopy.astro';
 import ImageZoom from '../components/ImageZoom.astro';
 import StepNav from '../components/StepNav.astro';
 import Toc from '../components/Toc.astro';
+import ViewToggle from '../components/ViewToggle.astro';
 import { hasZoomableImage } from '../lib/code-zoom/labels';
 import { progressText } from '../lib/nav-text';
 import { VIEW_BOOT_SCRIPT } from '../lib/reader-state/view-boot';
-import type { RouteView } from '../lib/route/types';
+import type { RouteData, RouteView } from '../lib/route/types';
 import BaseLayout from './BaseLayout.astro';
 import '../styles/prose.css';
 
@@ -18,19 +19,24 @@ import '../styles/prose.css';
  * 没有 JS 时没有 data-view，固定显示操作版。只有原理版的页面传 `notice`：只输出原理版，
  * 操作视图下在正文上方显示这句说明（FR-21、FR-30）。
  *
- * 导航按“操作视图 + 未选”在构建时写好（`view`）；按本机选择和视图改写导航、视图切换控件由 #26 接上。
+ * 导航按“操作视图 + 未选”在构建时写好（`view`）；页面脚本 route-enhance 读内嵌的 RouteData（`#route-data`），
+ * 按本机选择和当前视图改写导航；view-toggle 处理顶栏的“操作｜原理”切换（架构 §3 M3）。
  * 目录（design §4.5）：≥1100px 是常驻左侧栏；更窄时顶栏的“目录”按钮在目录脚本接上之前保持隐藏。
  */
 interface Props {
   title: string;
   /** `routeMap.view(id, {}, 'operation')` */
   view: RouteView;
+  /** `routeMap.data`：内嵌进页面，浏览器用它重算导航 */
+  routeData: RouteData;
   skipLabel?: string | undefined;
   /** 只有原理版时传：操作视图下正文上方的说明。传了就不渲染 `operation` slot */
   notice?: string | undefined;
 }
 
-const { title, view, skipLabel, notice } = Astro.props;
+const { title, view, routeData, skipLabel, notice } = Astro.props;
+// 内嵌在 <script> 里的 JSON 不能出现 `</script>`，把 `<` 转义掉。
+const routeJson = JSON.stringify(routeData).replace(/</g, '\\u003c');
 const principle = await Astro.slots.render('principle');
 // 不能用 Astro.slots.has 判断：页面里写成条件渲染的 slot 即使为空也算“有”
 const operation = notice === undefined ? await Astro.slots.render('operation') : undefined;
@@ -51,6 +57,7 @@ const hasZoom = [principle, operation].some((html) => html !== undefined && hasZ
             目录
           </button>
           <p class="step-progress" data-route-progress>{progressText(view.progress, view.current)}</p>
+          <ViewToggle />
         </div>
         <h1 class="step-title">{title}</h1>
       </header>
@@ -73,11 +80,20 @@ const hasZoom = [principle, operation].some((html) => html !== undefined && hasZ
   </div>
   <CodeCopy />
   {hasZoom && <ImageZoom />}
+  <script type="application/json" id="route-data" set:html={routeJson} />
 </BaseLayout>
 
 <script>
   import { initCodeZoom } from '../scripts/code-zoom';
+  import { pageReaderStore, readRouteData } from '../scripts/reader-store';
+  import { initRouteEnhance } from '../scripts/route-enhance';
+  import { initViewToggle } from '../scripts/view-toggle';
 
+  const data = readRouteData(document);
+  const store = pageReaderStore(data);
+  // 先 view-toggle：从往返缓存恢复时它先把视图改回本机保存的值，route-enhance 再按它重算。
+  initViewToggle(document, store);
+  if (data) initRouteEnhance(document, data, store);
   initCodeZoom(document);
 </script>
 
