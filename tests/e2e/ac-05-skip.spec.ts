@@ -1,13 +1,17 @@
 import { expect, test } from '@playwright/test';
 
 // AC-05（FR-15，文案部分）：可跳过步骤在“下一步”上方有跳过按钮，文案默认“已有，跳过”，可按步骤自定；
-// 点击后跳过本章内连续的可跳过步骤，到其后的第一项。连续跳过（安卓在“安装 Google Play”跳到第八章）随 #12 补上。
+// 点击后跳过本章内连续的可跳过步骤，到其后的第一项。
 
 /** [步骤, 跳过按钮文案, 跳过后到达的路径, 到达页的 h1] */
 const CASES: [string, string, string, string][] = [
   ['clean-claude-code', '没用过，跳过', '/choose/node-plan/', '你想用哪种方式准备住宅 IP？'],
   ['replace-ip-or-refund', 'IP 合格，跳过', '/choose/phone/', '你用什么手机？'],
-  ['create-google-account', '已有，跳过', '/done/', '这条路线走完了'],
+  ['create-google-account', '已有，跳过', '/use-google-few-days/', '先用 Google 账号几天，期间固定同一个节点'],
+  // iPhone（默认）：“下载 Gmail”和“创建 Gmail 邮箱和 Google 账号”连续可跳过，一次跳到第八章第一步
+  ['iphone-gmail', '已有，跳过', '/use-google-few-days/', '先用 Google 账号几天，期间固定同一个节点'],
+  ['google-appeal', '没被封，跳过', '/register-claude/', '用 Google 账号注册 claude，先正常用几天'],
+  ['google-region', '已经不是中国大陆或香港，跳过', '/register-claude/', '用 Google 账号注册 claude，先正常用几天'],
 ];
 
 for (const [step, label, target, heading] of CASES) {
@@ -24,6 +28,30 @@ for (const [step, label, target, heading] of CASES) {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(heading);
   });
 }
+
+// AC-05：已选安卓时，在“安装 Google Play”点“已有，跳过”，跨过本章内连续的可跳过步骤（含分支末尾和汇合点），到第八章第一步。
+test('已选安卓时，在“安装 Google Play”点跳过，到第八章第一步', async ({ page }) => {
+  await page.goto('./choose/phone/');
+  await expect(page.locator('[data-route-ready]')).toHaveCount(1);
+  await page.getByRole('list', { name: '选项' }).getByRole('link', { name: /安卓/ }).click();
+  await expect(page).toHaveURL(/\/android-v2rayng\/$/);
+
+  await page.goto('./android-google-play/');
+  await expect(page.locator('[data-route-ready]')).toHaveCount(1);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('安装 Google Play');
+  await page.getByRole('link', { name: '已有，跳过', exact: true }).click();
+
+  await expect(page).toHaveURL(/\/use-google-few-days\/$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('先用 Google 账号几天，期间固定同一个节点');
+  await expect(page.getByText('八、养号 · 第 1 步，共 3 步', { exact: true })).toBeVisible();
+  // 本机选择确实记成了安卓：汇合点的“上一步”是安卓的“下载 Gmail”，不是 iPhone 的
+  await page.goto('./create-google-account/');
+  await expect(page.locator('[data-route-ready]')).toHaveCount(1);
+  await expect(page.getByRole('navigation', { name: '上一步和下一步' }).getByRole('link', { name: /上一步/ })).toHaveAttribute(
+    'href',
+    /\/android-gmail\/$/,
+  );
+});
 
 test('不可跳过的步骤没有跳过按钮', async ({ page }) => {
   await page.goto('./check-ip-quality/');
