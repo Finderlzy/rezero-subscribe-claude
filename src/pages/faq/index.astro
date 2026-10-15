@@ -1,5 +1,6 @@
 ---
 import { render } from 'astro:content';
+import Toc from '../../components/Toc.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { loadSite } from '../../lib/site';
 import { withBase } from '../../lib/with-base';
@@ -8,7 +9,7 @@ import '../../styles/prose.css';
 /**
  * 常见问题列表：/faq/（design §4.6，FR-20）。引导语和条目顺序写在 pages/faq.md 里（列表是 `[[faq/…]]` 双链，
  * 链接文字默认用条目标题）。漏列条目时构建失败（site.ts 的 unlistedFaq）。
- * “打开目录”在步骤目录任务里补上（同找不到页）。
+ * 直接打开时靠“打开目录”回到步骤（FR-20），同找不到页。
  */
 const site = await loadSite();
 const { Content } = await render(site.faqPage);
@@ -21,7 +22,15 @@ const { Content } = await render(site.faqPage);
       <Content />
     </div>
     <p class="page-actions">
+      <button type="button" class="button button-secondary" data-toc-open hidden>打开目录</button>
       <a class="button" href={withBase('/')}>回首页</a>
     </p>
   </main>
+  <Toc outline={site.route.outline({}, null)} mode="drawer" routeData={site.route.data} />
 </BaseLayout>
+
+<script>
+  import { initToc } from '../../scripts/toc';
+
+  initToc(document);
+</script>

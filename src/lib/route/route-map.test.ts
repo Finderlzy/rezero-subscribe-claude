@@ -215,12 +215,12 @@ describe('共享步骤（AC-19 逻辑层）', () => {
     expect(map.view(step('ssh-connect'), { 'node-plan': 'plan-2' }).choices['node-plan']).toBe('plan-2');
   });
 
-  it('目录里共享步骤出现在它所属的每个选项下，只有所选选项下的标为在路线上', () => {
+  it('目录里共享步骤出现在它所属的每个选项下，只有所选选项下的标为在路线上、标为当前项', () => {
     const v = sample().view(step('ssh-connect'), { 'node-plan': 'plan-2' });
     const branch = v.outline.find((c) => c.id === 'residential-ip')!.items.find((i) => i.kind === 'branch')!;
     if (branch.kind !== 'branch') throw new Error('expected branch');
     const ids = (o: string) => branch.options.find((x) => x.id === o)!.steps.filter((s) => s.id === 'ssh-connect');
-    expect(ids('plan-1')).toMatchObject([{ onRoute: false, current: true }]);
+    expect(ids('plan-1')).toMatchObject([{ onRoute: false, current: false }]);
     expect(ids('plan-2')).toMatchObject([{ onRoute: true, current: true }]);
     expect(ids('plan-3')).toEqual([]);
   });
@@ -308,6 +308,45 @@ describe('进度与目录（FR-10、FR-16）', () => {
     ]);
     const start = outline[0]!.items;
     expect(start[2]).toMatchObject({ kind: 'step', id: 'clean-claude-code', skippable: true, onRoute: true, current: false });
+  });
+});
+
+describe('outline：只按本机选择画目录（FR-14、FR-16、FR-20）', () => {
+  const nodePlan = (outline: ReturnType<RouteMap['outline']>) => {
+    const branch = outline.find((c) => c.id === 'residential-ip')!.items.find((i) => i.kind === 'branch')!;
+    if (branch.kind !== 'branch') throw new Error('expected branch');
+    return branch;
+  };
+  const allSteps = (outline: ReturnType<RouteMap['outline']>) =>
+    outline.flatMap((c) => c.items.flatMap((i) => (i.kind === 'branch' ? i.options.flatMap((o) => o.steps) : [i])));
+
+  it('没有当前页（常见问题、找不到页）：按默认路线，没有任何一项是当前项', () => {
+    const outline = sample().outline({}, null);
+    expect(nodePlan(outline).options.map((o) => o.selected)).toEqual([true, false, false]);
+    expect(allSteps(outline).some((i) => i.current)).toBe(false);
+  });
+
+  it('本机选择优先于当前页所属选项：在目录里改选后，当前页可以落在其他路线上', () => {
+    const outline = sample().outline({ 'node-plan': 'plan-3' }, step('plan1-buy-vps'));
+    const branch = nodePlan(outline);
+    expect(branch.options.map((o) => o.selected)).toEqual([false, false, true]);
+    expect(branch.options[0]!.steps[0]).toMatchObject({ id: 'plan1-buy-vps', current: true, onRoute: false });
+  });
+
+  it('共享步骤只在当前路线上的那一份标当前项；都不在当前路线上时标在它所属的第一个选项下', () => {
+    const map = sample();
+    const currentIn = (outline: ReturnType<RouteMap['outline']>) =>
+      nodePlan(outline).options.filter((o) => o.steps.some((s) => s.current)).map((o) => o.id);
+    expect(currentIn(map.outline({ 'node-plan': 'plan-2' }, step('ssh-connect')))).toEqual(['plan-2']);
+    expect(currentIn(map.view(step('ssh-connect'), {}).outline)).toEqual(['plan-1']);
+    expect(currentIn(map.outline({ 'node-plan': 'plan-3' }, step('ssh-connect')))).toEqual(['plan-1']);
+  });
+
+  it('失效的选择按默认路线；和不需要改写选择时的 view().outline 一致', () => {
+    const map = sample();
+    expect(nodePlan(map.outline({ 'node-plan': 'plan-9' }, null)).options[0]!.selected).toBe(true);
+    const stored = { 'desktop-proxy': 'clash-verge' };
+    expect(map.outline(stored, choose('desktop-proxy'))).toEqual(map.view(choose('desktop-proxy'), stored).outline);
   });
 });
 

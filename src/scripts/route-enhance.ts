@@ -1,14 +1,9 @@
 import { progressText, stopTitle } from '../lib/nav-text';
-import {
-  createReaderStore,
-  getLocalStorage,
-  type ReaderState,
-  type ReaderStore,
-  type ReaderStoreOptions,
-} from '../lib/reader-state/reader-store';
+import type { ReaderState, ReaderStore } from '../lib/reader-state/reader-store';
 import { pathOf, routeMapFromData } from '../lib/route/route-map';
 import type { At, Choices, ForkId, RouteData, RouteMap, RouteView } from '../lib/route/types';
 import { withBase } from '../lib/with-base';
+import { CHOICES_CHANGED_EVENT, readerStoreFor } from './reader-store';
 
 /**
  * 步骤页和选择页的页面脚本（架构 §3 M3“浏览器里”）：按本机保存的路线选择重新计算导航，
@@ -17,15 +12,6 @@ import { withBase } from '../lib/with-base';
  * 这是渐进增强：没有 JS 时页面保持构建时按默认路线写好的导航。本机存储不可用时 M4 换成内存，
  * 导航按默认路线（加上当前页所属的选项）计算，不报错（AC-18）。
  */
-
-/** M4 用来过滤失效标识的判断：只认路线图里现有的步骤和选项。 */
-export function readerStoreOptions(data: RouteData): ReaderStoreOptions {
-  return {
-    isKnownStep: (id) => Object.hasOwn(data.steps, id),
-    isKnownChoice: (fork, option) =>
-      Object.hasOwn(data.forks, fork) && data.forks[fork]!.options.some((o) => o.id === option),
-  };
-}
 
 /**
  * 打开一页时要写入的本机状态；选择页返回 null。步骤页写 `lastStep`、`visited`，
@@ -69,14 +55,17 @@ export function initRouteEnhance(doc: Document): void {
   const data = JSON.parse(dataEl.textContent) as RouteData;
   const at = JSON.parse(atEl.dataset.routeAt) as At;
   const map = routeMapFromData(data);
-  const store = createReaderStore(getLocalStorage(), readerStoreOptions(data));
+  const store = readerStoreFor(data);
 
-  const refresh = () => {
+  const render = () => {
     const stored = store.read().choices;
     const view = map.view(at, stored);
     renderNav(doc, view);
     if (at.kind === 'choose') renderOptions(doc, map, at.fork, stored);
-    const patch = openPatch(data, at, view);
+    return view;
+  };
+  const refresh = () => {
+    const patch = openPatch(data, at, render());
     if (patch) store.write(patch);
   };
 
@@ -87,6 +76,8 @@ export function initRouteEnhance(doc: Document): void {
   doc.defaultView?.addEventListener('pageshow', (event) => {
     if (event.persisted) refresh();
   });
+  // 在目录里改选或清除进度时只重画：读者没有重新打开这一页，不应把当前页所属的选项写回去。
+  doc.addEventListener(CHOICES_CHANGED_EVENT, render);
 }
 
 function renderNav(doc: Document, view: RouteView): void {

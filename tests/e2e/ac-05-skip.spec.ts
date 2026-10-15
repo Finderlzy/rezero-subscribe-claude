@@ -60,7 +60,7 @@ test('已选安卓时，在“安装 Google Play”点跳过，到第八章第�
 test('不可跳过的步骤没有跳过按钮', async ({ page }) => {
   await page.goto('./check-ip-quality/');
   await expect(page.locator('[data-route-ready]')).toHaveCount(1);
-  await expect(page.getByRole('link', { name: /跳过/ })).toHaveCount(0);
+  await expect(page.getByRole('main').getByRole('link', { name: /跳过/ })).toHaveCount(0);
   await expect(page.locator('[data-route-nav="skip"]')).toHaveCount(0);
 });
 

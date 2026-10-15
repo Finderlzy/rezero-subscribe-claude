@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openToc } from './toc-helpers';
 
 // AC-18（禁用本机存储部分）：浏览器禁用本机存储时，页面脚本换用内存保存状态，导航按默认路线
 // （加上当前页所属的选项）计算，视图切换照常生效，页面不报错。找不到页的部分见 ac-18-not-found.spec.ts。
@@ -136,6 +137,19 @@ for (const [name, disable] of DISABLERS) {
       await expect(why).toBeVisible();
       await toggle.getByRole('button', { name: '操作' }).click();
       await expect(why).toBeHidden();
+      expect(errors).toEqual([]);
+    });
+
+    // FR-14：存储不可用时，在目录里改选在本页内照常生效（目录和导航共用同一个内存存储）。
+    test('在目录里切换方案，本页的“上一步”跟着变、不报错', async ({ page }) => {
+      const errors = collectErrors(page);
+      await page.goto('./choose/desktop-proxy/');
+      await expectScriptRan(page);
+      const toc = await openToc(page);
+      await toc.getByRole('button', { name: '切换到方案三：直接买住宅节点' }).click();
+      await expect(
+        page.getByRole('navigation', { name: '上一步和下一步' }).getByRole('link', { name: /上一步/ }),
+      ).toHaveAttribute('href', /\/plan3-buy-node\/$/);
       expect(errors).toEqual([]);
     });
   });
