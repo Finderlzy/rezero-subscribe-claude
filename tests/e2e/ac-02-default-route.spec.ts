@@ -53,7 +53,7 @@ test('从“开始之前”一直点“下一步”，经过方案一、v2rayN�
   for (const [index, [path, title, progress]] of DEFAULT_ROUTE.entries()) {
     await expect(page).toHaveURL(new RegExp(`${path.replace(/\//g, '\\/')}$`));
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(title);
-    await expect(page.getByText(progress, { exact: true })).toBeVisible();
+    await expect(page.getByRole('main').getByText(progress, { exact: true })).toBeVisible();
 
     const previous = DEFAULT_ROUTE[index - 1];
     if (previous) {

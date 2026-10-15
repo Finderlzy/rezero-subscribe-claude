@@ -3,7 +3,7 @@
 - 状态：v0.1 定稿（2026-10-13），没有阻塞决策；待定事项见 §10
 - 输入：[术语](../CONTEXT.md)、[需求 v0.1](requirements.md)、[复用调研](reuse-research.md)、[界面设计契约](design.md)
 - 决策记录：[ADR-0001 Astro 静态站 + 自建路线图](adr/0001-astro-static-site-with-own-route-map.md)、[ADR-0002 URL 规则](adr/0002-url-scheme.md)、[ADR-0003 原理内容内嵌为 why 块](adr/0003-principle-content-as-why-callouts.md)
-- 现状：工程脚手架、依赖和 §7 的命令已由 #1 建立（版本以 `package-lock.json` 为准）；M1、M2、M4 已实现（#4、#3、#7），#5 接通了“开始”章的页面和构建时装配 `loadSite()`，#6 迁入第一章并加上选择页 `/choose/<fork>/`，#8 接上按本机选择改写导航的页面脚本 `src/scripts/route-enhance.ts`，#9 接上操作/原理视图切换；其余标“计划”的部分由后续任务创建。
+- 现状：工程脚手架、依赖和 §7 的命令已由 #1 建立（版本以 `package-lock.json` 为准）；M1、M2、M4 已实现（#4、#3、#7），#5 接通了“开始”章的页面和构建时装配 `loadSite()`，#6 迁入第一章并加上选择页 `/choose/<fork>/`，#8 接上按本机选择改写导航的页面脚本 `src/scripts/route-enhance.ts`，#9 接上操作/原理视图切换，#18 接上步骤目录和“清除进度”；其余标“计划”的部分由后续任务创建。
 
 ## 1. 技术栈与选型理由
 
@@ -170,6 +170,9 @@ interface RouteMap {
     outline: OutlineChapter[]; // 目录：全部步骤，标出是否在当前路线上（FR-16）
   };
   // at 不在路线图里时抛错
+  /** 只按本机保存的选择画目录（#18）：不让当前页所属选项覆盖本机选择，所以在目录里改选后当前页可以落在“其他路线”上；
+   *  current 为 null 时（常见问题页、找不到页）没有当前项 */
+  outline(stored: Choices, current: At | null): OutlineChapter[];
   readonly data: RouteData;    // 可以序列化，给浏览器重建 RouteMap 用；含步骤和选择页的标题、章节标题、skippable/placeholder 标记，
                                // 浏览器改写“下一步：<标题>”、目录、首页“继续上次：<步骤名>”都只靠它，不再另取数据
 }
@@ -196,14 +199,18 @@ function pathOf(stop: Stop): string;
 
 - **构建时**：每个页面调用 `loadSite()`（`src/lib/site.ts`，#5）。它读取内容集合和 `route.yaml`（`?raw` 导入，用 `yaml` 解析），经纯函数 `assembleRoute()` 映射成 `StepMeta`/`ChoiceMeta` 后调用 `buildRouteMap`，结果在一次构建内缓存（开发服务器里每次重新读取）。路线图有错时 `getStaticPaths` 抛错、构建失败；`RouteValidationError` 会转成普通 `Error` 再抛，因为 Astro 打印带 `errors` 数组的异常时会丢掉“文件：”前缀。页面再调用 `view(at, {})`，把导航直接写进 HTML。这时生效的是默认路线，加上当前页所属的分支，所以不运行 JS 也能顺着走完。
 - **浏览器里**：布局用 `<script type="application/json">` 内嵌 `RouteData`（首期约 45 个步骤，几 KB）。页面脚本读取 M4 保存的选择，调用 `routeMapFromData(data).view(at, stored)`，再改写上一步/下一步链接、进度和目录状态。这种做法是渐进增强：没有 JS 时，页面就保持构建时写好的默认导航。
-  - 实现（#8）：`src/scripts/route-enhance.ts` 由 `StepLayout` 加载，步骤页和选择页都运行。它从 `data-route-*` 挂载点读当前页（`<main data-route-at>`，`At` 的 JSON），改写 `[data-route-nav="prev|next"]` 的链接和目标标题、`[data-route-progress]` 的进度；文案由 `src/lib/nav-text.ts` 生成，与构建时同一份代码。选择页上每个选项的链接按“本机选择 + 这个选项”重算，本机保存的选项显示“当前选择”并标 `aria-current`（只看本机保存的：没点过选项、也没打开过这个分叉点的分支步骤时，默认选项不算选过；打开分支步骤会记下它所属的选项，见下文），点击时同步写入 `choices` 再跳转。打开步骤页时写入的内容由纯函数 `openPatch()` 决定：`lastStep`、`visited`，以及步骤所属分支的实际生效选项；普通步骤不写选择，没选过的分叉点继续跟随默认路线。从往返缓存恢复的页面（`pageshow` 且 `persisted`）重新计算一次。目录状态由目录任务接入。
+  - 实现（#8）：`src/scripts/route-enhance.ts` 由 `StepLayout` 加载，步骤页和选择页都运行。它从 `data-route-*` 挂载点读当前页（`<main data-route-at>`，`At` 的 JSON），改写 `[data-route-nav="prev|next"]` 的链接和目标标题、`[data-route-progress]` 的进度；文案由 `src/lib/nav-text.ts` 生成，与构建时同一份代码。选择页上每个选项的链接按“本机选择 + 这个选项”重算，本机保存的选项显示“当前选择”并标 `aria-current`（只看本机保存的：没点过选项、也没打开过这个分叉点的分支步骤时，默认选项不算选过；打开分支步骤会记下它所属的选项，见下文），点击时同步写入 `choices` 再跳转。打开步骤页时写入的内容由纯函数 `openPatch()` 决定：`lastStep`、`visited`，以及步骤所属分支的实际生效选项；普通步骤不写选择，没选过的分叉点继续跟随默认路线。从往返缓存恢复的页面（`pageshow` 且 `persisted`）重新计算一次。目录见下文（#18）。
+- **目录**（#18，design §4.5）：组件 `src/components/Toc.astro`（外壳：侧栏和 `<dialog>` 抽屉）和 `TocNav.astro`（列表），样式在 `src/styles/toc.css`（全局样式，因为同一个 `<nav>` 会在侧栏和抽屉之间移动）。构建时按 `view(at, {}).outline` 写好全部链接，没有 JS 也能点；常见问题页和找不到页用 `outline({}, null)`，并由目录自己内嵌 `#route-data`。页面脚本 `src/scripts/toc.ts` 在 route-enhance 之后运行（先写入打开这一页的 `visited`，目录才有这一页的 ✓），按 `outline(本机选择, 当前页)` 改写“其他路线”标记、选中的选项、当前项和已读 ✓——标记和 outline 按文档顺序一一对应，不在浏览器里重新生成 HTML。“切换”写入 `choices` 后派发 `reader-choices-changed`，route-enhance 收到后只重画导航，不再执行 `openPatch()`（否则会把当前页所属的选项写回去）；“清除进度”经 `confirm()` 确认后调用 `clear()`，同样派发该事件。两个脚本经 `src/scripts/reader-store.ts` 的 `readerStoreFor()` 共用一个 ReaderStore，本机存储不可用时内存里的改动也能互相看到。共享步骤在每个选项下各列一份，只有当前路线上的那份标 `aria-current="step"`，都不在时标在它所属的第一个选项下。
+  - 在分支步骤上改选（#18 选定）：例如在方案三的“购买住宅节点”里切到方案二，目录立即按方案二显示，这一页标“其他路线”；但这一页自己的上一步/下一步仍按它所属的方案三计算（URL 决定所属选项，S5），沿“下一步”进入方案三的下一页时 `openPatch()` 会把方案三写回去。想走新路线的读者从目录点新路线的步骤或选择页进入，之后的导航都按新路线（FR-14、AC-04）。
+  - 与 design §4.1 的差异：手机顶栏没有章节缩写（RouteData 里没有短名），完整进度放在吸顶顶栏的第二行；缩写和顶栏视觉留给 #21。
+  - 布局：`StepLayout` 在 ≥1100px 时是“300px 侧栏 + 正文”两栏，侧栏吸顶、自己滚动，打开时把当前项滚到侧栏上部；更窄时侧栏隐藏，顶栏（目录按钮、进度、视图切换）吸顶，脚本打开抽屉时把 `<nav>` 移进 `<dialog>`，关闭时移回。常见问题页、找不到页任何宽度都用抽屉。“目录”“切换”“清除进度”按钮在没有 JS 时隐藏（窄屏没有 JS 时看不到目录，宽屏侧栏照常可点）。
 - **视图**：`<head>` 里放一段几十字节的内联脚本，在首次绘制前设置 `<html data-view="operation|principle">`，避免页面闪一下。`[!why]` 块的显示和隐藏只用 CSS 控制（[ADR-0003](adr/0003-principle-content-as-why-callouts.md)）。
-  - 实现（#9）：内联脚本是 `src/lib/reader-state/view-boot.ts` 的 `VIEW_BOOT_SCRIPT`，由 `StepLayout` 经 `BaseLayout` 的 `head` slot 放进 `<head>`；它只按 M4 的格式取 `view`，取不到或不合法时用 `operation`。切换控件是 `src/components/ViewToggle.astro`，放在步骤页和选择页标题上方的一行里（吸顶顶栏由目录任务统一安排）；按下状态由 CSS 按 `data-view` 画，没有 JS（没有 `data-view`）时整个隐藏。页面脚本 `src/scripts/view-toggle.ts` 处理点击、同步 `aria-pressed`、写 M4 的 `view`，并在每个原理块前插入提示行“为什么：<标题> · 在原理视图中查看”（点它切到原理视图并滚到该块）；提示行由脚本插入，所以没有 JS 时不显示。“这一步没有额外原理”在构建时决定：`StepLayout` 先渲染正文，HTML 里没有 `data-callout="why"` 才输出这一行，只在原理视图下显示。显示规则都在 `src/styles/prose.css` 末尾。
+  - 实现（#9）：内联脚本是 `src/lib/reader-state/view-boot.ts` 的 `VIEW_BOOT_SCRIPT`，由 `StepLayout` 经 `BaseLayout` 的 `head` slot 放进 `<head>`；它只按 M4 的格式取 `view`，取不到或不合法时用 `operation`。切换控件是 `src/components/ViewToggle.astro`，放在步骤页和选择页标题上方的一行里（#18 起这一行在 <1100px 时吸顶，左侧加“目录”按钮）；按下状态由 CSS 按 `data-view` 画，没有 JS（没有 `data-view`）时整个隐藏。页面脚本 `src/scripts/view-toggle.ts` 处理点击、同步 `aria-pressed`、写 M4 的 `view`，并在每个原理块前插入提示行“为什么：<标题> · 在原理视图中查看”（点它切到原理视图并滚到该块）；提示行由脚本插入，所以没有 JS 时不显示。“这一步没有额外原理”在构建时决定：`StepLayout` 先渲染正文，HTML 里没有 `data-callout="why"` 才输出这一行，只在原理视图下显示。显示规则都在 `src/styles/prose.css` 末尾。
 - **视频门面**：不发任何外部请求。读者点击后才插入 iframe：B 站用 `player.bilibili.com/player.html?bvid=…`，YouTube 用 `www.youtube-nocookie.com/embed/<id>`。播放器下方总有一行平台外链：浏览器无法可靠判断 iframe 有没有加载失败，所以这行链接一直显示（FR-42）。
   - 实现（#17）：组件 `src/components/VideoFacade.astro` 经 `StepLayout` 的 `video` slot 放在标题下面、正文上面（只有步骤页有，选择页没有）；地址和文案由纯函数 `videoSources()`（`src/lib/video/sources.ts`）生成，平台顺序 B 站在前，即默认平台。点击前只有本站画的深色占位（令牌 `--video-bg`/`--video-fg`）、播放图标和平台名，不加载封面图。没有 JS 时播放区域是指向平台视频页的普通链接，平台切换隐藏；页面脚本 `src/scripts/video-facade.ts`（随组件加载，不在 `StepLayout` 里统一引入，只有步骤页用到）把它换成按钮，点击后插入 iframe 并把焦点交给它，换平台时撤掉已插入的播放器、回到门面，外链跟着换。没有视频信息时只输出一行“视频制作中”。
   - 嵌入参数（#17 实测）：B 站 `https://player.bilibili.com/player.html?bvid=<BV号>&autoplay=1`，只要 `bvid`，不需要 `aid`/`cid`；该页不发 X-Frame-Options 和 CSP，可以嵌入；不写 `autoplay` 时会自动播放，`autoplay=0` 能关掉，读者已经点过播放，所以明写 `autoplay=1`。YouTube `https://www.youtube-nocookie.com/embed/<id>?autoplay=1`。iframe 的 `allow` 为 `autoplay; encrypted-media; fullscreen; picture-in-picture`，`referrerpolicy` 为 `strict-origin-when-cross-origin`。外链：B 站 `https://www.bilibili.com/video/<BV号>/`，YouTube 沿用原文的 `https://youtu.be/<id>`。
 - **常见问题的“返回”**：根据 `?from=<step-id>` 查到步骤标题，再显示返回链接。参数里只有公开的步骤标识，没有个人数据。
-  - 实现（#14）：页面是静态的，返回链接由页面脚本 `src/scripts/faq-return.ts` 填写。条目页 `src/pages/faq/[faq].astro` 内嵌“步骤标识 → 标题”的 JSON，在标题上方和正文末尾各放一个隐藏的返回链接；纯函数 `faqReturn()`（`src/lib/faq-return.ts`）只认路线图里已有的步骤标识，认到时脚本填好链接（`/<step-id>/`）并显示；没有 JS 或参数无效时按直接打开处理。正文末尾总有“常见问题列表”入口。常见问题页不加载视图切换和 route-enhance，也不写本机状态，所以常见问题条目里不写 `[!why]` 块（没有视图切换，会一直收起）。“打开目录”入口随目录任务（#18）补上，同找不到页。
+  - 实现（#14）：页面是静态的，返回链接由页面脚本 `src/scripts/faq-return.ts` 填写。条目页 `src/pages/faq/[faq].astro` 内嵌“步骤标识 → 标题”的 JSON，在标题上方和正文末尾各放一个隐藏的返回链接；纯函数 `faqReturn()`（`src/lib/faq-return.ts`）只认路线图里已有的步骤标识，认到时脚本填好链接（`/<step-id>/`）并显示；没有 JS 或参数无效时按直接打开处理。正文末尾总有“常见问题列表”入口。常见问题页不加载视图切换和 route-enhance，也不写本机状态，所以常见问题条目里不写 `[!why]` 块（没有视图切换，会一直收起）。“打开目录”入口由 #18 补上，同找不到页；目录只在读者点“切换”或“清除进度”时写本机状态。
 
 ### M4 本机状态（`src/lib/reader-state/`）
 
@@ -283,7 +290,7 @@ M4 不依赖 M2：`StepId`、`Choices` 等在 M4 里是同义的字符串别名�
 │   │   └── site.ts                  构建时装配：loadSite()、assembleRoute()（+ site.test.ts）
 │   ├── scripts/                     M3 页面脚本：route-enhance.ts（按本机选择改写导航，#8；+ *.test.ts）、view-toggle.ts（视图切换，#9）、faq-return.ts（常见问题的返回链接，#14）
 │   ├── layouts/                     BaseLayout（`head` slot）、StepLayout（内嵌 RouteData、视图内联脚本，加载 route-enhance 和 view-toggle）
-│   ├── components/                  M3 组件：StepNav、ChoiceOption、ViewToggle、PlaceholderNotice、CodeCopy、ImageZoom、VideoFacade（已有）；Toc …（计划）
+│   ├── components/                  M3 组件：StepNav、ChoiceOption、ViewToggle、PlaceholderNotice、CodeCopy、ImageZoom、VideoFacade、Toc、TocNav（已有）
 │   ├── pages/                       index、[step]、choose/[fork]、done、404、faq/index、faq/[faq]
 │   └── styles/                      tokens.css、base.css、prose.css
 ├── public/                          直接复制的文件（favicon 等）

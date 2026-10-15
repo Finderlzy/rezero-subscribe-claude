@@ -1,0 +1,98 @@
+---
+import { pathOf } from '../lib/route/route-map';
+import type { OutlineChapter, OutlineStep } from '../lib/route/types';
+import { withBase } from '../lib/with-base';
+
+/** 目录的列表本身，由 Toc.astro 放进侧栏或抽屉；说明和标记契约见 Toc.astro。 */
+interface Props {
+  outline: OutlineChapter[];
+}
+
+const { outline } = Astro.props;
+const stepHref = (step: OutlineStep) => withBase(pathOf({ kind: 'step', id: step.id, title: step.title }));
+---
+
+<nav class="toc" aria-label="步骤目录" data-toc>
+  <ol>
+    {
+      outline.map((chapter) => (
+        <li class="toc-chapter">
+          <p class="toc-chapter-title">{chapter.title}</p>
+          <ol>
+            {chapter.items.map((item) =>
+              item.kind === 'step' ? (
+                <li class="toc-step" data-toc-step={item.id} data-off-route={item.onRoute ? undefined : ''}>
+                  <a href={stepHref(item)} aria-current={item.current ? 'step' : undefined}>
+                    <span class="toc-mark" data-toc-visited hidden>
+                      <span aria-hidden="true">✓</span>
+                      <span class="visually-hidden">已读：</span>
+                    </span>
+                    <span class="toc-label">{item.title}</span>
+                    {item.skippable && <span class="toc-tag">可跳过</span>}
+                    {item.placeholder && <span class="toc-tag">内容待补</span>}
+                  </a>
+                </li>
+              ) : item.kind === 'choose' ? (
+                <li class="toc-step" data-toc-choose={item.fork}>
+                  <a
+                    href={withBase(pathOf({ kind: 'choose', fork: item.fork, title: item.title }))}
+                    aria-current={item.current ? 'step' : undefined}
+                  >
+                    <span class="toc-label">{item.title}</span>
+                  </a>
+                </li>
+              ) : (
+                <li>
+                  <ul>
+                    {item.options.map((option, i) => (
+                      <li class="toc-option" data-toc-option={option.id} data-selected={option.selected ? '' : undefined}>
+                        <div class="toc-option-head">
+                          <span class="toc-option-title">
+                            {i > 0 && '或：'}
+                            {option.title}
+                          </span>
+                          <button
+                            type="button"
+                            class="toc-switch"
+                            data-toc-switch={item.fork}
+                            value={option.id}
+                            aria-label={`切换到${option.title}`}
+                            hidden
+                          >
+                            切换
+                          </button>
+                        </div>
+                        <ol>
+                          {option.steps.map((step) => (
+                            <li class="toc-step" data-toc-step={step.id} data-off-route={step.onRoute ? undefined : ''}>
+                              <a href={stepHref(step)} aria-current={step.current ? 'step' : undefined}>
+                                <span class="toc-mark" data-toc-visited hidden>
+                                  <span aria-hidden="true">✓</span>
+                                  <span class="visually-hidden">已读：</span>
+                                </span>
+                                <span class="toc-label">{step.title}</span>
+                                <span class="toc-tag" data-toc-other hidden={step.onRoute}>
+                                  其他路线
+                                </span>
+                                {step.skippable && <span class="toc-tag">可跳过</span>}
+                                {step.placeholder && <span class="toc-tag">内容待补</span>}
+                              </a>
+                            </li>
+                          ))}
+                        </ol>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ),
+            )}
+          </ol>
+        </li>
+      ))
+    }
+  </ol>
+  <div class="toc-footer" data-toc-clear-area hidden>
+    <button type="button" class="toc-clear" data-toc-clear>清除进度</button>
+    <p class="toc-status" data-toc-status role="status"></p>
+  </div>
+</nav>

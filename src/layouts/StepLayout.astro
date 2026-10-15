@@ -2,10 +2,11 @@
 import CodeCopy from '../components/CodeCopy.astro';
 import ImageZoom from '../components/ImageZoom.astro';
 import StepNav from '../components/StepNav.astro';
+import Toc from '../components/Toc.astro';
 import ViewToggle from '../components/ViewToggle.astro';
 import { progressText } from '../lib/nav-text';
 import { VIEW_BOOT_SCRIPT } from '../lib/reader-state/view-boot';
-import type { At, Progress, RouteData, Stop } from '../lib/route/types';
+import type { At, OutlineChapter, Progress, RouteData, Stop } from '../lib/route/types';
 import BaseLayout from './BaseLayout.astro';
 import '../styles/prose.css';
 
@@ -15,6 +16,7 @@ import '../styles/prose.css';
  * 标题下面、正文上面是 `video` slot，步骤页放视频门面（design §4.1）；选择页不放。
  * 顶部右侧是操作｜原理切换（design §4.3）；正文里没有 `[!why]` 块时，原理视图显示“这一步没有额外原理”（FR-31）。
  * 页面末尾内嵌 RouteData，页面脚本 route-enhance 按本机选择重新计算导航（架构 §3 M3）。
+ * 目录（design §4.1、§4.5）：≥1100px 是常驻左侧栏；更窄时顶栏左侧的“目录”按钮打开抽屉，顶栏吸顶。
  */
 interface Props {
   /** 当前页在路线图里的位置，页面脚本据此重新计算导航 */
@@ -30,9 +32,11 @@ interface Props {
   skipLabel?: string | undefined;
   doneTitle: string;
   routeData: RouteData;
+  /** 构建时的目录（`view().outline`），页面脚本再按本机选择改写 */
+  outline: OutlineChapter[];
 }
 
-const { at, title, progress, chapter, prev, next, skipTo = null, skipLabel, doneTitle, routeData } = Astro.props;
+const { at, title, progress, chapter, prev, next, skipTo = null, skipLabel, doneTitle, routeData, outline } = Astro.props;
 const meta = progress ? progressText(progress) : chapter;
 // 内嵌在 <script> 里的 JSON 不能出现 `</script>`，把 `<` 转义掉。
 const routeJson = JSON.stringify(routeData).replace(/</g, '\\u003c');
@@ -49,19 +53,28 @@ const hasZoom = /<img[^>]*\sdata-zoom(\s|>)/.test(body);
 
 <BaseLayout title={title}>
   <script is:inline slot="head" set:html={VIEW_BOOT_SCRIPT} />
-  <main id="main" class="step" data-route-at={JSON.stringify(at)}>
-    <header class="step-header">
-      <div class="step-topbar">
-        {meta && <p class="step-progress" data-route-progress>{meta}</p>}
-        <ViewToggle />
-      </div>
-      <h1 class="step-title">{title}</h1>
-    </header>
-    <slot name="video" />
-    {!hasWhy && <p class="no-why">这一步没有额外原理</p>}
-    <div class="prose" set:html={body} />
-    <StepNav prev={prev} next={next} skipTo={skipTo} skipLabel={skipLabel} doneTitle={doneTitle} />
-  </main>
+  <div class="step-shell">
+    <Toc outline={outline} mode="sidebar" />
+    <main id="main" class="step" data-route-at={JSON.stringify(at)}>
+      <header class="step-header">
+        <div class="step-topbar">
+          <button type="button" class="toc-open" data-toc-open hidden>
+            <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+              <path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+            </svg>
+            目录
+          </button>
+          {meta && <p class="step-progress" data-route-progress>{meta}</p>}
+          <ViewToggle />
+        </div>
+        <h1 class="step-title">{title}</h1>
+      </header>
+      <slot name="video" />
+      {!hasWhy && <p class="no-why">这一步没有额外原理</p>}
+      <div class="prose" set:html={body} />
+      <StepNav prev={prev} next={next} skipTo={skipTo} skipLabel={skipLabel} doneTitle={doneTitle} />
+    </main>
+  </div>
   <CodeCopy />
   {hasZoom && <ImageZoom />}
   <script type="application/json" id="route-data" set:html={routeJson} />
@@ -70,9 +83,12 @@ const hasZoom = /<img[^>]*\sdata-zoom(\s|>)/.test(body);
 <script>
   import { initCodeZoom } from '../scripts/code-zoom';
   import { initRouteEnhance } from '../scripts/route-enhance';
+  import { initToc } from '../scripts/toc';
   import { initViewToggle } from '../scripts/view-toggle';
 
+  // 先 route-enhance：它写入打开这一页的阅读进度，目录才会给这一页打上 ✓。
   initRouteEnhance(document);
+  initToc(document);
   initViewToggle(document);
   initCodeZoom(document);
 </script>
@@ -90,6 +106,64 @@ const hasZoom = /<img[^>]*\sdata-zoom(\s|>)/.test(body);
     justify-content: space-between;
     gap: var(--space-3);
     margin: 0 0 var(--space-2);
+  }
+
+  .toc-open {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: var(--space-1);
+    min-height: 44px;
+    padding: 0 var(--space-3) 0 var(--space-2);
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    font-size: var(--fs-meta);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .toc-open[hidden] {
+    display: none;
+  }
+
+  /* 窄屏：顶栏吸顶，第一行是目录按钮和视图切换，进度单独占第二行（手机上放不下一行）。 */
+  @media (max-width: 1099px) {
+    .step-topbar {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      flex-wrap: wrap;
+      margin: calc(-1 * var(--space-6)) calc(-1 * var(--space-4)) var(--space-2);
+      padding: var(--space-2) var(--space-4);
+      background: var(--bg);
+      border-bottom: var(--border-width) solid var(--border);
+    }
+
+    .step-progress {
+      order: 3;
+      flex-basis: 100%;
+    }
+
+    /* 吸顶顶栏不能挡住滚动到的位置（原理块提示行、页内锚点）。顶栏高 ≈ 上下内边距 8+8 + 按钮 44
+       + 进度一行 21 + 边框 1 = 82px，进度折行时再多一行，按 120px 留余量；改顶栏时同步这里。 */
+    :global(html) {
+      scroll-padding-top: 120px;
+    }
+  }
+
+  /* 宽屏：左侧常驻目录，正文在右栏居中；不需要打开按钮。 */
+  @media (min-width: 1100px) {
+    .step-shell {
+      display: grid;
+      grid-template-columns: 300px minmax(0, 1fr);
+    }
+
+    .toc-open {
+      display: none;
+    }
   }
 
   /* 没有进度文字时，切换控件仍靠右。 */

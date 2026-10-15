@@ -105,7 +105,7 @@
   display: block;
 }
 
-/* 浮层是本页唯一的 <dialog>，用 ::backdrop 压暗背景（design §3.3：只有浮层加阴影）。 */
+/* 看大图浮层，用 ::backdrop 压暗背景（design §3.3：只有浮层加阴影）。 */
 .image-zoom {
   max-width: 96vw;
   max-height: 96vh;

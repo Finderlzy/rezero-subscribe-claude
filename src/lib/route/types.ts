@@ -168,5 +168,10 @@ export interface RouteView {
 export interface RouteMap {
   /** `stored` 是本机保存的选择，可以为空；其中失效的分叉点或选项会被忽略。不在路线图里的 `at` 会抛错。 */
   view(at: At, stored: Choices): RouteView;
+  /**
+   * 只按本机选择画的目录：和 `view().outline` 不同，不让当前页所属选项覆盖本机选择，
+   * 所以在目录里改选后，当前页可以落在“其他路线”上（FR-14）；没有当前页（常见问题、找不到页）时传 null。
+   */
+  outline(stored: Choices, current: At | null): OutlineChapter[];
   readonly data: RouteData;
 }

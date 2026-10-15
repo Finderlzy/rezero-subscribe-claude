@@ -1,8 +1,11 @@
 ---
+import Toc from '../components/Toc.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { loadSite } from '../lib/site';
 import { withBase } from '../lib/with-base';
 
-/** 找不到页（design §4.6，AC-18）。“打开目录”在步骤目录任务里补上。 */
+/** 找不到页（design §4.6，AC-18）：“打开目录”（页面脚本找到目录后才显示）和“回首页”。 */
+const site = await loadSite();
 ---
 
 <BaseLayout title="找不到这一步">
@@ -10,7 +13,15 @@ import { withBase } from '../lib/with-base';
     <h1 class="page-title">找不到这一步</h1>
     <p>这个地址没有对应的页面，可能是链接写错了。</p>
     <p class="page-actions">
+      <button type="button" class="button button-secondary" data-toc-open hidden>打开目录</button>
       <a class="button" href={withBase('/')}>回首页</a>
     </p>
   </main>
+  <Toc outline={site.route.outline({}, null)} mode="drawer" routeData={site.route.data} />
 </BaseLayout>
+
+<script>
+  import { initToc } from '../scripts/toc';
+
+  initToc(document);
+</script>

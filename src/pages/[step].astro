@@ -28,6 +28,7 @@ const { Content } = await render(entry);
   skipLabel={entry.data.skipLabel}
   doneTitle={site.done.data.title}
   routeData={site.route.data}
+  outline={view.outline}
 >
   <VideoFacade slot="video" video={entry.data.video} stepTitle={entry.data.title} />
   {entry.data.placeholder && <PlaceholderNotice hint={entry.data.placeholderHint} />}
