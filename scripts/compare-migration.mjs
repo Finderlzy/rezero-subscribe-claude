@@ -90,7 +90,10 @@ const VERSION_CHOICES = {
 
 // 还没迁入的内容：核对表里对应的行没有勾选，补上后从这里删掉。
 const PENDING = {
-  links: {},
+  links: {
+    'https://youtu.be/BcTUtYYheyA': '配套视频：作者决定不放在“整体思路”，等作者给出分步视频（核对表“文章开头”）',
+    'https://www.youtube-nocookie.com/embed/BcTUtYYheyA': '同上，视频门面点击后才插入 iframe',
+  },
   screenshots: Object.fromEntries(
     [
       '订阅claude-脚本-1-ssh.jpg',

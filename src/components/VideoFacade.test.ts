@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import VideoFacade from './VideoFacade.astro';
 
 // 门面的构建产物（FR-40–42）：点击前只有本站画的占位和外链，不含 iframe；
-// 两个平台时有切换（默认 B 站）。点击后插入 iframe 由 AC-07 的 e2e 覆盖；现有内容没有两个平台的步骤，
-// 切换的行为（换外链、撤掉播放器）在 #17 里用开发服务器人工核对过。
+// 两个平台时有切换（默认 B 站）。现有内容还没有带视频的步骤，点击后插入 iframe、切换平台（换外链、撤掉播放器）
+// 的行为在 #17 里用开发服务器人工核对过，核对方式写在 tests/e2e/ac-07-video.spec.ts 开头。
 async function render(props: Record<string, unknown>) {
   const container = await AstroContainer.create();
   return container.renderToString(VideoFacade, { props });
