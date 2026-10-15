@@ -90,10 +90,7 @@ const VERSION_CHOICES = {
 
 // 还没迁入的内容：核对表里对应的行没有勾选，补上后从这里删掉。
 const PENDING = {
-  links: {
-    'https://youtu.be/BcTUtYYheyA': '配套视频，放在哪些步骤由视频门面任务（#17）决定（核对表“文章开头”）',
-    'https://www.youtube-nocookie.com/embed/BcTUtYYheyA': '同上，视频门面点击后才插入 iframe',
-  },
+  links: {},
   screenshots: Object.fromEntries(
     [
       '订阅claude-脚本-1-ssh.jpg',
@@ -281,12 +278,13 @@ for (const [name, s] of Object.entries(sources)) for (const u of s.urls) if (!or
 const siteUrls = new Map();
 for (const f of site) for (const u of f.urls) if (!siteUrls.has(u.url)) siteUrls.set(u.url, `${f.rel}:${u.line}`);
 const videoIds = new Set(site.map((f) => f.youtube).filter(Boolean));
+// 视频写进了步骤 frontmatter 的 video 字段（M1），由视频门面生成外链和播放器，正文里没有这条链接。
+const isStepVideo = (url) => videoIds.has(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/embed\/)([\w-]+)/.exec(url)?.[1]);
 const convertedUrls = new Set(converted.map((t) => t.url).filter(Boolean));
 
 for (const [url, where] of origUrls) {
   if (siteUrls.has(url)) continue;
-  const id = /(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/embed\/)([\w-]+)/.exec(url)?.[1];
-  if (id && videoIds.has(id)) continue; // 视频写进了步骤 frontmatter 的 video 字段（M1）
+  if (isStepVideo(url)) continue;
   if (PENDING.links[url]) pending.push(`链接 ${url}（${where}）：${PENDING.links[url]}`);
   else problems.链接.push(`站内缺少原文的外链（${where}）：${url}`);
 }
@@ -300,7 +298,7 @@ for (const [name, s] of Object.entries(sources)) for (const l of s.mdLinks) if (
 const siteLinks = new Map();
 for (const f of site) for (const l of f.mdLinks) if (!siteLinks.has(l.key)) siteLinks.set(l.key, { ...l, where: `${f.rel}:${l.line}` });
 for (const [key, l] of origLinks) {
-  if (siteLinks.has(key) || PENDING.links[l.url]) continue;
+  if (siteLinks.has(key) || PENDING.links[l.url] || isStepVideo(l.url)) continue;
   if (VERSION_CHOICES[key]) choices.push(`${l.where} ${key}\n    ${VERSION_CHOICES[key]}`);
   else problems.链接.push(`站内缺少原文的链接（${l.where}）：${key}`);
 }

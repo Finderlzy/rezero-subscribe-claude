@@ -12,6 +12,7 @@ import '../styles/prose.css';
 /**
  * 步骤页骨架（design §4.1）：顶部“章节名 · 第 n 步，共 m 步”和标题，正文，底部上一步/下一步。
  * 选择页也用它（design §4.2）：不计入步数，顶部只写章节名（传 `chapter`，`progress` 为 null）。
+ * 标题下面、正文上面是 `video` slot，步骤页放视频门面（design §4.1）；选择页不放。
  * 顶部右侧是操作｜原理切换（design §4.3）；正文里没有 `[!why]` 块时，原理视图显示“这一步没有额外原理”（FR-31）。
  * 页面末尾内嵌 RouteData，页面脚本 route-enhance 按本机选择重新计算导航（架构 §3 M3）。
  */
@@ -56,6 +57,7 @@ const hasZoom = /<img[^>]*\sdata-zoom(\s|>)/.test(body);
       </div>
       <h1 class="step-title">{title}</h1>
     </header>
+    <slot name="video" />
     {!hasWhy && <p class="no-why">这一步没有额外原理</p>}
     <div class="prose" set:html={body} />
     <StepNav prev={prev} next={next} skipTo={skipTo} skipLabel={skipLabel} doneTitle={doneTitle} />
