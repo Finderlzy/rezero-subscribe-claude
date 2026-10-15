@@ -8,10 +8,13 @@ import '../styles/prose.css';
 
 /**
  * 首页（design §4.4，FR-18）：站名、前言、“直接开始”，再列出全部章节名预告全程有多长。
- * 不放致谢和后记。“继续上次”由阅读进度任务补上。
+ * 不放致谢和后记。有阅读进度时，页面脚本显示主按钮“继续上次：<步骤名>”，“直接开始”降为次按钮（FR-50）。
  */
 const site = await loadSite();
 const { Content } = await render(site.home);
+// 页面脚本只需要“步骤标识 → 标题”来写“继续上次”；内嵌 JSON 里的 `<` 转义掉（同 StepLayout）。
+const stepTitles = Object.fromEntries(Object.entries(site.route.data.steps).map(([id, step]) => [id, step.title]));
+const stepsJson = JSON.stringify(stepTitles).replace(/</g, '\\u003c');
 ---
 
 <BaseLayout>
@@ -25,7 +28,8 @@ const { Content } = await render(site.home);
     </section>
 
     <p class="page-actions">
-      <a class="button" href={withBase(pathOf(site.start))}>直接开始</a>
+      <a class="button" data-home-resume hidden>继续上次</a>
+      <a class="button" href={withBase(pathOf(site.start))} data-home-start>直接开始</a>
     </p>
 
     <section aria-labelledby="home-chapters">
@@ -35,7 +39,14 @@ const { Content } = await render(site.home);
       </ol>
     </section>
   </main>
+  <script type="application/json" id="home-steps" set:html={stepsJson} />
 </BaseLayout>
+
+<script>
+  import { initHome } from '../scripts/home';
+
+  initHome(document);
+</script>
 
 <style>
   .home-title {
@@ -51,6 +62,17 @@ const { Content } = await render(site.home);
     font-size: var(--fs-meta);
     line-height: var(--lh-meta);
     font-weight: 500;
+  }
+
+  /* 有进度时“直接开始”降为次按钮：只描边，主按钮仍是页面里唯一的强调色块。 */
+  .button-secondary {
+    background: transparent;
+    color: var(--text);
+    border: var(--border-width) solid var(--border);
+  }
+
+  .button[hidden] {
+    display: none;
   }
 
   .home-chapters-title {
