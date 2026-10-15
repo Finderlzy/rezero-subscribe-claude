@@ -46,7 +46,7 @@
 
 **职责**：定义内容文件的格式；加载并校验元数据；把 Obsidian 写法转换成 HTML。
 
-**内容文件**（`route.yaml`、`steps/`、`pages/` 已由 #5 建立，`choices/` 由 #6 建立，`faq/` 随迁移任务建立）
+**内容文件**（`route.yaml`、`steps/`、`pages/` 已由 #5 建立，`choices/` 由 #6 建立，`faq/` 由 #14 建立）
 
 | 路径 | 内容 | 元数据（Zod 校验） |
 | --- | --- | --- |
@@ -54,7 +54,7 @@
 | `src/content/steps/<step-id>.md` | 一个步骤：操作内容 + 内嵌的 `[!why]` 原理块 | `title`（必填）；`skippable`（默认 false）；`placeholder`（默认 false，FR-21）；`video: { bilibili?: BV号, youtube?: 视频ID }`（可空，FR-40）；`placeholderHint`（可选，写原文里已有的提示）；`skipLabel`（可选，跳过按钮文案，默认“已有，跳过”） |
 | `src/content/choices/<fork-id>.md` | 一个分叉点的选择页：引导语 | `question`；`options: { <option-id>: { title, path?, effort?, audience? } }`（对应原文的对比表） |
 | `src/content/faq/<faq-id>.md` | 一条常见问题 | `title` |
-| `src/content/pages/home.md`、`done.md` | 首页前言；完成页的致谢、后记、联系方式 | `title` |
+| `src/content/pages/home.md`、`done.md`、`faq.md` | 首页前言；完成页的致谢、后记、联系方式；常见问题列表页的引导语和条目列表（列表项写 `[[faq/…]]` 双链，决定列表顺序；漏列条目时 `loadSite()` 报错、构建失败，规则见 `site.ts` 的 `unlistedFaq()`，#14） | `title` |
 | `src/assets/screenshots/` | 截图（从博客的 `09附件/` 复制过来，FR-04） | — |
 
 **route.yaml 格式**（下例是完整路线图的样子；目前迁入了“开始”到“九、注册 claude”）：章节和分叉点的唯一来源，满足 FR-02 中“所属章节、所属路线”的要求。步骤文件不重复写这两项，避免两处数据不一致。
@@ -201,6 +201,7 @@ function pathOf(stop: Stop): string;
   - 实现（#9）：内联脚本是 `src/lib/reader-state/view-boot.ts` 的 `VIEW_BOOT_SCRIPT`，由 `StepLayout` 经 `BaseLayout` 的 `head` slot 放进 `<head>`；它只按 M4 的格式取 `view`，取不到或不合法时用 `operation`。切换控件是 `src/components/ViewToggle.astro`，放在步骤页和选择页标题上方的一行里（吸顶顶栏由目录任务统一安排）；按下状态由 CSS 按 `data-view` 画，没有 JS（没有 `data-view`）时整个隐藏。页面脚本 `src/scripts/view-toggle.ts` 处理点击、同步 `aria-pressed`、写 M4 的 `view`，并在每个原理块前插入提示行“为什么：<标题> · 在原理视图中查看”（点它切到原理视图并滚到该块）；提示行由脚本插入，所以没有 JS 时不显示。“这一步没有额外原理”在构建时决定：`StepLayout` 先渲染正文，HTML 里没有 `data-callout="why"` 才输出这一行，只在原理视图下显示。显示规则都在 `src/styles/prose.css` 末尾。
 - **视频门面**：不发任何外部请求。读者点击后才插入 iframe：B 站用 `player.bilibili.com/player.html?bvid=…`（参数在实施时实测），YouTube 用 `www.youtube-nocookie.com/embed/<id>`。播放器下方总有一行平台外链：浏览器无法可靠判断 iframe 有没有加载失败，所以这行链接一直显示（FR-42）。
 - **常见问题的“返回”**：根据 `?from=<step-id>` 查到步骤标题，再显示返回链接。参数里只有公开的步骤标识，没有个人数据。
+  - 实现（#14）：页面是静态的，返回链接由页面脚本 `src/scripts/faq-return.ts` 填写。条目页 `src/pages/faq/[faq].astro` 内嵌“步骤标识 → 标题”的 JSON，在标题上方和正文末尾各放一个隐藏的返回链接；纯函数 `faqReturn()`（`src/lib/faq-return.ts`）只认路线图里已有的步骤标识，认到时脚本填好链接（`/<step-id>/`）并显示；没有 JS 或参数无效时按直接打开处理。正文末尾总有“常见问题列表”入口。常见问题页不加载视图切换和 route-enhance，也不写本机状态，所以常见问题条目里不写 `[!why]` 块（没有视图切换，会一直收起）。“打开目录”入口随目录任务（#18）补上，同找不到页。
 
 ### M4 本机状态（`src/lib/reader-state/`）
 
@@ -276,11 +277,12 @@ M4 不依赖 M2：`StepId`、`Choices` 等在 M4 里是同义的字符串别名�
 │   │   ├── route/                   M2：route-map.ts、types.ts（+ route-map.test.ts、fixtures/sample-route.ts 测试用路线图）
 │   │   ├── reader-state/            M4：reader-store.ts、view-boot.ts（视图内联脚本，#9）（+ *.test.ts）
 │   │   ├── nav-text.ts              导航文案（进度、目标标题），构建时和页面脚本共用（+ *.test.ts）
+│   │   ├── faq-return.ts            常见问题页按 ?from= 找回步骤（#14，+ *.test.ts）
 │   │   └── site.ts                  构建时装配：loadSite()、assembleRoute()（+ site.test.ts）
-│   ├── scripts/                     M3 页面脚本：route-enhance.ts（按本机选择改写导航，#8；+ *.test.ts）、view-toggle.ts（视图切换，#9）
+│   ├── scripts/                     M3 页面脚本：route-enhance.ts（按本机选择改写导航，#8；+ *.test.ts）、view-toggle.ts（视图切换，#9）、faq-return.ts（常见问题的返回链接，#14）
 │   ├── layouts/                     BaseLayout（`head` slot）、StepLayout（内嵌 RouteData、视图内联脚本，加载 route-enhance 和 view-toggle）
 │   ├── components/                  M3 组件：StepNav、ChoiceOption、ViewToggle（已有）；Toc、VideoFacade、CodeCopy、ImageZoom …（计划）
-│   ├── pages/                       index、[step]、choose/[fork]、done、404（已有）；faq/index、faq/[faq]（计划）
+│   ├── pages/                       index、[step]、choose/[fork]、done、404、faq/index、faq/[faq]
 │   └── styles/                      tokens.css、base.css、prose.css
 ├── public/                          直接复制的文件（favicon 等）
 └── tests/

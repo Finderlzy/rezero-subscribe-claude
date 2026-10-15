@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { RouteValidationError } from './route/route-map';
-import { assembleRoute, parseRouteYaml, startOf } from './site';
+import { assembleRoute, parseRouteYaml, startOf, unlistedFaq } from './site';
 
 const START_ONLY = `
 defaults: {}
@@ -87,5 +87,22 @@ describe('startOf', () => {
   it('取路线图第一章的第一项', () => {
     const route = assembleRoute(parseRouteYaml(START_ONLY), [step('before-you-start'), step('overview')], []);
     expect(startOf(route)).toEqual({ kind: 'step', id: 'before-you-start', title: '标题 before-you-start' });
+  });
+});
+
+describe('unlistedFaq：常见问题列表页 pages/faq.md 漏列的条目', () => {
+  const ids = ['open-panel', 'reinstall'];
+
+  it('每条都写成列表项里的 [[faq/…]] 时没有漏列；允许链接文字和两边空格', () => {
+    expect(unlistedFaq('引导语\n\n- [[faq/open-panel]]\n* [[ faq/reinstall |装过了]]\n', ids)).toEqual([]);
+  });
+
+  it('只看列表项：正文、代码块、注释里提到的不算列上', () => {
+    const body = '见 [[faq/reinstall]]。\n\n```\n- [[faq/reinstall]]\n```\n\n<!-- - [[faq/reinstall]] -->\n\n- [[faq/open-panel]]\n';
+    expect(unlistedFaq(body, ids)).toEqual(['reinstall']);
+  });
+
+  it('标识是另一条的前缀时不算列上', () => {
+    expect(unlistedFaq('- [[faq/open-panel-old]]\n- [[faq/reinstall]]\n', ids)).toEqual(['open-panel']);
   });
 });
