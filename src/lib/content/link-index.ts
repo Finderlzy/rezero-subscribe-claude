@@ -14,30 +14,21 @@ export interface LinkIndex {
   readonly contentRoot: string;
   /** 截图目录（绝对路径），即 `src/assets/screenshots` */
   readonly screenshotsDir: string;
-  /** 步骤标识 → 标题 */
-  readonly steps: ReadonlyMap<string, string>;
-  /** 常见问题标识 → 标题 */
-  readonly faq: ReadonlyMap<string, string>;
-  /** 分叉点标识 → 选择页的问题（`question`） */
-  readonly choices: ReadonlyMap<string, string>;
   /** 截图文件名（含扩展名，可含空格和中文） */
   readonly screenshots: ReadonlySet<string>;
-  /** 完成页标题（`pages/done.md` 的 `title`），没有该文件时为 undefined */
-  readonly doneTitle: string | undefined;
-
-  /** v2.0：`principle/`、`operation/`、`reference/` 下的全部页面文件（ADR-0005） */
+  /** `principle/`、`operation/`、`reference/` 下的全部页面文件（ADR-0005） */
   readonly pages: readonly IndexedPage[];
-  /** v2.0：标题 → 页面，只收原理版和参考页（操作版与原理版同 URL）；标题重复时保留先扫描到的 */
+  /** 标题 → 页面，只收原理版和参考页（操作版与原理版同 URL）；标题重复时保留先扫描到的 */
   readonly titles: ReadonlyMap<string, IndexedPage>;
-  /** v2.0：`blog-links.yaml`，博客文章的双链目标 → 地址，待作者提供时为 null（Q-11） */
+  /** `blog-links.yaml`，博客文章的双链目标 → 地址，待作者提供时为 null（Q-11） */
   readonly blogLinks: ReadonlyMap<string, string | null>;
   /** `blog-links.yaml` 读不懂时的说明，由 checkPages 报出 */
   readonly blogLinksError: string | undefined;
 }
 
-/** v2.0 的三个内容集合（架构 §3 M1） */
-export const V2_COLLECTIONS = ['principle', 'operation', 'reference'] as const;
-export type PageKind = (typeof V2_COLLECTIONS)[number];
+/** 三个内容集合（架构 §3 M1） */
+export const COLLECTIONS = ['principle', 'operation', 'reference'] as const;
+export type PageKind = (typeof COLLECTIONS)[number];
 
 export interface IndexedPage {
   kind: PageKind;
@@ -56,17 +47,15 @@ export interface IndexedPage {
 }
 
 /**
- * 扫描 `contentRoot` 下的 `steps/`、`faq/`、`choices/`、`pages/done.md` 和截图目录。
- * 目录不存在时视为空。标识取文件名去掉 `.md`；标题读 frontmatter，读不到时退回标识
- * （缺少必填元数据由内容集合的 Zod schema 报错，这里不重复校验）。
+ * 扫描 `contentRoot` 下的三个内容集合、`blog-links.yaml` 和截图目录，目录不存在时视为空。
+ * 标识取相对集合目录、去掉 `.md` 的路径；标题取正文第一行的 `# 标题`（缺失由 checkPages 报错）。
  */
 export function createLinkIndex(
   contentRoot: string,
   screenshotsDir: string = resolve(contentRoot, '../assets/screenshots'),
 ): LinkIndex {
   const root = resolve(contentRoot);
-  const donePath = join(root, 'pages', 'done.md');
-  const pages = V2_COLLECTIONS.flatMap((kind) => listMarkdownDeep(join(root, kind)).map((id) => scanPage(kind, id, join(root, kind, `${id}.md`))));
+  const pages = COLLECTIONS.flatMap((kind) => listMarkdownDeep(join(root, kind)).map((id) => scanPage(kind, id, join(root, kind, `${id}.md`))));
   const titles = new Map<string, IndexedPage>();
   for (const page of pages) {
     if (page.kind !== 'operation' && page.title !== undefined && !titles.has(page.title)) titles.set(page.title, page);
@@ -74,11 +63,7 @@ export function createLinkIndex(
   return {
     contentRoot: root,
     screenshotsDir: resolve(screenshotsDir),
-    steps: scanMarkdown(join(root, 'steps'), 'title'),
-    faq: scanMarkdown(join(root, 'faq'), 'title'),
-    choices: scanMarkdown(join(root, 'choices'), 'question'),
     screenshots: new Set(listFiles(resolve(screenshotsDir))),
-    doneTitle: existsSync(donePath) ? readField(donePath, 'title') : undefined,
     pages,
     titles,
     ...readBlogLinks(join(root, 'blog-links.yaml')),
@@ -90,37 +75,12 @@ export function resolveLinkIndex(index: LinkIndex | (() => LinkIndex)): LinkInde
   return typeof index === 'function' ? index() : index;
 }
 
-/** 目录下的 .md 文件名（不含隐藏文件，已排序）；目录不存在时为空 */
-export function listMarkdown(dir: string): string[] {
-  return listFiles(dir).filter((name) => extname(name) === '.md');
-}
-
 function listFiles(dir: string): string[] {
   if (!existsSync(dir)) return [];
   return readdirSync(dir, { withFileTypes: true })
     .filter((entry) => entry.isFile() && !entry.name.startsWith('.'))
     .map((entry) => entry.name)
     .sort();
-}
-
-function scanMarkdown(dir: string, field: string): Map<string, string> {
-  const map = new Map<string, string>();
-  for (const name of listMarkdown(dir)) {
-    const id = basename(name, '.md');
-    map.set(id, readField(join(dir, name), field) ?? id);
-  }
-  return map;
-}
-
-function readField(file: string, field: string): string | undefined {
-  try {
-    const { frontmatter } = parseFrontmatter(readFileSync(file, 'utf8'));
-    const value = (frontmatter as Record<string, unknown>)[field];
-    return typeof value === 'string' && value.trim() !== '' ? value.trim() : undefined;
-  } catch {
-    // frontmatter 写坏时由内容集合报错；这里退回标识，避免同一个错误报两遍。
-    return undefined;
-  }
 }
 
 /** 目录下全部 .md 的相对路径（去掉 .md，用 / 分隔，已排序）；目录不存在时为空 */
@@ -139,7 +99,7 @@ const ATX_HEADING = /^ {0,3}(#{1,6})[ \t]+(.*?)(?:[ \t]+#+)?[ \t]*$/;
 const FENCE = /^ {0,3}(`{3,}|~{3,})/;
 
 /**
- * 读一个 v2 页面文件的标题和小标题。不跑完整的 Markdown 解析：重写稿的小标题都是纯文字，
+ * 读一个页面文件的标题和小标题。不跑完整的 Markdown 解析：重写稿的小标题都是纯文字，
  * 这里只认 ATX 标题、跳过代码块，再去掉常见的行内记号，与渲染后的标题文字一致。
  */
 function scanPage(kind: PageKind, id: string, file: string): IndexedPage {
@@ -221,7 +181,7 @@ function display(file: string): string {
 }
 
 /**
- * v2 页面之间的校验（架构 §3 M1，FR-03、FR-61）：缺第一行标题、全站标题重复、两版标题不同、
+ * 页面之间的校验（架构 §3 M1，FR-03、FR-61）：缺第一行标题、全站标题重复、两版标题不同、
  * 操作版没有原理版、原理独有步骤却有操作版，以及 blog-links.yaml 的形状。
  */
 export function checkPages(index: LinkIndex): ContentProblem[] {

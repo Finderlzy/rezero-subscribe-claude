@@ -1,26 +1,29 @@
+import { readdirSync, readFileSync } from 'node:fs';
+import { basename } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { parseFrontmatter } from '@astrojs/markdown-remark';
 import { describe, expect, it } from 'vitest';
-import { RouteValidationError } from './route/route-map';
-import { assembleRoute, parseRouteYaml, startOf, unlistedFaq } from './site';
+import routeText from '../content/route.yaml?raw';
+import { principleSchema } from './content/schemas';
+import { RouteValidationError, type RouteMap, type Stop, type ViewMode } from './route/route-map';
+import { assembleRoute, pageTitle, parseRouteYaml, startOf, type PrincipleEntry } from './site';
 
 const START_ONLY = `
-defaults: {}
 chapters:
   - id: start
     title: 开始
-    items: [before-you-start, overview]
+    items: [preface, afterword]
 `;
 
-const step = (id: string, data: Record<string, unknown> = {}) => ({
+const entry = (id: string, data: Partial<PrincipleEntry['data']> = {}): PrincipleEntry => ({
   id,
-  data: { title: `标题 ${id}`, skippable: false, placeholder: false, ...data },
+  body: `# 标题 ${id}\n\n正文`,
+  data: { principleOnly: false, skippable: false, ...data },
 });
 
 describe('parseRouteYaml', () => {
   it('把 route.yaml 文本解析成普通对象', () => {
-    expect(parseRouteYaml(START_ONLY)).toEqual({
-      defaults: {},
-      chapters: [{ id: 'start', title: '开始', items: ['before-you-start', 'overview'] }],
-    });
+    expect(parseRouteYaml(START_ONLY)).toEqual({ chapters: [{ id: 'start', title: '开始', items: ['preface', 'afterword'] }] });
   });
 
   it('YAML 写坏时报出 route.yaml 和行号', () => {
@@ -28,46 +31,40 @@ describe('parseRouteYaml', () => {
   });
 });
 
+describe('pageTitle', () => {
+  it('取正文第一个非空行的 # 标题', () => {
+    expect(pageTitle('\n# 选择方案  \n\n正文', 'x.md')).toBe('选择方案');
+  });
+
+  it('没有时报出文件', () => {
+    expect(() => pageTitle('正文', 'src/content/principle/x.md')).toThrow(/principle\/x\.md：缺少第一行标题/);
+    expect(() => pageTitle(undefined, 'y.md')).toThrow(/y\.md/);
+  });
+});
+
 describe('assembleRoute', () => {
-  it('把步骤条目映射成路线需要的元数据，按 route.yaml 编译', () => {
-    const route = assembleRoute(parseRouteYaml(START_ONLY), [step('overview'), step('before-you-start')], []);
-    const view = route.view({ kind: 'step', id: 'before-you-start' }, {});
-
-    expect(view.prev).toBeNull();
-    expect(view.next).toEqual({ kind: 'step', id: 'overview', title: '标题 overview' });
-    expect(view.progress).toEqual({ chapterId: 'start', chapter: '开始', index: 1, total: 2 });
-    expect(route.view({ kind: 'step', id: 'overview' }, {}).next).toEqual({ kind: 'done' });
+  it('标题取正文第一行，带上 principleOnly、skippable、skipLabel', () => {
+    const route = assembleRoute(parseRouteYaml(START_ONLY), [entry('afterword'), entry('preface', { skippable: true, skipLabel: '跳过吧' })]);
+    expect(route.data.pages['preface']).toEqual({ title: '标题 preface', principleOnly: false, skippable: true, skipLabel: '跳过吧' });
+    expect(route.view('preface', {}, 'operation').next).toEqual({ kind: 'step', id: 'afterword', title: '标题 afterword' });
   });
 
-  it('带上 skippable、skipLabel、placeholder，不带内容字段', () => {
-    const route = assembleRoute(
-      parseRouteYaml(START_ONLY),
-      [step('before-you-start'), step('overview', { skippable: true, skipLabel: '没用过，跳过', placeholder: true, placeholderHint: '提示' })],
-      [],
-    );
-    expect(route.data.steps['overview']).toEqual({ title: '标题 overview', skippable: true, skipLabel: '没用过，跳过', placeholder: true });
-  });
-
-  it('选择页标题取 question，选项按 frontmatter 里的书写顺序', () => {
+  it('选择页的选项按 frontmatter 里的书写顺序', () => {
     const spec = parseRouteYaml(`
-defaults: { node-plan: plan-2 }
 chapters:
   - id: start
     title: 开始
     items:
-      - before-you-start
-      - choose: node-plan
+      - preface
+      - { choose: node-plan, page: choose-plan }
       - branch: node-plan
         options: { plan-2: [b], plan-1: [a] }
-      - overview
+      - afterword
 `);
-    const route = assembleRoute(
-      spec,
-      [step('before-you-start'), step('a'), step('b'), step('overview')],
-      [{ id: 'node-plan', data: { question: '你想用哪种方式？', options: { 'plan-2': { title: '方案二' }, 'plan-1': { title: '方案一' } } } }],
-    );
+    const options = { 'plan-2': { title: '方案二', heading: '二' }, 'plan-1': { title: '方案一', heading: '一' } };
+    const route = assembleRoute(spec, [entry('preface'), entry('choose-plan', { options }), entry('a'), entry('b'), entry('afterword')]);
     expect(route.data.forks['node-plan']).toEqual({
-      title: '你想用哪种方式？',
+      page: 'choose-plan',
       options: [
         { id: 'plan-2', title: '方案二' },
         { id: 'plan-1', title: '方案一' },
@@ -76,33 +73,98 @@ chapters:
   });
 
   it('路线图有错时抛出 RouteValidationError，列出出错的文件', () => {
-    const run = () => assembleRoute(parseRouteYaml(START_ONLY), [step('before-you-start'), step('orphan')], []);
+    const run = () => assembleRoute(parseRouteYaml(START_ONLY), [entry('preface'), entry('afterword'), entry('orphan')]);
     expect(run).toThrow(RouteValidationError);
-    expect(run).toThrow(/route\.yaml/);
-    expect(run).toThrow(/steps\/orphan\.md/);
+    expect(run).toThrow(/principle\/orphan\.md/);
   });
 });
 
-describe('startOf', () => {
-  it('取路线图第一章的第一项', () => {
-    const route = assembleRoute(parseRouteYaml(START_ONLY), [step('before-you-start'), step('overview')], []);
-    expect(startOf(route)).toEqual({ kind: 'step', id: 'before-you-start', title: '标题 before-you-start' });
+// ================================================================ 真实路线图（Issue #25 的 M2 边界用例）
+
+const principleDir = fileURLToPath(new URL('../content/principle/', import.meta.url));
+
+/** 按构建时同样的规则读真实的原理版文件 */
+function realEntries(): PrincipleEntry[] {
+  return readdirSync(principleDir)
+    .filter((name) => name.endsWith('.md'))
+    .map((name) => {
+      const { frontmatter, content } = parseFrontmatter(readFileSync(principleDir + name, 'utf8'));
+      return { id: basename(name, '.md'), body: content, data: principleSchema.parse(frontmatter) };
+    });
+}
+
+describe('真实 route.yaml', () => {
+  const route: RouteMap = assembleRoute(parseRouteYaml(routeText), realEntries());
+  const id = (stop: Stop | null) => (stop === null ? null : stop.kind === 'home' ? 'home' : stop.id);
+  const nav = (at: string, mode: ViewMode = 'operation', stored = {}) => {
+    const v = route.view(at, stored, mode);
+    return { prev: id(v.prev), next: id(v.next), skipTo: id(v.skipTo), returnTo: id(v.returnTo) };
+  };
+
+  it('首页的“开始”进入前言', () => {
+    expect(startOf(route)).toEqual({ kind: 'step', id: 'preface', title: '前言' });
   });
-});
 
-describe('unlistedFaq：常见问题列表页 pages/faq.md 漏列的条目', () => {
-  const ids = ['open-panel', 'reinstall'];
-
-  it('每条都写成列表项里的 [[faq/…]] 时没有漏列；允许链接文字和两边空格', () => {
-    expect(unlistedFaq('引导语\n\n- [[faq/open-panel]]\n* [[ faq/reinstall |装过了]]\n', ids)).toEqual([]);
+  it('无痕打开（没有本机选择）：导入代理软件 → 上一步选择方案；注册 Gmail → 上一步选择手机系统；订阅 → 下一步选择手机系统（AC-09）', () => {
+    expect(nav('import-proxy').prev).toBe('choose-plan');
+    expect(nav('register-gmail').prev).toBe('choose-phone');
+    expect(nav('subscribe').next).toBe('choose-phone');
   });
 
-  it('只看列表项：正文、代码块、注释里提到的不算列上', () => {
-    const body = '见 [[faq/reinstall]]。\n\n```\n- [[faq/reinstall]]\n```\n\n<!-- - [[faq/reinstall]] -->\n\n- [[faq/open-panel]]\n';
-    expect(unlistedFaq(body, ids)).toEqual(['reinstall']);
+  it('选择方案未选时没有下一步', () => {
+    expect(nav('choose-plan').next).toBeNull();
   });
 
-  it('标识是另一条的前缀时不算列上', () => {
-    expect(unlistedFaq('- [[faq/open-panel-old]]\n- [[faq/reinstall]]\n', ids)).toEqual(['open-panel']);
+  it('iPhone：下载 Gmail → 上一步 iPhone：导入代理软件，下一步注册 Gmail（AC-08）', () => {
+    expect(nav('iphone-gmail')).toMatchObject({ prev: 'iphone-proxy', next: 'register-gmail' });
+  });
+
+  it('测 IP 质量的下一步：操作视图是防泄漏，原理视图是小结', () => {
+    expect(nav('check-ip', 'operation').next).toBe('leak-protection');
+    expect(nav('check-ip', 'principle').next).toBe('recap');
+  });
+
+  it('操作视图直接打开整体思路：按原理序列计算', () => {
+    expect(nav('overview', 'operation')).toMatchObject({ prev: 'disclaimer', next: 'clean-up' });
+  });
+
+  it('被封了：申诉解封 → 回到先用两天，下一步修改 Google 账号地区（FR-19）', () => {
+    expect(nav('google-appeal')).toEqual({ prev: null, next: 'google-region', skipTo: null, returnTo: 'use-two-days' });
+  });
+
+  it('前言的上一步和后记的下一步是首页', () => {
+    expect(nav('preface').prev).toBe('home');
+    expect(nav('afterword').next).toBe('home');
+  });
+
+  it('五、安装面板可跳过，跳到导入代理软件；四、购买 ISP 代理不可跳过（AC-05）', () => {
+    expect(nav('plan1-panel', 'operation', { 'node-plan': 'plan-1' }).skipTo).toBe('import-proxy');
+    expect(nav('plan1-buy-isp', 'operation', { 'node-plan': 'plan-1' })).toMatchObject({ next: 'plan1-panel', skipTo: null });
+  });
+
+  it('12 条序列都从前言走到后记、没有环；操作视图不经过三个原理独有步骤，原理视图经过（AC-02 逻辑层）', () => {
+    const principleOnly = ['overview', 'recap', 'iphone-why-us-apple-id'];
+    for (const mode of ['operation', 'principle'] as const) {
+      for (const plan of ['plan-1', 'plan-2', 'plan-3']) {
+        for (const phone of ['iphone', 'android']) {
+          const seen: string[] = [];
+          for (let at: string | null = 'preface'; at !== null; ) {
+            seen.push(at);
+            const next: Stop | null = route.view(at, { 'node-plan': plan, phone }, mode).next;
+            at = next === null || next.kind === 'home' ? null : next.id;
+            if (seen.length > 60) throw new Error('走不完');
+          }
+          expect(seen.at(-1)).toBe('afterword');
+          expect(new Set(seen).size).toBe(seen.length);
+          const visited = principleOnly.filter((p) => seen.includes(p));
+          expect(visited).toEqual(mode === 'operation' ? [] : phone === 'iphone' ? principleOnly : ['overview', 'recap']);
+        }
+      }
+    }
+  });
+
+  it('faq、ip-tests 是保留字，没有页面占用', () => {
+    expect(Object.keys(route.data.pages)).not.toContain('faq');
+    expect(Object.keys(route.data.pages)).not.toContain('ip-tests');
   });
 });

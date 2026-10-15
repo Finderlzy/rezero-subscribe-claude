@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { playerTitle, unavailableHint, videoSources } from './sources';
 
 describe('videoSources：步骤视频的来源和顺序', () => {
-  it('没有视频信息时没有来源（显示“视频制作中”）', () => {
+  it('没有视频信息时没有来源（不输出视频区域）', () => {
     expect(videoSources(undefined)).toEqual([]);
     expect(videoSources({})).toEqual([]);
   });

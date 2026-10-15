@@ -6,7 +6,7 @@ import { z } from 'astro/zod';
  */
 
 /**
- * 标识（步骤、分叉点、选项、常见问题）：英文 kebab-case，同时是文件名和 URL（ADR-0002）。
+ * 标识（页面、选项）：英文 kebab-case，同时是文件名和 URL（ADR-0002）。
  * 必须以字母开头：纯数字的键在 JS 对象里会被排到前面，打乱选项顺序。
  */
 export const ID_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
@@ -23,49 +23,8 @@ const videoSchema = z
 
 const optionId = z.string().regex(ID_PATTERN, '选项标识要用英文 kebab-case');
 
-export const stepSchema = z
-  .strictObject({
-    title: text,
-    /** 可跳过步骤（FR-15） */
-    skippable: z.boolean().default(false),
-    /** 内容待补占位（FR-21） */
-    placeholder: z.boolean().default(false),
-    video: videoSchema.optional(),
-    /** 占位步骤里给出的原文提示（FR-21） */
-    placeholderHint: text.optional(),
-    /** 跳过按钮文案，默认“已有，跳过”（FR-15） */
-    skipLabel: text.optional(),
-  })
-  .superRefine((step, ctx) => {
-    if (step.skipLabel !== undefined && !step.skippable) {
-      ctx.addIssue({ code: 'custom', path: ['skipLabel'], message: '只有 skippable: true 的步骤才能写 skipLabel' });
-    }
-    if (step.placeholderHint !== undefined && !step.placeholder) {
-      ctx.addIssue({ code: 'custom', path: ['placeholderHint'], message: '只有 placeholder: true 的步骤才能写 placeholderHint' });
-    }
-  });
-
-export const choiceSchema = z.strictObject({
-  question: text,
-  options: z
-    .record(
-      optionId,
-      z.strictObject({
-        title: text,
-        path: text.optional(),
-        effort: text.optional(),
-        audience: text.optional(),
-      }),
-    )
-    .refine((options) => Object.keys(options).length >= 2, '分叉点至少要有两个选项'),
-});
-
-export const faqSchema = z.strictObject({ title: text });
-
-export const pageSchema = z.strictObject({ title: text });
-
 /*
- * v2.0 内容集合（架构 §3 M1 内容文件表）。页面标题不写在 frontmatter 里，取正文第一行的 `# 标题`
+ * 内容集合（架构 §3 M1 内容文件表）。页面标题不写在 frontmatter 里，取正文第一行的 `# 标题`
  * （由链接索引读取并校验），所以三个 schema 都没有 title。
  */
 

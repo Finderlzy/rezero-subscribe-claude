@@ -2,7 +2,7 @@
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'astro/config';
 import { unified } from '@astrojs/markdown-remark';
-import { contentValidation, placeholderReport } from './src/lib/content/integration';
+import { contentValidation } from './src/lib/content/integration';
 import { createLinkIndex } from './src/lib/content/link-index';
 import { markdownPipeline } from './src/lib/content/markdown';
 
@@ -21,8 +21,8 @@ export default defineConfig({
     format: 'directory',
   },
   // 构建开始时检查全部内容的双链、嵌入和 Callout，有问题就终止构建（FR-61）；
-  // 路线图在页面调用 loadSite() 时校验（src/lib/site.ts）。构建结束时列出仍是占位的步骤（FR-21）。
-  integrations: [contentValidation({ base, linkIndex }), placeholderReport({ contentRoot })],
+  // 路线图在页面调用 loadSite() 时校验（src/lib/site.ts）。构建结束时列出内容提示（FR-21）。
+  integrations: [contentValidation({ base, linkIndex })],
   markdown: {
     // 默认的 Sätteri 不兼容 remark/rehype 插件，所以用 unified 处理器；Shiki 高亮仍默认开启（reuse-research §4.1）。
     // 插件和 rehype-callouts 的配置见 src/lib/content/markdown.ts（M1 Obsidian 写法插件）。

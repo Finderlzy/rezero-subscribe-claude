@@ -1,39 +1,44 @@
-import { getCollection, getEntry, type CollectionEntry } from 'astro:content';
+import { getCollection, type CollectionEntry } from 'astro:content';
 import { parseDocument } from 'yaml';
 import routeText from '../content/route.yaml?raw';
 import { buildRouteMap, RouteValidationError } from './route/route-map';
-import type { ChoiceMeta, RouteMap, StepMeta, Stop } from './route/types';
+import type { PageMeta, RouteMap, Stop } from './route/types';
 
 /**
- * 构建时装配（架构 §3 M3）：读取 M1 的内容集合和 route.yaml，交给 M2 编译成 RouteMap。
+ * 构建时装配（架构 §3 M3）：读取 M1 的三个内容集合和 route.yaml，交给 M2 编译成 RouteMap。
  * 页面都从 `loadSite()` 取数据；M2 不引用 M1 的类型，两边的形状在这里映射。
  */
+
+/** 一个步骤、选择页或旁支页：两版正文同名（ADR-0004），元数据在原理版 */
+export interface SitePage {
+  id: string;
+  title: string;
+  principle: CollectionEntry<'principle'>;
+  /** 原理独有步骤和还没写操作版的页面没有 */
+  operation: CollectionEntry<'operation'> | undefined;
+}
+
+/** 参考页（常见问题、实测合集、各篇实测），只有一版正文 */
+export interface SiteReference {
+  id: string;
+  title: string;
+  entry: CollectionEntry<'reference'>;
+}
 
 /** 页面需要的全部构建时数据。 */
 export interface Site {
   route: RouteMap;
-  /** 路线的第一项（“开始之前”）：首页“直接开始”和完成页“重新开始”都指向它 */
+  /** 路线的第一页（前言）：首页的“开始”指向它 */
   start: Stop;
-  /** 步骤条目，按标识查找 */
-  steps: ReadonlyMap<string, CollectionEntry<'steps'>>;
-  /** 选择页条目，按分叉点标识查找 */
-  choices: ReadonlyMap<string, CollectionEntry<'choices'>>;
-  /** 首页前言 `pages/home.md` */
-  home: CollectionEntry<'pages'>;
-  /** 完成页 `pages/done.md` */
-  done: CollectionEntry<'pages'>;
-  /** 常见问题条目，按标识查找（FR-20） */
-  faq: ReadonlyMap<string, CollectionEntry<'faq'>>;
-  /** 常见问题列表页 `pages/faq.md`：引导语和条目列表 */
-  faqPage: CollectionEntry<'pages'>;
+  /** 按标识查找 */
+  pages: ReadonlyMap<string, SitePage>;
+  /** 按标识查找：`faq`、`ip-tests`、`ip-tests/<id>` */
+  references: ReadonlyMap<string, SiteReference>;
 }
 
 /** 只取映射需要的字段，单元测试可以直接传普通对象。 */
-type StepEntry = Pick<CollectionEntry<'steps'>, 'id'> & {
-  data: Pick<CollectionEntry<'steps'>['data'], 'title' | 'skippable' | 'skipLabel' | 'placeholder'>;
-};
-type ChoiceEntry = Pick<CollectionEntry<'choices'>, 'id'> & {
-  data: Pick<CollectionEntry<'choices'>['data'], 'question' | 'options'>;
+export type PrincipleEntry = Pick<CollectionEntry<'principle'>, 'id' | 'body'> & {
+  data: Pick<CollectionEntry<'principle'>['data'], 'principleOnly' | 'skippable' | 'skipLabel' | 'options'>;
 };
 
 /** 解析 route.yaml 的文本。YAML 语法错误时报出文件和行号，形状交给 M2 校验。 */
@@ -48,32 +53,38 @@ export function parseRouteYaml(text: string): unknown {
 }
 
 /**
- * 把内容条目映射成 M2 的输入并编译。路线图有错时抛出 `RouteValidationError`（第三层校验，FR-61），
- * 它的 message 每行一条“文件：说明”，构建输出里直接可读。
+ * 页面标题：正文第一个非空行的 `# 标题`（架构 §3 M1）。缺标题由构建开始时的内容校验（checkPages）报错，
+ * 这里只在绕过那一层时兜底。
  */
-export function assembleRoute(spec: unknown, steps: readonly StepEntry[], choices: readonly ChoiceEntry[]): RouteMap {
-  const stepMeta: StepMeta[] = steps.map(({ id, data }) => ({
-    id,
-    title: data.title,
-    skippable: data.skippable,
-    ...(data.skipLabel !== undefined && { skipLabel: data.skipLabel }),
-    placeholder: data.placeholder,
-  }));
-  const choiceMeta: ChoiceMeta[] = choices.map(({ id, data }) => ({
-    id,
-    title: data.question,
-    // 对象键按书写顺序；选项标识以字母开头，不会被 JS 按整数键重排（schemas.ts ID_PATTERN）。
-    options: Object.entries(data.options).map(([option, { title }]) => ({ id: option, title })),
-  }));
-  return buildRouteMap(spec, stepMeta, choiceMeta);
+export function pageTitle(body: string | undefined, file: string): string {
+  const first = (body ?? '').split('\n').find((line) => line.trim() !== '');
+  const match = first === undefined ? null : /^# +(.+?)[ \t]*$/.exec(first);
+  if (!match) throw new Error(`${file}：缺少第一行标题“# 页面标题”`);
+  return match[1]!;
 }
 
-/** 路线的第一项。路线图校验保证至少有一章、每章至少一项，且第一项不会是分支段。 */
+/**
+ * 把原理版条目映射成 M2 的输入并编译。路线图有错时抛出 `RouteValidationError`（第三层校验，FR-61），
+ * 它的 message 每行一条“文件：说明”，构建输出里直接可读。
+ */
+export function assembleRoute(spec: unknown, entries: readonly PrincipleEntry[]): RouteMap {
+  const pages: PageMeta[] = entries.map(({ id, body, data }) => ({
+    id,
+    title: pageTitle(body, `src/content/principle/${id}.md`),
+    principleOnly: data.principleOnly,
+    skippable: data.skippable,
+    ...(data.skipLabel !== undefined && { skipLabel: data.skipLabel }),
+    // 对象键按书写顺序；选项标识以字母开头，不会被 JS 按整数键重排（schemas.ts ID_PATTERN）。
+    ...(data.options !== undefined && { options: Object.entries(data.options).map(([option, { title }]) => ({ id: option, title })) }),
+  }));
+  return buildRouteMap(spec, pages);
+}
+
+/** 路线的第一页。路线图校验保证第一项是普通页面。 */
 export function startOf(route: RouteMap): Stop {
   const first = route.data.chapters[0]?.items[0];
-  if (first?.kind === 'step') return route.view({ kind: 'step', id: first.id }, {}).current;
-  if (first?.kind === 'choose') return route.view({ kind: 'choose', fork: first.fork }, {}).current;
-  throw new Error('route.yaml：路线图的第一项必须是步骤或选择页');
+  if (first?.kind !== 'step') throw new Error('route.yaml：路线图的第一项必须是普通页面');
+  return route.view(first.id, {}, 'operation').current;
 }
 
 let cached: Promise<Site> | undefined;
@@ -87,55 +98,32 @@ export function loadSite(): Promise<Site> {
 }
 
 async function readSite(): Promise<Site> {
-  const [steps, choices, faq, home, done, faqPage] = await Promise.all([
-    getCollection('steps'),
-    getCollection('choices'),
-    getCollection('faq'),
-    getEntry('pages', 'home'),
-    getEntry('pages', 'done'),
-    getEntry('pages', 'faq'),
+  const [principles, operations, references] = await Promise.all([
+    getCollection('principle'),
+    getCollection('operation'),
+    getCollection('reference'),
   ]);
-  if (!home) throw new Error('缺少首页内容文件 src/content/pages/home.md');
-  if (!done) throw new Error('缺少完成页内容文件 src/content/pages/done.md');
-  if (!faqPage) throw new Error('缺少常见问题列表内容文件 src/content/pages/faq.md');
-  const unlisted = unlistedFaq(faqPage.body ?? '', faq.map((entry) => entry.id));
-  if (unlisted.length > 0) {
-    throw new Error(`src/content/pages/faq.md：常见问题列表漏了 ${unlisted.map((id) => `[[faq/${id}]]`).join('、')}`);
-  }
 
   let route: RouteMap;
   try {
-    route = assembleRoute(parseRouteYaml(routeText), steps, choices);
+    route = assembleRoute(parseRouteYaml(routeText), principles);
   } catch (error) {
     // Astro 打印带 `errors` 数组的异常时只输出每项的 message，会丢掉“文件：”前缀，所以换成普通 Error 抛出。
     if (error instanceof RouteValidationError) throw new Error(error.message);
     throw error;
   }
+  const operationById = new Map(operations.map((entry) => [entry.id, entry]));
   return {
     route,
     start: startOf(route),
-    steps: new Map(steps.map((entry) => [entry.id, entry])),
-    choices: new Map(choices.map((entry) => [entry.id, entry])),
-    home,
-    done,
-    faq: new Map(faq.map((entry) => [entry.id, entry])),
-    faqPage,
+    pages: new Map(
+      principles.map((entry) => [
+        entry.id,
+        { id: entry.id, title: route.data.pages[entry.id]!.title, principle: entry, operation: operationById.get(entry.id) },
+      ]),
+    ),
+    references: new Map(
+      references.map((entry) => [entry.id, { id: entry.id, title: pageTitle(entry.body, `src/content/reference/${entry.id}.md`), entry }]),
+    ),
   };
-}
-
-/**
- * 常见问题列表页 `pages/faq.md` 漏列的条目（FR-20）：列表写在内容里决定顺序，漏列的条目读者从列表里找不到，
- * 所以 `readSite()` 发现漏列就让构建失败。只认列表项开头的 `[[faq/<id>…]]`（允许空格、链接文字和锚点，
- * 同 remark-obsidian 的写法），代码块和 HTML 注释里的不算。
- */
-export function unlistedFaq(body: string, ids: Iterable<string>): string[] {
-  const listed = new Set<string>();
-  let fenced = false;
-  for (const line of body.replace(/<!--[\s\S]*?-->/g, '').split('\n')) {
-    if (/^\s*(```|~~~)/.test(line)) fenced = !fenced;
-    if (fenced) continue;
-    const match = /^\s*[-*+]\s+\[\[\s*faq\/([^\]|#]+?)\s*(?:[|#][^\]]*)?\]\]/.exec(line);
-    if (match) listed.add(match[1]!);
-  }
-  return [...ids].filter((id) => !listed.has(id));
 }

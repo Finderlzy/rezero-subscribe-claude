@@ -6,22 +6,26 @@ import { withBase } from '../lib/with-base';
 
 /**
  * 上一步 / 下一步（design §4.1，FR-11）。按钮里写出目标标题，不只写“下一步”（design §6）。
- * 链接在构建时按当前页的路线写好，不运行 JS 也能顺着走完；页面脚本再按本机选择改写（data-route-* 挂载点）。
+ * 链接在构建时按当前页的路线写好，不运行 JS 也能顺着走完；按本机选择改写由 #26 的页面脚本接上（data-route-* 挂载点）。
+ * 前言的上一步、后记的下一步是首页；选择页未选时没有“下一步”（FR-12）；
+ * 旁支页没有上一步，左边换成“回到：<挂靠的页面>”（FR-19）。
  * 可跳过步骤在“下一步”上方多一个文字按钮（design §4.1，FR-15）。它放在 nav 外面、正文流里：
  * 手机上底栏吸底，放进底栏会让底栏变高，正文末尾的留白就不够了。
  */
 interface Props {
   prev: Stop | null;
-  next: Stop;
-  /** 可跳过步骤才有：跳过本章内连续的可跳过步骤后到达的位置 */
+  next: Stop | null;
+  /** 只有旁支页才有：挂靠的普通页 */
+  returnTo?: Stop | null;
+  /** 可跳过步骤才有：跳过连续的可跳过步骤后到达的位置 */
   skipTo?: Stop | null;
-  /** 跳过按钮文案（frontmatter 的 skipLabel） */
+  /** 跳过按钮文案（frontmatter 的 skipLabel），默认“跳过”（FR-15） */
   skipLabel?: string | undefined;
-  /** 完成页的标题，用于最后一步的“下一步：完成” */
-  doneTitle: string;
 }
 
-const { prev, next, skipTo = null, skipLabel = '已有，跳过', doneTitle } = Astro.props;
+const { prev, next, returnTo = null, skipTo = null, skipLabel = '跳过' } = Astro.props;
+const back = returnTo ?? prev;
+const backLabel = returnTo ? '回到' : '上一步';
 ---
 
 {
@@ -35,26 +39,40 @@ const { prev, next, skipTo = null, skipLabel = '已有，跳过', doneTitle } = 
   )
 }
 
-<nav class="step-nav" aria-label="上一步和下一步" data-done-title={doneTitle}>
-  {
-    prev && (
-      <a class="step-nav-link step-nav-prev" href={withBase(pathOf(prev))} rel="prev" data-route-nav="prev">
-        <span class="step-nav-dir"><span aria-hidden="true">← </span>上一步</span>
-        <span class="step-nav-title">
-          <span class="visually-hidden">：</span>
-          <span data-route-title>{stopTitle(prev, doneTitle)}</span>
-        </span>
-      </a>
-    )
-  }
-  <a class="step-nav-link step-nav-next" href={withBase(pathOf(next))} rel="next" data-route-nav="next">
-    <span class="step-nav-dir">下一步<span aria-hidden="true"> →</span></span>
-    <span class="step-nav-title">
-      <span class="visually-hidden">：</span>
-      <span data-route-title>{stopTitle(next, doneTitle)}</span>
-    </span>
-  </a>
-</nav>
+{
+  (back || next) && (
+    <nav class="step-nav" aria-label="上一步和下一步">
+      {back && (
+        <a
+          class="step-nav-link step-nav-prev"
+          href={withBase(pathOf(back))}
+          rel={returnTo ? undefined : 'prev'}
+          data-route-nav={returnTo ? 'return' : 'prev'}
+        >
+          <span class="step-nav-dir">
+            <span aria-hidden="true">← </span>
+            {backLabel}
+          </span>
+          <span class="step-nav-title">
+            <span class="visually-hidden">：</span>
+            <span data-route-title>{stopTitle(back, 'prev')}</span>
+          </span>
+        </a>
+      )}
+      {next && (
+        <a class="step-nav-link step-nav-next" href={withBase(pathOf(next))} rel="next" data-route-nav="next">
+          <span class="step-nav-dir">
+            下一步<span aria-hidden="true"> →</span>
+          </span>
+          <span class="step-nav-title">
+            <span class="visually-hidden">：</span>
+            <span data-route-title>{stopTitle(next, 'next')}</span>
+          </span>
+        </a>
+      )}
+    </nav>
+  )
+}
 
 <style>
   .step-skip {
@@ -124,7 +142,7 @@ const { prev, next, skipTo = null, skipLabel = '已有，跳过', doneTitle } = 
     color: var(--accent);
   }
 
-  /* 手机：吸底的底栏，“下一步”是主按钮，约占 2/3 宽；正文末尾的留白见 StepLayout。 */
+  /* 手机：吸底的底栏，“下一步”是主按钮，约占 2/3 宽；正文末尾的留白见 PageLayout。 */
   @media (max-width: 719px) {
     .step-nav {
       position: fixed;

@@ -5,6 +5,15 @@
  * 文案、状态切换的时机（2 秒后回到“复制”）、要复制的文本怎么取、大图用哪一档。
  */
 
+/**
+ * 渲染好的正文里有没有可放大的截图（M1 给嵌入的图片写了 data-zoom），有才输出看大图的 <dialog>。
+ * 匹配 `<img ... data-zoom` 而不是只找 `data-zoom`：代码块里出现同样的字面文字不会被转义，会误判成有截图
+ * （图片节点由 remark-obsidian 输出，属性顺序见 remark-obsidian.test.ts 的断言）。
+ */
+export function hasZoomableImage(html: string): boolean {
+  return /<img[^>]*\sdata-zoom(\s|>)/.test(html);
+}
+
 /** 复制按钮的两种文案（design §4.7）。图标由 CSS 按 `data-state` 切换，不在这里拼 SVG。 */
 export const COPY_LABEL = '复制';
 export const COPIED_LABEL = '已复制';

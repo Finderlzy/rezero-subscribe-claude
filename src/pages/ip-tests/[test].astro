@@ -1,0 +1,23 @@
+---
+import { render } from 'astro:content';
+import ReferenceLayout from '../../layouts/ReferenceLayout.astro';
+import { loadSite } from '../../lib/site';
+
+/** 各篇实测：/ip-tests/<id>/，页脚有“回到：IP 质量实测合集”（FR-20）。 */
+export async function getStaticPaths() {
+  const site = await loadSite();
+  return [...site.references.keys()]
+    .filter((id) => id.startsWith('ip-tests/'))
+    .map((id) => ({ params: { test: id.slice('ip-tests/'.length) } }));
+}
+
+const { test } = Astro.params;
+const site = await loadSite();
+const report = site.references.get(`ip-tests/${test}`)!;
+const collection = site.references.get('ip-tests')!;
+const { Content } = await render(report.entry);
+---
+
+<ReferenceLayout title={report.title} back={{ href: '/ip-tests/', title: collection.title }}>
+  <Content />
+</ReferenceLayout>

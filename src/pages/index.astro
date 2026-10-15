@@ -1,59 +1,47 @@
 ---
-import { render } from 'astro:content';
+import Logo from '../components/Logo.astro';
+import TocNav from '../components/TocNav.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { pathOf } from '../lib/route/route-map';
 import { loadSite } from '../lib/site';
 import { withBase } from '../lib/with-base';
-import '../styles/prose.css';
+import '../styles/toc.css';
 
 /**
- * 首页（design §4.4，FR-18）：站名、前言、“直接开始”，再列出全部章节名预告全程有多长。
- * 不放致谢和后记。有阅读进度时，页面脚本显示主按钮“继续上次：<步骤名>”，“直接开始”降为次按钮（FR-50）。
+ * 首页（FR-18）：logo、站名、英文副标题、“开始”（进入前言）和按章排列的目录。
+ * 没有“继续上次”。首页的版式和目录的首页变体在 #30、#31 重做。
  */
 const site = await loadSite();
-const { Content } = await render(site.home);
-// 页面脚本只需要“步骤标识 → 标题”来写“继续上次”；内嵌 JSON 里的 `<` 转义掉（同 StepLayout）。
-const stepTitles = Object.fromEntries(Object.entries(site.route.data.steps).map(([id, step]) => [id, step.title]));
-const stepsJson = JSON.stringify(stepTitles).replace(/</g, '\\u003c');
 ---
 
 <BaseLayout>
   <main id="main" class="page home">
-    <h1 class="home-title">Re:从零开始订阅 claude</h1>
+    <h1 class="home-title"><Logo variant="zh" /></h1>
     <p class="home-subtitle" lang="en">Re:Zero − Starting Life with Claude</p>
 
-    <section class="prose" aria-labelledby="home-preface">
-      <h2 id="home-preface">{site.home.data.title}</h2>
-      <Content />
-    </section>
-
     <p class="page-actions">
-      <a class="button" data-home-resume hidden></a>
-      <a class="button" href={withBase(pathOf(site.start))} data-home-start>直接开始</a>
+      <a class="button" href={withBase(pathOf(site.start))} data-home-start>开始</a>
     </p>
 
     <section aria-labelledby="home-chapters">
-      <h2 id="home-chapters" class="home-chapters-title">全程分为这些章节</h2>
-      <ol class="home-chapters">
-        {site.route.data.chapters.map((chapter) => <li>{chapter.title}</li>)}
-      </ol>
+      <h2 id="home-chapters" class="home-chapters-title">目录</h2>
+      <TocNav outline={site.route.outline({}, null, 'operation')} label="全站目录" />
     </section>
   </main>
-  <script type="application/json" id="home-steps" set:html={stepsJson} />
 </BaseLayout>
-
-<script>
-  import { initHome } from '../scripts/home';
-
-  initHome(document);
-</script>
 
 <style>
   .home-title {
     margin: 0;
-    font-size: var(--fs-home-title);
-    line-height: var(--lh-home-title);
-    font-weight: 700;
+    line-height: 0;
+  }
+
+  /* logo 的 SVG 自带按字号算出的宽高，这里按宽度缩放，窄屏不溢出（Logo.astro）。 */
+  .home-title :global(svg) {
+    width: 100%;
+    max-width: 480px;
+    height: auto;
+    --logo-re: var(--accent);
   }
 
   .home-subtitle {
@@ -69,13 +57,5 @@ const stepsJson = JSON.stringify(stepTitles).replace(/</g, '\\u003c');
     font-size: var(--fs-h3);
     line-height: var(--lh-heading);
     font-weight: 600;
-  }
-
-  /* 章节名自带“一、二、……”，列表本身不再加编号。 */
-  .home-chapters {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    line-height: var(--lh-body);
   }
 </style>

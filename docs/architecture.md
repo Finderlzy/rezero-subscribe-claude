@@ -3,7 +3,7 @@
 - 状态：**v2.0 定稿（2026-10-15）**，对应需求 v0.3（目标站点版本 2.0.0），没有阻塞决策；待定事项见 §10。上一版 v0.1（2026-10-13）对应已交付的 1.0.0，其中仍然有效的实现细节保留在各节里，标“1.0.0 已有”。
 - 输入：[术语](../CONTEXT.md)、[需求 v0.3](requirements.md)、[复用调研](reuse-research.md)、[界面设计契约](design.md)、[重写稿](rewrite/)
 - 决策记录：[ADR-0001 Astro 静态站 + 自建路线图](adr/0001-astro-static-site-with-own-route-map.md)、[ADR-0002 URL 规则](adr/0002-url-scheme.md)（v2.0 修订）、[ADR-0003 原理块](adr/0003-principle-content-as-why-callouts.md)（已被取代）、[ADR-0004 整页视图切换](adr/0004-whole-page-view-switch.md)、[ADR-0005 重写稿原样导入、双链按标题解析](adr/0005-import-rewrite-verbatim.md)
-- 现状：代码仍是 1.0.0（见 [delivery.md](delivery.md)）。本文 §3–§8 描述 v2.0 的目标结构；没有实现的部分标“计划”，由 [实施计划](implementation-plan.md) 的 v2.0 任务建立，建立后改成现状。
+- 现状：v2 骨架已建立（#23 内容集合，#25 路线图和静态页面，2026-10-15），1.0.0 的内容、页面和依赖旧路线的脚本已删除。本文 §3–§8 描述 v2.0 的目标结构；没有实现的部分标“计划”，由 [实施计划](implementation-plan.md) 的 v2.0 任务建立，建立后改成现状。
 
 ## 0. v2.0 增量影响分析
 
@@ -65,7 +65,7 @@
 
 **职责**：定义内容文件的格式；加载并校验元数据；把重写稿的 Obsidian 写法转换成 HTML。
 
-**内容文件**（v2.0 内容集合已由 #23 建立并只经过构建校验；1.0.0 的 `steps/`、`choices/`、`faq/`、`pages/` 和页面在 #25 切换时删除）
+**内容文件**（#23 建立；1.0.0 的 `steps/`、`choices/`、`faq/`、`pages/` 和页面已在 #25 删除）
 
 | 路径 | 内容 | 元数据 |
 | --- | --- | --- |
@@ -80,7 +80,7 @@
 - **原理独有步骤**：`principleOnly: true` 且没有操作版文件。写了 `principleOnly: true` 却有操作版文件 → 构建失败；没写却缺操作版 → 按 FR-21 处理（操作视图显示原理版正文并提示“操作版还在写”），构建结束列进内容提示，不阻止构建。
 - **选择页的选项块**（FR-12）：`options` 的 `heading` 是正文里独占一段的加粗文字原文（如 `方案一：普通服务器 + 白嫖ISP（我用的）`、`iPhone`）。插件在两版正文里各找到这一段，把它到下一个“独占一段的加粗文字 / 分隔线 / 标题 / 正文结尾”之前的内容包成 `<section data-option="<option-id>">`，加粗段落变成块标题。块内第一个站内链接是这个选项的第一步，M3 用它做整块的点击区域。找不到 `heading`、块内没有站内链接、第一个链接不是该选项在路线图里的第一步（两种视图各核对一次）都让构建失败。`title`（如“方案一”）用于目录的“或”分组。
 
-**route.yaml 格式**（计划）：章节、分叉点和旁支页的唯一来源。页面文件不重复写所属章节和选项。
+**route.yaml 格式**（#25 建立）：章节、分叉点和旁支页的唯一来源。页面文件不重复写所属章节和选项。
 
 ```yaml
 chapters:
@@ -147,7 +147,8 @@ side:                              # 旁支页：不在序列里
 - **链接索引**：`createLinkIndex(contentRoot)` 同步扫描三个集合的文件，取每个文件第一行（frontmatter 之后第一个非空行）的标题和全部小标题的 slug（跳过代码块），生成 `pages`（每个文件一项：集合、标识、标题、小标题集合、`principleOnly`）和 `titles`（标题 → 页面，只收原理版和参考页），外加截图文件名和 `blogLinks`。`checkPages(index)` 报出页面之间的问题：缺第一行标题、标题重复、两版标题不同、操作版没有同名原理版、原理独有步骤却有操作版、`blog-links.yaml` 形状不对。仍然不依赖内容集合的渲染顺序（1.0.0 已有）。参考页的标识带子目录（`ip-tests/decodo`），URL 统一是 `/<id>/`。
 - **内容提示的接口**：插件通过 `onHints` 交出 `ContentHint`（`author-todo`、`blog-link`，带所在页面）；`validateContent()` 返回 `{ problems, hints }`，另外补上 `missing-operation`；`contentValidation` 在 `astro:build:done` 用 `formatHints()` 打印（M5）。
 - **标题 id**：同一 HTML 里有两版正文（ADR-0004），操作版正文的标题 id 加前缀 `op-`（`rehype-operation-ids.ts` 按文件路径判断，按 Astro 同样的 github-slugger 规则先写好 id），避免重复 id；`[[标题#小标题]]` 指向原理版的 id。
-- **v2 规则只作用于 v2 文件**（expand 阶段，#23）：插件按文件是否属于三个集合选择规则，1.0.0 的文件仍按标识解析、仍接受 `[!why]`；#25 删除旧模式。
+- **只有一套规则**（#25 删除了 1.0.0 按标识解析的模式和 `[!why]`）：不属于三个集合的文件（只在单元测试里出现）照样按标题解析双链，只是不去标题和页脚、不记内容提示。
+- **表格可聚焦**（#25）：`rehype-scrollable-tables.ts` 给每张表加 `tabindex="0"`，窄屏上横向滚动的表格能用键盘滚动（axe 的 scrollable-region-focusable；同 Shiki 给 `<pre>` 的做法）。
 - **1.0.0 已有、继续生效**：管线配置的唯一来源 `markdownPipeline()`；`contentValidation` 集成在 `astro:build:start` 用同一条管线重新处理全部源文件并在失败时终止构建；集合 `deferRender: true`；关闭 SmartyPants；嵌入的宽度、文件名字符和 1x/2x `srcset` 规则；解析后残留 `**` 报错；Shiki 默认开启且不引用外部资源；内容文件名必须是以字母开头的英文 kebab-case。
 
 **导入脚本**（`scripts/import-rewrite.mjs`，#23 建立，[ADR-0005](adr/0005-import-rewrite-verbatim.md)；页面标识表和截图核对记录在 [migration-checklist.md](migration-checklist.md) 的 v2 节）：
@@ -161,7 +162,7 @@ side:                              # 旁支页：不在序列里
 
 **职责**：根据路线图、页面元数据、读者的选择和当前视图，算出页面需要的全部导航信息；构建时校验路线图。
 
-**接口**（计划，v2.0 改动 1.0.0 的 `route-map.ts`、`types.ts`）：
+**接口**（#25 实现，改自 1.0.0 的 `route-map.ts`、`types.ts`）：
 
 ```ts
 type PageId = string;                       // 步骤、选择页、旁支页共用一个标识空间，也是 URL
@@ -200,6 +201,8 @@ function routeMapFromData(data: RouteData): RouteMap;
 function pathOf(stop: Stop): string;        // '/<id>/' 或 '/'；再由 withBase() 加前缀
 ```
 
+实现补充（#25）：`RouteData` 是 `{ chapters, pages, forks: { <分叉点>: { page, options } }, side: { <旁支页>: <returnTo> } }`；旁支页的 `current` 是 `{ kind: 'side' }`；`outline` 的 `onRoute` 在分叉点没选时对它的各选项都为真，操作视图下原理独有步骤为假。测试用路线图在 `src/lib/route/fixtures/sample-route.ts`，真实 `route.yaml` 的边界用例在 `src/lib/site.test.ts`。
+
 **规则**（构建时校验，任何一条不满足就失败，FR-61）：
 
 - **一个标识空间**：`principle/` 下的每个文件在 `route.yaml` 里恰好出现一次——普通项、某个选择页（`page`）、某个 `branch` 段里的一个或几个选项（共享步骤，1.0.0 已有），或 `side` 下的旁支页；反过来，路线图引用的页面必须有原理版文件。保留字：`faq`、`ip-tests`、`404`、`_astro`。
@@ -219,7 +222,7 @@ function pathOf(stop: Stop): string;        // '/<id>/' 或 '/'；再由 withBas
 
 **职责**：把内容和路线渲染成页面；实现 [design.md](design.md) v2.0 的全部页面和组件。
 
-| 页面 | URL | 文件（计划） |
+| 页面 | URL | 文件（#25 建立） |
 | --- | --- | --- |
 | 首页：logo、站名、英文副标题、“开始”、按章目录 | `/` | `src/pages/index.astro` |
 | 步骤页、选择页、旁支页 | `/<id>/` | `src/pages/[page].astro` + `PageLayout` |
@@ -227,7 +230,9 @@ function pathOf(stop: Stop): string;        // '/<id>/' 或 '/'；再由 withBas
 | IP 质量实测合集 / 各篇实测 | `/ip-tests/`、`/ip-tests/<id>/` | `src/pages/ip-tests/index.astro`、`[test].astro` |
 | 找不到 | `404.html` | `src/pages/404.astro` |
 
-删除：`choose/[fork].astro`、`done.astro`、`faq/[faq].astro`、`scripts/home.ts`（继续上次）、`scripts/done.ts`。
+已删除（#25）：`[step].astro`、`choose/[fork].astro`、`done.astro`、`faq/[faq].astro`、`StepLayout`、`ChoiceOption`、`PlaceholderNotice`，以及依赖旧路线的页面脚本 `home.ts`、`done.ts`、`route-enhance.ts`、`toc.ts`、`view-toggle.ts`、`faq-return.ts`、`reader-store.ts`（#26、#27、#30 参照 `v1.0.0` 标签重写）。
+
+- **#25 的静态骨架（现状）**：`PageLayout` 输出两版正文，只有原理版时在正文上方输出提示条 `.view-notice`；`ReferenceLayout` 只有“回首页”，实测页另有“回到：IP 质量实测合集”；首页和找不到页把 `TocNav` 直接写在页面上；步骤页的目录侧栏只在 ≥1100px 显示，抽屉的打开按钮在目录脚本接上前保持隐藏；`ViewToggle` 暂不渲染。页面只加载代码复制/看大图和视频门面两个脚本。
 
 - **构建时**（1.0.0 已有，改接口）：页面调用 `loadSite()`（`src/lib/site.ts`），它读取三个集合和 `route.yaml`，经纯函数 `assembleRoute()` 映射成 `PageMeta[]` 后调用 `buildRouteMap`，一次构建内缓存。每页用 `view(id, {}, 'operation')` 把导航写进 HTML——没有 JS 时，读者看到的就是“操作视图 + 未选”的导航：未选的分叉点处指向选择页，选择页的选项块是普通链接，进入分支后按所属选项计算。唯一的折返在“订阅”：它的“下一步”指向“选择手机系统”，静态页面上的选项链接只能进入手机的第一段，所以没有 JS 的读者要用“订阅”正文里的链接进入订阅分支（正文原本就列出了两条路的每一步）。这是降级体验，不是验收路径；“禁用存储”（AC-18）时脚本仍运行，靠 M4 的 `window.name` 兜底记住选择。
 - **两版正文**（[ADR-0004](adr/0004-whole-page-view-switch.md)）：`PageLayout` 把原理版和操作版的正文都渲染进 HTML，分别包在 `<div data-body="principle">`、`<div data-body="operation">` 里；`<html data-view>` 决定显示哪一个，另一个 `display: none`（屏幕阅读器和页内查找都跳过它，`loading="lazy"` 的图片也不加载）。原理独有步骤和缺操作版的页面只输出原理版，操作视图下在正文上方显示提示（FR-21、FR-30）。参考页只有一份正文，没有视图切换。

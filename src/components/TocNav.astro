@@ -1,18 +1,26 @@
 ---
 import { pathOf } from '../lib/route/route-map';
-import type { OutlineChapter, OutlineStep } from '../lib/route/types';
+import type { OutlineBranch, OutlineChapter, OutlineStep } from '../lib/route/types';
 import { withBase } from '../lib/with-base';
 
-/** 目录的列表本身，由 Toc.astro 放进侧栏或抽屉；说明和标记契约见 Toc.astro。 */
+/**
+ * 目录的列表本身：页面上的侧栏（Toc.astro）、首页和找不到页的目录都用它；标记契约见 Toc.astro。
+ * 没有已读标记和“清除进度”（FR-16）。原理独有步骤标“原理”（不在当前视图的路线上时弱化）。
+ */
 interface Props {
   outline: OutlineChapter[];
+  /** 无障碍名称；一页里有两个目录时用来区分 */
+  label?: string;
 }
 
-const { outline } = Astro.props;
+const { outline, label = '步骤目录' } = Astro.props;
 const stepHref = (step: OutlineStep) => withBase(pathOf({ kind: 'step', id: step.id, title: step.title }));
+/** 分叉点选了别的选项时，这个选项下的步骤标“其他路线”；没选时不标 */
+const otherRoute = (branch: OutlineBranch, option: OutlineBranch['options'][number]) =>
+  !option.selected && branch.options.some((o) => o.selected);
 ---
 
-<nav class="toc" aria-label="步骤目录" data-toc>
+<nav class="toc" aria-label={label} data-toc>
   <ol>
     {
       outline.map((chapter) => (
@@ -23,21 +31,14 @@ const stepHref = (step: OutlineStep) => withBase(pathOf({ kind: 'step', id: step
               item.kind === 'step' ? (
                 <li class="toc-step" data-toc-step={item.id} data-off-route={item.onRoute ? undefined : ''}>
                   <a href={stepHref(item)} aria-current={item.current ? 'step' : undefined}>
-                    <span class="toc-mark" data-toc-visited hidden>
-                      <span aria-hidden="true">✓</span>
-                      <span class="visually-hidden">已读：</span>
-                    </span>
                     <span class="toc-label">{item.title}</span>
+                    {item.principleOnly && <span class="toc-tag">原理</span>}
                     {item.skippable && <span class="toc-tag">可跳过</span>}
-                    {item.placeholder && <span class="toc-tag">内容待补</span>}
                   </a>
                 </li>
               ) : item.kind === 'choose' ? (
                 <li class="toc-step" data-toc-choose={item.fork}>
-                  <a
-                    href={withBase(pathOf({ kind: 'choose', fork: item.fork, title: item.title }))}
-                    aria-current={item.current ? 'step' : undefined}
-                  >
+                  <a href={withBase(pathOf({ kind: 'choose', id: item.id, title: item.title }))} aria-current={item.current ? 'step' : undefined}>
                     <span class="toc-label">{item.title}</span>
                   </a>
                 </li>
@@ -66,16 +67,12 @@ const stepHref = (step: OutlineStep) => withBase(pathOf({ kind: 'step', id: step
                           {option.steps.map((step) => (
                             <li class="toc-step" data-toc-step={step.id} data-off-route={step.onRoute ? undefined : ''}>
                               <a href={stepHref(step)} aria-current={step.current ? 'step' : undefined}>
-                                <span class="toc-mark" data-toc-visited hidden>
-                                  <span aria-hidden="true">✓</span>
-                                  <span class="visually-hidden">已读：</span>
-                                </span>
                                 <span class="toc-label">{step.title}</span>
-                                <span class="toc-tag" data-toc-other hidden={step.onRoute}>
+                                <span class="toc-tag" data-toc-other hidden={!otherRoute(item, option)}>
                                   其他路线
                                 </span>
+                                {step.principleOnly && <span class="toc-tag">原理</span>}
                                 {step.skippable && <span class="toc-tag">可跳过</span>}
-                                {step.placeholder && <span class="toc-tag">内容待补</span>}
                               </a>
                             </li>
                           ))}
@@ -91,8 +88,4 @@ const stepHref = (step: OutlineStep) => withBase(pathOf({ kind: 'step', id: step
       ))
     }
   </ol>
-  <div class="toc-footer" data-toc-clear-area hidden>
-    <button type="button" class="toc-clear" data-toc-clear>清除进度</button>
-    <p class="toc-status" data-toc-status role="status"></p>
-  </div>
 </nav>

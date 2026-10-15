@@ -11,10 +11,11 @@ async function render(props: Record<string, unknown>) {
 }
 
 describe('VideoFacade', () => {
-  it('没有视频信息时只有一行“视频制作中”', async () => {
-    const html = await render({ stepTitle: '防 IPv6 泄漏' });
-    expect(html).toContain('视频制作中');
-    expect(html).not.toContain('data-video-frame');
+  it('没有视频信息时不输出视频区域，也没有“视频制作中”（FR-41）', async () => {
+    const html = await render({ stepTitle: '防泄漏' });
+    expect(html).not.toContain('视频制作中');
+    expect(html).not.toContain('data-video');
+    expect(html).not.toContain('<section');
   });
 
   it('两个平台时有切换，默认 B 站，外链和提示跟着 B 站', async () => {

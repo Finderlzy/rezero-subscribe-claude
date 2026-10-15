@@ -14,10 +14,10 @@ async function readClipboard(page: import('@playwright/test').Page): Promise<str
 
 test.describe('代码块复制', () => {
   test('复制后剪贴板内容与代码块原文一致，按钮显示“已复制”并播报', async ({ page }) => {
-    await page.goto('./run-script/');
+    await page.goto('./plan1-make-node/');
 
     // 代码块由 Markdown 渲染，复制按钮由页面脚本挂上（没有 JS 时正文照常可读）。
-    const block = page.locator('.code-block').first();
+    const block = page.locator('.code-block').filter({ visible: true, hasText: 'bash <(curl -fsSL' }).first();
     await expect(block).toHaveCount(1);
 
     const pre = block.locator('pre');
@@ -40,8 +40,8 @@ test.describe('代码块复制', () => {
   });
 
   test('“已复制”保持约 2 秒后回到“复制”', async ({ page }) => {
-    await page.goto('./ssh-connect/');
-    const block = page.locator('.code-block').first();
+    await page.goto('./plan1-make-node/');
+    const block = page.locator('.code-block').filter({ visible: true, hasText: 'bash <(curl -fsSL' }).first();
     // exact: '复制' 是 '已复制' 的子串，用子串匹配会立刻命中仍是“已复制”的按钮，
     // 断言就永远看不到复位（这条用例本身踩过这个坑）。
     const idle = block.getByRole('button', { name: '复制', exact: true });
@@ -64,8 +64,8 @@ test.describe('代码块复制', () => {
   });
 
   test('复制按钮的可点区域至少 44×44px（design §5）', async ({ page }) => {
-    await page.goto('./run-script/');
-    const box = (await page.locator('.code-copy').first().boundingBox())!;
+    await page.goto('./plan1-make-node/');
+    const box = (await page.locator('.code-copy').filter({ visible: true }).first().boundingBox())!;
     expect(box.width).toBeGreaterThanOrEqual(44);
     expect(box.height).toBeGreaterThanOrEqual(44);
     // 按钮不能被代码块压住：点在按钮中心命中的应该是按钮自己（B3 的层叠疑问）。
@@ -77,8 +77,8 @@ test.describe('代码块复制', () => {
   });
 
   test('复制按钮不随长行横向滚动移出视野', async ({ page }) => {
-    await page.goto('./run-script/');
-    const block = page.locator('.code-block').first();
+    await page.goto('./plan1-make-node/');
+    const block = page.locator('.code-block').filter({ visible: true, hasText: 'bash <(curl -fsSL' }).first();
     const pre = block.locator('pre');
 
     // 最长的一行必须真的溢出，这个用例才有意义。
@@ -102,8 +102,8 @@ test.describe('剪贴板接口不可用时的兜底', () => {
     await page.addInitScript(() => {
       Object.defineProperty(Navigator.prototype, 'clipboard', { get: () => undefined });
     });
-    await page.goto('./run-script/');
-    const button = page.locator('.code-copy').first();
+    await page.goto('./plan1-make-node/');
+    const button = page.locator('.code-copy').filter({ visible: true }).first();
     await button.focus();
     await page.keyboard.press('Enter');
     // 兜底要把焦点挪到临时文本框才能选中文字；复制完必须还给按钮，键盘用户不丢位置。
@@ -114,8 +114,8 @@ test.describe('剪贴板接口不可用时的兜底', () => {
 
 test.describe('代码块长行不折行（NFR-02）', () => {
   test('长行在代码块内部横向滚动，white-space 保持 pre', async ({ page }) => {
-    await page.goto('./run-script/');
-    const pre = page.locator('.code-block pre').first();
+    await page.goto('./plan1-make-node/');
+    const pre = page.locator('.code-block').filter({ visible: true, hasText: 'bash <(curl -fsSL' }).locator('pre').first();
     const styles = await pre.evaluate((el) => {
       const computed = getComputedStyle(el);
       return { whiteSpace: computed.whiteSpace, overflowX: computed.overflowX };
@@ -127,7 +127,7 @@ test.describe('代码块长行不折行（NFR-02）', () => {
 
 test.describe('截图看大图', () => {
   test('点击截图打开 <dialog>，Esc 关闭', async ({ page }) => {
-    await page.goto('./plan2-buy-residential-vps/');
+    await page.goto('./ip-tests/voyracloud/');
 
     const opener = page.locator('[data-image-zoom-opener]').first();
     await expect(opener).toBeVisible();
@@ -152,7 +152,7 @@ test.describe('截图看大图', () => {
   });
 
   test('大图用 srcset 里最宽的一档，比正文里那张大', async ({ page }, testInfo) => {
-    await page.goto('./plan2-buy-residential-vps/');
+    await page.goto('./ip-tests/voyracloud/');
     const inline = page.locator('[data-image-zoom-opener] img').first();
     await inline.scrollIntoViewIfNeeded();
     const inlineBox = (await inline.boundingBox())!;
@@ -178,7 +178,7 @@ test.describe('截图看大图', () => {
   });
 
   test('关闭按钮不压在大图上', async ({ page }) => {
-    await page.goto('./plan2-buy-residential-vps/');
+    await page.goto('./ip-tests/voyracloud/');
     await page.locator('[data-image-zoom-opener]').first().click();
     const dialog = page.locator('dialog[data-image-zoom]');
     const big = dialog.locator('[data-image-zoom-image]');
@@ -189,7 +189,7 @@ test.describe('截图看大图', () => {
   });
 
   test('点背景关闭，点大图本身不关闭', async ({ page }) => {
-    await page.goto('./plan2-buy-residential-vps/');
+    await page.goto('./ip-tests/voyracloud/');
     await page.locator('[data-image-zoom-opener]').first().click();
 
     const dialog = page.locator('dialog[data-image-zoom]');
@@ -206,7 +206,7 @@ test.describe('截图看大图', () => {
   });
 
   test('关闭按钮可用，关闭后焦点回到触发的那张截图', async ({ page }) => {
-    await page.goto('./plan2-buy-residential-vps/');
+    await page.goto('./ip-tests/voyracloud/');
     const opener = page.locator('[data-image-zoom-opener]').first();
     await opener.click();
     await expect(page.locator('dialog[data-image-zoom]')).toBeVisible();
@@ -219,7 +219,7 @@ test.describe('截图看大图', () => {
   });
 
   test('一页有多张截图时，各自打开自己的那张', async ({ page }) => {
-    await page.goto('./plan2-buy-residential-vps/');
+    await page.goto('./ip-tests/voyracloud/');
     const openers = page.locator('[data-image-zoom-opener]');
     await expect(openers).toHaveCount(2);
 
@@ -231,7 +231,7 @@ test.describe('截图看大图', () => {
   });
 
   test('没有截图的步骤不输出空的 <dialog>', async ({ page }) => {
-    await page.goto('./ssh-connect/');
+    await page.goto('./preface/');
     await expect(page.locator('dialog[data-image-zoom]')).toHaveCount(0);
   });
 });

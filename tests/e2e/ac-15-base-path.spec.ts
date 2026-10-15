@@ -60,28 +60,28 @@ test('从首页点进去，沿“下一步”和选择页走几步，地址一�
 
   await page.goto('./');
   await expectAt('./');
-  await page.getByRole('link', { name: '直接开始' }).click();
-  await expectAt('./before-you-start/');
+  await page.getByRole('link', { name: '开始', exact: true }).click();
+  await expectAt('./preface/');
   await nav.getByRole('link', { name: /下一步/ }).click();
-  await expectAt('./overview/');
+  await expectAt('./disclaimer/');
   await nav.getByRole('link', { name: /下一步/ }).click();
-  await expectAt('./clean-claude-code/');
+  await expectAt('./clean-up/');
   await nav.getByRole('link', { name: /下一步/ }).click();
-  await expectAt('./choose/node-plan/');
+  await expectAt('./choose-plan/');
 
-  // 选择页的选项和随后由页面脚本改写的“上一步”（route-enhance）
-  await page.getByRole('list', { name: '选项' }).getByRole('link', { name: /方案二/ }).click();
-  await expectAt('./plan2-buy-residential-vps/');
+  // 选择页的正文链接进入方案二；方案二只属于这个选项，导航按它计算
+  await page.locator('.prose').filter({ visible: true }).getByRole('link', { name: '方案二：住宅 IP 服务器', exact: true }).click();
+  await expectAt('./plan2-residential-server/');
   await nav.getByRole('link', { name: /下一步/ }).click();
-  await expectAt('./ssh-connect/');
+  await expectAt('./import-proxy/');
   await nav.getByRole('link', { name: /上一步/ }).click();
-  await expectAt('./plan2-buy-residential-vps/');
+  await expectAt('./choose-plan/');
 });
 
 test('截图在 base 下加载出来', async ({ page, baseURL }) => {
   const base = new URL(baseURL!).pathname;
   await page.goto('./iphone-apple-id/');
-  const images = page.locator('.prose img');
+  const images = page.locator('.prose').filter({ visible: true }).locator('img');
   const count = await images.count();
   expect(count).toBeGreaterThan(0);
   for (let i = 0; i < count; i++) {
@@ -97,11 +97,11 @@ test('截图在 base 下加载出来', async ({ page, baseURL }) => {
   }
 });
 
-test('不存在的步骤显示“找不到这一步”，“回首页”回到 base 下的首页', async ({ page, baseURL }) => {
-  const response = await page.goto('./no-such-step/');
+test('不存在的页面显示“找不到这一页”，“回首页”回到 base 下的首页', async ({ page, baseURL }) => {
+  const response = await page.goto('./no-such-page/');
   expect(response?.status()).toBe(404);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('找不到这一步');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('找不到这一页');
   await page.getByRole('link', { name: '回首页' }).click();
   await expect(page).toHaveURL(new URL('./', baseURL).href);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Re:从零开始订阅 claude');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveAccessibleName('Re:从零开始订阅 claude');
 });

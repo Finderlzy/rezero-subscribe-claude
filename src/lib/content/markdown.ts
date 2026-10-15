@@ -1,15 +1,13 @@
 import { readFileSync } from 'node:fs';
-import { basename, join, relative, sep } from 'node:path';
+import { relative, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createMarkdownProcessor, parseFrontmatter, type UnifiedProcessorOptions } from '@astrojs/markdown-remark';
 import rehypeCallouts from 'rehype-callouts';
-import { checkPages, listMarkdown, resolveLinkIndex, type LinkIndex } from './link-index';
+import { checkPages, resolveLinkIndex, type LinkIndex } from './link-index';
 import rehypeOperationIds from './rehype-operation-ids';
+import rehypeScrollableTables from './rehype-scrollable-tables';
 import { ID_PATTERN } from './schemas';
 import remarkObsidian, { type ContentHint, type ContentProblem } from './remark-obsidian';
-
-/** 需要经过 Obsidian 写法插件的 1.0.0 内容目录（相对内容根目录）；v2.0 的三个集合见 LinkIndex.pages */
-export const CONTENT_DIRS = ['steps', 'choices', 'faq', 'pages'] as const;
 
 export interface MarkdownPipelineOptions {
   /** 部署根路径，与 astro.config.mjs 的 `base` 相同 */
@@ -33,15 +31,15 @@ export function markdownPipeline({ base, linkIndex, onProblems, onHints }: Markd
     remarkPlugins: [[remarkObsidian, { base, linkIndex, onProblems, onHints }]],
     rehypePlugins: [
       [rehypeOperationIds, { linkIndex }],
+      rehypeScrollableTables,
       [
         rehypeCallouts,
         {
           // 不用库自带的 Lucide 标题图标（design §3.3：图标全部自画，不引入图标库）。
           // 可折叠写法 [!type]- / [!type]+ 会带出库自带的折叠箭头，已由 remark-obsidian 判为错误。
           showIndicator: false,
-          // 原理块 > [!why]（ADR-0003）：输出 data-callout="why"，由 CSS 按视图展开或收起。
-          // note / caution 的默认标题换成中文（内容里写了标题时以内容为准）。
-          callouts: { why: { title: '为什么' }, note: { title: '提示' }, caution: { title: '注意' } },
+          // note / caution 的默认标题换成中文（内容里写了标题时以内容为准）；其他类型由 remark-obsidian 报错。
+          callouts: { note: { title: '提示' }, caution: { title: '注意' } },
         },
       ],
     ],
@@ -66,8 +64,7 @@ export async function validateContent(options: MarkdownPipelineOptions): Promise
     onHints: (found) => hints.push(...found),
   });
   const processor = await createMarkdownProcessor({ ...pipeline, syntaxHighlight: false });
-  const legacy = CONTENT_DIRS.flatMap((dir) => listMarkdown(join(index.contentRoot, dir)).map((name) => ({ file: join(index.contentRoot, dir, name), id: basename(name, '.md') })));
-  for (const { file, id } of [...legacy, ...index.pages]) {
+  for (const { file, id } of index.pages) {
     // 参考页的标识带子目录（ip-tests/<id>），逐段检查
     if (!id.split('/').every((part) => ID_PATTERN.test(part))) {
       problems.push({

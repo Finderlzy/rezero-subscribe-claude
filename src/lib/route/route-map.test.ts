@@ -1,45 +1,43 @@
 import { describe, expect, it } from 'vitest';
-import { sampleChoices, sampleSpec, sampleSteps } from './fixtures/sample-route';
+import { samplePages, sampleSpec } from './fixtures/sample-route';
 import {
   buildRouteMap,
   pathOf,
-  RESERVED_STEP_IDS,
+  RESERVED_PAGE_IDS,
   RouteValidationError,
   routeMapFromData,
-  type At,
-  type ChoiceMeta,
   type Choices,
+  type OutlineBranch,
+  type OutlineStep,
+  type PageMeta,
   type RouteError,
   type RouteMap,
   type RouteSpec,
-  type StepMeta,
   type Stop,
+  type ViewMode,
 } from './route-map';
 
-const sample = (): RouteMap => buildRouteMap(sampleSpec(), sampleSteps(), sampleChoices());
-const step = (id: string): At => ({ kind: 'step', id });
-const choose = (fork: string): At => ({ kind: 'choose', fork });
-/** Stop 的简写：步骤写 id，选择页写 choose/<fork>，完成页写 done。 */
-const short = (stop: Stop | null): string | null =>
-  stop === null ? null : stop.kind === 'step' ? stop.id : stop.kind === 'choose' ? `choose/${stop.fork}` : 'done';
+const sample = (): RouteMap => buildRouteMap(sampleSpec(), samplePages());
+/** Stop 的简写：页面写标识，首页写 home。 */
+const short = (stop: Stop | null): string | null => (stop === null ? null : stop.kind === 'home' ? 'home' : stop.id);
 
-/** 沿“下一步”从第一项走到完成页，返回经过的每一项。 */
-function walk(map: RouteMap, stored: Choices): string[] {
+/** 沿“下一步”从第一项走到首页，返回经过的每一项；遇到没有下一步的页面时停在那里。 */
+function walk(map: RouteMap, stored: Choices, mode: ViewMode): string[] {
   const seen: string[] = [];
-  let at: At | null = step('before-you-start');
+  let at: string | null = 'preface';
   while (at) {
-    const v = map.view(at, stored);
-    seen.push(short(v.current)!);
-    at = v.next.kind === 'done' ? null : v.next.kind === 'step' ? step(v.next.id) : choose(v.next.fork);
+    const v = map.view(at, stored, mode);
+    seen.push(at);
+    at = v.next === null || v.next.kind === 'home' ? null : v.next.id;
     if (seen.length > 100) throw new Error('走不完');
   }
   return seen;
 }
 
 /** 期望 build 失败，返回全部错误。 */
-function errorsOf(spec: unknown, steps: StepMeta[] = sampleSteps(), choices: ChoiceMeta[] = sampleChoices()): RouteError[] {
+function errorsOf(spec: unknown, pages: PageMeta[] = samplePages()): RouteError[] {
   try {
-    buildRouteMap(spec, steps, choices);
+    buildRouteMap(spec, pages);
   } catch (e) {
     expect(e).toBeInstanceOf(RouteValidationError);
     return (e as RouteValidationError).errors;
@@ -55,574 +53,488 @@ function chapter(spec: RouteSpec, id: string) {
   return spec.chapters.find((c) => c.id === id)!;
 }
 
+function page(pages: PageMeta[], id: string): PageMeta {
+  return pages.find((p) => p.id === id)!;
+}
+
 // ================================================================ 导航
 
-describe('默认路线（AC-02 逻辑层）', () => {
-  it('从“开始之前”沿下一步依次经过方案一、v2rayN、检查 IP 质量、iPhone，最后到完成页', () => {
-    expect(walk(sample(), {})).toEqual([
-      'before-you-start', 'overview', 'clean-claude-code',
-      'choose/node-plan', 'plan1-buy-vps', 'plan1-free-residential-ip', 'ssh-connect', 'run-script',
-      'choose/desktop-proxy', 'v2rayn-import', 'v2rayn-tun',
-      'v2rayn-dns', 'webrtc', 'ipv6',
-      'check-ip-quality', 'ip-failed',
-      'choose/phone', 'iphone-app-store-region', 'iphone-v2box', 'iphone-timezone',
-      'iphone-gmail', 'create-google-account',
-      'use-google-few-days',
-      'iphone-subscribe', 'purchase-failed',
-      'after-subscribe', 'about-kyc',
-    ]);
+describe('没有默认路线：未选的分叉点指向选择页（FR-12、FR-13、AC-09 逻辑层）', () => {
+  const map = sample();
+
+  it('汇合点的上一步、分支前一页的下一步都是选择页', () => {
+    expect(short(map.view('import-proxy', {}, 'operation').prev)).toBe('choose-plan');
+    expect(short(map.view('clean-up', {}, 'operation').next)).toBe('choose-plan');
+    expect(short(map.view('register-gmail', {}, 'operation').prev)).toBe('choose-phone');
   });
 
-  it('路线第一项的 prev 为 null，最后一项的 next 是完成页', () => {
-    const map = sample();
-    expect(map.view(step('before-you-start'), {}).prev).toBeNull();
-    expect(map.view(step('about-kyc'), {}).next).toEqual({ kind: 'done' });
+  it('同一分叉点没有选择页的第二段也折叠成选择页：订阅的下一步、订阅之后的上一步都是“选择手机系统”', () => {
+    expect(map.view('subscribe', {}, 'operation').next).toEqual({ kind: 'choose', id: 'choose-phone', title: '选择手机系统' });
+    expect(short(map.view('after-subscribe', {}, 'operation').prev)).toBe('choose-phone');
   });
 
-  it('上一步/下一步带目标标题；选择页用选择页标题', () => {
-    const v = sample().view(step('clean-claude-code'), {});
-    expect(v.prev).toEqual({ kind: 'step', id: 'overview', title: '整体思路' });
-    expect(v.next).toEqual({ kind: 'choose', fork: 'node-plan', title: '选择节点方案' });
-    expect(v.current).toEqual({ kind: 'step', id: 'clean-claude-code', title: '清理本机的 Claude Code 配置' });
+  it('选择页未选时没有下一步，已选时是所选选项在当前视图下的第一页', () => {
+    expect(map.view('choose-plan', {}, 'operation').next).toBeNull();
+    expect(short(map.view('choose-plan', { 'node-plan': 'plan-3' }, 'operation').next)).toBe('plan3-node');
+    expect(short(map.view('choose-phone', { phone: 'android' }, 'principle').next)).toBe('android-proxy');
   });
 
-  it('空的 stored 时 choices 等于默认路线，且总是覆盖全部分叉点', () => {
-    expect(sample().view(step('overview'), {}).choices).toEqual({
-      'node-plan': 'plan-1',
-      'desktop-proxy': 'v2rayn',
-      phone: 'iphone',
-    });
+  it('未选时从前言只能走到第一个选择页', () => {
+    expect(walk(map, {}, 'operation')).toEqual(['preface', 'clean-up', 'choose-plan']);
+  });
+
+  it('生效的选择不含没选的分叉点', () => {
+    expect(map.view('preface', {}, 'operation').choices).toEqual({});
+    expect(map.view('timezone', { phone: 'android' }, 'operation').choices).toEqual({ phone: 'android' });
   });
 });
 
 describe('分支与汇合（AC-03 逻辑层）', () => {
-  it('选方案三：选择页的下一步是方案三第一步，方案三最后一步的下一步是汇合点（另一个分叉点的选择页）', () => {
-    const map = sample();
+  const map = sample();
+
+  it('选方案三：方案三的下一步是汇合点，汇合点的上一步回到方案三', () => {
     const stored = { 'node-plan': 'plan-3' };
-    expect(short(map.view(choose('node-plan'), stored).next)).toBe('plan3-buy-node');
-    expect(short(map.view(step('plan3-buy-node'), stored).next)).toBe('choose/desktop-proxy');
+    expect(short(map.view('plan3-node', stored, 'operation').next)).toBe('import-proxy');
+    expect(short(map.view('import-proxy', stored, 'operation').prev)).toBe('plan3-node');
   });
 
-  it('手工验证：view(choose desktop-proxy, {node-plan: plan-3}) 的 prev 是方案三最后一步', () => {
-    const v = sample().view(choose('desktop-proxy'), { 'node-plan': 'plan-3' });
-    expect(v.prev).toEqual({ kind: 'step', id: 'plan3-buy-node', title: '购买住宅节点' });
+  it('打开只属于一个分支的页面时按它所属的选项计算（FR-17、AC-08 逻辑层）', () => {
+    const v = map.view('iphone-gmail', {}, 'operation');
+    expect(v.choices).toEqual({ phone: 'iphone' });
+    expect(short(v.prev)).toBe('iphone-proxy');
+    expect(short(v.next)).toBe('register-gmail');
+    // 本机选了安卓也一样：当前页所属选项优先
+    expect(map.view('iphone-gmail', { phone: 'android' }, 'operation').choices).toEqual({ phone: 'iphone' });
   });
 
-  it('汇合点的上一步按所选分支：方案二是“运行脚本”，默认（方案一）也是“运行脚本”', () => {
+  it('分叉点的第二段沿用同一个选择', () => {
+    expect(short(map.view('subscribe', { phone: 'android' }, 'operation').next)).toBe('android-subscribe');
+    expect(short(map.view('after-subscribe', { phone: 'android' }, 'operation').prev)).toBe('android-subscribe');
+  });
+
+  it('stored 里不存在的分叉点或选项被忽略', () => {
+    expect(map.view('import-proxy', { 'node-plan': 'plan-9', nope: 'x' }, 'operation').choices).toEqual({});
+  });
+
+  it('stored 形状不对（null、数组、原型链上的键）时当作没选，不抛错', () => {
+    for (const stored of [null, [], Object.create({ 'node-plan': 'plan-3' })]) {
+      expect(short(map.view('import-proxy', stored as Choices, 'operation').prev)).toBe('choose-plan');
+    }
+  });
+
+  it('不在路线图里的页面抛错，原型链上的名字也一样', () => {
+    expect(() => map.view('nope', {}, 'operation')).toThrow(/nope/);
+    expect(() => map.view('__proto__', {}, 'operation')).toThrow();
+    expect(() => map.view('constructor', {}, 'operation')).toThrow();
+  });
+});
+
+describe('首页是首尾（FR-11）', () => {
+  it('前言的上一步、后记的下一步都是首页', () => {
     const map = sample();
-    expect(short(map.view(choose('desktop-proxy'), { 'node-plan': 'plan-2' }).prev)).toBe('run-script');
-    expect(short(map.view(choose('desktop-proxy'), {}).prev)).toBe('run-script');
+    expect(map.view('preface', {}, 'operation').prev).toEqual({ kind: 'home' });
+    expect(map.view('afterword', {}, 'principle').next).toEqual({ kind: 'home' });
+  });
+});
+
+describe('两种视图（FR-11、FR-30、AC-02 逻辑层）', () => {
+  const map = sample();
+  const full = { 'node-plan': 'plan-1', phone: 'iphone' };
+
+  it('操作视图绕过原理独有步骤，原理视图经过', () => {
+    expect(short(map.view('check-ip', full, 'operation').next)).toBe('timezone');
+    expect(short(map.view('check-ip', full, 'principle').next)).toBe('recap');
+    expect(short(map.view('preface', full, 'operation').next)).toBe('clean-up');
+    expect(short(map.view('preface', full, 'principle').next)).toBe('overview');
+    expect(short(map.view('subscribe', full, 'operation').next)).toBe('iphone-apple-id');
+    expect(short(map.view('subscribe', full, 'principle').next)).toBe('iphone-why');
   });
 
-  it('AC-04 逻辑层：改为方案二后，从汇合点往回走两次到“买住宅 IP 服务器并测 IP”', () => {
-    const map = sample();
-    const stored = { 'node-plan': 'plan-2' };
-    const p1 = map.view(choose('desktop-proxy'), stored).prev!;
-    expect(short(p1)).toBe('run-script');
-    const p2 = map.view(step('run-script'), stored).prev!;
-    expect(short(p2)).toBe('ssh-connect');
-    expect(short(map.view(step('ssh-connect'), stored).prev)).toBe('plan2-buy-residential-vps');
+  it('操作视图直接打开原理独有步骤：按原理视图的序列计算它自己的导航，进度只有章节', () => {
+    const v = map.view('overview', {}, 'operation');
+    expect(short(v.prev)).toBe('preface');
+    expect(short(v.next)).toBe('clean-up');
+    expect(v.progress).toEqual({ chapterId: 'start', chapter: '开始', chapterNo: 0 });
+    expect(short(map.view('iphone-why', {}, 'operation').prev)).toBe('subscribe');
   });
 
-  it('当前页属于某个分支时，按当前页所属选项覆盖 stored（AC-08 逻辑层）', () => {
-    const v = sample().view(step('plan3-buy-node'), { 'node-plan': 'plan-1' });
-    expect(v.choices['node-plan']).toBe('plan-3');
-    expect(short(v.prev)).toBe('choose/node-plan');
-    expect(short(v.next)).toBe('choose/desktop-proxy');
-  });
-
-  it('stored 里不存在的分叉点或选项被忽略，回退默认路线', () => {
-    const v = sample().view(step('webrtc'), { 'node-plan': 'plan-9', 'desktop-proxy': 'gone', ghost: 'x' } as Choices);
-    expect(v.choices).toEqual({ 'node-plan': 'plan-1', 'desktop-proxy': 'v2rayn', phone: 'iphone' });
-    expect(short(v.prev)).toBe('v2rayn-dns');
-  });
-
-  it('同一分叉点紧挨着的两段分支（F2）：第二章末尾接第三章同一选项的分支，再汇合到 WebRTC', () => {
-    const map = sample();
-    const stored = { 'desktop-proxy': 'clash-verge' };
-    expect(short(map.view(step('clash-verge-tun'), stored).next)).toBe('clash-verge-dns');
-    expect(short(map.view(step('clash-verge-dns'), stored).prev)).toBe('clash-verge-tun');
-    expect(short(map.view(step('clash-verge-dns'), {}).next)).toBe('webrtc');
-    expect(short(map.view(step('webrtc'), stored).prev)).toBe('clash-verge-dns');
-    // 打开第二段分支的页面时，也按它所属的选项算
-    expect(map.view(step('clash-verge-dns'), {}).choices['desktop-proxy']).toBe('clash-verge');
-  });
-
-  it('F3 跨章节：第六章分支沿用到第七、十章，汇合点在后面的章节', () => {
-    const map = sample();
-    const android = { phone: 'android' };
-    expect(walk(map, android).slice(16)).toEqual([
-      'choose/phone', 'android-v2rayng', 'android-timezone',
-      'android-google-play', 'android-gmail', 'create-google-account',
-      'use-google-few-days',
-      'android-subscribe',
-      'after-subscribe', 'about-kyc',
+  it('两种视图下全程的页面顺序', () => {
+    expect(walk(map, full, 'operation')).toEqual([
+      'preface', 'clean-up',
+      'choose-plan', 'plan1-buy-server', 'make-node', 'plan1-panel', 'import-proxy', 'check-ip', 'timezone',
+      'choose-phone', 'iphone-proxy', 'iphone-gmail', 'register-gmail', 'use-two-days', 'google-region', 'subscribe',
+      'iphone-apple-id', 'iphone-subscribe', 'after-subscribe',
+      'thanks', 'afterword',
     ]);
-    expect(short(map.view(step('create-google-account'), android).prev)).toBe('android-gmail');
-    expect(short(map.view(step('after-subscribe'), android).prev)).toBe('android-subscribe');
-    expect(short(map.view(step('after-subscribe'), {}).prev)).toBe('purchase-failed');
+    expect(walk(map, { 'node-plan': 'plan-3', phone: 'android' }, 'principle')).toEqual([
+      'preface', 'overview', 'clean-up',
+      'choose-plan', 'plan3-node', 'import-proxy', 'check-ip', 'recap', 'timezone',
+      'choose-phone', 'android-proxy', 'android-gmail', 'register-gmail', 'use-two-days', 'google-region', 'subscribe',
+      'android-subscribe', 'after-subscribe',
+      'thanks', 'afterword',
+    ]);
+  });
+});
+
+describe('旁支页（FR-19、AC-19 逻辑层）', () => {
+  const map = sample();
+
+  it('没有上一步，“回到”挂靠的页面，“下一步”是那一页的下一步', () => {
+    const v = map.view('google-appeal', {}, 'operation');
+    expect(v.current).toEqual({ kind: 'side', id: 'google-appeal', title: '被封了：申诉解封' });
+    expect(v.prev).toBeNull();
+    expect(v.returnTo).toEqual({ kind: 'step', id: 'use-two-days', title: '先用两天' });
+    expect(short(v.next)).toBe('google-region');
+    expect(v.skipTo).toBeNull();
+    expect(v.progress).toEqual({ chapterId: 'register-and-subscribe', chapter: '注册和订阅', chapterNo: 2 });
   });
 
-  it('不在路线图里的步骤或分叉点抛错，原型链上的名字也一样', () => {
-    expect(() => sample().view(step('nope'), {})).toThrow(/不在路线图里的步骤：nope/);
-    expect(() => sample().view(choose('nope'), {})).toThrow(/不在路线图里的分叉点：nope/);
-    expect(() => sample().view(choose('constructor'), {})).toThrow(/不在路线图里的分叉点：constructor/);
-    expect(() => sample().view(step('constructor'), {})).toThrow(/不在路线图里的步骤：constructor/);
+  it('沿“先用两天”的下一步走不经过旁支页；目录里没有旁支页，也没有当前项', () => {
+    expect(short(map.view('use-two-days', {}, 'operation').next)).toBe('google-region');
+    const outline = map.view('google-appeal', {}, 'operation').outline;
+    const all = JSON.stringify(outline);
+    expect(all).not.toContain('google-appeal');
+    expect(all).not.toContain('"current":true');
   });
 
-  it('stored 形状不对（null、数组、原型链上的键）时按默认路线，不抛错', () => {
-    const map = sample();
-    const defaults = map.view(step('webrtc'), {}).choices;
-    expect(map.view(step('webrtc'), null as unknown as Choices).choices).toEqual(defaults);
-    expect(map.view(step('webrtc'), [] as unknown as Choices).choices).toEqual(defaults);
-    expect(map.view(step('webrtc'), JSON.parse('{"__proto__":{"phone":"android"}}')).choices).toEqual(defaults);
+  it('普通页没有 returnTo', () => {
+    expect(map.view('use-two-days', {}, 'operation').returnTo).toBeNull();
   });
 });
 
 describe('共享步骤（AC-19 逻辑层）', () => {
-  it('stored 为空：按默认的方案一，“连上服务器”的上一步是“白嫖住宅 IP”', () => {
-    const v = sample().view(step('ssh-connect'), {});
-    expect(v.choices['node-plan']).toBe('plan-1');
-    expect(short(v.prev)).toBe('plan1-free-residential-ip');
-    expect(short(v.next)).toBe('run-script');
+  const map = sample();
+
+  it('本机没选：取它所属的第一个选项', () => {
+    const v = map.view('make-node', {}, 'operation');
+    expect(v.choices).toEqual({ 'node-plan': 'plan-1' });
+    expect(short(v.prev)).toBe('plan1-buy-server');
   });
 
-  it('stored 为方案二：沿用方案二，上一步是“买住宅 IP 服务器并测 IP”', () => {
-    const v = sample().view(step('ssh-connect'), { 'node-plan': 'plan-2' });
-    expect(v.choices['node-plan']).toBe('plan-2');
-    expect(short(v.prev)).toBe('plan2-buy-residential-vps');
+  it('本机选了其中一个就沿用，选了不包含它的选项时取第一个', () => {
+    expect(short(map.view('make-node', { 'node-plan': 'plan-2' }, 'operation').prev)).toBe('plan2-server');
+    expect(short(map.view('make-node', { 'node-plan': 'plan-2' }, 'operation').next)).toBe('import-proxy');
+    expect(map.view('make-node', { 'node-plan': 'plan-3' }, 'operation').choices).toEqual({ 'node-plan': 'plan-1' });
   });
 
-  it('stored 为方案三（不在共享步骤的选项里）：回退默认的方案一', () => {
-    const v = sample().view(step('run-script'), { 'node-plan': 'plan-3' });
-    expect(v.choices['node-plan']).toBe('plan-1');
-    expect(short(v.prev)).toBe('ssh-connect');
-    expect(short(v.next)).toBe('choose/desktop-proxy');
-  });
-
-  it('stored 不在其中时用默认选项，而不是选项列表里的第一个（FR-17）', () => {
-    const spec = sampleSpec();
-    spec.defaults['node-plan'] = 'plan-2';
-    const map = buildRouteMap(spec, sampleSteps(), sampleChoices());
-    expect(map.view(step('ssh-connect'), { 'node-plan': 'plan-3' }).choices['node-plan']).toBe('plan-2');
-  });
-
-  it('默认选项也不在共享步骤的选项里时，取其中第一个（按选择页的选项顺序）', () => {
-    const spec = sampleSpec();
-    spec.defaults['node-plan'] = 'plan-3';
-    const map = buildRouteMap(spec, sampleSteps(), sampleChoices());
-    expect(map.view(step('ssh-connect'), {}).choices['node-plan']).toBe('plan-1');
-    expect(map.view(step('ssh-connect'), { 'node-plan': 'plan-2' }).choices['node-plan']).toBe('plan-2');
-  });
-
-  it('目录里共享步骤出现在它所属的每个选项下，只有所选选项下的标为在路线上、标为当前项', () => {
-    const v = sample().view(step('ssh-connect'), { 'node-plan': 'plan-2' });
-    const branch = v.outline.find((c) => c.id === 'residential-ip')!.items.find((i) => i.kind === 'branch')!;
-    if (branch.kind !== 'branch') throw new Error('expected branch');
-    const ids = (o: string) => branch.options.find((x) => x.id === o)!.steps.filter((s) => s.id === 'ssh-connect');
-    expect(ids('plan-1')).toMatchObject([{ onRoute: false, current: false }]);
-    expect(ids('plan-2')).toMatchObject([{ onRoute: true, current: true }]);
-    expect(ids('plan-3')).toEqual([]);
+  it('目录里共享步骤在每个选项下各列一份，只有生效选项下的标当前项', () => {
+    const branch = map.view('make-node', { 'node-plan': 'plan-2' }, 'operation').outline[1]!.items[1] as OutlineBranch;
+    const flags = branch.options.map((o) => o.steps.filter((s) => s.id === 'make-node').map((s) => [o.id, s.current, s.onRoute]));
+    expect(flags.flat()).toEqual([
+      ['plan-1', false, false],
+      ['plan-2', true, true],
+    ]);
   });
 });
 
 describe('可跳过步骤 skipTo（FR-15、AC-05 逻辑层）', () => {
+  const map = sample();
+
   it('不可跳过的步骤没有 skipTo', () => {
-    expect(sample().view(step('overview'), {}).skipTo).toBeNull();
+    expect(map.view('plan1-buy-server', {}, 'operation').skipTo).toBeNull();
   });
 
-  it('本章末尾的可跳过步骤：跳到下一章的选择页', () => {
-    expect(short(sample().view(step('clean-claude-code'), {}).skipTo)).toBe('choose/node-plan');
-    expect(short(sample().view(step('ip-failed'), {}).skipTo)).toBe('choose/phone');
+  it('分支末尾的可跳过步骤跳到汇合点', () => {
+    expect(short(map.view('plan1-panel', {}, 'operation').skipTo)).toBe('import-proxy');
   });
 
-  it('安卓：从“安装 Google Play”跳过本章内连续的可跳过步骤（跨越分支末尾），到第八章第一步', () => {
-    expect(short(sample().view(step('android-google-play'), { phone: 'android' }).skipTo)).toBe('use-google-few-days');
+  it('连续的可跳过步骤一起跳过，可以跨越分支末尾', () => {
+    expect(short(map.view('android-gmail', {}, 'operation').skipTo)).toBe('use-two-days');
+    expect(short(map.view('register-gmail', {}, 'operation').skipTo)).toBe('use-two-days');
   });
 
-  it('iPhone：从“下载 Gmail”连跳到第八章第一步', () => {
-    expect(short(sample().view(step('iphone-gmail'), {}).skipTo)).toBe('use-google-few-days');
+  it('可以跨章节：章末的可跳过步骤跳到下一章的第一项', () => {
+    expect(short(map.view('clean-up', {}, 'operation').skipTo)).toBe('choose-plan');
   });
 
-  it('后面紧跟不可跳过步骤时，跳到那一步', () => {
-    const steps = sampleSteps().map((s) => (s.id === 'create-google-account' ? { ...s, skippable: false } : s));
-    const map = buildRouteMap(sampleSpec(), steps, sampleChoices());
-    expect(short(map.view(step('android-google-play'), { phone: 'android' }).skipTo)).toBe('create-google-account');
+  it('后面接着没选的分支段时跳到它的选择页', () => {
+    expect(short(map.view('google-region', {}, 'operation').skipTo)).toBe('subscribe');
+    const spec = sampleSpec();
+    chapter(spec, 'register-and-subscribe').items.splice(5, 1); // 去掉“订阅”，google-region 后面紧跟第二段
+    const pages = samplePages().filter((p) => p.id !== 'subscribe');
+    expect(short(buildRouteMap(spec, pages).view('google-region', {}, 'operation').skipTo)).toBe('choose-phone');
   });
 
-  it('可跳过步骤是路线最后一项时跳到完成页', () => {
-    const steps = sampleSteps().map((s) => (s.id === 'about-kyc' ? { ...s, skippable: true } : s));
-    const map = buildRouteMap(sampleSpec(), steps, sampleChoices());
-    expect(map.view(step('about-kyc'), {}).skipTo).toEqual({ kind: 'done' });
-  });
-
-  it('不越过章节：下一章开头的可跳过步骤不会被一起跳过', () => {
-    const steps = sampleSteps().map((s) => (s.id === 'use-google-few-days' ? { ...s, skippable: true } : s));
-    const map = buildRouteMap(sampleSpec(), steps, sampleChoices());
-    expect(short(map.view(step('iphone-gmail'), {}).skipTo)).toBe('use-google-few-days');
-  });
-
-  it('skipLabel 原样进入 RouteData（AC-05 的“没用过，跳过”）', () => {
-    const data = sample().data;
-    expect(data.steps['clean-claude-code']).toMatchObject({ skippable: true, skipLabel: '没用过，跳过' });
-    expect(data.steps['iphone-gmail']).not.toHaveProperty('skipLabel');
+  it('skipLabel 原样进入 RouteData', () => {
+    expect(map.data.pages['clean-up']).toEqual({ title: '清理旧账号和配置', principleOnly: false, skippable: true, skipLabel: '没用过，跳过' });
   });
 });
 
-describe('进度与目录（FR-10、FR-16）', () => {
-  it('进度按当前路线在本章内计数，选择页不计入', () => {
-    const map = sample();
-    expect(map.view(step('ssh-connect'), {}).progress).toEqual({
-      chapterId: 'residential-ip',
-      chapter: '一、准备住宅 IP',
-      index: 3,
-      total: 4,
+describe('进度（FR-10）', () => {
+  const map = sample();
+
+  it('按当前路线和视图在本章内计数，选择页不计入；章节号从 0 开始', () => {
+    const full = { 'node-plan': 'plan-1', phone: 'iphone' };
+    expect(map.view('import-proxy', full, 'operation').progress).toEqual({
+      chapterId: 'node-and-ip',
+      chapter: '准备节点和住宅 IP',
+      chapterNo: 1,
+      index: 4,
+      total: 6,
     });
-    expect(map.view(step('ssh-connect'), { 'node-plan': 'plan-2' }).progress).toMatchObject({ index: 2, total: 3 });
-    expect(map.view(step('plan3-buy-node'), {}).progress).toMatchObject({ index: 1, total: 1 });
+    expect(map.view('timezone', full, 'principle').progress).toMatchObject({ index: 7, total: 7 });
+    expect(map.view('preface', {}, 'operation').progress).toMatchObject({ chapterNo: 0, index: 1, total: 2 });
+    expect(map.view('preface', {}, 'principle').progress).toMatchObject({ index: 1, total: 3 });
   });
 
-  it('跨两段分支的章节按所选选项计数', () => {
-    expect(sample().view(step('webrtc'), {}).progress).toMatchObject({ index: 2, total: 3 });
+  it('本章有没选的分支段时数不清，只有章节', () => {
+    expect(map.view('import-proxy', {}, 'operation').progress).toEqual({ chapterId: 'node-and-ip', chapter: '准备节点和住宅 IP', chapterNo: 1 });
+    // 打开分支页面时按它所属的选项算，数得清
+    expect(map.view('iphone-gmail', {}, 'operation').progress).toMatchObject({ index: 2, total: 9 });
   });
 
-  it('选择页没有进度', () => {
-    expect(sample().view(choose('phone'), {}).progress).toBeNull();
-  });
-
-  it('目录列出全部章节和步骤，标出在不在当前路线上、当前项和选择页', () => {
-    const outline = sample().view(choose('desktop-proxy'), { 'desktop-proxy': 'clash-verge' }).outline;
-    expect(outline.map((c) => c.id)).toEqual(sampleSpec().chapters.map((c) => c.id));
-    const ch2 = outline.find((c) => c.id === 'desktop-proxy')!;
-    expect(ch2.items[0]).toEqual({ kind: 'choose', fork: 'desktop-proxy', title: '选择电脑代理软件', current: true });
-    const branch = ch2.items[1]!;
-    if (branch.kind !== 'branch') throw new Error('expected branch');
-    expect(branch.options.map((o) => [o.id, o.title, o.selected])).toEqual([
-      ['v2rayn', 'v2rayN', false],
-      ['clash-verge', 'Clash Verge', true],
-    ]);
-    expect(branch.options[0]!.steps.every((s) => !s.onRoute)).toBe(true);
-    expect(branch.options[1]!.steps.map((s) => [s.id, s.onRoute, s.placeholder])).toEqual([
-      ['clash-verge-import', true, false],
-      ['clash-verge-tun', true, true],
-    ]);
-    const start = outline[0]!.items;
-    expect(start[2]).toMatchObject({ kind: 'step', id: 'clean-claude-code', skippable: true, onRoute: true, current: false });
+  it('选择页只有章节', () => {
+    expect(map.view('choose-plan', { 'node-plan': 'plan-1' }, 'operation').progress).toEqual({
+      chapterId: 'node-and-ip',
+      chapter: '准备节点和住宅 IP',
+      chapterNo: 1,
+    });
   });
 });
 
-describe('outline：只按本机选择画目录（FR-14、FR-16、FR-20）', () => {
-  const nodePlan = (outline: ReturnType<RouteMap['outline']>) => {
-    const branch = outline.find((c) => c.id === 'residential-ip')!.items.find((i) => i.kind === 'branch')!;
-    if (branch.kind !== 'branch') throw new Error('expected branch');
-    return branch;
-  };
-  const allSteps = (outline: ReturnType<RouteMap['outline']>) =>
-    outline.flatMap((c) => c.items.flatMap((i) => (i.kind === 'branch' ? i.options.flatMap((o) => o.steps) : [i])));
+describe('目录 outline（FR-14、FR-16）', () => {
+  const map = sample();
 
-  it('没有当前页（常见问题、找不到页）：按默认路线，没有任何一项是当前项', () => {
-    const outline = sample().outline({}, null);
-    expect(nodePlan(outline).options.map((o) => o.selected)).toEqual([true, false, false]);
-    expect(allSteps(outline).some((i) => i.current)).toBe(false);
+  it('列出全部章节；选择页、“或”分组、原理独有标记；当前项只有一处', () => {
+    const outline = map.view('choose-plan', {}, 'operation').outline;
+    expect(outline.map((c) => c.id)).toEqual(['start', 'node-and-ip', 'register-and-subscribe', 'ending']);
+    expect(outline[1]!.items[0]).toEqual({ kind: 'choose', fork: 'node-plan', id: 'choose-plan', title: '选择方案', current: true });
+    expect(outline[0]!.items[1]).toMatchObject({ kind: 'step', id: 'overview', principleOnly: true, onRoute: false });
+    expect(JSON.stringify(outline).match(/"current":true/g)).toHaveLength(1);
   });
 
-  it('本机选择优先于当前页所属选项：在目录里改选后，当前页可以落在其他路线上', () => {
-    const outline = sample().outline({ 'node-plan': 'plan-3' }, step('plan1-buy-vps'));
-    const branch = nodePlan(outline);
-    expect(branch.options.map((o) => o.selected)).toEqual([false, false, true]);
-    expect(branch.options[0]!.steps[0]).toMatchObject({ id: 'plan1-buy-vps', current: true, onRoute: false });
+  it('没选的分叉点各选项都算在路线上；选了以后其他选项不在路线上', () => {
+    const none = map.outline({}, null, 'principle')[1]!.items[1] as OutlineBranch;
+    expect(none.options.map((o) => [o.selected, o.steps.every((s) => s.onRoute)])).toEqual([
+      [false, true],
+      [false, true],
+      [false, true],
+    ]);
+    const chosen = map.outline({ 'node-plan': 'plan-3' }, null, 'principle')[1]!.items[1] as OutlineBranch;
+    expect(chosen.options.map((o) => [o.id, o.selected, o.steps.every((s) => s.onRoute)])).toEqual([
+      ['plan-1', false, false],
+      ['plan-2', false, false],
+      ['plan-3', true, true],
+    ]);
   });
 
-  it('共享步骤只在当前路线上的那一份标当前项；都不在当前路线上时标在它所属的第一个选项下', () => {
-    const map = sample();
-    const currentIn = (outline: ReturnType<RouteMap['outline']>) =>
-      nodePlan(outline).options.filter((o) => o.steps.some((s) => s.current)).map((o) => o.id);
-    expect(currentIn(map.outline({ 'node-plan': 'plan-2' }, step('ssh-connect')))).toEqual(['plan-2']);
-    expect(currentIn(map.view(step('ssh-connect'), {}).outline)).toEqual(['plan-1']);
-    expect(currentIn(map.outline({ 'node-plan': 'plan-3' }, step('ssh-connect')))).toEqual(['plan-1']);
+  it('原理视图下原理独有步骤在路线上', () => {
+    const step = map.outline({}, null, 'principle')[0]!.items[1] as OutlineStep;
+    expect(step).toMatchObject({ id: 'overview', onRoute: true, current: false });
   });
 
-  it('失效的选择按默认路线；和不需要改写选择时的 view().outline 一致', () => {
-    const map = sample();
-    expect(nodePlan(map.outline({ 'node-plan': 'plan-9' }, null)).options[0]!.selected).toBe(true);
-    const stored = { 'desktop-proxy': 'clash-verge' };
-    expect(map.outline(stored, choose('desktop-proxy'))).toEqual(map.view(choose('desktop-proxy'), stored).outline);
+  it('outline() 只按本机选择：改选后当前页可以落在其他路线上', () => {
+    const branch = map.outline({ phone: 'android' }, 'iphone-gmail', 'operation')[2]!.items[1] as OutlineBranch;
+    const iphone = branch.options.find((o) => o.id === 'iphone')!;
+    expect(iphone.steps.find((s) => s.id === 'iphone-gmail')).toMatchObject({ current: true, onRoute: false });
   });
 });
 
 describe('RouteData 与 routeMapFromData', () => {
-  it('RouteData 可序列化，含标题、章节标题、skippable/skipLabel/placeholder 标记', () => {
-    const data = sample().data;
+  it('RouteData 可序列化，含页面标题、分叉点的选择页和旁支页', () => {
+    const { data } = sample();
     expect(JSON.parse(JSON.stringify(data))).toEqual(data);
-    expect(data.chapters[1]!.title).toBe('一、准备住宅 IP');
-    expect(data.steps['clash-verge-tun']).toEqual({ title: 'Clash Verge 开 tun', skippable: false, placeholder: true });
-    expect(data.forks.phone).toEqual({ title: '选择手机', options: [{ id: 'iphone', title: 'iPhone' }, { id: 'android', title: '安卓' }] });
+    expect(data.forks['phone']).toEqual({ page: 'choose-phone', options: [{ id: 'iphone', title: 'iPhone' }, { id: 'android', title: '安卓' }] });
+    expect(data.side).toEqual({ 'google-appeal': 'use-two-days' });
+    expect(data.pages['recap']).toEqual({ title: '小结', principleOnly: true, skippable: false });
   });
 
   it('浏览器用 JSON 重建的 RouteMap 与构建时结果一致', () => {
-    const built = sample();
-    const rebuilt = routeMapFromData(JSON.parse(JSON.stringify(built.data)));
-    const cases: [At, Choices][] = [
-      [choose('desktop-proxy'), { 'node-plan': 'plan-3' }],
-      [step('ssh-connect'), { 'node-plan': 'plan-2' }],
-      [step('android-google-play'), { phone: 'android' }],
-      [step('before-you-start'), {}],
-    ];
-    for (const [at, stored] of cases) expect(rebuilt.view(at, stored)).toEqual(built.view(at, stored));
+    const map = sample();
+    const rebuilt = routeMapFromData(JSON.parse(JSON.stringify(map.data)));
+    for (const id of ['preface', 'choose-plan', 'make-node', 'google-appeal', 'overview']) {
+      for (const mode of ['operation', 'principle'] as const) {
+        expect(rebuilt.view(id, { phone: 'android' }, mode)).toEqual(map.view(id, { phone: 'android' }, mode));
+      }
+    }
   });
 });
 
 describe('pathOf', () => {
-  it('步骤、选择页、完成页的站内路径（ADR-0002）', () => {
-    expect(pathOf({ kind: 'step', id: 'run-script', title: '运行脚本' })).toBe('/run-script/');
-    expect(pathOf({ kind: 'choose', fork: 'node-plan', title: '选择节点方案' })).toBe('/choose/node-plan/');
-    expect(pathOf({ kind: 'done' })).toBe('/done/');
+  it('页面都是 /<id>/，首页是 /（ADR-0002）', () => {
+    expect(pathOf({ kind: 'step', id: 'preface', title: '前言' })).toBe('/preface/');
+    expect(pathOf({ kind: 'choose', id: 'choose-plan', title: '选择方案' })).toBe('/choose-plan/');
+    expect(pathOf({ kind: 'side', id: 'google-appeal', title: '申诉' })).toBe('/google-appeal/');
+    expect(pathOf({ kind: 'home' })).toBe('/');
   });
 });
 
-// ================================================================ 校验
-
 describe('校验：夹具是合法的', () => {
-  it('全部 3×2×2 = 12 种选项组合都能从第一项走到完成页、不重复经过同一项', () => {
+  it('3 × 2 种选择 × 2 种视图共 12 条路线都从前言走到后记，不重复经过同一页', () => {
     const map = sample();
-    let routes = 0;
-    for (const plan of ['plan-1', 'plan-2', 'plan-3']) {
-      for (const proxy of ['v2rayn', 'clash-verge']) {
+    for (const mode of ['operation', 'principle'] as const) {
+      for (const plan of ['plan-1', 'plan-2', 'plan-3']) {
         for (const phone of ['iphone', 'android']) {
-          const seen = walk(map, { 'node-plan': plan, 'desktop-proxy': proxy, phone });
+          const seen = walk(map, { 'node-plan': plan, phone }, mode);
+          expect(seen.at(-1)).toBe('afterword');
           expect(new Set(seen).size).toBe(seen.length);
-          expect(seen.at(-1)).toBe('about-kyc');
-          routes++;
         }
       }
     }
-    expect(routes).toBe(12);
   });
 });
+
+// ================================================================ 校验错误
 
 describe('校验错误（FR-61、AC-14 逻辑层）', () => {
   it('错误一次报全，并写进异常消息', () => {
     const spec = sampleSpec();
-    spec.chapters[0]!.items.push('missing-a', 'missing-b');
-    expect(errorsOf(spec)).toHaveLength(2);
-    expect(() => buildRouteMap(spec, sampleSteps(), sampleChoices())).toThrow(/route\.yaml：步骤 missing-a[\s\S]*missing-b/);
-  });
-
-  it('步骤在路线图里重复出现（两个普通项）', () => {
-    const spec = sampleSpec();
-    chapter(spec, 'after').items.push('overview');
-    expectError(errorsOf(spec), 'route.yaml', /步骤 overview 在路线图里出现了多次/);
-  });
-
-  it('同一步骤出现在两个不同的分支段里', () => {
-    const spec = sampleSpec();
-    const seg = chapter(spec, 'leak-protection').items[0] as { branch: string; options: Record<string, string[]> };
-    seg.options.v2rayn!.push('v2rayn-tun');
-    expectError(errorsOf(spec), 'route.yaml', /步骤 v2rayn-tun 在路线图里出现了多次/);
-  });
-
-  it('同一步骤既是普通项又在分支段里', () => {
-    const spec = sampleSpec();
-    chapter(spec, 'ip-quality').items.push('ssh-connect');
-    expectError(errorsOf(spec), 'route.yaml', /步骤 ssh-connect 在路线图里出现了多次/);
-  });
-
-  it('同一选项里同一步骤出现两次', () => {
-    const spec = sampleSpec();
-    const seg = chapter(spec, 'residential-ip').items[1] as { options: Record<string, string[]> };
-    seg.options['plan-3']!.push('plan3-buy-node');
-    expectError(errorsOf(spec), 'route.yaml', /步骤 plan3-buy-node 在分叉点 node-plan 的选项 plan-3 里出现了多次/);
-  });
-
-  it('步骤文件标识重复', () => {
-    const steps = [...sampleSteps(), { id: 'webrtc', title: '又一个' }];
-    expectError(errorsOf(sampleSpec(), steps), 'steps/webrtc.md', /步骤标识重复/);
-  });
-
-  it('路线图引用不存在的步骤，报 route.yaml', () => {
-    const spec = sampleSpec();
-    chapter(spec, 'nurture').items.push('ghost-step');
-    expectError(errorsOf(spec), 'route.yaml', /步骤 ghost-step 没有对应的文件 steps\/ghost-step\.md/);
-  });
-
-  it('步骤文件不在路线图里，报步骤文件', () => {
-    const steps = [...sampleSteps(), { id: 'orphan', title: '孤儿' }];
-    expectError(errorsOf(sampleSpec(), steps), 'steps/orphan.md', /不在路线图里/);
-  });
-
-  it('branch 出现在 choose 之前', () => {
-    const spec = sampleSpec();
-    const items = chapter(spec, 'phone-proxy').items;
-    items.reverse(); // [branch, choose]
-    // 分支段被挪到选择页前面后，它后面紧跟选择页，汇合仍成立，只报顺序错误
+    chapter(spec, 'start').items.push('nope-1', 'nope-2');
     const errors = errorsOf(spec);
-    expect(errors).toHaveLength(1);
-    expectError(errors, 'route.yaml', /分叉点 phone 的分支段（章节 phone-proxy）出现在它的选择页/);
+    expectError(errors, 'route.yaml', /nope-1 没有对应的文件 principle\/nope-1\.md/);
+    expectError(errors, 'route.yaml', /nope-2/);
+    expect(() => buildRouteMap(spec, samplePages())).toThrow(/路线图校验失败.*\n.*route\.yaml：/);
   });
 
-  it('branch 引用了没有选择页的分叉点', () => {
+  it('1.0.0 的写法（defaults、没有 page 的 choose）报错', () => {
+    const errors = errorsOf({ ...sampleSpec(), defaults: { phone: 'iphone' } });
+    expectError(errors, 'route.yaml', /未知字段 defaults/);
     const spec = sampleSpec();
-    chapter(spec, 'after').items.splice(0, 0, { branch: 'ghost', options: { a: ['x1'], b: ['x2'] } });
+    chapter(spec, 'node-and-ip').items[0] = { choose: 'node-plan' } as never;
+    expectError(errorsOf(spec), 'route.yaml', /选择页写作 \{ choose: <分叉点>, page: <选择页标识> \}/);
+  });
+
+  it('一个标识空间：同一页面不能既是普通项又是选择页或旁支页', () => {
+    const spec = sampleSpec();
+    chapter(spec, 'ending').items.push('choose-plan', 'google-appeal');
     const errors = errorsOf(spec);
-    expectError(errors, 'route.yaml', /分叉点 ghost 没有对应的文件 choices\/ghost\.md/);
-    expectError(errors, 'route.yaml', /分叉点 ghost 的分支段（章节 after）出现在它的选择页/);
+    expectError(errors, 'route.yaml', /页面 choose-plan 在路线图里出现了多次/);
+    expectError(errors, 'route.yaml', /页面 google-appeal 在路线图里出现了多次/);
   });
 
-  it('branch 的 options 与选择页不一致（缺少、多出）', () => {
+  it('同一页面出现在两个不同的分支段里', () => {
     const spec = sampleSpec();
-    const seg = chapter(spec, 'residential-ip').items[1] as { options: Record<string, string[]> };
-    delete seg.options['plan-3'];
-    seg.options['plan-4'] = ['plan3-buy-node'];
-    expectError(errorsOf(spec), 'route.yaml', /node-plan 的分支段（章节 residential-ip）的选项与 choices\/node-plan\.md 不一致：缺少 plan-3，多出 plan-4/);
+    (chapter(spec, 'register-and-subscribe').items[6] as { options: Record<string, string[]> }).options['android']!.push('android-proxy');
+    expectError(errorsOf(spec), 'route.yaml', /页面 android-proxy 在路线图里出现了多次/);
   });
 
-  it('选项的步骤列表为空', () => {
+  it('同一选项里同一页面出现两次', () => {
     const spec = sampleSpec();
-    const seg = chapter(spec, 'residential-ip').items[1] as { options: Record<string, string[]> };
-    seg.options['plan-3'] = [];
-    const steps = sampleSteps().filter((s) => s.id !== 'plan3-buy-node');
-    expectError(errorsOf(spec, steps), 'route.yaml', /选项 plan-3（章节 residential-ip）没有步骤/);
+    (chapter(spec, 'node-and-ip').items[1] as { options: Record<string, string[]> }).options['plan-3']!.push('plan3-node');
+    expectError(errorsOf(spec), 'route.yaml', /页面 plan3-node 在分叉点 node-plan 的选项 plan-3 里出现了多次/);
   });
 
-  it('defaults 缺少分叉点', () => {
-    const spec = sampleSpec();
-    delete spec.defaults.phone;
-    expectError(errorsOf(spec), 'route.yaml', /defaults 缺少分叉点 phone/);
+  it('页面文件不在路线图里，报原理版文件', () => {
+    const pages = [...samplePages(), { id: 'orphan', title: '孤儿', principleOnly: false, skippable: false }];
+    expectError(errorsOf(sampleSpec(), pages), 'principle/orphan.md', /页面 orphan 不在路线图里/);
   });
 
-  it('defaults 的值不是该分叉点的选项，或写了不存在的分叉点', () => {
+  it('页面标识重复、用了保留字、不是 kebab-case', () => {
+    const pages = samplePages();
+    pages.push({ ...page(pages, 'preface') });
+    for (const id of [...RESERVED_PAGE_IDS, 'Bad_Id']) pages.push({ id, title: id, principleOnly: false, skippable: false });
+    const errors = errorsOf(sampleSpec(), pages);
+    expectError(errors, 'principle/preface.md', /页面标识重复：preface/);
+    expectError(errors, 'principle/faq.md', /保留路径/);
+    expectError(errors, 'principle/ip-tests.md', /保留路径/);
+    expectError(errors, 'principle/Bad_Id.md', /kebab-case/);
+  });
+
+  it('选择页的文件要写 options；写了 options 的页面必须是选择页', () => {
+    const pages = samplePages();
+    delete page(pages, 'choose-plan').options;
+    page(pages, 'subscribe').options = [{ id: 'a', title: '甲' }, { id: 'b', title: '乙' }];
+    const errors = errorsOf(sampleSpec(), pages);
+    expectError(errors, 'principle/choose-plan.md', /是分叉点 node-plan 的选择页，frontmatter 要写 options/);
+    expectError(errors, 'principle/subscribe.md', /写了 options，但在路线图里不是选择页/);
+  });
+
+  it('branch 出现在 choose 之前，或分叉点没有选择页', () => {
     const spec = sampleSpec();
-    spec.defaults.phone = 'nokia';
-    spec.defaults.ghost = 'x';
+    const items = chapter(spec, 'node-and-ip').items;
+    [items[0], items[1]] = [items[1]!, items[0]!];
+    expectError(errorsOf(spec), 'route.yaml', /分叉点 node-plan 的分支段（章节 node-and-ip）出现在它的选择页/);
+  });
+
+  it('分支段的选项与选择页的 options 不一致（缺少、多出、顺序不同）', () => {
+    const spec = sampleSpec();
+    const options = (chapter(spec, 'node-and-ip').items[1] as { options: Record<string, string[]> }).options;
+    delete options['plan-3'];
+    options['plan-4'] = ['plan3-node'];
+    expectError(errorsOf(spec), 'route.yaml', /选项与选择页的 options 不一致：缺少 plan-3，多出 plan-4/);
+
+    const reordered = sampleSpec();
+    const segment = chapter(reordered, 'register-and-subscribe').items[1] as { options: Record<string, string[]> };
+    segment.options = { android: segment.options['android']!, iphone: segment.options['iphone']! };
+    expectError(errorsOf(reordered), 'route.yaml', /选项顺序要与选择页的 options 一致：iphone、android/);
+  });
+
+  it('选项没有页面，或只有原理独有步骤', () => {
+    const spec = sampleSpec();
+    (chapter(spec, 'node-and-ip').items[1] as { options: Record<string, string[]> }).options['plan-3'] = [];
+    expectError(errorsOf(spec, samplePages().filter((p) => p.id !== 'plan3-node')), 'route.yaml', /选项 plan-3（章节 node-and-ip）没有页面/);
+
+    const pages = samplePages();
+    page(pages, 'android-subscribe').principleOnly = true;
+    expectError(errorsOf(sampleSpec(), pages), 'route.yaml', /选项 android（章节 register-and-subscribe）只有原理独有步骤/);
+  });
+
+  it('删掉分支的汇合：分支段是路线最后一项，或紧跟另一个分叉点的分支段', () => {
+    const spec = sampleSpec();
+    chapter(spec, 'register-and-subscribe').items.pop();
+    spec.chapters.pop();
+    expectError(
+      errorsOf(spec, samplePages().filter((p) => !['after-subscribe', 'thanks', 'afterword'].includes(p.id))),
+      'route.yaml',
+      /分叉点 phone 的分支段（章节 register-and-subscribe）之后没有汇合点/,
+    );
+  });
+
+  it('汇合点可以是另一个分叉点的选择页，也可以在后面的章节', () => {
+    const spec = sampleSpec();
+    chapter(spec, 'node-and-ip').items.splice(2, 4); // 去掉 import-proxy、check-ip、recap、timezone
+    const removed = ['import-proxy', 'check-ip', 'recap', 'timezone'];
+    const map = buildRouteMap(spec, samplePages().filter((p) => !removed.includes(p.id)));
+    expect(short(map.view('plan3-node', {}, 'operation').next)).toBe('choose-phone');
+    expect(short(map.view('choose-phone', {}, 'operation').prev)).toBe('choose-plan');
+  });
+
+  it('路线的首尾必须是普通页面，且不能是原理独有步骤', () => {
+    const pages = samplePages();
+    page(pages, 'preface').principleOnly = true;
+    page(pages, 'afterword').principleOnly = true;
+    const errors = errorsOf(sampleSpec(), pages);
+    expectError(errors, 'route.yaml', /路线的第一项 preface 不能是原理独有步骤/);
+    expectError(errors, 'route.yaml', /路线的最后一项 afterword 不能是原理独有步骤/);
+  });
+
+  it('旁支页：returnTo 必须是普通页，页面要有文件', () => {
+    const spec = sampleSpec();
+    spec.side = { 'google-appeal': { returnTo: 'iphone-gmail' }, ghost: { returnTo: 'nope' } };
     const errors = errorsOf(spec);
-    expectError(errors, 'route.yaml', /defaults\.phone 的值 nokia 不是这个分叉点的选项/);
-    expectError(errors, 'route.yaml', /defaults 里的 ghost 不是路线图里的分叉点/);
+    expectError(errors, 'route.yaml', /旁支页 google-appeal 的 returnTo（iphone-gmail）必须是路线图里的普通页/);
+    expectError(errors, 'route.yaml', /页面 ghost 没有对应的文件 principle\/ghost\.md/);
+    expectError(errors, 'route.yaml', /旁支页 ghost 的 returnTo（nope）/);
+    expectError(errorsOf({ ...sampleSpec(), side: { 'google-appeal': 'use-two-days' } }), 'route.yaml', /side\.google-appeal 要写成 \{ returnTo: <页面> \}/);
   });
 
-  it('分支之后没有汇合（分支段是路线最后一项）', () => {
+  it('选择页重复、没有分支段；章节标识重复', () => {
     const spec = sampleSpec();
-    spec.chapters = spec.chapters.filter((c) => c.id !== 'after');
-    const steps = sampleSteps().filter((s) => !['after-subscribe', 'about-kyc'].includes(s.id));
-    expectError(errorsOf(spec, steps), 'route.yaml', /分叉点 phone 的分支段（章节 subscribe）之后没有汇合点/);
+    chapter(spec, 'ending').items.unshift({ choose: 'node-plan', page: 'thanks' });
+    expectError(errorsOf(spec), 'route.yaml', /分叉点 node-plan 的选择页出现了多次/);
+
+    const lonely = sampleSpec();
+    chapter(lonely, 'register-and-subscribe').items.splice(1, 1);
+    chapter(lonely, 'register-and-subscribe').items.splice(5, 1);
+    chapter(lonely, 'register-and-subscribe').items = chapter(lonely, 'register-and-subscribe').items.filter(
+      (item) => typeof item === 'string' || !('branch' in item),
+    );
+    const branchPages = ['iphone-proxy', 'iphone-gmail', 'android-proxy', 'android-gmail', 'iphone-why', 'iphone-apple-id', 'iphone-subscribe', 'android-subscribe', 'subscribe'];
+    expectError(errorsOf(lonely, samplePages().filter((p) => !branchPages.includes(p.id))), 'route.yaml', /分叉点 phone 有选择页，但没有任何分支段/);
+
+    const dup = sampleSpec();
+    dup.chapters[3]!.id = 'start';
+    expectError(errorsOf(dup), 'route.yaml', /章节标识重复：start/);
   });
 
-  it('分支之后紧跟另一个分叉点的分支段，也算没有汇合', () => {
+  it('形状不对：不是对象、chapters 为空、未知字段、分叉点和选项不是 kebab-case', () => {
+    expectError(errorsOf(null), 'route.yaml', /路线图必须是一个对象/);
+    expectError(errorsOf({ chapters: [] }), 'route.yaml', /chapters 必须是非空列表/);
     const spec = sampleSpec();
-    // F2 的第二段分支后面直接接 F1 的一段分支（借用 webrtc、ipv6、check-ip-quality 作它的步骤）
-    const leak = chapter(spec, 'leak-protection');
-    leak.items = [leak.items[0]!, { branch: 'node-plan', options: { 'plan-1': ['webrtc'], 'plan-2': ['ipv6'], 'plan-3': ['check-ip-quality'] } }, 'ip-failed'];
-    spec.chapters = spec.chapters.filter((c) => c.id !== 'ip-quality');
-    expectError(errorsOf(spec), 'route.yaml', /分叉点 desktop-proxy 的分支段（章节 leak-protection）之后没有汇合点.*node-plan/);
-  });
-
-  it('汇合点可以在后面的章节：去掉第七章的汇合步骤后，第八章第一步成为 F3 的汇合点', () => {
-    // 汇合点可以在后面的章节（评审 R2）：去掉 create-google-account 后，use-google-few-days 成为汇合点
-    const spec = sampleSpec();
-    chapter(spec, 'google-account').items.pop();
-    const steps = sampleSteps().filter((s) => s.id !== 'create-google-account');
-    expect(() => buildRouteMap(spec, steps, sampleChoices())).not.toThrow();
-  });
-
-  it.each(RESERVED_STEP_IDS)('保留字 %s 不能作步骤标识', (id) => {
-    const spec = sampleSpec();
-    chapter(spec, 'after').items.push(id);
-    const steps = [...sampleSteps(), { id, title: '保留' }];
-    expectError(errorsOf(spec, steps), `steps/${id}.md`, /保留路径/);
-  });
-
-  it('步骤标识必须是 kebab-case', () => {
-    const spec = sampleSpec();
-    chapter(spec, 'after').items.push('Bad_Id');
-    const steps = [...sampleSteps(), { id: 'Bad_Id', title: '坏' }];
-    expectError(errorsOf(spec, steps), 'steps/Bad_Id.md', /kebab-case/);
-  });
-
-  it('汇合点是另一个分叉点的选择页时合法（F1 → choose/desktop-proxy）', () => {
-    expect(() => sample()).not.toThrow();
-    expect(short(sample().view(step('run-script'), {}).next)).toBe('choose/desktop-proxy');
-  });
-
-  it('选择页引用的分叉点没有选择页文件', () => {
-    const choices = sampleChoices().filter((c) => c.id !== 'phone');
-    expectError(errorsOf(sampleSpec(), sampleSteps(), choices), 'route.yaml', /选择页 phone 没有对应的文件 choices\/phone\.md/);
-  });
-
-  it('分叉点、选项、章节标识必须是 kebab-case', () => {
-    const choices = sampleChoices();
-    choices.push({ id: 'Bad_Fork', title: '坏', options: [{ id: 'Bad_Opt', title: 'A' }, { id: 'ok', title: 'B' }] });
-    const spec = sampleSpec();
-    chapter(spec, 'after').id = 'After';
-    const errors = errorsOf(spec, sampleSteps(), choices);
-    expectError(errors, 'choices/Bad_Fork.md', /分叉点标识 Bad_Fork 必须是英文 kebab-case/);
-    expectError(errors, 'choices/Bad_Fork.md', /选项标识 Bad_Opt 必须是英文 kebab-case/);
-    expectError(errors, 'route.yaml', /第 10 个章节的 id 必须是英文 kebab-case/);
-  });
-
-  it('原型链上的键不能绕过校验：__proto__ 作 defaults 或选项键时报错，constructor 作分叉点时仍要求写 defaults', () => {
-    const spec = JSON.parse(JSON.stringify(sampleSpec()).replace('"defaults":{', '"defaults":{"__proto__":"x",')) as RouteSpec;
-    expectError(errorsOf(spec), 'route.yaml', /defaults 里的分叉点标识 __proto__ 必须是英文 kebab-case/);
-
-    const spec2 = sampleSpec();
-    const seg = chapter(spec2, 'residential-ip').items[1] as { options: Record<string, string[]> };
-    Object.defineProperty(seg.options, '__proto__', { value: ['plan3-buy-node'], enumerable: true });
-    expectError(errorsOf(spec2), 'route.yaml', /选项标识 __proto__ 必须是英文 kebab-case/);
-
-    const spec3 = sampleSpec();
-    chapter(spec3, 'nurture').items.push({ choose: 'constructor' }, { branch: 'constructor', options: { a: ['x-a'], b: ['x-b'] } }, 'x-end');
-    const steps = [...sampleSteps(), { id: 'x-a', title: 'A' }, { id: 'x-b', title: 'B' }, { id: 'x-end', title: 'E' }];
-    const choices = [...sampleChoices(), { id: 'constructor', title: 'C', options: [{ id: 'a', title: 'A' }, { id: 'b', title: 'B' }] }];
-    expectError(errorsOf(spec3, steps, choices), 'route.yaml', /defaults 缺少分叉点 constructor/);
-  });
-
-  it('选择页文件没有出现在路线图里', () => {
-    const choices = [...sampleChoices(), { id: 'extra', title: '多余', options: [{ id: 'a', title: 'A' }, { id: 'b', title: 'B' }] }];
-    expectError(errorsOf(sampleSpec(), sampleSteps(), choices), 'choices/extra.md', /路线图里没有分叉点 extra 的选择页/);
-  });
-
-  it('选择页重复出现', () => {
-    const spec = sampleSpec();
-    chapter(spec, 'nurture').items.push({ choose: 'phone' });
+    chapter(spec, 'node-and-ip').items[0] = { choose: 'Node_Plan', page: 'choose-plan' };
+    (chapter(spec, 'register-and-subscribe').items[1] as { options: Record<string, string[]> }).options['Bad'] = ['x'];
     const errors = errorsOf(spec);
-    expectError(errors, 'route.yaml', /分叉点 phone 的选择页出现了多次/);
-  });
-
-  it('选择页没有任何分支段', () => {
-    const spec = sampleSpec();
-    const choices = [...sampleChoices(), { id: 'lonely', title: '孤单', options: [{ id: 'a', title: 'A' }, { id: 'b', title: 'B' }] }];
-    chapter(spec, 'nurture').items.unshift({ choose: 'lonely' });
-    spec.defaults.lonely = 'a';
-    expectError(errorsOf(spec, sampleSteps(), choices), 'route.yaml', /分叉点 lonely 有选择页，但没有任何分支段/);
-  });
-
-  it('选择页只有一个选项、选项标识重复', () => {
-    const choices = sampleChoices();
-    choices[2]!.options = [{ id: 'iphone', title: 'iPhone' }, { id: 'iphone', title: '又是 iPhone' }];
-    const errors = errorsOf(sampleSpec(), sampleSteps(), choices);
-    expectError(errors, 'choices/phone.md', /选项标识重复：iphone/);
-    const single = sampleChoices();
-    single[0]!.options = [{ id: 'plan-1', title: '方案一' }];
-    expectError(errorsOf(sampleSpec(), sampleSteps(), single), 'choices/node-plan.md', /至少要有两个选项/);
-  });
-
-  it('章节标识重复', () => {
-    const spec = sampleSpec();
-    chapter(spec, 'after').id = 'start';
-    expectError(errorsOf(spec), 'route.yaml', /章节标识重复：start/);
-  });
-
-  it.each<[string, unknown, RegExp]>([
-    ['不是对象', 'oops', /路线图必须是一个对象/],
-    ['缺 chapters', { defaults: {} }, /chapters 必须是非空列表/],
-    ['未知字段', { ...sampleSpec(), extra: 1 }, /未知字段 extra/],
-    ['defaults 不是映射', { ...sampleSpec(), defaults: [] }, /defaults 必须是/],
-    ['defaults 的值不是字符串', { ...sampleSpec(), defaults: { ...sampleSpec().defaults, phone: 1 } }, /defaults\.phone 必须是选项标识/],
-    ['章节缺 title', { ...sampleSpec(), chapters: [{ id: 'a', items: ['overview'] }] }, /第 1 个章节缺少 title/],
-    ['章节 items 为空', { ...sampleSpec(), chapters: [{ id: 'a', title: 'A', items: [] }] }, /items 必须是非空列表/],
-    ['坏的项', { ...sampleSpec(), chapters: [{ id: 'a', title: 'A', items: [42] }] }, /必须是步骤标识、\{ choose \} 或 \{ branch, options \}/],
-    ['坏的 choose', { ...sampleSpec(), chapters: [{ id: 'a', title: 'A', items: [{ choose: 1 }] }] }, /选择页写作/],
-    ['坏的 branch', { ...sampleSpec(), chapters: [{ id: 'a', title: 'A', items: [{ branch: 'x' }] }] }, /分支段写作/],
-    ['选项不是列表', { ...sampleSpec(), chapters: [{ id: 'a', title: 'A', items: [{ branch: 'x', options: { a: 'y' } }] }] }, /选项 a 必须是步骤标识列表/],
-  ])('route.yaml 形状错误：%s', (_name, spec, pattern) => {
-    expectError(errorsOf(spec), 'route.yaml', pattern);
+    expectError(errors, 'route.yaml', /分叉点标识 Node_Plan 必须是英文 kebab-case/);
+    expectError(errors, 'route.yaml', /选项标识 Bad 必须是英文 kebab-case/);
   });
 });

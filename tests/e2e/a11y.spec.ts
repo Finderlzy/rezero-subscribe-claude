@@ -1,13 +1,12 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { builtPages } from './built-pages';
-import { openToc } from './toc-helpers';
 
-// design §7、§5：axe-core 扫描没有 serious 及以上的问题；只用 Tab 键走完 AC-02 的前五步。
-// 浅色、深色各扫一遍（color-contrast 规则按实际渲染出的颜色量），步骤页在原理视图下再扫一遍（原理块展开）。
+// design §7、§5：axe-core 扫描没有 serious 及以上的问题；只用 Tab 键从前言走到选择页。
+// 浅色、深色各扫一遍（color-contrast 规则按实际渲染出的颜色量），两版正文的页面在原理视图下再扫一遍
+// （切换控件由 #26 接上，这里直接改 data-view）。
 // 页面清单取自构建产物（built-pages.ts），两种宽度由 playwright.config.ts 的两个 project 提供。
 // 代价：约 50 页 × 两种主题 × 两种宽度，步骤页再加原理视图，整套 e2e 因此多出约 2 分钟。
-// 原理块展开有 150ms 淡入，扫描时关掉动效，免得量到半透明的颜色。
 
 const PAGES = builtPages();
 
@@ -28,52 +27,27 @@ for (const colorScheme of ['light', 'dark'] as const) {
         await page.goto(`./${path}`);
         expect(await seriousViolations(page), '操作视图').toEqual([]);
 
-        const principle = page.getByRole('group', { name: '视图' }).getByRole('button', { name: '原理' });
-        if (await principle.isVisible()) {
-          await principle.click();
-          await expect(principle).toHaveAttribute('aria-pressed', 'true');
+        if ((await page.locator('[data-body="principle"]').count()) > 0) {
+          await page.evaluate(() => (document.documentElement.dataset.view = 'principle'));
+          await expect(page.locator('[data-body="principle"]')).toBeVisible();
           expect(await seriousViolations(page), '原理视图').toEqual([]);
         }
       });
     }
 
-    test('打开的目录（手机上是抽屉）', async ({ page }) => {
-      await page.goto('./run-script/');
-      await openToc(page);
-      expect(await seriousViolations(page)).toEqual([]);
-    });
-
     test('看大图的浮层', async ({ page }) => {
-      await page.goto('./plan2-buy-residential-vps/');
+      await page.goto('./ip-tests/voyracloud/');
       await page.locator('[data-image-zoom-opener]').first().click();
       await expect(page.locator('dialog[data-image-zoom]')).toBeVisible();
       expect(await seriousViolations(page)).toEqual([]);
     });
-
-    test('有进度的首页（继续上次）和从步骤进来的常见问题（返回刚才的步骤）', async ({ page }) => {
-      await page.goto('./run-script/');
-      await page.getByRole('main').getByRole('link', { name: '打开面板排查' }).click();
-      await expect(page.getByRole('link', { name: '← 返回刚才的步骤：运行脚本' }).first()).toBeVisible();
-      expect(await seriousViolations(page), '常见问题').toEqual([]);
-
-      await page.goto('./');
-      await expect(page.getByRole('link', { name: /^继续上次/ })).toBeVisible();
-      expect(await seriousViolations(page), '首页').toEqual([]);
-    });
   });
 }
 
-// AC-02 默认路线的前五步，加上走完第五步后到达的第六步
-const FIRST_STEPS = [
-  '/before-you-start/',
-  '/overview/',
-  '/clean-claude-code/',
-  '/choose/node-plan/',
-  '/plan1-buy-vps/',
-  '/plan1-free-residential-ip/',
-];
+// 操作视图下从前言沿“下一步”到第一个选择页（没选时选择页没有下一步）
+const FIRST_STEPS = ['/preface/', '/disclaimer/', '/clean-up/', '/choose-plan/'];
 
-test('只用键盘：Tab 到“跳到正文”回车，再 Tab 到“下一步”回车，走完 AC-02 的前五步', async ({ page }) => {
+test('只用键盘：Tab 到“跳到正文”回车，再 Tab 到“下一步”回车，从前言走到选择方案', async ({ page }) => {
   await page.goto('.' + FIRST_STEPS[0]);
 
   for (const target of FIRST_STEPS.slice(1)) {

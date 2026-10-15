@@ -87,7 +87,7 @@
   text-align: left;
 }
 
-/* Callout（rehype-callouts 输出 .callout[data-callout]）：note 中性面板，caution 风险色，why 暖色。 */
+/* Callout（rehype-callouts 输出 .callout[data-callout]）：note 中性面板，caution 风险色。 */
 .prose .callout {
   padding: var(--space-3) var(--space-4);
   background: var(--surface);
@@ -99,11 +99,6 @@
 .prose .callout[data-callout='caution'] {
   background: var(--caution-bg);
   border-color: var(--caution-rule);
-}
-
-.prose .callout[data-callout='why'] {
-  background: var(--why-bg);
-  border-color: var(--why-rule);
 }
 
 .prose .callout-title {
@@ -119,51 +114,35 @@
 }
 
 /*
- * 两种视图（design §4.3，ADR-0003）：原理块只在 <html data-view="principle"> 下展开；
- * 其他情况（操作视图、没有 JS 时没有 data-view）收起，由页面脚本插入的提示行代替。
+ * 两版正文（ADR-0004）：<html data-view="principle"> 时显示原理版，其他情况（操作视图、没有 JS 时没有 data-view）
+ * 显示操作版。只有一版正文的页面（原理独有、操作版还在写）不带 data-body，两种视图都显示，
+ * 操作视图下另有一行 .view-notice 说明。
  */
-:root:not([data-view='principle']) .prose .callout[data-callout='why'],
-:root[data-view='principle'] .why-hint,
-:root:not([data-view='principle']) .no-why {
+:root[data-view='principle'] [data-body='operation'],
+:root:not([data-view='principle']) [data-body='principle'],
+:root[data-view='principle'] .view-notice {
   display: none;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  :root[data-view='principle'] .prose .callout[data-callout='why'] {
-    animation: why-fade-in 150ms ease-out;
-  }
+/* 正文里的“作者待补”（design §5 组件表，FR-21）：两种视图都显示。 */
+.prose .author-todo {
+  display: block;
+  padding: var(--space-3) var(--space-4);
+  background: var(--todo-bg);
+  border-left: 4px solid var(--todo-rule);
+  border-radius: var(--radius-panel);
 }
 
-@keyframes why-fade-in {
-  from {
-    opacity: 0;
-  }
+.prose .author-todo-label {
+  margin-right: var(--space-1);
+  font-weight: 700;
 }
 
-/* 操作视图里原理块的位置只留一行提示，左侧竖线和原理块同色，点它切到原理视图。 */
-.prose .why-hint {
-  padding-left: var(--space-3);
-  border-left: 4px solid var(--why-rule);
-}
-
-.why-hint-button {
-  min-height: 44px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--accent);
-  font: inherit;
-  font-size: var(--fs-meta);
-  line-height: var(--lh-meta);
-  text-align: left;
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-/* 原理视图下，没有原理块的步骤显示这一行（FR-31）。它在 .prose 外面（StepLayout 标题下），和视图规则放在一起维护。 */
-.no-why {
+/* 只有原理版时的提示条（design §4.1，FR-21、FR-30），在标题下、正文上。 */
+.view-notice {
   margin: 0 0 var(--space-5);
-  color: var(--text-muted);
-  font-size: var(--fs-meta);
-  line-height: var(--lh-meta);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-panel);
 }

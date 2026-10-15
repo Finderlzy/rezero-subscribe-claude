@@ -1,8 +1,5 @@
-import { readFileSync } from 'node:fs';
-import { basename, join } from 'node:path';
-import { parseFrontmatter } from '@astrojs/markdown-remark';
 import type { AstroIntegration } from 'astro';
-import { listMarkdown, type LinkIndex } from './link-index';
+import type { LinkIndex } from './link-index';
 import { validateContent } from './markdown';
 import { formatHints, formatProblem, type ContentHint } from './remark-obsidian';
 
@@ -36,46 +33,6 @@ export function contentValidation(options: ContentValidationOptions): AstroInteg
         if (lines.length === 0) return;
         logger.warn(`内容提示 ${lines.length} 条：`);
         for (const line of lines) logger.warn(line);
-      },
-    },
-  };
-}
-
-export interface PlaceholderStep {
-  id: string;
-  title: string;
-}
-
-/**
- * 仍是“内容待补”占位（frontmatter `placeholder: true`）的步骤，按标识排序（FR-21）。
- * 直接读源文件的 frontmatter：构建结束时内容集合已不可用；元数据写错由集合的 Zod 校验报错，这里不重复。
- */
-export function listPlaceholderSteps(contentRoot: string): PlaceholderStep[] {
-  const dir = join(contentRoot, 'steps');
-  return listMarkdown(dir).flatMap((name) => {
-    const { frontmatter } = parseFrontmatter(readFileSync(join(dir, name), 'utf8'));
-    const { placeholder, title } = frontmatter as Record<string, unknown>;
-    if (placeholder !== true) return [];
-    const id = basename(name, '.md');
-    return [{ id, title: typeof title === 'string' ? title.trim() : id }];
-  });
-}
-
-/** 占位清单的输出格式：每行一个 `占位步骤：<step-id> <标题>`（架构 §3 M2）。 */
-export function formatPlaceholders(steps: readonly PlaceholderStep[]): string[] {
-  return steps.map(({ id, title }) => `占位步骤：${id} ${title}`);
-}
-
-/** 构建结束时在输出里列出占位步骤，只提示，不让构建失败（FR-21，架构评审 R9）。 */
-export function placeholderReport(options: { contentRoot: string }): AstroIntegration {
-  return {
-    name: 'rezero:placeholder-report',
-    hooks: {
-      'astro:build:done': ({ logger }) => {
-        const steps = listPlaceholderSteps(options.contentRoot);
-        if (steps.length === 0) return;
-        logger.warn(`还有 ${steps.length} 个步骤内容待补：`);
-        for (const line of formatPlaceholders(steps)) logger.warn(line);
       },
     },
   };

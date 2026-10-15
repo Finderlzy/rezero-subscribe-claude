@@ -3,6 +3,7 @@
  * 操作｜原理两段式切换（design §4.3，FR-30）。当前视图由 `<html data-view>` 决定：
  * 首次绘制前由 head 里的内联脚本设好，CSS 按它画出按下状态；页面脚本 view-toggle
  * 再同步 `aria-pressed`、处理点击。没有 JS 时没有 `data-view`，切换控件整个隐藏（design §5）。
+ * 页面脚本在 #25 删除，#26 接上之前不渲染这个组件。
  */
 ---
 

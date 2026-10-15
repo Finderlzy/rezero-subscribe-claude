@@ -1,51 +1,26 @@
 ---
-import type { OutlineChapter, RouteData } from '../lib/route/types';
+import type { OutlineChapter } from '../lib/route/types';
 import TocNav from './TocNav.astro';
 import '../styles/toc.css';
 
 /**
- * 步骤目录（design §4.5，FR-14、FR-16、FR-51）。
+ * 步骤目录的外壳（design §4.5，FR-16）。
  *
- * 构建时按 `outline`（默认路线加当前页所属选项）写好全部章节和步骤，没有 JS 也能点；
- * 页面脚本 `src/scripts/toc.ts` 再按本机选择改写状态：哪个选项在当前路线上、“其他路线”标记、已读 ✓，
- * 并接上“切换”和“清除进度”（这两个按钮没有 JS 时隐藏）。
- *
- * - `sidebar`（步骤页、选择页）：≥1100px 时目录是常驻左侧栏；更窄时由顶栏的“目录”按钮打开抽屉，
- *   脚本把同一个 `<nav>` 移进 `<dialog>`，关闭时移回侧栏。
- * - `drawer`（常见问题页、找不到页）：任何宽度都由页面上的“打开目录”按钮打开抽屉。
- * 打开按钮由页面自己放（带 `data-toc-open`、`hidden`），脚本找到目录后才显示它。
+ * 构建时按 `outline` 写好全部章节和页面，没有 JS 也能点。≥1100px 时目录是常驻左侧栏；
+ * 更窄时由顶栏的“目录”按钮打开抽屉。抽屉（`<dialog>`）和打开按钮的脚本由 #30 重写；在那之前不输出抽屉，
+ * 按钮保持 `hidden`，窄屏读者从首页的目录进入各页。
  *
  * 标记契约（脚本按文档顺序把它们和 outline 一一对应）：
- *   [data-toc-step]：每个步骤（共享步骤在每个选项下各一个），内含 a、[data-toc-visited]、[data-toc-other]；
+ *   [data-toc-step]：每个步骤（共享步骤在每个选项下各一个），内含 a、[data-toc-other]；
  *   [data-toc-choose]：选择页；[data-toc-option]：“或”分组里的一个选项，内含 [data-toc-switch] 按钮。
  */
 interface Props {
   outline: OutlineChapter[];
-  mode: 'sidebar' | 'drawer';
-  /** 页面上没有别的地方内嵌 RouteData 时（常见问题页、找不到页）传入，由目录内嵌 `#route-data`。 */
-  routeData?: RouteData;
 }
 
-const { outline, mode, routeData } = Astro.props;
-const routeJson = routeData && JSON.stringify(routeData).replace(/</g, '\\u003c');
+const { outline } = Astro.props;
 ---
 
-{
-  mode === 'sidebar' && (
-    <aside class="toc-sidebar" data-toc-sidebar>
-      <TocNav outline={outline} />
-    </aside>
-  )
-}
-<dialog class="toc-dialog" data-toc-dialog aria-labelledby="toc-dialog-title">
-  <div class="toc-dialog-head">
-    <h2 class="toc-dialog-title" id="toc-dialog-title">目录</h2>
-    <button type="button" class="toc-close" data-toc-close aria-label="关闭目录">
-      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
-        <path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
-      </svg>
-    </button>
-  </div>
-  <div class="toc-dialog-body" data-toc-dialog-body>{mode === 'drawer' && <TocNav outline={outline} />}</div>
-</dialog>
-{routeJson && <script type="application/json" id="route-data" set:html={routeJson} />}
+<aside class="toc-sidebar" data-toc-sidebar>
+  <TocNav outline={outline} />
+</aside>

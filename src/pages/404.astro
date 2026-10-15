@@ -1,27 +1,24 @@
 ---
-import Toc from '../components/Toc.astro';
+import TocNav from '../components/TocNav.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { loadSite } from '../lib/site';
 import { withBase } from '../lib/with-base';
+import '../styles/toc.css';
 
-/** 找不到页（design §4.6，AC-18）：“打开目录”（页面脚本找到目录后才显示）和“回首页”。 */
+/** 找不到页（design §4.6，AC-18）：“找不到这一页”、回首页，以及直接写在页面上的目录。 */
 const site = await loadSite();
 ---
 
-<BaseLayout title="找不到这一步">
+<BaseLayout title="找不到这一页">
   <main id="main" class="page">
-    <h1 class="page-title">找不到这一步</h1>
-    <p>这个地址没有对应的页面，可能是链接写错了。</p>
+    <h1 class="page-title">找不到这一页</h1>
+    <p>这个地址没有对应的页面，可能是链接写错了。可以回首页，或者从下面的目录找。</p>
     <p class="page-actions">
-      <button type="button" class="button button-secondary" data-toc-open hidden>打开目录</button>
       <a class="button" href={withBase('/')}>回首页</a>
     </p>
+    <section aria-labelledby="not-found-toc">
+      <h2 id="not-found-toc">目录</h2>
+      <TocNav outline={site.route.outline({}, null, 'operation')} label="全站目录" />
+    </section>
   </main>
-  <Toc outline={site.route.outline({}, null)} mode="drawer" routeData={site.route.data} />
 </BaseLayout>
-
-<script>
-  import { initToc } from '../scripts/toc';
-
-  initToc(document);
-</script>

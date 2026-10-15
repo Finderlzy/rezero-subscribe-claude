@@ -44,7 +44,7 @@ a {
   transform: none;
 }
 
-/* 首页以外的普通页面：完成页、找不到页。 */
+/* 首页以外的普通页面：参考页、找不到页。 */
 .page {
   max-width: var(--measure);
   margin: 0 auto;

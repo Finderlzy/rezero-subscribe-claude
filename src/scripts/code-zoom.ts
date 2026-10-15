@@ -187,7 +187,7 @@ export function initImageZoom(doc: Document): void {
   }
 }
 
-/** 目前由 StepLayout 调用（步骤页和选择页）；首页、完成页将来有代码块或截图时也要接上。 */
+/** 由 PageLayout（步骤页、选择页、旁支页）和 ReferenceLayout（参考页）调用。 */
 export function initCodeZoom(doc: Document): void {
   initCodeCopy(doc);
   initImageZoom(doc);

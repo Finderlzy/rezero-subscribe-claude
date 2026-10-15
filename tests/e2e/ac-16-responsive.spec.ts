@@ -7,15 +7,11 @@ import { builtPages } from './built-pages';
 
 const PAGES = builtPages();
 
-/** 每页都要能点到的导航控件（只取当前可见的；手机上目录按钮、宽屏上常驻目录各在各的宽度出现）。 */
+/** 每页都要能点到的导航控件（只取当前可见的）。 */
 const NAV_CONTROLS = [
   'nav[aria-label="上一步和下一步"] a',
   '[data-route-skip] a',
-  '[data-toc-open]',
-  '[data-view-toggle] button',
   '.page-actions a',
-  '.page-actions button',
-  '.faq-return a',
 ].join(', ');
 
 async function expectNoPageScroll(page: Page, label: string) {
@@ -42,11 +38,10 @@ for (const path of PAGES) {
     await expectNoPageScroll(page, '操作视图');
     await expectControlsClickable(page);
 
-    // 原理视图展开原理块，内容更多，再量一次
-    const principle = page.getByRole('group', { name: '视图' }).getByRole('button', { name: '原理' });
-    if (await principle.isVisible()) {
-      await principle.click();
-      await expect(principle).toHaveAttribute('aria-pressed', 'true');
+    // 两版正文都在页面里（ADR-0004）：切到原理版再量一次。切换控件由 #26 接上，这里直接改 data-view
+    if ((await page.locator('[data-body="principle"]').count()) > 0) {
+      await page.evaluate(() => (document.documentElement.dataset.view = 'principle'));
+      await expect(page.locator('[data-body="principle"]')).toBeVisible();
       await expectNoPageScroll(page, '原理视图');
       await expectControlsClickable(page);
     }

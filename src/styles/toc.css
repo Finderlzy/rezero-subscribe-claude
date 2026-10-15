@@ -1,6 +1,6 @@
 /*
- * 步骤目录（design §4.5）：Toc.astro / TocNav.astro 的样式。同一个 <nav> 会被脚本在侧栏和抽屉之间移动，
- * 所以样式写成全局的，不用组件作用域。
+ * 步骤目录（design §4.5）：Toc.astro / TocNav.astro 的样式。#30 的目录脚本会把同一个 <nav> 在侧栏和抽屉之间移动，
+ * 所以样式写成全局的，不用组件作用域。抽屉（.toc-dialog）的样式留给 #30 接上。
  */
 
 /* ≥1100px 的常驻侧栏（步骤页、选择页）；更窄时隐藏，目录从顶栏的按钮打开抽屉。 */
@@ -59,7 +59,7 @@
   background: var(--bg);
 }
 
-/* 留白放在内层：点到 dialog 自身才算点背景（toc.ts）。 */
+/* 留白放在内层：点到 dialog 自身才算点背景（#30 的目录脚本按这个判断）。 */
 .toc-dialog-body {
   padding: 0 var(--space-4) var(--space-6);
 }
@@ -132,13 +132,6 @@
   box-shadow: inset 3px 0 0 var(--accent);
 }
 
-/* 已读 ✓ 放在左侧留白里，不挤动标题。 */
-.toc-mark {
-  position: absolute;
-  left: var(--space-2);
-  color: var(--accent);
-}
-
 .toc-tag {
   color: var(--text-muted);
   font-weight: 400;
@@ -183,8 +176,7 @@
   color: var(--text);
 }
 
-.toc-switch,
-.toc-clear {
+.toc-switch {
   flex: none;
   white-space: nowrap;
   min-height: 44px;
@@ -196,19 +188,4 @@
   font: inherit;
   font-weight: 600;
   cursor: pointer;
-}
-
-.toc-footer {
-  margin-top: var(--space-6);
-  padding-top: var(--space-4);
-  border-top: var(--border-width) solid var(--border);
-}
-
-.toc-status {
-  margin: var(--space-2) 0 0;
-  color: var(--text-muted);
-}
-
-.toc-status:empty {
-  display: none;
 }

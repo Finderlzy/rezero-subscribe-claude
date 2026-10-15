@@ -69,38 +69,43 @@ describe('AC-14 坏内容让构建失败并报出文件', () => {
     expect(code, output).toBe(0);
   });
 
+  // 每个用例只覆盖一个现有文件（致谢页或 route.yaml），其余内容不变，所以只会因为这一处坏内容失败
   test.concurrent.each([
     {
       fixture: 'missing-image',
-      file: 'src/content/steps/broken-image.md',
+      file: 'src/content/operation/thanks.md',
       messages: ['找不到图片“no-such-screenshot.png”'],
     },
     {
-      fixture: 'missing-step',
-      file: 'src/content/steps/broken-link.md',
-      messages: ['找不到步骤“no-such-step”'],
+      fixture: 'missing-link',
+      file: 'src/content/operation/thanks.md',
+      messages: ['找不到标题为“没有这一页”的页面'],
+    },
+    {
+      fixture: 'missing-anchor',
+      file: 'src/content/operation/thanks.md',
+      messages: ['“常见问题”里没有小标题“没有这一条”'],
     },
     {
       fixture: 'missing-merge',
       file: 'route.yaml',
       // 路线图错误按“文件：说明”成行输出（src/lib/site.ts），连同文件名一起断言；
-      // “1 处”保证只因汇合失败：真实路线图增删步骤后这份副本会多报错误，要跟着同步
-      messages: ['路线图校验失败（1 处）', 'route.yaml：分叉点 phone 的分支段（章节 subscribe）之后没有汇合点'],
-    },
-    {
-      fixture: 'missing-anchor',
-      file: 'src/content/principle/broken-anchor.md',
-      messages: ['“常见问题”里没有小标题“没有这一条”'],
+      // “2 处”保证只因挪走汇合点失败：真实路线图增删页面后这份副本会多报错误，要跟着同步
+      messages: [
+        '路线图校验失败（2 处）',
+        'route.yaml：分叉点 phone 的分支段（章节 ending）之后没有汇合点',
+        'route.yaml：路线的最后一项必须是普通页面',
+      ],
     },
     {
       fixture: 'title-mismatch',
-      file: 'src/content/operation/title-mismatch.md',
-      messages: ['操作版标题“标题乙”与原理版“标题甲”不同'],
+      file: 'src/content/operation/thanks.md',
+      messages: ['操作版标题“感谢”与原理版“致谢”不同'],
     },
     {
-      fixture: 'missing-metadata',
-      file: 'src/content/steps/no-title.md',
-      messages: ['title: Required'],
+      fixture: 'bad-metadata',
+      file: 'src/content/principle/thanks.md',
+      messages: ['principle → thanks data does not match collection schema', 'Unrecognized key: "skipable"'],
     },
   ])('$fixture：报出 $file', async ({ fixture, file, messages }) => {
     const { code, output } = await buildWith(fixture);

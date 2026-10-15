@@ -11,10 +11,8 @@ import { resolveLinkIndex, type IndexedPage, type LinkIndex } from './link-index
  * 并检查 Callout 类型；任何找不到的目标或无法识别的写法都记为问题，整篇处理完后一次性抛出。
  */
 
-/** 允许的 Callout 类型：why = 原理块（ADR-0003），note / caution = 两种视图都显示的提示框 */
-export const CALLOUT_TYPES = ['why', 'note', 'caution'] as const;
-/** v2.0 内容允许的 Callout 类型：原理块已被整页切换取代（ADR-0004） */
-export const V2_CALLOUT_TYPES = ['note', 'caution'] as const;
+/** 允许的 Callout 类型：两种视图都显示的提示框；1.0.0 的原理块 [!why] 已被整页切换取代（ADR-0004） */
+export const CALLOUT_TYPES = ['note', 'caution'] as const;
 
 /** 重写稿的目录页：原理版、纯操作版和博客里的纯操作版，都指向首页（架构 §3 M1） */
 export const HOME_TARGETS: readonly string[] = ['如何订阅claude', '如何订阅claude（纯操作版）', '04技术/如何订阅claude（纯操作版）'];
@@ -99,12 +97,10 @@ interface DocContext {
   base: string;
   /** 文档的绝对路径；没有时为 undefined */
   path: string | undefined;
-  /** 当前文件是步骤时为步骤标识，用于常见问题链接的 `?from=` */
-  currentStep: string | undefined;
-  /** v2.0：当前文件是 principle/、operation/、reference/ 下的页面时为该页面，按 v2 规则转换 */
+  /** 当前文件是 principle/、operation/、reference/ 下的页面时为该页面（去标题和页脚、`?from=`、内容提示） */
   page: IndexedPage | undefined;
   report(message: string, at: Point | undefined): void;
-  /** 记一条内容提示（只在 v2 页面里调用，page 已确定） */
+  /** 记一条内容提示（不是页面文件时忽略） */
   hint(detail: { kind: 'author-todo'; text: string } | { kind: 'blog-link'; target: string }, at: Point | undefined): void;
 }
 
@@ -121,7 +117,6 @@ export default function remarkObsidian(options: RemarkObsidianOptions) {
       index,
       base: options.base,
       path,
-      currentStep: stepIdOf(path, index),
       page,
       report(message, at) {
         const point = at && shift(at);
@@ -132,7 +127,7 @@ export default function remarkObsidian(options: RemarkObsidianOptions) {
         hints.push({ ...detail, file: display, line: at && shift(at).line, page: { id: page.id, title: page.title ?? page.id } });
       },
     };
-    if (ctx.page) prepareV2(tree, ctx.page);
+    if (ctx.page) preparePage(tree, ctx.page);
     walk(tree, ctx, false);
     if (hints.length > 0) options.onHints?.(hints);
     if (problems.length === 0) return;
@@ -163,16 +158,11 @@ function sourceShift(path: string | undefined, value: unknown): (p: Point) => Po
   return (p) => ({ line: p.line + lineShift, column: p.line === 1 ? p.column + firstColumnShift : p.column });
 }
 
-function stepIdOf(path: string | undefined, index: LinkIndex): string | undefined {
-  if (!path || extname(path) !== '.md') return undefined;
-  return dirname(path) === join(index.contentRoot, 'steps') ? basename(path, '.md') : undefined;
-}
-
 /**
- * v2 正文的结构调整（架构 §3 M1）：去掉第一行的 `# 标题`（布局输出 h1），
+ * 页面正文的结构调整（架构 §3 M1）：去掉第一行的 `# 标题`（布局输出 h1），
  * 去掉末尾手写的页脚（FR-04，页脚由路线图生成）。页脚里的双链不再解析。
  */
-function prepareV2(tree: Root, page: IndexedPage): void {
+function preparePage(tree: Root, page: IndexedPage): void {
   const [first] = tree.children;
   if (first?.type === 'heading' && first.depth === 1 && page.title !== undefined && plainText(first) === page.title) {
     tree.children.shift();
@@ -237,7 +227,7 @@ function walk(node: Parent, ctx: DocContext, inLink: boolean): void {
 const CALLOUT_MARK = /\[!([\w-]+)\]([+-]?)/;
 
 /**
- * Callout 白名单：只允许小写的 why / note / caution，标记必须写在引用开头，且不允许可折叠写法
+ * Callout 白名单：只允许小写的 note / caution，标记必须写在引用开头，且不允许可折叠写法
  * （库自带的折叠箭头与 design §3.3“图标自画”冲突）。rehype-callouts 会把第一行任意位置的 [!type]
  * 都当成 Callout，也认 tip、warning 等内置类型，所以这里按它的规则找，再按白名单拦下。
  */
@@ -250,9 +240,8 @@ function checkCallout(node: Blockquote, ctx: DocContext): void {
   if (!match) return;
   const [mark, type, fold] = match;
   const at = head.position?.start;
-  const allowed: readonly string[] = ctx.page ? V2_CALLOUT_TYPES : CALLOUT_TYPES;
-  if (!allowed.includes(type)) {
-    ctx.report(`不支持的 Callout 类型“${mark}”，只能用 ${allowed.map((t) => `[!${t}]`).join('、')}（小写）`, at);
+  if (!(CALLOUT_TYPES as readonly string[]).includes(type)) {
+    ctx.report(`不支持的 Callout 类型“${mark}”，只能用 ${CALLOUT_TYPES.map((t) => `[!${t}]`).join('、')}（小写）`, at);
   } else if (fold) {
     ctx.report(`Callout 不支持折叠写法“${mark}”，去掉“${fold}”`, at);
   } else if (head.value.slice(0, match.index).trim() !== '') {
@@ -279,12 +268,7 @@ function convertText(node: Text, ctx: DocContext): PhrasingContent[] | undefined
     const offset = match.index;
     pushText(value.slice(last, offset), last);
     const at = pointAt(node, offset);
-    const converted =
-      match[1] === '!'
-        ? convertEmbed(match[2], match[0], at, ctx)
-        : ctx.page
-          ? convertLinkV2(match[2], match[0], at, ctx)
-          : convertLink(match[2], match[0], at, ctx);
+    const converted = match[1] === '!' ? convertEmbed(match[2], match[0], at, ctx) : convertLink(match[2], match[0], at, ctx);
     out.push(converted ?? { type: 'text', value: match[0] });
     last = offset + match[0].length;
   }
@@ -305,65 +289,6 @@ function pointAt(node: Text, offset: number): Point | undefined {
 function splitOnce(raw: string, sepChar: string): [string, string | undefined] {
   const i = raw.indexOf(sepChar);
   return i === -1 ? [raw, undefined] : [raw.slice(0, i), raw.slice(i + 1)];
-}
-
-function convertLink(raw: string, source: string, at: Point | undefined, ctx: DocContext): Link | undefined {
-  const [targetRaw, textRaw] = splitOnce(raw, '|');
-  const [pathRaw, headingRaw] = splitOnce(targetRaw, '#');
-  const target = pathRaw.trim();
-  const text = textRaw?.trim();
-  const heading = headingRaw?.trim();
-  if (textRaw !== undefined && !text) {
-    ctx.report(`链接文字为空：${source}`, at);
-    return undefined;
-  }
-  if (headingRaw !== undefined && !heading) {
-    ctx.report(`“#”后面缺少小标题：${source}`, at);
-    return undefined;
-  }
-
-  let path: string;
-  let title: string | undefined;
-  let query = '';
-  if (target === 'done') {
-    path = '/done/';
-    title = ctx.index.doneTitle ?? '完成页';
-  } else if (target.startsWith('faq/')) {
-    const id = target.slice('faq/'.length);
-    title = ctx.index.faq.get(id);
-    if (title === undefined) {
-      ctx.report(`找不到常见问题“${id}”（src/content/faq/${id}.md）：${source}`, at);
-      return undefined;
-    }
-    path = `/faq/${id}/`;
-    if (ctx.currentStep) query = `?from=${encodeURIComponent(ctx.currentStep)}`;
-  } else if (target.startsWith('choose/')) {
-    const id = target.slice('choose/'.length);
-    title = ctx.index.choices.get(id);
-    if (title === undefined) {
-      ctx.report(`找不到选择页“${id}”（src/content/choices/${id}.md）：${source}`, at);
-      return undefined;
-    }
-    path = `/choose/${id}/`;
-  } else if (target.includes('/') || target === '') {
-    ctx.report(`无法识别的链接目标“${target}”：只支持 [[步骤]]、[[faq/…]]、[[choose/…]]、[[done]]：${source}`, at);
-    return undefined;
-  } else {
-    title = ctx.index.steps.get(target);
-    if (title === undefined) {
-      ctx.report(`找不到步骤“${target}”（src/content/steps/${target}.md）：${source}`, at);
-      return undefined;
-    }
-    path = `/${target}/`;
-  }
-
-  const hash = heading ? `#${slug(heading)}` : '';
-  return {
-    type: 'link',
-    url: joinBase(ctx.base, path + query + hash),
-    title: null,
-    children: [{ type: 'text', value: text ?? title }],
-  };
 }
 
 interface WikiTarget {
@@ -390,11 +315,11 @@ function parseWikiTarget(raw: string, source: string, at: Point | undefined, ctx
 }
 
 /**
- * v2.0 的双链（架构 §3 M1、ADR-0005）：目标是页面标题（重写稿的文件名），链到 `/<id>/`；
+ * 双链（架构 §3 M1、ADR-0005）：目标是页面标题（重写稿的文件名），链到 `/<id>/`；
  * `#小标题` 要在目标页存在；从步骤链到参考页时带 `?from=<当前页>`（FR-20）；
  * 目录页指向首页；`04技术/…` 查 blog-links.yaml，地址待填时只输出文字（Q-11）。
  */
-function convertLinkV2(raw: string, source: string, at: Point | undefined, ctx: DocContext): PhrasingContent | undefined {
+function convertLink(raw: string, source: string, at: Point | undefined, ctx: DocContext): PhrasingContent | undefined {
   const parsed = parseWikiTarget(raw, source, at, ctx);
   if (!parsed) return undefined;
   const { target, text, heading } = parsed;

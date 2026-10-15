@@ -8,7 +8,7 @@ import { playerTitle, unavailableHint, videoSources, type StepVideo } from '../l
  * 页面脚本 video-facade 在读者点击后才插入 iframe。没有 JS 时，播放区域是指向平台视频页的普通链接。
  * 有两个平台时上方是 B 站 / YouTube 切换（默认 B 站，没有 JS 时隐藏，只剩 B 站）；
  * 下方总有一行平台外链和“打不开？”提示：浏览器没法可靠判断 iframe 加载失败，所以一直显示。
- * 没有视频信息时只显示一行“视频制作中”，不占 16:9 的空间。
+ * 没有视频信息时什么都不输出，也不写“视频制作中”（FR-41）。
  */
 interface Props {
   video?: StepVideo | undefined;
@@ -26,7 +26,7 @@ const facadeData = JSON.stringify({
 ---
 
 {
-  first ? (
+  first && (
     <section class="video" aria-label="步骤视频" data-video={facadeData}>
       {sources.length > 1 && (
         <div class="video-tabs" role="group" aria-label="视频平台" data-video-tabs hidden>
@@ -58,8 +58,6 @@ const facadeData = JSON.stringify({
         <span>{unavailableHint(sources.length)}</span>
       </p>
     </section>
-  ) : (
-    <p class="video-pending">视频制作中</p>
   )
 }
 
@@ -176,12 +174,5 @@ const facadeData = JSON.stringify({
   .video-external-icon {
     width: 1em;
     height: 1em;
-  }
-
-  .video-pending {
-    margin: 0 0 var(--space-5);
-    color: var(--text-muted);
-    font-size: var(--fs-meta);
-    line-height: var(--lh-meta);
   }
 </style>

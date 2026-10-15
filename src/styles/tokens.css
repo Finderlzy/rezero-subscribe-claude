@@ -14,8 +14,8 @@
   --control-border: #8a8478;
   --accent: #0f5f58;
   --accent-contrast: #ffffff;
-  --why-bg: #fbf2df;
-  --why-rule: #b7791f;
+  --todo-bg: #fbf1dc;
+  --todo-rule: #a8660f;
   --caution-bg: #fcebe7;
   --caution-rule: #b23a26;
   --focus: #0f5f58;
@@ -87,8 +87,8 @@
     --control-border: #736e65;
     --accent: #5cc2b5;
     --accent-contrast: #0b1f1d;
-    --why-bg: #2a2418;
-    --why-rule: #d9a54a;
+    --todo-bg: #2a2316;
+    --todo-rule: #d9a54a;
     --caution-bg: #2e1c18;
     --caution-rule: #e07a66;
     --focus: #5cc2b5;

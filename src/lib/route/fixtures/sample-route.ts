@@ -1,168 +1,118 @@
 /**
- * 测试用路线图：按需求 §5.2 的形状缩写。
+ * 测试用路线图：按需求 §5.2 的形状缩写（v2.0）。
  *
- * - F1 node-plan：三个选项，方案一、二共享 ssh-connect、run-script；汇合点是 F2 的选择页。
- * - F2 desktop-proxy：两段紧挨着的 branch（第二章、第三章），汇合点是 webrtc。
- * - F3 phone：三段 branch（第六、七、十章），跨章节汇合。
- * - 可跳过步骤：clean-claude-code（本章末尾）、ip-failed（跳到下一章的选择页）、
- *   第七章 android-google-play → android-gmail → create-google-account（跨越分支末尾，跳到第八章）。
+ * - F1 node-plan（选择页 choose-plan）：三个选项，方案一、二共享 make-node；汇合点是 import-proxy。
+ * - F2 phone（选择页 choose-phone）：两段 branch，第一段汇合到 register-gmail，第二段（没有选择页）汇合到 after-subscribe。
+ * - 原理独有步骤：overview（普通项）、recap（汇合之后）、iphone-why（第二段 iPhone 的第一页）。
+ * - 可跳过步骤：clean-up（章末，跳到下一章的选择页）、plan1-panel（分支末尾，跳到汇合点）、
+ *   android-gmail → register-gmail（跨越分支末尾连跳）、google-region、iphone-apple-id。
+ * - 旁支页：google-appeal 挂在 use-two-days 上。
  *
  * 每次调用返回新对象，测试可以放心修改。
  */
-import type { ChoiceMeta, RouteSpec, StepMeta } from '../types';
+import type { PageMeta, RouteSpec } from '../types';
 
 export function sampleSpec(): RouteSpec {
   return {
-    defaults: { 'node-plan': 'plan-1', 'desktop-proxy': 'v2rayn', phone: 'iphone' },
     chapters: [
-      { id: 'start', title: '开始', items: ['before-you-start', 'overview', 'clean-claude-code'] },
+      { id: 'start', title: '开始', items: ['preface', 'overview', 'clean-up'] },
       {
-        id: 'residential-ip',
-        title: '一、准备住宅 IP',
+        id: 'node-and-ip',
+        title: '准备节点和住宅 IP',
         items: [
-          { choose: 'node-plan' },
+          { choose: 'node-plan', page: 'choose-plan' },
           {
             branch: 'node-plan',
             options: {
-              'plan-1': ['plan1-buy-vps', 'plan1-free-residential-ip', 'ssh-connect', 'run-script'],
-              'plan-2': ['plan2-buy-residential-vps', 'ssh-connect', 'run-script'],
-              'plan-3': ['plan3-buy-node'],
+              'plan-1': ['plan1-buy-server', 'make-node', 'plan1-panel'],
+              'plan-2': ['plan2-server', 'make-node'],
+              'plan-3': ['plan3-node'],
             },
           },
+          'import-proxy',
+          'check-ip',
+          'recap',
+          'timezone',
         ],
       },
       {
-        id: 'desktop-proxy',
-        title: '二、电脑代理',
+        id: 'register-and-subscribe',
+        title: '注册和订阅',
         items: [
-          { choose: 'desktop-proxy' },
-          {
-            branch: 'desktop-proxy',
-            options: {
-              v2rayn: ['v2rayn-import', 'v2rayn-tun'],
-              'clash-verge': ['clash-verge-import', 'clash-verge-tun'],
-            },
-          },
-        ],
-      },
-      {
-        id: 'leak-protection',
-        title: '三、防泄漏',
-        items: [
-          { branch: 'desktop-proxy', options: { v2rayn: ['v2rayn-dns'], 'clash-verge': ['clash-verge-dns'] } },
-          'webrtc',
-          'ipv6',
-        ],
-      },
-      { id: 'ip-quality', title: '五、检查 IP 质量', items: ['check-ip-quality', 'ip-failed'] },
-      {
-        id: 'phone-proxy',
-        title: '六、手机代理',
-        items: [
-          { choose: 'phone' },
+          { choose: 'phone', page: 'choose-phone' },
           {
             branch: 'phone',
-            options: {
-              iphone: ['iphone-app-store-region', 'iphone-v2box', 'iphone-timezone'],
-              android: ['android-v2rayng', 'android-timezone'],
-            },
+            options: { iphone: ['iphone-proxy', 'iphone-gmail'], android: ['android-proxy', 'android-gmail'] },
           },
-        ],
-      },
-      {
-        id: 'google-account',
-        title: '七、准备 Google 账号',
-        items: [
+          'register-gmail',
+          'use-two-days',
+          'google-region',
+          'subscribe',
           {
             branch: 'phone',
-            options: { iphone: ['iphone-gmail'], android: ['android-google-play', 'android-gmail'] },
+            options: { iphone: ['iphone-why', 'iphone-apple-id', 'iphone-subscribe'], android: ['android-subscribe'] },
           },
-          'create-google-account',
+          'after-subscribe',
         ],
       },
-      { id: 'nurture', title: '八、养号', items: ['use-google-few-days'] },
-      {
-        id: 'subscribe',
-        title: '十、订阅',
-        items: [
-          {
-            branch: 'phone',
-            options: { iphone: ['iphone-subscribe', 'purchase-failed'], android: ['android-subscribe'] },
-          },
-        ],
-      },
-      { id: 'after', title: '十一、订阅之后', items: ['after-subscribe', 'about-kyc'] },
+      { id: 'ending', title: '结尾', items: ['thanks', 'afterword'] },
     ],
+    side: { 'google-appeal': { returnTo: 'use-two-days' } },
   };
 }
 
-const STEP_TITLES: [string, string, Partial<StepMeta>?][] = [
-  ['before-you-start', '开始之前'],
-  ['overview', '整体思路'],
-  ['clean-claude-code', '清理本机的 Claude Code 配置', { skippable: true, skipLabel: '没用过，跳过', placeholder: true }],
-  ['plan1-buy-vps', '买普通服务器'],
-  ['plan1-free-residential-ip', '白嫖住宅 IP'],
-  ['ssh-connect', '连上服务器'],
-  ['run-script', '运行脚本'],
-  ['plan2-buy-residential-vps', '买住宅 IP 服务器并测 IP'],
-  ['plan3-buy-node', '购买住宅节点'],
-  ['v2rayn-import', '下载 v2rayN 并导入节点'],
-  ['v2rayn-tun', '开 tun'],
-  ['clash-verge-import', '下载 Clash Verge 并导入节点'],
-  ['clash-verge-tun', 'Clash Verge 开 tun', { placeholder: true }],
-  ['v2rayn-dns', 'DNS'],
-  ['clash-verge-dns', 'Clash Verge DNS', { placeholder: true }],
-  ['webrtc', 'WebRTC'],
-  ['ipv6', 'IPv6'],
-  ['check-ip-quality', '检查 IP 质量'],
-  ['ip-failed', 'IP 不合格：换 IP 或退款', { skippable: true, skipLabel: 'IP 合格，跳过', placeholder: true }],
-  ['iphone-app-store-region', '把 App Store 改到奥地利', { placeholder: true }],
-  ['iphone-v2box', '下载 v2Box 并导入节点', { placeholder: true }],
-  ['iphone-timezone', '手机改时区'],
-  ['android-v2rayng', '下载 v2rayNG 并导入节点', { placeholder: true }],
-  ['android-timezone', '安卓改时区', { placeholder: true }],
-  ['iphone-gmail', '下载 Gmail', { skippable: true }],
-  ['android-google-play', '安装 Google Play', { skippable: true, placeholder: true }],
-  ['android-gmail', '安卓下载 Gmail', { skippable: true, placeholder: true }],
-  ['create-google-account', '创建 Gmail 邮箱和 Google 账号', { skippable: true }],
-  ['use-google-few-days', '先用 Google 账号几天'],
-  ['iphone-subscribe', '在 app 内订阅'],
-  ['purchase-failed', '购买无法完成：问 AI', { skippable: true, skipLabel: '订阅成功，跳过' }],
-  ['android-subscribe', '安卓订阅', { placeholder: true }],
-  ['after-subscribe', '订阅之后的注意事项'],
-  ['about-kyc', '关于 KYC'],
-];
-
-export function sampleSteps(): StepMeta[] {
-  return STEP_TITLES.map(([id, title, extra]) => ({ id, title, ...extra }));
-}
-
-export function sampleChoices(): ChoiceMeta[] {
-  return [
+const PAGES: [string, string, Partial<PageMeta>?][] = [
+  ['preface', '前言'],
+  ['overview', '整体思路', { principleOnly: true }],
+  ['clean-up', '清理旧账号和配置', { skippable: true, skipLabel: '没用过，跳过' }],
+  [
+    'choose-plan',
+    '选择方案',
     {
-      id: 'node-plan',
-      title: '选择节点方案',
       options: [
         { id: 'plan-1', title: '方案一' },
         { id: 'plan-2', title: '方案二' },
         { id: 'plan-3', title: '方案三' },
       ],
     },
+  ],
+  ['plan1-buy-server', '购买服务器'],
+  ['make-node', '把服务器变成节点'],
+  ['plan1-panel', '安装面板', { skippable: true }],
+  ['plan2-server', '方案二：住宅 IP 服务器'],
+  ['plan3-node', '方案三：直接买住宅节点'],
+  ['import-proxy', '导入代理软件'],
+  ['check-ip', '测 IP 质量'],
+  ['recap', '小结', { principleOnly: true }],
+  ['timezone', '改时区'],
+  [
+    'choose-phone',
+    '选择手机系统',
     {
-      id: 'desktop-proxy',
-      title: '选择电脑代理软件',
-      options: [
-        { id: 'v2rayn', title: 'v2rayN' },
-        { id: 'clash-verge', title: 'Clash Verge' },
-      ],
-    },
-    {
-      id: 'phone',
-      title: '选择手机',
       options: [
         { id: 'iphone', title: 'iPhone' },
         { id: 'android', title: '安卓' },
       ],
     },
-  ];
+  ],
+  ['iphone-proxy', 'iPhone：导入代理软件'],
+  ['iphone-gmail', 'iPhone：下载 Gmail'],
+  ['android-proxy', '安卓：导入代理软件'],
+  ['android-gmail', '安卓：下载 Gmail', { skippable: true }],
+  ['register-gmail', '注册 Gmail', { skippable: true }],
+  ['use-two-days', '先用两天'],
+  ['google-appeal', '被封了：申诉解封'],
+  ['google-region', '修改 Google 账号地区', { skippable: true }],
+  ['subscribe', '订阅'],
+  ['iphone-why', 'iPhone：为什么用美区 Apple ID', { principleOnly: true }],
+  ['iphone-apple-id', 'iPhone：注册美区 Apple ID', { skippable: true }],
+  ['iphone-subscribe', 'iPhone：在 app 内订阅'],
+  ['android-subscribe', '安卓：订阅'],
+  ['after-subscribe', '订阅之后'],
+  ['thanks', '致谢'],
+  ['afterword', '后记'],
+];
+
+export function samplePages(): PageMeta[] {
+  return PAGES.map(([id, title, extra]) => ({ id, title, principleOnly: false, skippable: false, ...extra }));
 }

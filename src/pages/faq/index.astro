@@ -1,36 +1,14 @@
 ---
 import { render } from 'astro:content';
-import Toc from '../../components/Toc.astro';
-import BaseLayout from '../../layouts/BaseLayout.astro';
+import ReferenceLayout from '../../layouts/ReferenceLayout.astro';
 import { loadSite } from '../../lib/site';
-import { withBase } from '../../lib/with-base';
-import '../../styles/prose.css';
 
-/**
- * 常见问题列表：/faq/（design §4.6，FR-20）。引导语和条目顺序写在 pages/faq.md 里（列表是 `[[faq/…]]` 双链，
- * 链接文字默认用条目标题）。漏列条目时构建失败（site.ts 的 unlistedFaq）。
- * 直接打开时靠“打开目录”回到步骤（FR-20），同找不到页。
- */
+/** 常见问题：/faq/，一页，条目是二级标题，步骤里的双链指向 `/faq/?from=<页面>#<条目>`（FR-20）。 */
 const site = await loadSite();
-const { Content } = await render(site.faqPage);
+const faq = site.references.get('faq')!;
+const { Content } = await render(faq.entry);
 ---
 
-<BaseLayout title={site.faqPage.data.title}>
-  <main id="main" class="page">
-    <h1 class="page-title">{site.faqPage.data.title}</h1>
-    <div class="prose">
-      <Content />
-    </div>
-    <p class="page-actions">
-      <button type="button" class="button button-secondary" data-toc-open hidden>打开目录</button>
-      <a class="button" href={withBase('/')}>回首页</a>
-    </p>
-  </main>
-  <Toc outline={site.route.outline({}, null)} mode="drawer" routeData={site.route.data} />
-</BaseLayout>
-
-<script>
-  import { initToc } from '../../scripts/toc';
-
-  initToc(document);
-</script>
+<ReferenceLayout title={faq.title}>
+  <Content />
+</ReferenceLayout>

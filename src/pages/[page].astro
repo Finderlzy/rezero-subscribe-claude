@@ -1,0 +1,31 @@
+---
+import { render } from 'astro:content';
+import VideoFacade from '../components/VideoFacade.astro';
+import PageLayout from '../layouts/PageLayout.astro';
+import { loadSite } from '../lib/site';
+
+/**
+ * 步骤页、选择页、旁支页共用一个标识空间：/<id>/（ADR-0002）。两版正文都在 HTML 里（ADR-0004）；
+ * 导航按“操作视图 + 未选”在构建时写好，打开只属于一个分支的页面时按它所属的选项计算（架构 §3 M3）。
+ */
+export async function getStaticPaths() {
+  const site = await loadSite();
+  return [...site.pages.keys()].map((page) => ({ params: { page } }));
+}
+
+const { page: id } = Astro.params;
+const site = await loadSite();
+const page = site.pages.get(id)!;
+const { data } = page.principle;
+const view = site.route.view(id, {}, 'operation');
+const { Content: Principle } = await render(page.principle);
+const Operation = page.operation && (await render(page.operation)).Content;
+// 原理独有步骤（FR-30）和操作版还没写的页面（FR-21）只有原理版，操作视图下说明一句
+const notice = data.principleOnly ? '这一页只有原理版。' : '操作版还在写，下面是原理版。';
+---
+
+<PageLayout title={page.title} view={view} skipLabel={data.skipLabel} notice={Operation ? undefined : notice}>
+  <VideoFacade slot="video" video={data.video} stepTitle={page.title} />
+  <Principle slot="principle" />
+  {Operation && <Operation slot="operation" />}
+</PageLayout>

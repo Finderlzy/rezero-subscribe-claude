@@ -58,7 +58,8 @@ for (const path of PAGES) {
     expect(brokenImages).toEqual([]);
     await page.waitForLoadState('networkidle');
 
-    await expect(page.getByRole('heading', { level: 1 })).not.toBeEmpty();
+    // 首页的 h1 是 logo（内联 SVG），没有文字，只看可访问名称
+    await expect(page.getByRole('heading', { level: 1 })).toHaveAccessibleName(/\S/);
     await expect(page.locator('main')).not.toBeEmpty();
     // 样式表加载出来了：页面底色来自 tokens.css，没有样式时是透明
     expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).not.toBe('rgba(0, 0, 0, 0)');

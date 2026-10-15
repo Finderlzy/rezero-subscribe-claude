@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { COPIED_LABEL, COPIED_RESET_MS, COPY_LABEL, codeTextOf, largestSrcOf, zoomAltOf } from './labels';
+import { codeTextOf, COPIED_LABEL, COPIED_RESET_MS, COPY_LABEL, hasZoomableImage, largestSrcOf, zoomAltOf } from './labels';
 
 describe('复制按钮的文案和时机（design §4.7）', () => {
   it('默认是“复制”，成功后是“已复制”', () => {
@@ -86,5 +86,14 @@ describe('largestSrcOf：看大图用 srcset 里最宽的一档', () => {
 
   it('描述符写坏时退回 src', () => {
     expect(largestSrcOf(img({ src: '/a.webp', srcset: '/b.webp big' }))).toBe('/a.webp');
+  });
+});
+
+describe('hasZoomableImage：有没有可放大的截图', () => {
+  it('带 data-zoom 的 <img> 才算；代码块里的字面文字不算', () => {
+    expect(hasZoomableImage('<p><img src="a.png" data-zoom width="262"></p>')).toBe(true);
+    expect(hasZoomableImage('<p><img src="a.png" data-zoom></p>')).toBe(true);
+    expect(hasZoomableImage('<p><img src="a.png" alt="x"></p>')).toBe(false);
+    expect(hasZoomableImage('<pre><code>&lt;img data-zoom&gt; data-zoom</code></pre>')).toBe(false);
   });
 });

@@ -1,0 +1,41 @@
+---
+import CodeCopy from '../components/CodeCopy.astro';
+import ImageZoom from '../components/ImageZoom.astro';
+import { hasZoomableImage } from '../lib/code-zoom/labels';
+import { withBase } from '../lib/with-base';
+import BaseLayout from './BaseLayout.astro';
+import '../styles/prose.css';
+
+/**
+ * 参考页（常见问题、IP 质量实测合集、各篇实测）的骨架（design §4.6，FR-20）：只有一版正文，
+ * 没有上一步/下一步和视图切换。实测页多一个“回到：IP 质量实测合集”（`back`）。
+ * “返回刚才的步骤”（按 `?from=`）和直接打开时的目录入口由 #27 接上；在那之前只有回首页。
+ */
+interface Props {
+  title: string;
+  back?: { href: string; title: string } | undefined;
+}
+
+const { title, back } = Astro.props;
+const body = await Astro.slots.render('default');
+const hasZoom = hasZoomableImage(body);
+---
+
+<BaseLayout title={title}>
+  <main id="main" class="page">
+    <h1 class="page-title">{title}</h1>
+    <div class="prose" set:html={body} />
+    <p class="page-actions">
+      {back && <a class="button button-secondary" href={withBase(back.href)}>回到：{back.title}</a>}
+      <a class="button" href={withBase('/')}>回首页</a>
+    </p>
+  </main>
+  <CodeCopy />
+  {hasZoom && <ImageZoom />}
+</BaseLayout>
+
+<script>
+  import { initCodeZoom } from '../scripts/code-zoom';
+
+  initCodeZoom(document);
+</script>

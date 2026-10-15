@@ -3,18 +3,19 @@
  *
  * 对外的入口：`buildRouteMap`（构建时校验并编译）、`routeMapFromData`（浏览器用
  * 序列化的 RouteData 重建）、`pathOf`（Stop → 站内路径）、错误类型 `RouteValidationError`，
- * 以及类型和保留字清单 `RESERVED_STEP_IDS`。
+ * 以及类型和保留字清单 `RESERVED_PAGE_IDS`。
  * 纯函数，不碰文件系统和浏览器 API，构建时和浏览器里用同一份代码。
  */
 import type {
-  At,
-  ChoiceMeta,
   Choices,
   ForkId,
   OptionId,
   OutlineChapter,
   OutlineItem,
   OutlineStep,
+  PageId,
+  PageMeta,
+  Progress,
   RouteData,
   RouteDataItem,
   RouteError,
@@ -23,21 +24,21 @@ import type {
   RouteSpecChapter,
   RouteSpecItem,
   RouteView,
-  StepId,
-  StepMeta,
   Stop,
+  ViewMode,
 } from './types';
 
 export type * from './types';
 
-/** 不能用作步骤标识的保留路径（ADR-0002）。 */
-export const RESERVED_STEP_IDS: readonly string[] = ['choose', 'faq', 'done', '404', '_astro'];
+/** 不能用作页面标识的保留路径（ADR-0002）：参考页和构建产物占用的路径。 */
+export const RESERVED_PAGE_IDS: readonly string[] = ['faq', 'ip-tests', '404', '_astro'];
 
+const VIEW_MODES: readonly ViewMode[] = ['operation', 'principle'];
+const HOME: Stop = { kind: 'home' };
 const ROUTE_FILE = 'route.yaml';
 const KEBAB = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-const stepFile = (id: string) => `steps/${id}.md`;
-const choiceFile = (id: string) => `choices/${id}.md`;
+const pageFile = (id: string) => `principle/${id}.md`;
 
 /** 路线图校验失败。`errors` 一次列出全部问题，`message` 每行一条“文件：说明”。 */
 export class RouteValidationError extends Error {
@@ -51,29 +52,22 @@ export class RouteValidationError extends Error {
 
 /** Stop → 站内路径（不含 BASE_PATH），再由 `withBase()` 加前缀。 */
 export function pathOf(stop: Stop): string {
-  switch (stop.kind) {
-    case 'step':
-      return `/${stop.id}/`;
-    case 'choose':
-      return `/choose/${stop.fork}/`;
-    case 'done':
-      return '/done/';
-  }
+  return stop.kind === 'home' ? '/' : `/${stop.id}/`;
 }
 
 /**
- * 校验路线图、步骤元数据和选择页元数据，并编译成 RouteMap。
+ * 校验路线图和页面元数据，并编译成 RouteMap。
  *
  * `spec` 是 route.yaml 解析后的值（`unknown`，这里逐项校验形状）。任何一条规则不满足都会
- * 抛出 `RouteValidationError`，其中每条错误写明 `route.yaml`、`steps/<id>.md` 或 `choices/<id>.md`。
+ * 抛出 `RouteValidationError`，其中每条错误写明 `route.yaml` 或 `principle/<id>.md`。
  */
-export function buildRouteMap(spec: unknown, steps: StepMeta[], choices: ChoiceMeta[]): RouteMap {
+export function buildRouteMap(spec: unknown, pages: PageMeta[]): RouteMap {
   const errors: RouteError[] = [];
   const parsed = parseSpec(spec, errors);
-  if (parsed) checkSemantics(parsed, steps, choices, errors);
+  if (parsed) checkSemantics(parsed, pages, errors);
   if (errors.length > 0) throw new RouteValidationError(errors);
 
-  const map = routeMapFromData(compile(parsed!, steps, choices));
+  const map = routeMapFromData(compile(parsed!, pages));
   checkEveryRoute(map, errors);
   if (errors.length > 0) throw new RouteValidationError(errors);
   return map;
@@ -88,22 +82,25 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function parseSpec(raw: unknown, errors: RouteError[]): RouteSpec | null {
   const err = (message: string) => errors.push({ file: ROUTE_FILE, message });
   if (!isRecord(raw)) {
-    err('路线图必须是一个对象，包含 defaults 和 chapters');
+    err('路线图必须是一个对象，包含 chapters（和可选的 side）');
     return null;
   }
   for (const key of Object.keys(raw)) {
-    if (key !== 'defaults' && key !== 'chapters') err(`未知字段 ${key}`);
+    if (key !== 'chapters' && key !== 'side') err(`未知字段 ${key}`);
   }
 
-  const defaults: Record<ForkId, OptionId> = {};
-  if (!isRecord(raw.defaults)) {
-    err('defaults 必须是“分叉点: 默认选项”的映射');
-  } else {
-    for (const [fork, option] of Object.entries(raw.defaults)) {
-      // 先挡住非 kebab-case 的键（含 __proto__），再写入对象
-      if (!KEBAB.test(fork)) err(`defaults 里的分叉点标识 ${fork} 必须是英文 kebab-case`);
-      else if (typeof option !== 'string') err(`defaults.${fork} 必须是选项标识`);
-      else defaults[fork] = option;
+  const side: Record<PageId, { returnTo: PageId }> = {};
+  if (raw.side !== undefined) {
+    if (!isRecord(raw.side)) {
+      err('side 必须是“旁支页: { returnTo: <页面> }”的映射');
+    } else {
+      for (const [id, value] of Object.entries(raw.side)) {
+        // 先挡住非 kebab-case 的键（含 __proto__），再写入对象
+        if (!KEBAB.test(id)) err(`side 里的页面标识 ${id} 必须是英文 kebab-case`);
+        else if (!isRecord(value) || Object.keys(value).length !== 1 || typeof value.returnTo !== 'string') {
+          err(`side.${id} 要写成 { returnTo: <页面> }`);
+        } else side[id] = { returnTo: value.returnTo };
+      }
     }
   }
 
@@ -134,73 +131,62 @@ function parseSpec(raw: unknown, errors: RouteError[]): RouteSpec | null {
     });
     chapters.push({ id: String(chapter.id), title: String(chapter.title), items });
   });
-  return { defaults, chapters };
+  return { chapters, side };
 }
 
 function parseItem(item: unknown, where: string, err: (m: string) => void): RouteSpecItem | null {
   if (typeof item === 'string') return item;
   if (isRecord(item) && 'choose' in item) {
-    if (Object.keys(item).length !== 1 || typeof item.choose !== 'string') {
-      err(`${where}：选择页写作 { choose: <分叉点> }`);
+    if (Object.keys(item).length !== 2 || typeof item.choose !== 'string' || typeof item.page !== 'string') {
+      err(`${where}：选择页写作 { choose: <分叉点>, page: <选择页标识> }`);
       return null;
     }
-    return { choose: item.choose };
+    if (!KEBAB.test(item.choose)) {
+      err(`${where}：分叉点标识 ${item.choose} 必须是英文 kebab-case`);
+      return null;
+    }
+    return { choose: item.choose, page: item.page };
   }
   if (isRecord(item) && 'branch' in item) {
     const extra = Object.keys(item).filter((k) => k !== 'branch' && k !== 'options');
     if (typeof item.branch !== 'string' || !isRecord(item.options) || extra.length > 0) {
-      err(`${where}：分支段写作 { branch: <分叉点>, options: { <选项>: [步骤…] } }`);
+      err(`${where}：分支段写作 { branch: <分叉点>, options: { <选项>: [页面…] } }`);
       return null;
     }
-    const options: Record<OptionId, StepId[]> = {};
+    const options: Record<OptionId, PageId[]> = {};
     for (const [option, list] of Object.entries(item.options)) {
       if (!KEBAB.test(option)) {
         err(`${where}：选项标识 ${option} 必须是英文 kebab-case`);
         return null;
       }
       if (!Array.isArray(list) || !list.every((s) => typeof s === 'string')) {
-        err(`${where}：选项 ${option} 必须是步骤标识列表`);
+        err(`${where}：选项 ${option} 必须是页面标识列表`);
         return null;
       }
       options[option] = list;
     }
     return { branch: item.branch, options };
   }
-  err(`${where}：必须是步骤标识、{ choose } 或 { branch, options }`);
+  err(`${where}：必须是页面标识、{ choose, page } 或 { branch, options }`);
   return null;
 }
 
 // ================================================================ 规则校验
 
-function checkSemantics(spec: RouteSpec, steps: StepMeta[], choices: ChoiceMeta[], errors: RouteError[]): void {
+function checkSemantics(spec: RouteSpec, pages: PageMeta[], errors: RouteError[]): void {
   const routeErr = (message: string) => errors.push({ file: ROUTE_FILE, message });
 
-  // ---- 步骤文件
-  const stepIds = new Set<StepId>();
-  for (const step of steps) {
-    const file = stepFile(step.id);
-    if (stepIds.has(step.id)) errors.push({ file, message: `步骤标识重复：${step.id}` });
-    stepIds.add(step.id);
-    if (RESERVED_STEP_IDS.includes(step.id)) {
-      errors.push({ file, message: `步骤标识 ${step.id} 是保留路径（${RESERVED_STEP_IDS.join('、')}），请换一个` });
-    } else if (!KEBAB.test(step.id)) {
-      errors.push({ file, message: `步骤标识 ${step.id} 必须是英文 kebab-case` });
+  // ---- 页面文件
+  const byId = new Map<PageId, PageMeta>();
+  for (const page of pages) {
+    const file = pageFile(page.id);
+    if (byId.has(page.id)) errors.push({ file, message: `页面标识重复：${page.id}` });
+    byId.set(page.id, page);
+    if (RESERVED_PAGE_IDS.includes(page.id)) {
+      errors.push({ file, message: `页面标识 ${page.id} 是保留路径（${RESERVED_PAGE_IDS.join('、')}），请换一个` });
+    } else if (!KEBAB.test(page.id)) {
+      errors.push({ file, message: `页面标识 ${page.id} 必须是英文 kebab-case` });
     }
-  }
-
-  // ---- 选择页文件
-  const forks = new Map<ForkId, ChoiceMeta>();
-  for (const choice of choices) {
-    const file = choiceFile(choice.id);
-    if (forks.has(choice.id)) errors.push({ file, message: `分叉点标识重复：${choice.id}` });
-    if (!KEBAB.test(choice.id)) errors.push({ file, message: `分叉点标识 ${choice.id} 必须是英文 kebab-case` });
-    const optionIds = choice.options.map((o) => o.id);
-    if (optionIds.length < 2) errors.push({ file, message: '分叉点至少要有两个选项' });
-    for (const [i, id] of optionIds.entries()) {
-      if (optionIds.indexOf(id) !== i) errors.push({ file, message: `选项标识重复：${id}` });
-      if (!KEBAB.test(id)) errors.push({ file, message: `选项标识 ${id} 必须是英文 kebab-case` });
-    }
-    forks.set(choice.id, choice);
   }
 
   // ---- 章节标识
@@ -210,20 +196,21 @@ function checkSemantics(spec: RouteSpec, steps: StepMeta[], choices: ChoiceMeta[
     chapterIds.add(chapter.id);
   }
 
-  // ---- 逐项检查：位置唯一、choose 在 branch 之前、选项一致、汇合
-  /** 步骤标识 → 所在位置（普通项为 'item'，分支段为 'branch:<序号>'）。 */
-  const placement = new Map<StepId, string>();
-  const chosen = new Set<ForkId>();
+  // ---- 逐项检查：一个标识空间、choose 在 branch 之前、选项一致、汇合
+  /** 页面标识 → 所在位置（普通项 'item'、选择页 'choose'、旁支页 'side'、分支段 'branch:<序号>'）。 */
+  const placement = new Map<PageId, string>();
+  /** 分叉点 → 选择页的选项（选择页缺 options 时为空列表） */
+  const forkOptions = new Map<ForkId, OptionId[]>();
   const branched = new Set<ForkId>();
   const flat = spec.chapters.flatMap((c) => c.items.map((item) => ({ item, chapter: c.id })));
 
-  const place = (id: StepId, where: string, label: string) => {
+  const place = (id: PageId, where: string, label: string) => {
     const before = placement.get(id);
     if (before === undefined) placement.set(id, where);
-    else if (before !== where || where === 'item') {
-      routeErr(`步骤 ${id} 在路线图里出现了多次（${label}）；一个步骤只能是普通项，或属于同一个分支段`);
+    else if (before !== where || !where.startsWith('branch:')) {
+      routeErr(`页面 ${id} 在路线图里出现了多次（${label}）；一个页面只能是普通项、选择页、旁支页之一，或属于同一个分支段`);
     }
-    if (!stepIds.has(id)) routeErr(`步骤 ${id} 没有对应的文件 ${stepFile(id)}`);
+    if (!byId.has(id)) routeErr(`页面 ${id} 没有对应的文件 ${pageFile(id)}`);
   };
 
   flat.forEach(({ item, chapter }, k) => {
@@ -232,35 +219,41 @@ function checkSemantics(spec: RouteSpec, steps: StepMeta[], choices: ChoiceMeta[
       return;
     }
     if ('choose' in item) {
-      if (!forks.has(item.choose)) routeErr(`选择页 ${item.choose} 没有对应的文件 ${choiceFile(item.choose)}`);
-      if (chosen.has(item.choose)) routeErr(`分叉点 ${item.choose} 的选择页出现了多次`);
-      chosen.add(item.choose);
+      place(item.page, 'choose', `分叉点 ${item.choose} 的选择页`);
+      if (forkOptions.has(item.choose)) routeErr(`分叉点 ${item.choose} 的选择页出现了多次`);
+      const meta = byId.get(item.page);
+      if (meta && !meta.options) {
+        errors.push({ file: pageFile(item.page), message: `是分叉点 ${item.choose} 的选择页，frontmatter 要写 options` });
+      }
+      forkOptions.set(item.choose, meta?.options?.map((o) => o.id) ?? []);
       return;
     }
 
     const fork = item.branch;
     branched.add(fork);
-    const meta = forks.get(fork);
-    if (!meta) routeErr(`分支段引用的分叉点 ${fork} 没有对应的文件 ${choiceFile(fork)}`);
-    if (!chosen.has(fork)) routeErr(`分叉点 ${fork} 的分支段（章节 ${chapter}）出现在它的选择页 { choose: ${fork} } 之前`);
-    if (meta) {
-      const expected = meta.options.map((o) => o.id);
+    const expected = forkOptions.get(fork);
+    if (expected === undefined) {
+      routeErr(`分叉点 ${fork} 的分支段（章节 ${chapter}）出现在它的选择页 { choose: ${fork}, page: … } 之前，或路线图里没有这个分叉点的选择页`);
+    } else if (expected.length > 0) {
       const actual = Object.keys(item.options);
       const missing = expected.filter((o) => !actual.includes(o));
       const extra = actual.filter((o) => !expected.includes(o));
       if (missing.length > 0 || extra.length > 0) {
         routeErr(
-          `分叉点 ${fork} 的分支段（章节 ${chapter}）的选项与 ${choiceFile(fork)} 不一致：` +
-            [missing.length ? `缺少 ${missing.join('、')}` : '', extra.length ? `多出 ${extra.join('、')}` : '']
-              .filter(Boolean)
-              .join('，'),
+          `分叉点 ${fork} 的分支段（章节 ${chapter}）的选项与选择页的 options 不一致：` +
+            [missing.length ? `缺少 ${missing.join('、')}` : '', extra.length ? `多出 ${extra.join('、')}` : ''].filter(Boolean).join('，'),
         );
+      } else if (actual.join() !== expected.join()) {
+        routeErr(`分叉点 ${fork} 的分支段（章节 ${chapter}）的选项顺序要与选择页的 options 一致：${expected.join('、')}`);
       }
     }
     for (const [option, list] of Object.entries(item.options)) {
-      if (list.length === 0) routeErr(`分叉点 ${fork} 的选项 ${option}（章节 ${chapter}）没有步骤`);
+      if (list.length === 0) routeErr(`分叉点 ${fork} 的选项 ${option}（章节 ${chapter}）没有页面`);
+      else if (list.every((id) => byId.get(id)?.principleOnly)) {
+        routeErr(`分叉点 ${fork} 的选项 ${option}（章节 ${chapter}）只有原理独有步骤：操作视图下这一段是空的`);
+      }
       list.forEach((id, i) => {
-        if (list.indexOf(id) !== i) routeErr(`步骤 ${id} 在分叉点 ${fork} 的选项 ${option} 里出现了多次`);
+        if (list.indexOf(id) !== i) routeErr(`页面 ${id} 在分叉点 ${fork} 的选项 ${option} 里出现了多次`);
         else place(id, `branch:${k}`, `章节 ${chapter} 的 ${fork}/${option}`);
       });
     }
@@ -271,39 +264,43 @@ function checkSemantics(spec: RouteSpec, steps: StepMeta[], choices: ChoiceMeta[
     const merges = next !== undefined && (typeof next === 'string' || 'choose' in next);
     if (!merges && !sameForkNext) {
       routeErr(
-        `分叉点 ${fork} 的分支段（章节 ${chapter}）之后没有汇合点：后面要接一个所有选项共用的步骤或选择页` +
+        `分叉点 ${fork} 的分支段（章节 ${chapter}）之后没有汇合点：后面要接一个所有选项共用的页面或选择页` +
           (next !== undefined && typeof next !== 'string' && 'branch' in next ? `，现在接的是分叉点 ${next.branch} 的分支段` : ''),
       );
     }
   });
 
-  for (const fork of chosen) {
+  for (const fork of forkOptions.keys()) {
     if (!branched.has(fork)) routeErr(`分叉点 ${fork} 有选择页，但没有任何分支段`);
   }
-  for (const step of steps) {
-    if (!placement.has(step.id)) errors.push({ file: stepFile(step.id), message: `步骤 ${step.id} 不在路线图里` });
-  }
-  for (const choice of choices) {
-    if (!chosen.has(choice.id)) {
-      errors.push({ file: choiceFile(choice.id), message: `路线图里没有分叉点 ${choice.id} 的选择页 { choose: ${choice.id} }` });
-    }
+
+  // ---- 首尾：前言的上一步、后记的下一步是首页，两种视图都要经过它们
+  for (const [label, entry] of [['第一项', flat[0]], ['最后一项', flat[flat.length - 1]]] as const) {
+    const item = entry?.item;
+    if (item === undefined) continue;
+    if (typeof item !== 'string') routeErr(`路线的${label}必须是普通页面`);
+    else if (byId.get(item)?.principleOnly) routeErr(`路线的${label} ${item} 不能是原理独有步骤：操作视图也要从这里开始和结束`);
   }
 
-  // ---- 默认路线
-  for (const [fork, option] of Object.entries(spec.defaults)) {
-    const meta = forks.get(fork);
-    if (!meta || !chosen.has(fork)) routeErr(`defaults 里的 ${fork} 不是路线图里的分叉点`);
-    else if (!meta.options.some((o) => o.id === option)) routeErr(`defaults.${fork} 的值 ${option} 不是这个分叉点的选项`);
+  // ---- 旁支页
+  for (const [id, { returnTo }] of Object.entries(spec.side ?? {})) {
+    place(id, 'side', `旁支页 ${id}`);
+    if (placement.get(returnTo) !== 'item') routeErr(`旁支页 ${id} 的 returnTo（${returnTo}）必须是路线图里的普通页`);
   }
-  for (const fork of chosen) {
-    if (!Object.hasOwn(spec.defaults, fork)) routeErr(`defaults 缺少分叉点 ${fork} 的默认选项`);
+
+  for (const page of pages) {
+    if (!placement.has(page.id)) errors.push({ file: pageFile(page.id), message: `页面 ${page.id} 不在路线图里` });
+    else if (page.options && placement.get(page.id) !== 'choose') {
+      errors.push({ file: pageFile(page.id), message: `写了 options，但在路线图里不是选择页 { choose: <分叉点>, page: ${page.id} }` });
+    }
   }
 }
 
 /**
- * 枚举全部选项组合，沿“下一步”走：每条路线都要走到完成页，不重复经过同一项，上一步与下一步互逆（架构 §3 M2）。
+ * 枚举全部选项组合 × 两种视图，沿“下一步”走：每条路线都要从第一项走到最后一项再回首页，不重复经过同一页，
+ * 上一步与来路一致（架构 §3 M2）。
  *
- * 这是兜底的回归检查：在 checkSemantics 的规则（位置唯一、choose 在 branch 之前、必须汇合）都满足时，
+ * 这是兜底的回归检查：在 checkSemantics 的规则（位置唯一、choose 在 branch 之前、必须汇合、首尾是普通页）都满足时，
  * 现有的数据形状不会触发这里的错误；它防的是以后改动导航算法或放宽前置规则时引入的环和断链。
  */
 function checkEveryRoute(map: RouteMap, errors: RouteError[]): void {
@@ -313,36 +310,45 @@ function checkEveryRoute(map: RouteMap, errors: RouteError[]): void {
   for (const fork of forkIds) {
     combos = combos.flatMap((c) => data.forks[fork]!.options.map((o) => ({ ...c, [fork]: o.id })));
   }
-  const first = data.chapters[0]!.items[0]!;
-  if (first.kind === 'branch') return; // 不可能：checkSemantics 已报“分支段出现在选择页之前”
-  const toAt = (stop: Stop): At | null =>
-    stop.kind === 'done' ? null : stop.kind === 'step' ? { kind: 'step', id: stop.id } : { kind: 'choose', fork: stop.fork };
-  const limit = Object.keys(data.steps).length + forkIds.length + 1;
+  const items = data.chapters.flatMap((c) => c.items);
+  const first = items[0]!;
+  const last = items[items.length - 1]!;
+  if (first.kind !== 'step' || last.kind !== 'step') return; // 不可能：checkSemantics 已报“首尾必须是普通页面”
+  const limit = Object.keys(data.pages).length + 1;
 
-  for (const combo of combos) {
-    const label = forkIds.map((f) => `${f}=${combo[f]}`).join('，');
-    const fail = (message: string) => errors.push({ file: ROUTE_FILE, message: `路线（${label}）${message}` });
-    let at: At | null = first.kind === 'choose' ? { kind: 'choose', fork: first.fork } : { kind: 'step', id: first.id };
-    let prev: Stop | null = null;
-    const seen = new Set<string>();
-    for (let n = 0; at; n++) {
-      const key = at.kind === 'step' ? at.id : `choose/${at.fork}`;
-      if (seen.has(key) || n > limit) {
-        fail(`出现环：再次经过 ${key}`);
-        break;
+  for (const mode of VIEW_MODES) {
+    for (const combo of combos) {
+      const label = [...forkIds.map((f) => `${f}=${combo[f]}`), mode === 'operation' ? '操作视图' : '原理视图'].join('，');
+      const fail = (message: string) => errors.push({ file: ROUTE_FILE, message: `路线（${label}）${message}` });
+      let at: PageId = first.id;
+      let prev: Stop = HOME;
+      const seen = new Set<PageId>();
+      for (let n = 0; ; n++) {
+        if (seen.has(at) || n > limit) {
+          fail(`出现环：再次经过 ${at}`);
+          break;
+        }
+        seen.add(at);
+        const view = map.view(at, combo, mode);
+        if (forkIds.some((f) => view.choices[f] !== combo[f])) {
+          fail(`在 ${at} 偏离了所选路线`);
+          break;
+        }
+        if (!sameStop(view.prev, prev)) {
+          fail(`在 ${at} 的上一步与来路不一致`);
+          break;
+        }
+        if (view.next === null) {
+          fail(`在 ${at} 没有下一步`);
+          break;
+        }
+        if (view.next.kind === 'home') {
+          if (at !== last.id) fail(`在 ${at} 就回到了首页，没有走到最后一项 ${last.id}`);
+          break;
+        }
+        prev = view.current;
+        at = view.next.id;
       }
-      seen.add(key);
-      const view = map.view(at, combo);
-      if (forkIds.some((f) => view.choices[f] !== combo[f])) {
-        fail(`在 ${key} 偏离了所选路线`);
-        break;
-      }
-      if (!sameStop(view.prev, prev)) {
-        fail(`在 ${key} 的上一步与来路不一致`);
-        break;
-      }
-      prev = view.current;
-      at = toAt(view.next);
     }
   }
 }
@@ -354,17 +360,15 @@ function sameStop(a: Stop | null, b: Stop | null): boolean {
 
 // ================================================================ 编译
 
-function compile(spec: RouteSpec, steps: StepMeta[], choices: ChoiceMeta[]): RouteData {
-  const data: RouteData = { defaults: { ...spec.defaults }, chapters: [], steps: {}, forks: {} };
-  for (const choice of choices) {
-    data.forks[choice.id] = { title: choice.title, options: choice.options.map((o) => ({ id: o.id, title: o.title })) };
-  }
-  for (const step of steps) {
-    data.steps[step.id] = {
-      title: step.title,
-      skippable: step.skippable ?? false,
-      ...(step.skipLabel !== undefined ? { skipLabel: step.skipLabel } : {}),
-      placeholder: step.placeholder ?? false,
+function compile(spec: RouteSpec, pages: PageMeta[]): RouteData {
+  const data: RouteData = { chapters: [], pages: {}, forks: {}, side: {} };
+  const byId = new Map(pages.map((p) => [p.id, p]));
+  for (const page of pages) {
+    data.pages[page.id] = {
+      title: page.title,
+      principleOnly: page.principleOnly,
+      skippable: page.skippable,
+      ...(page.skipLabel !== undefined ? { skipLabel: page.skipLabel } : {}),
     };
   }
   data.chapters = spec.chapters.map((c) => ({
@@ -372,32 +376,45 @@ function compile(spec: RouteSpec, steps: StepMeta[], choices: ChoiceMeta[]): Rou
     title: c.title,
     items: c.items.map((item): RouteDataItem => {
       if (typeof item === 'string') return { kind: 'step', id: item };
-      if ('choose' in item) return { kind: 'choose', fork: item.choose };
+      if ('choose' in item) {
+        const options = byId.get(item.page)!.options!.map((o) => ({ id: o.id, title: o.title }));
+        data.forks[item.choose] = { page: item.page, options };
+        return { kind: 'choose', fork: item.choose, id: item.page };
+      }
       return { kind: 'branch', fork: item.branch, options: structuredClone(item.options) };
     }),
   }));
+  for (const [id, { returnTo }] of Object.entries(spec.side ?? {})) data.side[id] = returnTo;
   return data;
 }
 
 // ================================================================ 运行时
 
-/** 当前路线上的一项。 */
-type Entry = { kind: 'step'; id: StepId; chapter: number } | { kind: 'choose'; fork: ForkId; chapter: number };
+/**
+ * 当前路线上的一项。`fold` 是没选的分叉点的一段分支：它两侧的页面把“下一步”“上一步”指向该分叉点的选择页（FR-13）。
+ */
+type Entry = { kind: 'step' | 'choose'; id: PageId; chapter: number } | { kind: 'fold'; fork: ForkId; chapter: number };
 
 /**
  * 用序列化的 RouteData 重建 RouteMap（浏览器端）。RouteData 来自 `buildRouteMap(...).data`，
  * 这里不再校验。
  */
 export function routeMapFromData(data: RouteData): RouteMap {
-  /** 分支步骤 → 所属分叉点和它出现的选项（共享步骤有多个）。普通步骤不在表里。 */
-  const branchHome = new Map<StepId, { fork: ForkId; options: OptionId[] }>();
-  const plainSteps = new Set<StepId>();
+  /** 分支页面 → 所属分叉点和它出现的选项（共享步骤有多个）。 */
+  const branchHome = new Map<PageId, { fork: ForkId; options: OptionId[] }>();
+  /** 序列里的页面（普通页、选择页、分支页面）；旁支页不在其中 */
+  const onMap = new Set<PageId>();
+  /** 选择页 → 分叉点 */
+  const forkOfPage = new Map(Object.entries(data.forks).map(([fork, { page }]) => [page, fork]));
   for (const chapter of data.chapters) {
     for (const item of chapter.items) {
-      if (item.kind === 'step') plainSteps.add(item.id);
-      if (item.kind !== 'branch') continue;
+      if (item.kind !== 'branch') {
+        onMap.add(item.id);
+        continue;
+      }
       for (const option of data.forks[item.fork]!.options) {
         for (const id of item.options[option.id] ?? []) {
+          onMap.add(id);
           const home = branchHome.get(id) ?? { fork: item.fork, options: [] };
           home.options.push(option.id);
           branchHome.set(id, home);
@@ -409,55 +426,55 @@ export function routeMapFromData(data: RouteData): RouteMap {
   const isOption = (fork: ForkId, option: unknown): option is OptionId =>
     typeof option === 'string' && Object.hasOwn(data.forks, fork) && data.forks[fork]!.options.some((o) => o.id === option);
 
-  /** 默认路线 ← 本机保存的选择 ← 当前页所属选项（`at` 为 null 时不看当前页）。 */
-  function effectiveChoices(at: At | null, stored: Choices): Record<ForkId, OptionId> {
-    const choices: Record<ForkId, OptionId> = {};
-    const safeStored: Choices = isRecord(stored) ? stored : {}; // stored 来自 localStorage，不信任它的形状
+  /** 本机保存的选择（失效项忽略）← 当前页所属选项（`at` 为 null 时不看当前页）。 */
+  function effectiveChoices(at: PageId | null, stored: Choices): Choices {
+    const choices: Choices = {};
+    const safeStored: Choices = isRecord(stored) ? stored : {}; // stored 来自本机存储，不信任它的形状
     for (const fork of Object.keys(data.forks)) {
       const saved = Object.hasOwn(safeStored, fork) ? safeStored[fork] : undefined;
-      choices[fork] = isOption(fork, saved) ? saved : data.defaults[fork]!;
+      if (isOption(fork, saved)) choices[fork] = saved;
     }
-    if (at?.kind === 'step') {
-      const home = branchHome.get(at.id);
-      if (home && !home.options.includes(choices[home.fork]!)) {
-        const fallback = data.defaults[home.fork]!;
-        choices[home.fork] = home.options.includes(fallback) ? fallback : home.options[0]!;
-      }
-    }
+    const home = at === null ? undefined : branchHome.get(at);
+    // 共享步骤属于多个选项：本机已选的在其中就沿用，否则取第一个
+    if (home && !home.options.includes(choices[home.fork] ?? '')) choices[home.fork] = home.options[0]!;
     return choices;
   }
 
-  function sequence(choices: Record<ForkId, OptionId>): Entry[] {
+  const visible = (id: PageId, mode: ViewMode) => mode === 'principle' || !data.pages[id]!.principleOnly;
+
+  function sequence(choices: Choices, mode: ViewMode): Entry[] {
     const entries: Entry[] = [];
     data.chapters.forEach((chapter, ci) => {
       for (const item of chapter.items) {
-        if (item.kind === 'step') entries.push({ kind: 'step', id: item.id, chapter: ci });
-        else if (item.kind === 'choose') entries.push({ kind: 'choose', fork: item.fork, chapter: ci });
-        else for (const id of item.options[choices[item.fork]!] ?? []) entries.push({ kind: 'step', id, chapter: ci });
+        if (item.kind === 'branch') {
+          const option = choices[item.fork];
+          if (option === undefined) entries.push({ kind: 'fold', fork: item.fork, chapter: ci });
+          else for (const id of item.options[option] ?? []) if (visible(id, mode)) entries.push({ kind: 'step', id, chapter: ci });
+        } else if (item.kind === 'choose' || visible(item.id, mode)) {
+          entries.push({ kind: item.kind, id: item.id, chapter: ci });
+        }
       }
     });
     return entries;
   }
 
+  const pageStop = (kind: 'step' | 'choose' | 'side', id: PageId): Stop => ({ kind, id, title: data.pages[id]!.title });
   const toStop = (entry: Entry | undefined): Stop =>
-    entry === undefined
-      ? { kind: 'done' }
-      : entry.kind === 'step'
-        ? { kind: 'step', id: entry.id, title: data.steps[entry.id]!.title }
-        : { kind: 'choose', fork: entry.fork, title: data.forks[entry.fork]!.title };
+    entry === undefined ? HOME : entry.kind === 'fold' ? pageStop('choose', data.forks[entry.fork]!.page) : pageStop(entry.kind, entry.id);
 
-  function outline(at: At | null, choices: Record<ForkId, OptionId>): OutlineChapter[] {
+  function outline(at: PageId | null, choices: Choices, mode: ViewMode): OutlineChapter[] {
     // 共享步骤在每个选项下各列一份，只有一份标当前项：当前路线上的那份；都不在当前路线上时取它所属的第一个选项。
-    const home = at?.kind === 'step' ? branchHome.get(at.id) : undefined;
-    const currentOption = home && (home.options.includes(choices[home.fork]!) ? choices[home.fork]! : home.options[0]!);
-    const stepItem = (id: StepId, onRoute: boolean, option?: OptionId): OutlineStep => ({
+    const home = at === null ? undefined : branchHome.get(at);
+    const chosen = home && choices[home.fork];
+    const currentOption = home && (chosen !== undefined && home.options.includes(chosen) ? chosen : home.options[0]!);
+    const stepItem = (id: PageId, onRoute: boolean, option?: OptionId): OutlineStep => ({
       kind: 'step',
       id,
-      title: data.steps[id]!.title,
-      skippable: data.steps[id]!.skippable,
-      placeholder: data.steps[id]!.placeholder,
-      onRoute,
-      current: at?.kind === 'step' && at.id === id && (option === undefined || option === currentOption),
+      title: data.pages[id]!.title,
+      skippable: data.pages[id]!.skippable,
+      principleOnly: data.pages[id]!.principleOnly,
+      onRoute: onRoute && visible(id, mode),
+      current: at === id && (option === undefined || option === currentOption),
     });
     return data.chapters.map((chapter) => ({
       id: chapter.id,
@@ -465,71 +482,84 @@ export function routeMapFromData(data: RouteData): RouteMap {
       items: chapter.items.map((item): OutlineItem => {
         if (item.kind === 'step') return stepItem(item.id, true);
         if (item.kind === 'choose') {
-          return {
-            kind: 'choose',
-            fork: item.fork,
-            title: data.forks[item.fork]!.title,
-            current: at?.kind === 'choose' && at.fork === item.fork,
-          };
+          return { kind: 'choose', fork: item.fork, id: item.id, title: data.pages[item.id]!.title, current: at === item.id };
         }
+        const option = choices[item.fork];
         return {
           kind: 'branch',
           fork: item.fork,
-          options: data.forks[item.fork]!.options.map((option) => {
-            const selected = choices[item.fork] === option.id;
-            return {
-              id: option.id,
-              title: option.title,
-              selected,
-              steps: (item.options[option.id] ?? []).map((id) => stepItem(id, selected, option.id)),
-            };
-          }),
+          options: data.forks[item.fork]!.options.map(({ id, title }) => ({
+            id,
+            title,
+            selected: option === id,
+            steps: (item.options[id] ?? []).map((step) => stepItem(step, option === undefined || option === id, id)),
+          })),
         };
       }),
     }));
   }
 
-  function view(at: At, stored: Choices): RouteView {
-    if (at.kind === 'step' && !plainSteps.has(at.id) && !branchHome.has(at.id)) {
-      throw new Error(`不在路线图里的步骤：${at.id}`);
+  function chapterProgress(ci: number): Progress {
+    const chapter = data.chapters[ci]!;
+    return { chapterId: chapter.id, chapter: chapter.title, chapterNo: ci };
+  }
+
+  function view(at: PageId, stored: Choices, mode: ViewMode): RouteView {
+    if (Object.hasOwn(data.side, at)) {
+      // 旁支页（FR-19）：没有上一步，“回到”挂靠的普通页，“下一步”是那一页在当前路线和视图下的下一步
+      const back = view(data.side[at]!, stored, mode);
+      return {
+        choices: back.choices,
+        current: pageStop('side', at),
+        prev: null,
+        next: back.next,
+        skipTo: null,
+        returnTo: back.current,
+        progress: chapterProgress(back.progress.chapterNo),
+        outline: outline(at, back.choices, mode),
+      };
     }
-    if (at.kind === 'choose' && !Object.hasOwn(data.forks, at.fork)) throw new Error(`不在路线图里的分叉点：${at.fork}`);
+    if (!onMap.has(at)) throw new Error(`不在路线图里的页面：${at}`);
 
     const choices = effectiveChoices(at, stored);
-    const entries = sequence(choices);
-    const i = entries.findIndex((e) =>
-      at.kind === 'step' ? e.kind === 'step' && e.id === at.id : e.kind === 'choose' && e.fork === at.fork,
-    );
-    const here = entries[i]!;
+    let entries = sequence(choices, mode);
+    let i = entries.findIndex((e) => e.kind !== 'fold' && e.id === at);
+    // 原理独有步骤在操作视图下被直接打开：它不在操作序列里，按原理视图的序列计算它自己的导航（V5）
+    const fallback = i === -1;
+    if (fallback) {
+      entries = sequence(choices, 'principle');
+      i = entries.findIndex((e) => e.kind !== 'fold' && e.id === at);
+    }
+    const here = entries[i] as Extract<Entry, { kind: 'step' | 'choose' }>;
 
     let skipTo: Stop | null = null;
-    if (here.kind === 'step' && data.steps[here.id]!.skippable) {
+    if (here.kind === 'step' && data.pages[here.id]!.skippable) {
       let j = i;
-      while (j < entries.length) {
-        const e = entries[j]!;
-        if (e.kind !== 'step' || e.chapter !== here.chapter || !data.steps[e.id]!.skippable) break;
-        j++;
-      }
+      while (entries[j]?.kind === 'step' && data.pages[(entries[j] as { id: PageId }).id]!.skippable) j++;
       skipTo = toStop(entries[j]);
     }
 
-    let progress: RouteView['progress'] = null;
-    if (here.kind === 'step') {
-      const inChapter = entries.filter((e) => e.kind === 'step' && e.chapter === here.chapter);
-      const chapter = data.chapters[here.chapter]!;
-      progress = { chapterId: chapter.id, chapter: chapter.title, index: inChapter.indexOf(here) + 1, total: inChapter.length };
+    const progress = chapterProgress(here.chapter);
+    const inChapter = entries.filter((e) => e.chapter === here.chapter);
+    if (here.kind === 'step' && !fallback && !inChapter.some((e) => e.kind === 'fold')) {
+      const steps = inChapter.filter((e) => e.kind === 'step');
+      progress.index = steps.indexOf(here) + 1;
+      progress.total = steps.length;
     }
 
+    // 选择页未选时没有下一步（FR-12）
+    const unchosen = here.kind === 'choose' && choices[forkOfPage.get(here.id)!] === undefined;
     return {
       choices,
       current: toStop(here),
-      prev: i > 0 ? toStop(entries[i - 1]) : null,
-      next: toStop(entries[i + 1]),
+      prev: toStop(entries[i - 1]),
+      next: unchosen ? null : toStop(entries[i + 1]),
       skipTo,
+      returnTo: null,
       progress,
-      outline: outline(at, choices),
+      outline: outline(at, choices, mode),
     };
   }
 
-  return { view, outline: (stored, current) => outline(current, effectiveChoices(null, stored)), data };
+  return { view, outline: (stored, current, mode) => outline(current, effectiveChoices(null, stored), mode), data };
 }

@@ -1,25 +1,21 @@
 /**
  * M2 路线模块的公开类型（架构 §3 M2）。
  *
- * 术语见 CONTEXT.md：路线图、分叉点、共享步骤、汇合点、可跳过步骤、默认路线。
+ * 术语见 CONTEXT.md：路线图、分叉点、选择页、旁支页、共享步骤、汇合点、可跳过步骤、操作视图。
  * 这里的类型在构建时（Node）和浏览器里共用，不依赖文件系统和浏览器 API。
  */
 
-export type StepId = string;
+/** 步骤、选择页、旁支页共用一个标识空间，也是 URL `/<id>/`（ADR-0002） */
+export type PageId = string;
 export type ForkId = string;
 export type OptionId = string;
+export type ViewMode = 'operation' | 'principle';
 
-/** 读者在各分叉点上的选择。缺省的分叉点按默认路线。 */
+/** 读者在各分叉点上的选择。没选的分叉点缺省（没有默认路线）。 */
 export type Choices = Partial<Record<ForkId, OptionId>>;
 
-/** 当前所在的页面：步骤页或选择页。 */
-export type At = { kind: 'step'; id: StepId } | { kind: 'choose'; fork: ForkId };
-
-/** 导航目标。`title` 用于“下一步：<标题>”；完成页的标题由页面层决定。 */
-export type Stop =
-  | { kind: 'step'; id: StepId; title: string }
-  | { kind: 'choose'; fork: ForkId; title: string }
-  | { kind: 'done' };
+/** 导航目标。`home` 是前言的上一步、后记的下一步（FR-11）。 */
+export type Stop = { kind: 'step' | 'choose' | 'side'; id: PageId; title: string } | { kind: 'home' };
 
 // ---------------------------------------------------------------- 输入
 
@@ -28,9 +24,9 @@ export type Stop =
  * 这个类型只说明合法的形状。
  */
 export interface RouteSpec {
-  /** 默认路线：每个分叉点一个默认选项。 */
-  defaults: Record<ForkId, OptionId>;
   chapters: RouteSpecChapter[];
+  /** 旁支页：不在序列里，`returnTo` 是它挂靠的普通页（FR-19） */
+  side?: Record<PageId, { returnTo: PageId }>;
 }
 
 export interface RouteSpecChapter {
@@ -39,34 +35,25 @@ export interface RouteSpecChapter {
   items: RouteSpecItem[];
 }
 
-/** 普通步骤 | 选择页 | 某个分叉点的一段分支（各选项的步骤序列）。 */
-export type RouteSpecItem =
-  | StepId
-  | { choose: ForkId }
-  | { branch: ForkId; options: Record<OptionId, StepId[]> };
+/** 普通页 | 选择页（分叉点 + 页面标识）| 某个分叉点的一段分支（各选项的页面序列）。 */
+export type RouteSpecItem = PageId | { choose: ForkId; page: PageId } | { branch: ForkId; options: Record<OptionId, PageId[]> };
 
-/** 步骤文件 `steps/<id>.md` 中与路线有关的元数据（由 M1 提供）。 */
-export interface StepMeta {
-  id: StepId;
+/** 原理版 `principle/<id>.md` 里与路线有关的元数据（由 `loadSite()` 从 M1 映射而来，M2 不读文件）。 */
+export interface PageMeta {
+  id: PageId;
   title: string;
-  skippable?: boolean;
-  /** 跳过按钮文案；缺省时由页面层用“已有，跳过”。 */
+  /** 原理独有步骤：操作视图绕过 */
+  principleOnly: boolean;
+  skippable: boolean;
+  /** 跳过按钮文案；缺省时由页面层决定 */
   skipLabel?: string;
-  placeholder?: boolean;
-}
-
-/** 选择页文件 `choices/<fork-id>.md` 中与路线有关的元数据（由 M1 提供）。 */
-export interface ChoiceMeta {
-  id: ForkId;
-  /** 选择页标题，用于“下一步：<标题>”和目录（M1 可取 frontmatter 的 question）。 */
-  title: string;
-  /** 选项，顺序即选择页和目录里的顺序。 */
-  options: { id: OptionId; title: string }[];
+  /** 只有选择页有：选项，顺序即选择页和目录里的顺序 */
+  options?: { id: OptionId; title: string }[];
 }
 
 // ---------------------------------------------------------------- 错误
 
-/** 一条路线图校验错误。`file` 相对 `src/content/`，如 `route.yaml`、`steps/run-script.md`。 */
+/** 一条路线图校验错误。`file` 相对 `src/content/`，如 `route.yaml`、`principle/preface.md`。 */
 export interface RouteError {
   file: string;
   message: string;
@@ -76,10 +63,12 @@ export interface RouteError {
 
 /** 可序列化的路线数据：浏览器用它重建 RouteMap（`routeMapFromData`），不再另取数据。 */
 export interface RouteData {
-  defaults: Record<ForkId, OptionId>;
   chapters: RouteDataChapter[];
-  steps: Record<StepId, RouteDataStep>;
+  /** 路线图里的全部页面（含选择页和旁支页） */
+  pages: Record<PageId, RouteDataPage>;
   forks: Record<ForkId, RouteDataFork>;
+  /** 旁支页 → 挂靠的普通页 */
+  side: Record<PageId, PageId>;
 }
 
 export interface RouteDataChapter {
@@ -89,19 +78,20 @@ export interface RouteDataChapter {
 }
 
 export type RouteDataItem =
-  | { kind: 'step'; id: StepId }
-  | { kind: 'choose'; fork: ForkId }
-  | { kind: 'branch'; fork: ForkId; options: Record<OptionId, StepId[]> };
+  | { kind: 'step'; id: PageId }
+  | { kind: 'choose'; fork: ForkId; id: PageId }
+  | { kind: 'branch'; fork: ForkId; options: Record<OptionId, PageId[]> };
 
-export interface RouteDataStep {
+export interface RouteDataPage {
   title: string;
+  principleOnly: boolean;
   skippable: boolean;
   skipLabel?: string;
-  placeholder: boolean;
 }
 
 export interface RouteDataFork {
-  title: string;
+  /** 选择页的标识 */
+  page: PageId;
   options: { id: OptionId; title: string }[];
 }
 
@@ -109,20 +99,22 @@ export interface RouteDataFork {
 
 export interface Progress {
   chapterId: string;
-  /** 章节标题，例如“一、准备住宅 IP”。 */
+  /** 章节标题，例如“准备节点和住宅 IP” */
   chapter: string;
-  /** 当前步骤在本章（当前路线）步骤中的序号，从 1 开始；选择页不计入。 */
-  index: number;
-  total: number;
+  /** 章节序号，从 0 开始（design：“从零开始”的章节号） */
+  chapterNo: number;
+  /** 当前步骤在本章（当前路线和视图）步骤中的序号，从 1 开始；数不清时（未选的分支、选择页、旁支页）没有 */
+  index?: number;
+  total?: number;
 }
 
 export interface OutlineStep {
   kind: 'step';
-  id: StepId;
+  id: PageId;
   title: string;
   skippable: boolean;
-  placeholder: boolean;
-  /** 是否在当前路线上；不在的显示为“其他路线”。 */
+  principleOnly: boolean;
+  /** 是否在当前路线和视图上：其他选项的步骤、操作视图下的原理独有步骤为 false；分叉点没选时它的各选项都算在路线上 */
   onRoute: boolean;
   current: boolean;
 }
@@ -130,6 +122,7 @@ export interface OutlineStep {
 export interface OutlineChoose {
   kind: 'choose';
   fork: ForkId;
+  id: PageId;
   title: string;
   current: boolean;
 }
@@ -151,27 +144,28 @@ export interface OutlineChapter {
 
 /** 一个页面需要的全部导航信息。 */
 export interface RouteView {
-  /** 实际生效的选择 = 默认路线 ← 本机保存的选择 ← 当前页所属选项。总是覆盖全部分叉点。 */
-  choices: Record<ForkId, OptionId>;
+  /** 生效的选择 = 本机保存的选择（失效项忽略）← 当前页所属选项；没选的分叉点缺省 */
+  choices: Choices;
   current: Stop;
-  /** 路线第一项时为 null。 */
+  /** 旁支页为 null；第一页是首页 */
   prev: Stop | null;
-  /** 最后一项之后是 `{ kind: 'done' }`。 */
-  next: Stop;
-  /** 只有可跳过步骤才有：跳过本章内从当前步骤起连续的可跳过步骤后的第一项。 */
+  /** 选择页未选时为 null（FR-12）；最后一页是首页 */
+  next: Stop | null;
+  /** 只有可跳过步骤才有：跳过从当前页开始连续的可跳过步骤后的第一项（可以跨章节，FR-15） */
   skipTo: Stop | null;
-  /** 选择页为 null。 */
-  progress: Progress | null;
+  /** 只有旁支页才有：它挂靠的普通页（FR-19） */
+  returnTo: Stop | null;
+  progress: Progress;
   outline: OutlineChapter[];
 }
 
 export interface RouteMap {
   /** `stored` 是本机保存的选择，可以为空；其中失效的分叉点或选项会被忽略。不在路线图里的 `at` 会抛错。 */
-  view(at: At, stored: Choices): RouteView;
+  view(at: PageId, stored: Choices, mode: ViewMode): RouteView;
   /**
    * 只按本机选择画的目录：和 `view().outline` 不同，不让当前页所属选项覆盖本机选择，
-   * 所以在目录里改选后，当前页可以落在“其他路线”上（FR-14）；没有当前页（常见问题、找不到页）时传 null。
+   * 所以在目录里改选后，当前页可以落在其他路线上（FR-14）；没有当前页（首页、参考页、找不到页）时传 null。
    */
-  outline(stored: Choices, current: At | null): OutlineChapter[];
+  outline(stored: Choices, current: PageId | null, mode: ViewMode): OutlineChapter[];
   readonly data: RouteData;
 }

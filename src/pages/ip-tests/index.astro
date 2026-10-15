@@ -1,0 +1,14 @@
+---
+import { render } from 'astro:content';
+import ReferenceLayout from '../../layouts/ReferenceLayout.astro';
+import { loadSite } from '../../lib/site';
+
+/** IP 质量实测合集：/ip-tests/（FR-20）。 */
+const site = await loadSite();
+const collection = site.references.get('ip-tests')!;
+const { Content } = await render(collection.entry);
+---
+
+<ReferenceLayout title={collection.title}>
+  <Content />
+</ReferenceLayout>
