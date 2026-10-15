@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { sampleChoices, sampleSpec, sampleSteps } from '../lib/route/fixtures/sample-route';
 import { buildRouteMap } from '../lib/route/route-map';
 import type { At, Choices } from '../lib/route/types';
-import { openPatch, readerStoreOptions } from './route-enhance';
+import { readerStoreOptions } from './reader-store';
+import { openPatch } from './route-enhance';
 
 const map = buildRouteMap(sampleSpec(), sampleSteps(), sampleChoices());
 const step = (id: string): At => ({ kind: 'step', id });

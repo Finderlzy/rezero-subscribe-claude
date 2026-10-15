@@ -1,0 +1,214 @@
+/*
+ * 步骤目录（design §4.5）：Toc.astro / TocNav.astro 的样式。同一个 <nav> 会被脚本在侧栏和抽屉之间移动，
+ * 所以样式写成全局的，不用组件作用域。
+ */
+
+/* ≥1100px 的常驻侧栏（步骤页、选择页）；更窄时隐藏，目录从顶栏的按钮打开抽屉。 */
+.toc-sidebar {
+  display: none;
+}
+
+@media (min-width: 1100px) {
+  .toc-sidebar {
+    display: block;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    padding: var(--space-6) var(--space-4) var(--space-7);
+    border-right: var(--border-width) solid var(--border);
+    box-sizing: border-box;
+  }
+}
+
+/* 抽屉：手机上全屏，更宽时是贴左边的一栏。只有浮层可以加一层很淡的阴影（design §3.3）。 */
+.toc-dialog {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: var(--bg);
+  color: var(--text);
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+@media (min-width: 720px) {
+  .toc-dialog {
+    width: 400px;
+    border-right: var(--border-width) solid var(--border);
+    box-shadow: var(--overlay-shadow);
+  }
+}
+
+.toc-dialog::backdrop {
+  background: var(--backdrop);
+}
+
+.toc-dialog-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-4);
+  background: var(--bg);
+}
+
+/* 留白放在内层：点到 dialog 自身才算点背景（toc.ts）。 */
+.toc-dialog-body {
+  padding: 0 var(--space-4) var(--space-6);
+}
+
+.toc-dialog-title {
+  margin: 0;
+  font-size: var(--fs-h3);
+  line-height: var(--lh-heading);
+}
+
+.toc-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+/* 列表本身 */
+.toc {
+  font-size: var(--fs-meta);
+  line-height: var(--lh-meta);
+}
+
+.toc ol,
+.toc ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.toc-chapter + .toc-chapter {
+  margin-top: var(--space-4);
+}
+
+.toc-chapter-title {
+  margin: 0 0 var(--space-1);
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.toc-step a {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--space-2);
+  min-height: 44px;
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-5);
+  box-sizing: border-box;
+  border-radius: var(--radius-control);
+  color: var(--text);
+  text-decoration: none;
+  position: relative;
+}
+
+.toc-step a:hover .toc-label {
+  text-decoration: underline;
+}
+
+/* 当前项：加粗，左侧一条强调色竖线（不只靠颜色，另有 aria-current）。 */
+.toc-step a[aria-current='step'] {
+  font-weight: 700;
+  background: var(--surface);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+/* 已读 ✓ 放在左侧留白里，不挤动标题。 */
+.toc-mark {
+  position: absolute;
+  left: var(--space-2);
+  color: var(--accent);
+}
+
+.toc-tag {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.toc-tag::before {
+  content: '· ';
+}
+
+/* 其他路线：弱化色，并带“其他路线”文字（design §4.5）。 */
+.toc-step[data-off-route] a {
+  color: var(--text-muted);
+}
+
+/* “或”分组：各选项用左侧短竖线连起来。 */
+.toc-option {
+  margin-left: var(--space-2);
+  padding-left: var(--space-2);
+  border-left: 2px solid var(--border);
+}
+
+.toc-option[data-selected] {
+  border-left-color: var(--accent);
+}
+
+.toc-option + .toc-option {
+  margin-top: var(--space-1);
+}
+
+.toc-option-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding-left: var(--space-2);
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.toc-option[data-selected] .toc-option-head {
+  color: var(--text);
+}
+
+.toc-switch,
+.toc-clear {
+  flex: none;
+  white-space: nowrap;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.toc-footer {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: var(--border-width) solid var(--border);
+}
+
+.toc-status {
+  margin: var(--space-2) 0 0;
+  color: var(--text-muted);
+}
+
+.toc-status:empty {
+  display: none;
+}

@@ -409,15 +409,15 @@ export function routeMapFromData(data: RouteData): RouteMap {
   const isOption = (fork: ForkId, option: unknown): option is OptionId =>
     typeof option === 'string' && Object.hasOwn(data.forks, fork) && data.forks[fork]!.options.some((o) => o.id === option);
 
-  /** 默认路线 ← 本机保存的选择 ← 当前页所属选项。 */
-  function effectiveChoices(at: At, stored: Choices): Record<ForkId, OptionId> {
+  /** 默认路线 ← 本机保存的选择 ← 当前页所属选项（`at` 为 null 时不看当前页）。 */
+  function effectiveChoices(at: At | null, stored: Choices): Record<ForkId, OptionId> {
     const choices: Record<ForkId, OptionId> = {};
     const safeStored: Choices = isRecord(stored) ? stored : {}; // stored 来自 localStorage，不信任它的形状
     for (const fork of Object.keys(data.forks)) {
       const saved = Object.hasOwn(safeStored, fork) ? safeStored[fork] : undefined;
       choices[fork] = isOption(fork, saved) ? saved : data.defaults[fork]!;
     }
-    if (at.kind === 'step') {
+    if (at?.kind === 'step') {
       const home = branchHome.get(at.id);
       if (home && !home.options.includes(choices[home.fork]!)) {
         const fallback = data.defaults[home.fork]!;
@@ -446,15 +446,18 @@ export function routeMapFromData(data: RouteData): RouteMap {
         ? { kind: 'step', id: entry.id, title: data.steps[entry.id]!.title }
         : { kind: 'choose', fork: entry.fork, title: data.forks[entry.fork]!.title };
 
-  function outline(at: At, choices: Record<ForkId, OptionId>): OutlineChapter[] {
-    const stepItem = (id: StepId, onRoute: boolean): OutlineStep => ({
+  function outline(at: At | null, choices: Record<ForkId, OptionId>): OutlineChapter[] {
+    // 共享步骤在每个选项下各列一份，只有一份标当前项：当前路线上的那份；都不在当前路线上时取它所属的第一个选项。
+    const home = at?.kind === 'step' ? branchHome.get(at.id) : undefined;
+    const currentOption = home && (home.options.includes(choices[home.fork]!) ? choices[home.fork]! : home.options[0]!);
+    const stepItem = (id: StepId, onRoute: boolean, option?: OptionId): OutlineStep => ({
       kind: 'step',
       id,
       title: data.steps[id]!.title,
       skippable: data.steps[id]!.skippable,
       placeholder: data.steps[id]!.placeholder,
       onRoute,
-      current: at.kind === 'step' && at.id === id,
+      current: at?.kind === 'step' && at.id === id && (option === undefined || option === currentOption),
     });
     return data.chapters.map((chapter) => ({
       id: chapter.id,
@@ -466,7 +469,7 @@ export function routeMapFromData(data: RouteData): RouteMap {
             kind: 'choose',
             fork: item.fork,
             title: data.forks[item.fork]!.title,
-            current: at.kind === 'choose' && at.fork === item.fork,
+            current: at?.kind === 'choose' && at.fork === item.fork,
           };
         }
         return {
@@ -478,7 +481,7 @@ export function routeMapFromData(data: RouteData): RouteMap {
               id: option.id,
               title: option.title,
               selected,
-              steps: (item.options[option.id] ?? []).map((id) => stepItem(id, selected)),
+              steps: (item.options[option.id] ?? []).map((id) => stepItem(id, selected, option.id)),
             };
           }),
         };
@@ -528,5 +531,5 @@ export function routeMapFromData(data: RouteData): RouteMap {
     };
   }
 
-  return { view, data };
+  return { view, outline: (stored, current) => outline(current, effectiveChoices(null, stored)), data };
 }

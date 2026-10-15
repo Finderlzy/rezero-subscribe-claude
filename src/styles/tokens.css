@@ -57,11 +57,12 @@
   --space-7: 48px;
   --space-8: 64px;
 
-  /* §3.3 圆角、边框（浮层阴影由目录/看大图任务定） */
+  /* §3.3 圆角、边框、浮层阴影（只有浮层可以加，#18 定为目录抽屉用） */
   --radius-control: 6px;
   --radius-panel: 10px;
   --radius-image: 6px;
   --border-width: 1px;
+  --overlay-shadow: 0 0 24px rgb(0 0 0 / 12%);
 }
 
 @media (min-width: 720px) {
@@ -92,5 +93,6 @@
     --backdrop: rgb(0 0 0 / 75%);
     --video-bg: #0e0d0c;
     --video-fg: #e9e6e0;
+    --overlay-shadow: 0 0 24px rgb(0 0 0 / 50%);
   }
 }
