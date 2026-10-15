@@ -3,6 +3,7 @@ node_modules/
 
 # 构建产物与缓存
 dist/
+dist-sub/
 .astro/
 
 # 测试输出

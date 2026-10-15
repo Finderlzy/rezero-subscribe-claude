@@ -6,7 +6,7 @@ import { join, relative, sep } from 'node:path';
  * 逐页检查的用例（AC-16、axe 扫描）用它，新增的步骤、选择页、常见问题自动纳入。`npm run test:e2e` 先构建再测。
  */
 export function builtPages(dist = 'dist'): string[] {
-  if (!existsSync(dist)) throw new Error('没有 dist/：先运行 `npm run build`（`npm run test:e2e` 会先构建）');
+  if (!existsSync(dist)) throw new Error(`没有 ${dist}/：先运行 \`npm run test:e2e\`（会先构建；dist-sub/ 由 playwright.config.ts 构建）`);
   const walk = (dir: string): string[] =>
     readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
       const path = join(dir, entry.name);
@@ -17,7 +17,7 @@ export function builtPages(dist = 'dist'): string[] {
   const pages = walk(dist).sort();
   // 防止拿到空的或残缺的产物，逐页用例悄悄变少
   for (const must of ['', '404.html', 'before-you-start/', 'done/', 'faq/']) {
-    if (!pages.includes(must)) throw new Error(`dist/ 里缺少 /${must}，产物不完整`);
+    if (!pages.includes(must)) throw new Error(`${dist}/ 里缺少 /${must}，产物不完整`);
   }
   return pages;
 }
