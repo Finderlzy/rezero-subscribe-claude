@@ -1,6 +1,7 @@
 ---
 import { render } from 'astro:content';
 import PlaceholderNotice from '../components/PlaceholderNotice.astro';
+import VideoFacade from '../components/VideoFacade.astro';
 import StepLayout from '../layouts/StepLayout.astro';
 import { loadSite } from '../lib/site';
 
@@ -28,6 +29,7 @@ const { Content } = await render(entry);
   doneTitle={site.done.data.title}
   routeData={site.route.data}
 >
+  <VideoFacade slot="video" video={entry.data.video} stepTitle={entry.data.title} />
   {entry.data.placeholder && <PlaceholderNotice hint={entry.data.placeholderHint} />}
   <Content />
 </StepLayout>

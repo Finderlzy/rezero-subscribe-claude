@@ -1,5 +1,7 @@
 ---
 title: 整体思路
+video:
+  youtube: BcTUtYYheyA
 ---
 我的理解是：anthropic 会从很多地方判断你是谁、在哪里，比如 IP、DNS、浏览器、时区、账号地区、付款方式。**只要其中一项露出“我其实在国内”，就有风险。**
 

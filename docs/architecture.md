@@ -199,7 +199,9 @@ function pathOf(stop: Stop): string;
   - 实现（#8）：`src/scripts/route-enhance.ts` 由 `StepLayout` 加载，步骤页和选择页都运行。它从 `data-route-*` 挂载点读当前页（`<main data-route-at>`，`At` 的 JSON），改写 `[data-route-nav="prev|next"]` 的链接和目标标题、`[data-route-progress]` 的进度；文案由 `src/lib/nav-text.ts` 生成，与构建时同一份代码。选择页上每个选项的链接按“本机选择 + 这个选项”重算，本机保存的选项显示“当前选择”并标 `aria-current`（只看本机保存的：没点过选项、也没打开过这个分叉点的分支步骤时，默认选项不算选过；打开分支步骤会记下它所属的选项，见下文），点击时同步写入 `choices` 再跳转。打开步骤页时写入的内容由纯函数 `openPatch()` 决定：`lastStep`、`visited`，以及步骤所属分支的实际生效选项；普通步骤不写选择，没选过的分叉点继续跟随默认路线。从往返缓存恢复的页面（`pageshow` 且 `persisted`）重新计算一次。目录状态由目录任务接入。
 - **视图**：`<head>` 里放一段几十字节的内联脚本，在首次绘制前设置 `<html data-view="operation|principle">`，避免页面闪一下。`[!why]` 块的显示和隐藏只用 CSS 控制（[ADR-0003](adr/0003-principle-content-as-why-callouts.md)）。
   - 实现（#9）：内联脚本是 `src/lib/reader-state/view-boot.ts` 的 `VIEW_BOOT_SCRIPT`，由 `StepLayout` 经 `BaseLayout` 的 `head` slot 放进 `<head>`；它只按 M4 的格式取 `view`，取不到或不合法时用 `operation`。切换控件是 `src/components/ViewToggle.astro`，放在步骤页和选择页标题上方的一行里（吸顶顶栏由目录任务统一安排）；按下状态由 CSS 按 `data-view` 画，没有 JS（没有 `data-view`）时整个隐藏。页面脚本 `src/scripts/view-toggle.ts` 处理点击、同步 `aria-pressed`、写 M4 的 `view`，并在每个原理块前插入提示行“为什么：<标题> · 在原理视图中查看”（点它切到原理视图并滚到该块）；提示行由脚本插入，所以没有 JS 时不显示。“这一步没有额外原理”在构建时决定：`StepLayout` 先渲染正文，HTML 里没有 `data-callout="why"` 才输出这一行，只在原理视图下显示。显示规则都在 `src/styles/prose.css` 末尾。
-- **视频门面**：不发任何外部请求。读者点击后才插入 iframe：B 站用 `player.bilibili.com/player.html?bvid=…`（参数在实施时实测），YouTube 用 `www.youtube-nocookie.com/embed/<id>`。播放器下方总有一行平台外链：浏览器无法可靠判断 iframe 有没有加载失败，所以这行链接一直显示（FR-42）。
+- **视频门面**：不发任何外部请求。读者点击后才插入 iframe：B 站用 `player.bilibili.com/player.html?bvid=…`，YouTube 用 `www.youtube-nocookie.com/embed/<id>`。播放器下方总有一行平台外链：浏览器无法可靠判断 iframe 有没有加载失败，所以这行链接一直显示（FR-42）。
+  - 实现（#17）：组件 `src/components/VideoFacade.astro` 经 `StepLayout` 的 `video` slot 放在标题下面、正文上面（只有步骤页有，选择页没有）；地址和文案由纯函数 `videoSources()`（`src/lib/video/sources.ts`）生成，平台顺序 B 站在前，即默认平台。点击前只有本站画的深色占位（令牌 `--video-bg`/`--video-fg`）、播放图标和平台名，不加载封面图。没有 JS 时播放区域是指向平台视频页的普通链接，平台切换隐藏；页面脚本 `src/scripts/video-facade.ts`（随组件加载，不在 `StepLayout` 里统一引入，只有步骤页用到）把它换成按钮，点击后插入 iframe 并把焦点交给它，换平台时撤掉已插入的播放器、回到门面，外链跟着换。没有视频信息时只输出一行“视频制作中”。
+  - 嵌入参数（#17 实测）：B 站 `https://player.bilibili.com/player.html?bvid=<BV号>&autoplay=1`，只要 `bvid`，不需要 `aid`/`cid`；该页不发 X-Frame-Options 和 CSP，可以嵌入；不写 `autoplay` 时会自动播放，`autoplay=0` 能关掉，读者已经点过播放，所以明写 `autoplay=1`。YouTube `https://www.youtube-nocookie.com/embed/<id>?autoplay=1`。iframe 的 `allow` 为 `autoplay; encrypted-media; fullscreen; picture-in-picture`，`referrerpolicy` 为 `strict-origin-when-cross-origin`。外链：B 站 `https://www.bilibili.com/video/<BV号>/`，YouTube 沿用原文的 `https://youtu.be/<id>`。
 - **常见问题的“返回”**：根据 `?from=<step-id>` 查到步骤标题，再显示返回链接。参数里只有公开的步骤标识，没有个人数据。
   - 实现（#14）：页面是静态的，返回链接由页面脚本 `src/scripts/faq-return.ts` 填写。条目页 `src/pages/faq/[faq].astro` 内嵌“步骤标识 → 标题”的 JSON，在标题上方和正文末尾各放一个隐藏的返回链接；纯函数 `faqReturn()`（`src/lib/faq-return.ts`）只认路线图里已有的步骤标识，认到时脚本填好链接（`/<step-id>/`）并显示；没有 JS 或参数无效时按直接打开处理。正文末尾总有“常见问题列表”入口。常见问题页不加载视图切换和 route-enhance，也不写本机状态，所以常见问题条目里不写 `[!why]` 块（没有视图切换，会一直收起）。“打开目录”入口随目录任务（#18）补上，同找不到页。
 
@@ -281,7 +283,7 @@ M4 不依赖 M2：`StepId`、`Choices` 等在 M4 里是同义的字符串别名�
 │   │   └── site.ts                  构建时装配：loadSite()、assembleRoute()（+ site.test.ts）
 │   ├── scripts/                     M3 页面脚本：route-enhance.ts（按本机选择改写导航，#8；+ *.test.ts）、view-toggle.ts（视图切换，#9）、faq-return.ts（常见问题的返回链接，#14）
 │   ├── layouts/                     BaseLayout（`head` slot）、StepLayout（内嵌 RouteData、视图内联脚本，加载 route-enhance 和 view-toggle）
-│   ├── components/                  M3 组件：StepNav、ChoiceOption、ViewToggle（已有）；Toc、VideoFacade、CodeCopy、ImageZoom …（计划）
+│   ├── components/                  M3 组件：StepNav、ChoiceOption、ViewToggle、PlaceholderNotice、CodeCopy、ImageZoom、VideoFacade（已有）；Toc …（计划）
 │   ├── pages/                       index、[step]、choose/[fork]、done、404、faq/index、faq/[faq]
 │   └── styles/                      tokens.css、base.css、prose.css
 ├── public/                          直接复制的文件（favicon 等）

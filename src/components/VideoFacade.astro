@@ -1,0 +1,187 @@
+---
+import { playerTitle, unavailableHint, videoSources, type StepVideo } from '../lib/video/sources';
+
+/**
+ * 步骤视频门面（FR-40–42，NFR-04，design §4.7，架构 §3 M3）。
+ *
+ * 点击之前不发任何外部请求：16:9 区域是本站画的深色占位、播放图标和平台名，不加载平台封面图。
+ * 页面脚本 video-facade 在读者点击后才插入 iframe。没有 JS 时，播放区域是指向平台视频页的普通链接。
+ * 有两个平台时上方是 B 站 / YouTube 切换（默认 B 站，没有 JS 时隐藏，只剩 B 站）；
+ * 下方总有一行平台外链和“打不开？”提示：浏览器没法可靠判断 iframe 加载失败，所以一直显示。
+ * 没有视频信息时只显示一行“视频制作中”，不占 16:9 的空间。
+ */
+interface Props {
+  video?: StepVideo | undefined;
+  /** 步骤标题，用作 iframe 的标题 */
+  stepTitle: string;
+}
+
+const { video, stepTitle } = Astro.props;
+const sources = videoSources(video);
+const first = sources[0];
+// 页面脚本切换平台、插入 iframe 时用到的数据；只含公开的视频地址。
+const facadeData = JSON.stringify({
+  sources: sources.map((s) => ({ ...s, title: playerTitle(stepTitle, s) })),
+});
+---
+
+{
+  first ? (
+    <section class="video" aria-label="步骤视频" data-video={facadeData}>
+      {sources.length > 1 && (
+        <div class="video-tabs" role="group" aria-label="视频平台" data-video-tabs hidden>
+          {sources.map((s, i) => (
+            <button type="button" class="video-tab" data-video-platform={s.platform} aria-pressed={i === 0 ? 'true' : 'false'}>
+              {s.name}
+            </button>
+          ))}
+        </div>
+      )}
+      <div class="video-frame" data-video-frame>
+        <a class="video-play" href={first.pageUrl} target="_blank" rel="noopener noreferrer" data-video-play>
+          <svg class="video-play-icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="9.25" fill="none" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke" />
+            <path d="M10 8.5v7l5.5-3.5z" fill="currentColor" />
+          </svg>
+          <span class="video-play-label">播放视频</span>
+          <span class="video-play-platform" data-video-name>{first.name}</span>
+        </a>
+      </div>
+      <p class="video-links">
+        <a href={first.pageUrl} target="_blank" rel="noopener noreferrer" data-video-page>
+          <span data-video-open>{first.openLabel}</span>
+          <svg class="video-external-icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+            <path d="M14 4.5h5.5V10M19.5 4.5 11 13M17 14v4.5a1 1 0 0 1-1 1H5.5a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1H10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </a>
+        <span aria-hidden="true">·</span>
+        <span>{unavailableHint(sources.length)}</span>
+      </p>
+    </section>
+  ) : (
+    <p class="video-pending">视频制作中</p>
+  )
+}
+
+<script>
+  import { initVideoFacade } from '../scripts/video-facade';
+
+  initVideoFacade(document);
+</script>
+
+<style>
+  .video {
+    margin: 0 0 var(--space-5);
+  }
+
+  .video-tabs {
+    display: inline-flex;
+    margin: 0 0 var(--space-2);
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+  }
+
+  .video-tabs[hidden] {
+    display: none;
+  }
+
+  .video-tab {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 var(--space-3);
+    border: 0;
+    border-radius: calc(var(--radius-control) - var(--border-width));
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: var(--fs-meta);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .video-tab[aria-pressed='true'] {
+    background: var(--accent);
+    color: var(--accent-contrast);
+  }
+
+  /* 不用 overflow: hidden，免得裁掉播放按钮外侧的焦点环；圆角由 iframe 自己继承。 */
+  .video-frame {
+    aspect-ratio: 16 / 9;
+    background: var(--video-bg);
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-panel);
+  }
+
+  .video-frame :global(iframe) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    border-radius: inherit;
+  }
+
+  .video-play {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: inherit;
+    background: transparent;
+    color: var(--video-fg);
+    font: inherit;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  /* 播放图标放大显示，描边用 non-scaling-stroke 保持 1.5px（design §3.3）。 */
+  .video-play-icon {
+    width: 56px;
+    height: 56px;
+  }
+
+  .video-play-label {
+    font-weight: 600;
+  }
+
+  .video-play-platform {
+    font-size: var(--fs-meta);
+    line-height: var(--lh-meta);
+  }
+
+  .video-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 var(--space-2);
+    margin: var(--space-2) 0 0;
+    color: var(--text-muted);
+    font-size: var(--fs-meta);
+    line-height: var(--lh-meta);
+  }
+
+  /* 手机上外链也要有 44px 高的可点区域（design §5）。 */
+  .video-links a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    min-height: 44px;
+  }
+
+  .video-external-icon {
+    width: 1em;
+    height: 1em;
+  }
+
+  .video-pending {
+    margin: 0 0 var(--space-5);
+    color: var(--text-muted);
+    font-size: var(--fs-meta);
+    line-height: var(--lh-meta);
+  }
+</style>
