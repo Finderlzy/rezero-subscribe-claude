@@ -272,7 +272,7 @@ F1 的汇合点是电脑代理软件选择页，第二到四章（#10）插在�
 
 ## 五、注册 claude → 第七章“准备 Google 账号”、第八章“养号”、第九章“注册 claude”
 
-原文的“五、注册 claude”在引导站里拆成三章（需求 §5.2）。第七章前半随 F3：iPhone 是 `iphone-gmail.md`，安卓是 `android-google-play.md` → `android-gmail.md`；之后汇合到 `create-google-account.md`（#11 已迁入）。第八章是 `use-google-few-days.md` → `google-appeal.md` → `google-region.md`；第九章是 `register-claude.md`。“注册各种账号”不包括 claude，claude 在第九章单独注册（需求 Q-10）。原文没有的步骤按 FR-21 占位。
+原文的“五、注册 claude”在引导站里拆成三章（需求 §5.2）。第七章前半随 F3：iPhone 是 `iphone-gmail.md`，安卓是 `android-google-play.md` → `android-gmail.md`；之后汇合到 `create-google-account.md`（#11 已迁入）。第八章是 `google-appeal.md` → `use-google-few-days.md` → `google-region.md`；第九章是 `register-claude.md`。“注册各种账号”不包括 claude，claude 在第九章单独注册（需求 Q-10）。原文没有的步骤按 FR-21 占位。
 
 ### 原理版“1. 准备 Gmail（已有可跳过）”
 
@@ -311,6 +311,9 @@ F1 的汇合点是电脑代理软件选择页，第二到四章（#10）插在�
 **改动（作者 2026-10-14 已确认，#11）**：
 - `create-google-account.md` 去掉了第 3 条的序号和开头的“**创建账号**。”：标题已经写了“创建 Gmail 邮箱和 Google 账号”。
 
+**改动（作者 2026-10-15 已确认）**：
+- 第八章的顺序改为“申诉解封”→“先用 Google 账号几天”→“修改 Google 账号关联地区”（需求 §5.2 同步修改）。按 FR-15，跳过会越过本章内连续的可跳过步骤；原来“申诉解封”和“改地区”相邻，没被封的读者点“没被封，跳过”会连改地区一起跳过。现在两者之间隔着不可跳过的“先用 Google 账号几天”。已有 Gmail 的读者从第七章跳过后，先到“申诉解封”。
+
 **改动（待作者确认）**：
 - “Gmail 在手机上注册。”并进 `create-google-account.md` 正文开头，这一步原有的正文不变；“手机代理也配好”去掉：引导站里第六章“手机代理”就排在这一章前面。
 - 引导语放进 `create-google-account.md` 的原理块，原理块标题“要准备 Gmail”是新写的（原文这段没有标题）。没有放在“下载 Gmail”：那一步随 F3 分成 iPhone、安卓两份，放在汇合点只需写一次。已有 Gmail 的读者会连同这一步一起跳过，看不到这段说明。
@@ -320,5 +323,4 @@ F1 的汇合点是电脑代理软件选择页，第二到四章（#10）插在�
 - `register-claude.md` 第 1 条末尾补上原理版的“不要边注册边调。”：这是一条操作要求，纯操作版没有，用原理版文字接在同一条后面，不放进原理块。
 - `register-claude.md` 第 1 条“前面四节都做完”改为“前面几章都做完”：原文的四节在引导站里分到了第一到六章，注册前还要做完第七、八章。
 - `use-google-few-days.md` 需求 §5.2 标的是“待补（有提示）”，但原文没有关于 Google 账号先用几天、固定节点的句子（原文的“先用几天”说的是 claude，已迁入第九章；“固定用这一个节点”说的是用 claude 时，在 `v2rayn-tun.md`），所以面板不放提示，提示写在标题里。
-- 跳过的效果（FR-15“本章内连续的可跳过步骤”）：第八章的“申诉解封”和“修改 Google 账号关联地区”连续可跳过，在“申诉解封”点“没被封，跳过”会一起跳过改地区，直接到第九章。**需要作者决定**是否接受：改地区本身是可选的（原文标“可选”），但没被封的读者可能仍需要改地区。可选的调整：把“先用 Google 账号几天”放到两者之间，或者“申诉解封”不设为可跳过，只改 `route.yaml` 或 frontmatter。
 - 步骤标题取自需求 §5.2；第七章的两个“下载 Gmail”同名。步骤标识是新定的，沿用路线单元测试样例（`src/lib/route/fixtures/sample-route.ts`）里的 `iphone-gmail`、`android-google-play`、`android-gmail`、`use-google-few-days`，合并后不能再改（ADR-0002）。

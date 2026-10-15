@@ -60,7 +60,8 @@ chapters:
   # 需求 §5.2 第八章备注的“注册各种账号”不包括 claude，claude 在第九章单独注册（需求 Q-10）。
   - id: nurture
     title: 八、养号
-    items: [use-google-few-days, google-appeal, google-region]
+    # “申诉解封”和“修改 Google 账号关联地区”之间隔一个不可跳过的步骤，没被封的读者跳过申诉后仍会看到改地区（FR-15）。
+    items: [google-appeal, use-google-few-days, google-region]
   - id: claude-signup
     title: 九、注册 claude
     items: [register-claude]

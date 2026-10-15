@@ -31,8 +31,8 @@ const DEFAULT_ROUTE: [string, string, string][] = [
   ['/iphone-timezone/', '手机改时区', '六、手机代理 · 第 3 步，共 3 步'],
   ['/iphone-gmail/', '下载 Gmail', '七、准备 Google 账号 · 第 1 步，共 2 步'],
   ['/create-google-account/', '创建 Gmail 邮箱和 Google 账号', '七、准备 Google 账号 · 第 2 步，共 2 步'],
-  ['/use-google-few-days/', '先用 Google 账号几天，期间固定同一个节点', '八、养号 · 第 1 步，共 3 步'],
-  ['/google-appeal/', '被封了：申诉解封', '八、养号 · 第 2 步，共 3 步'],
+  ['/google-appeal/', '被封了：申诉解封', '八、养号 · 第 1 步，共 3 步'],
+  ['/use-google-few-days/', '先用 Google 账号几天，期间固定同一个节点', '八、养号 · 第 2 步，共 3 步'],
   ['/google-region/', '修改 Google 账号关联地区', '八、养号 · 第 3 步，共 3 步'],
   ['/register-claude/', '用 Google 账号注册 claude，先正常用几天', '九、注册 claude · 第 1 步，共 1 步'],
 ];
