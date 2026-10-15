@@ -1,0 +1,82 @@
+# 构建失败用例（AC-14）：复制自 src/content/route.yaml，删掉了 F3 最后一段分支的汇合点——
+# 第十一章的两个步骤只接在 android 分支后面，iphone 分支走完直接到完成页。
+# 其余部分与真实路线图相同，所以构建只报这一处错误（用例断言“1 处”）；真实路线图增删步骤后要同步这份副本。
+defaults: { node-plan: plan-1, desktop-proxy: v2rayn, phone: iphone }
+chapters:
+  - id: start
+    title: 开始
+    items: [before-you-start, overview, clean-claude-code]
+  - id: residential-ip
+    title: 一、准备住宅 IP
+    items:
+      - choose: node-plan
+      - branch: node-plan
+        options:
+          plan-1: [plan1-buy-vps, plan1-free-residential-ip, ssh-connect, run-script]
+          plan-2: [plan2-buy-residential-vps, ssh-connect, run-script]
+          plan-3: [plan3-buy-node]
+  # 电脑代理软件选择页是 F1 的汇合点。
+  - id: desktop-proxy
+    title: 二、电脑代理
+    items:
+      - choose: desktop-proxy
+      - branch: desktop-proxy
+        options:
+          v2rayn: [v2rayn-import, v2rayn-tun]
+          clash-verge: [clash-verge-import, clash-verge-tun]
+  # F2 跨两章：DNS 随软件不同，WebRTC 是 F2 的汇合点。
+  - id: leak-protection
+    title: 三、防泄漏
+    items:
+      - branch: desktop-proxy
+        options:
+          v2rayn: [v2rayn-dns]
+          clash-verge: [clash-verge-dns]
+      - webrtc
+      - ipv6
+  - id: desktop-timezone
+    title: 四、电脑改时区
+    items: [desktop-timezone]
+  - id: ip-quality
+    title: 五、检查 IP 质量
+    items: [check-ip-quality, replace-ip-or-refund]
+  - id: phone-proxy
+    title: 六、手机代理
+    items:
+      - choose: phone
+      - branch: phone
+        options:
+          iphone: [iphone-app-store-austria, iphone-v2box, iphone-timezone]
+          android: [android-v2rayng, android-timezone]
+  # 第七章前半随 F3 不同，“创建 Gmail 邮箱和 Google 账号”是 F3 的汇合点。
+  - id: google-account
+    title: 七、准备 Google 账号
+    items:
+      - branch: phone
+        options:
+          iphone: [iphone-gmail]
+          android: [android-google-play, android-gmail]
+      - create-google-account
+  # 需求 §5.2 第八章备注的“注册各种账号”不包括 claude，claude 在第九章单独注册（需求 Q-10）。
+  - id: nurture
+    title: 八、养号
+    # “申诉解封”和“修改 Google 账号关联地区”之间隔一个不可跳过的步骤，没被封的读者跳过申诉后仍会看到改地区（FR-15）。
+    items: [google-appeal, use-google-few-days, google-region]
+  - id: claude-signup
+    title: 九、注册 claude
+    items: [register-claude]
+  # 第十章随 F3；“购买无法完成”来自原文“附：购买未完成”，放在订阅后面，跳过时直接进第十一章。
+  - id: subscribe
+    title: 十、订阅
+    items:
+      - branch: phone
+        options:
+          iphone:
+            - iphone-apple-id
+            - iphone-app-store-login
+            - iphone-download-claude
+            - iphone-buy-gift-card
+            - iphone-redeem-gift-card
+            - iphone-subscribe
+            - purchase-failed
+          android: [android-subscribe, after-subscribe, about-kyc]

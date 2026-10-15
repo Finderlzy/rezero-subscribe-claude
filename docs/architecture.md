@@ -257,7 +257,7 @@ M4 不依赖 M2：`StepId`、`Choices` 等在 M4 里是同义的字符串别名�
 3. **页面脚本运行**：调用 M4 的 `read()`，存储为空或不可用时返回默认值；再调用 `view(at, stored)`。结果和构建时一样，所以链接不需要改写。最后写入 `lastStep`，以及 `choices.node-plan = plan-3`。
 4. **读者到达 `/choose/desktop-proxy/`**：这个页面构建时写的是默认路线，上一步指向方案一的 `run-script`。页面脚本按本机保存的 `plan-3` 重新计算，把“上一步”改写为 `plan3-buy-node`（AC-03）。
 
-## 6. 目录结构（`tests/fixtures/` 和标注的后续页面、组件为计划，其余已建立）
+## 6. 目录结构（标注的后续页面、组件为计划，其余已建立）
 
 ```
 .
@@ -287,7 +287,8 @@ M4 不依赖 M2：`StepId`、`Choices` 等在 M4 里是同义的字符串别名�
 ├── public/                          直接复制的文件（favicon 等）
 └── tests/
     ├── e2e/                         Playwright：按 AC 编号命名，例如 ac-03-branch-merge.spec.ts
-    └── fixtures/                    构建失败用例使用的坏内容（AC-14）
+    ├── build/                       构建级用例（Vitest，单独配置 vitest.build.config.ts）：ac-14-build-fail.test.ts
+    └── fixtures/                    构建失败用例使用的坏内容（AC-14），每个用例一个目录，按 src/content/ 的相对路径覆盖
 ```
 
 - 单元测试放在被测模块旁边（`*.test.ts`）；跨页面的流程测试放在 `tests/e2e/`。
@@ -302,8 +303,9 @@ M4 不依赖 M2：`StepId`、`Choices` 等在 M4 里是同义的字符串别名�
 | `npm run build` | 构建到 `dist/`，同时执行全部内容校验（frontmatter 与 Obsidian 写法校验已由 #4 接入，路线图校验由 #5 随 `loadSite()` 接入）；`BASE_PATH=/sub/ npm run build` 生成子路径版本 |
 | `npm run preview` | 预览构建产物 |
 | `npm test` | Vitest 单元测试 |
+| `npm run test:build` | 构建级用例（AC-14）：用 `tests/fixtures/` 的坏内容逐个构建，断言失败并报出文件 |
 | `npm run test:e2e` | 构建后运行 Playwright 测试（360 和 1280 两种视口） |
-| `npm run check` | `astro check` + 单元测试 + 构建，提交前运行 |
+| `npm run check` | `astro check` + 单元测试 + 构建级用例 + 构建，提交前运行 |
 
 ## 8. 验收对应的验证方式
 
@@ -313,7 +315,7 @@ M4 不依赖 M2：`StepId`、`Choices` 等在 M4 里是同义的字符串别名�
 | AC-01、06、07、09、10、12、18 | Playwright。AC-09 在同一个浏览器上下文里关掉页面再重新打开；AC-18 在测试前注入一段让 `localStorage` 抛异常的脚本 |
 | AC-08 | Playwright 新建上下文（相当于无痕窗口）直接打开方案三步骤的 URL |
 | AC-13 | 人工逐节核对，核对表在 [`docs/migration-checklist.md`](migration-checklist.md)（#5 建立，各迁移任务补充），并用脚本比对原文与站内的命令和链接 |
-| AC-14 | M1、M2 单元测试覆盖每一种错误；外加一个构建级用例：用 `tests/fixtures/` 里的坏内容执行构建，断言构建失败并报出文件名（可行性在实施时确认） |
+| AC-14 | M1、M2 单元测试覆盖每一种错误；外加构建级用例 `tests/build/ac-14-build-fail.test.ts`（`npm run test:build`，已含在 `check` 里）：把 `src/`、配置和 `package.json` 复制到临时目录，用 `tests/fixtures/<用例>/` 覆盖 `src/content/` 后执行真实的 `astro build`，断言失败并报出文件名；四种坏内容为引用不存在的图片、引用不存在的步骤、删掉分支的汇合、缺必填元数据，另有一个不加坏内容的对照构建必须成功。依赖包要逐个链接：Astro 的内容缓存在 `node_modules/.astro`，整体链接 `node_modules` 时并行构建会读到彼此的内容 |
 | AC-15 | 分别用 `BASE_PATH=/` 和 `/sub/` 构建，再用 Playwright 抽查导航和图片 |
 | AC-16 | Playwright 360 和 1280 两种视口，断言 `scrollWidth <= innerWidth` 并检查按钮可点 |
 | AC-17 | Playwright 屏蔽 `*.google.com`、`*.googleapis.com`、`*.gstatic.com`、`*.youtube.com`、`*.youtube-nocookie.com`、`*.ytimg.com`，断言页面没有失败的请求、内容完整 |
@@ -348,7 +350,7 @@ M4 不依赖 M2：`StepId`、`Choices` 等在 M4 里是同义的字符串别名�
 | R4 | FR-15 的跳过目标和“下一步”相同（AC-05） | 功能价值有限，但和验收一致 | 已修正 §3 规则，按 AC-05 实现；记为需求 Q-09 待作者决定 | 否 |
 | R5 | 原文的“为什么”框写作 `>[!note] 为什么：…`，嵌入写作 `![[09附件/…\|262]]`，文件名含空格和中文；纯操作版独有 8 张 SSH/脚本截图；方案二、三只有原理版有正文 | 迁移和插件规则需要写明 | 已修正 §3 M1；迁移规则写进 T05/T06（`docs/migration-checklist.md`） | 否 |
 | R6 | A-02 的四个技术疑点（自定义 `why` Callout、插件图片进 Astro 图片流程、Shiki、B 站参数） | 影响 M1 插件写法和截图放 `src/assets` 还是 `public` | 已验证（#2）：前三项可行，截图放 `src/assets/screenshots/`（§3 M1）；B 站参数在 T16（#17）实测 | 否 |
-| R7 | AC-14 的“构建级失败用例”能否在 Vitest 或脚本里稳定跑（§8 已注明待确认） | 只影响测试写法 | 任务：T14 先确认可行性，再写用例 | 否 |
+| R7 | AC-14 的“构建级失败用例”能否在 Vitest 或脚本里稳定跑 | 只影响测试写法 | 已验证（#15）：Vitest 在临时目录里执行真实构建可行，写法和缓存隔离见 §8 | 否 |
 | R8 | 纯操作版的 SSH 截图可能露出服务器 IP（安全红线） | 截图入库前必须逐张核对 | 任务：T06 的验收项 | 否 |
 | R9 | 占位清单“在构建输出里列出”没有落点（FR-21） | 实现位置不明 | 已修正 §3 M2 规则：`astro:build:done` 打印 | 否 |
 
