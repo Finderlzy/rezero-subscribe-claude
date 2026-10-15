@@ -304,7 +304,7 @@ M4 不依赖 M2：`StepId`、`Choices` 等在 M4 里是同义的字符串别名�
 
 - 单元测试放在被测模块旁边（`*.test.ts`）；跨页面的流程测试放在 `tests/e2e/`。
 - 构建输出 `dist/`（含 AC-15 用的 `dist-sub/`）、Astro 缓存 `.astro/`、`node_modules/`、`test-results/`、`playwright-report/`、`coverage/` 都不提交。截图和报告属于临时产物，统一放在这些目录里，不散落到其他地方。
-- **版本来源**：`package.json` 的 `version`，按 SemVer 维护，脚手架建立时从 `0.1.0` 开始。
+- **版本来源**：`package.json` 的 `version`，按 SemVer 维护，脚手架建立时从 `0.1.0` 开始，首期验收通过后定为 `1.0.0`（2026-10-15）。
 
 ## 7. 命令（已由 #1 建立，以 `package.json` 为准）
 
