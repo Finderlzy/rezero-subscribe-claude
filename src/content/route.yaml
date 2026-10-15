@@ -1,6 +1,5 @@
 # 路线图：章节、分叉点和步骤顺序的唯一来源（架构 §3 M1、需求 §5.2）。
 # 步骤标识是 steps/<id>.md 的文件名，也是 URL；已发布的标识不能改（ADR-0002）。
-# 目前迁入了“开始”到“九、注册 claude”；其余章节由后续迁移任务补上。
 defaults: { node-plan: plan-1, desktop-proxy: v2rayn, phone: iphone }
 chapters:
   - id: start
@@ -65,3 +64,22 @@ chapters:
   - id: claude-signup
     title: 九、注册 claude
     items: [register-claude]
+  # 第十章随 F3；“购买无法完成”来自原文“附：购买未完成”，放在订阅后面，跳过时直接进第十一章。
+  - id: subscribe
+    title: 十、订阅
+    items:
+      - branch: phone
+        options:
+          iphone:
+            - iphone-apple-id
+            - iphone-app-store-login
+            - iphone-download-claude
+            - iphone-buy-gift-card
+            - iphone-redeem-gift-card
+            - iphone-subscribe
+            - purchase-failed
+          android: [android-subscribe]
+  # 第十一章是 F3 最后一段分支的汇合点，最后一步的下一步是完成页。
+  - id: after
+    title: 十一、订阅之后
+    items: [after-subscribe, about-kyc]

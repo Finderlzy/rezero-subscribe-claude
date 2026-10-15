@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 
-// AC-02（FR-10、FR-11，前九章部分）：从“开始之前”沿默认路线一直点“下一步”，依次经过方案一的四步、
-// v2rayN、防泄漏、电脑改时区、检查 IP 质量、iPhone 的手机代理和 Google 账号、养号、注册 claude，最后到完成页。
-// 后面的章节迁入后，这条路线由对应任务接着补长。
+// AC-02（FR-10、FR-11）：从“开始之前”沿默认路线一直点“下一步”，依次经过方案一的四步、
+// v2rayN、防泄漏、电脑改时区、检查 IP 质量、iPhone 的手机代理和 Google 账号、养号、注册 claude、
+// iPhone 的订阅和订阅之后，最后到完成页。
 // 导航在构建时写进 HTML（design §5），所以禁用 JS 走一遍。
 test.use({ javaScriptEnabled: false });
 
@@ -35,9 +35,18 @@ const DEFAULT_ROUTE: [string, string, string][] = [
   ['/use-google-few-days/', '先用 Google 账号几天，期间固定同一个节点', '八、养号 · 第 2 步，共 3 步'],
   ['/google-region/', '修改 Google 账号关联地区', '八、养号 · 第 3 步，共 3 步'],
   ['/register-claude/', '用 Google 账号注册 claude，先正常用几天', '九、注册 claude · 第 1 步，共 1 步'],
+  ['/iphone-apple-id/', '注册美区 Apple ID', '十、订阅 · 第 1 步，共 7 步'],
+  ['/iphone-app-store-login/', '在 App Store 登录美区 Apple ID 并设置账单地址', '十、订阅 · 第 2 步，共 7 步'],
+  ['/iphone-download-claude/', '下载 Claude 并允许 App 内购买', '十、订阅 · 第 3 步，共 7 步'],
+  ['/iphone-buy-gift-card/', '买礼品卡', '十、订阅 · 第 4 步，共 7 步'],
+  ['/iphone-redeem-gift-card/', '把礼品卡充值到 App Store', '十、订阅 · 第 5 步，共 7 步'],
+  ['/iphone-subscribe/', '在 app 内订阅', '十、订阅 · 第 6 步，共 7 步'],
+  ['/purchase-failed/', '购买无法完成：问 AI', '十、订阅 · 第 7 步，共 7 步'],
+  ['/after-subscribe/', '订阅之后的注意事项', '十一、订阅之后 · 第 1 步，共 2 步'],
+  ['/about-kyc/', '关于 KYC', '十一、订阅之后 · 第 2 步，共 2 步'],
 ];
 
-test('从“开始之前”一直点“下一步”，经过方案一、v2rayN、检查 IP 质量、iPhone 和第七到九章到完成页', async ({ page }) => {
+test('从“开始之前”一直点“下一步”，经过方案一、v2rayN、检查 IP 质量、iPhone 的各步骤到完成页', async ({ page }) => {
   await page.goto('./before-you-start/');
   const nav = page.getByRole('navigation', { name: '上一步和下一步' });
 
@@ -61,6 +70,12 @@ test('从“开始之前”一直点“下一步”，经过方案一、v2rayN�
   await expect(page).toHaveURL(/\/done\/$/);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('这条路线走完了');
   await expect(page.getByRole('link', { name: '重新开始' })).toHaveAttribute('href', /\/before-you-start\/$/);
+  // FR-19：完成页放致谢、后记和联系方式；联系方式在作者提供前是占位（需求 Q-07）
+  for (const heading of ['致谢', '后记', '联系方式']) {
+    await expect(page.getByRole('heading', { level: 2, name: heading })).toBeVisible();
+  }
+  await expect(page.getByText('也感谢所有我没能记住名字、但确实帮到我的人。')).toBeVisible();
+  await expect(page.getByText('联系方式待补。')).toBeVisible();
 });
 
 // FR-12（静态部分）：选择页列出三个方案，标出默认选项，每个选项进入它自己的第一步；选择页不计步数。

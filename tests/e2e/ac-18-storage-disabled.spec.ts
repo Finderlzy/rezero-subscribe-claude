@@ -56,6 +56,15 @@ const DEFAULT_ROUTE = [
   '/use-google-few-days/',
   '/google-region/',
   '/register-claude/',
+  '/iphone-apple-id/',
+  '/iphone-app-store-login/',
+  '/iphone-download-claude/',
+  '/iphone-buy-gift-card/',
+  '/iphone-redeem-gift-card/',
+  '/iphone-subscribe/',
+  '/purchase-failed/',
+  '/after-subscribe/',
+  '/about-kyc/',
   '/done/',
 ];
 
