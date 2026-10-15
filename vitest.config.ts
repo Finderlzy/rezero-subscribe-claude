@@ -1,9 +1,9 @@
 /// <reference types="vitest/config" />
 import { getViteConfig } from 'astro/config';
 
-// 单元测试与被测模块放在一起（src/**/*.test.ts），e2e 归 Playwright。
+// 单元测试与被测模块放在一起（src/**/*.test.ts，开发脚本的测试在 scripts/ 旁边），e2e 归 Playwright。
 export default getViteConfig({
   test: {
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'scripts/**/*.test.ts'],
   },
 });

@@ -5,6 +5,102 @@
 - 原理版：`Writing/docs/04技术/如何订阅claude.md`
 - 纯操作版：`Writing/docs/04技术/如何订阅claude（纯操作版）.md`
 
+## v2.0：从重写稿导入（#23）
+
+v2.0 的素材换成作者的重写稿 `docs/rewrite/原理版/`、`docs/rewrite/操作版/`（[ADR-0005](adr/0005-import-rewrite-verbatim.md)），本节记录导入方式、页面标识和截图核对。下面“全文比对”及之后的小节是 1.0.0 从两篇原文章迁移的历史记录，#25 切换后对应的文件会删除。
+
+### 导入方式
+
+1. 页面标识（文件名、URL）和元数据只写在 `src/content/principle/<id>.md` 的 frontmatter 里，正文第一行是 `# <重写稿文件名>`。参考页放在 `src/content/reference/`，只有 `# 标题`。
+2. 运行 `node scripts/import-rewrite.mjs`：按标题把重写稿正文原样写进去（保留 frontmatter），操作版写进同一标识的 `operation/<id>.md`，被引用、站内还没有的截图从 `附件/` 复制到 `src/assets/screenshots/`。
+3. 看脚本报告：新页面、站内多出的页面、附件里也找不到的截图都只报告不处理；新复制的截图逐张核对打码，记进下面的表。
+4. 再跑一次确认没有改动，`npm run build` 结束时看“内容提示”。
+
+导入结果（2026-10-15）：原理版 41 页（含原理独有 3 页）、操作版 38 页、参考页 8 页；重写稿的两个目录页不导入（`[[如何订阅claude]]`、`[[如何订阅claude（纯操作版）]]` 指向首页）。第二次运行写入 0 个文件。
+
+### 页面标识表
+
+标识沿用需求 §5.2 的初稿，没有微调，v2.0 发布后锁定（ADR-0002）。★ 原理独有（`principleOnly: true`，没有操作版），⤳ 可跳过（`skippable: true`，依据正文的“可选/可以跳过/已经有的不用再下”），◇ 选择页（`options`）。
+
+| 重写稿文件名 | 标识 | 元数据 |
+| --- | --- | --- |
+| 前言 | `preface` | |
+| 免责声明 | `disclaimer` | |
+| 整体思路 | `overview` | ★ |
+| 清理旧账号和配置 | `clean-up` | |
+| 选择方案 | `choose-plan` | ◇ `plan-1` 方案一（`方案一：普通服务器 + 白嫖ISP（我用的）`）、`plan-2` 方案二（`方案二：住宅 IP 服务器`）、`plan-3` 方案三（`方案三：直接买住宅节点`） |
+| 一、白嫖 ISP | `plan1-free-isp` | |
+| 二、购买服务器 | `plan1-buy-server` | |
+| 三、把服务器变成节点 | `plan1-make-node` | |
+| 四、购买 ISP 代理 | `plan1-buy-isp` | |
+| 五、安装面板 | `plan1-panel` | ⤳ |
+| 方案二：住宅 IP 服务器 | `plan2-residential-server` | |
+| 方案三：直接买住宅节点 | `plan3-residential-node` | |
+| 导入代理软件 | `import-proxy` | |
+| 测 IP 质量 | `check-ip` | |
+| 小结：从服务器到代理软件 | `recap` | ★ |
+| 防泄漏 | `leak-protection` | |
+| 改时区 | `timezone` | |
+| 选择手机系统 | `choose-phone` | ◇ `iphone` iPhone（`iPhone`）、`android` 安卓（`安卓`） |
+| iPhone：把 App Store 改到奥地利 | `iphone-app-store-austria` | |
+| iPhone：导入代理软件 | `iphone-proxy` | |
+| iPhone：下载 Gmail | `iphone-gmail` | |
+| 安卓：导入代理软件 | `android-proxy` | |
+| 安卓：下载 Google Play | `android-google-play` | |
+| 安卓：下载 Gmail | `android-gmail` | ⤳ |
+| 注册 Gmail | `register-gmail` | ⤳ |
+| 登录谷歌浏览器 | `chrome-sign-in` | |
+| 先用两天 | `use-two-days` | |
+| 被封了：申诉解封 | `google-appeal` | 旁支页（`returnTo` 写在 route.yaml，#25） |
+| 修改 Google 账号地区 | `google-region` | ⤳ |
+| 注册 claude | `register-claude` | |
+| 订阅 | `subscribe` | |
+| iPhone：为什么用美区 Apple ID | `iphone-why-us-apple-id` | ★ |
+| iPhone：注册美区 Apple ID | `iphone-apple-id` | ⤳ |
+| iPhone：在 App Store 登录 | `iphone-app-store-login` | |
+| iPhone：买礼品卡充值 | `iphone-gift-card` | |
+| iPhone：在 app 内订阅 | `iphone-subscribe` | |
+| iPhone：购买未完成 | `iphone-purchase-failed` | ⤳ |
+| 安卓：订阅 | `android-subscribe` | |
+| 订阅之后 | `after-subscribe` | |
+| 致谢 | `thanks` | |
+| 后记 | `afterword` | |
+| 常见问题 | `reference/faq` → `/faq/` | 参考页 |
+| IP 质量实测合集 | `reference/ip-tests` → `/ip-tests/` | 参考页 |
+| 实测：proxy.qsu.hk 白嫖 ISP | `ip-tests/qsu-free-isp` | 参考页 |
+| 实测：VoyraCloud 住宅服务器 | `ip-tests/voyracloud` | 参考页 |
+| 实测：丽萨住宅服务器 | `ip-tests/lisahost` | 参考页 |
+| 实测：QSU 住宅服务器 | `ip-tests/qsu-residential` | 参考页 |
+| 实测：ipequal 住宅节点 | `ip-tests/ipequal` | 参考页 |
+| 实测：Decodo ISP | `ip-tests/decodo` | 参考页 |
+
+博客文章的双链登记在 `src/content/blog-links.yaml`，三项地址沿用 1.0.0 已上线的博客链接（作者确认，Q-11）。
+
+### 截图核对（2026-10-15）
+
+重写稿引用的截图共 35 张。18 张 1.0.0 已入库，与 `附件/` 里的文件逐字节相同，没有重新复制；16 张是这次从 `附件/` 新复制的，1 张是裁剪的（见文末），逐张核对如下（核对项：IP 地址、IP 段、搜索框、浏览器指纹、账号信息）。
+
+| 截图 | 核对结果 |
+| --- | --- |
+| `IP实测-丽萨-ipinfo.png` | IP、IP 段、搜索框都已打码 ✓ |
+| `IP实测-丽萨-ippure.png` | IP、My IP、IP 范围都已打码 ✓ |
+| `IP实测-丽萨-scamalytics.png` | IP 和正文里的 IP 都已打码 ✓ |
+| `IP实测-丽萨-套餐.png` | 商家套餐页，没有个人信息 ✓ |
+| `住宅IP实测-ip.net.coffee-方案一.png` | 出口 IP 已打码；DNS 出口 172.253.1.26 是 Google 公共 DNS；Canvas/WebGL 指纹已打码 ✓ |
+| `住宅IP实测-ip.net.coffee-方案三.png` | 出口 IP 已打码；DNS 出口 104.22.16.86 是 Cloudflare；指纹已打码 ✓ |
+| `住宅IP实测-ipinfo-作者的白嫖IP.png` | 原图 Range 一栏露出了 IP 段；按作者选定用与丽萨那张相同的浅灰块遮住后入库（`附件/` 里的原图未改） ✓ |
+| `住宅IP实测-ipinfo-方案一.png` | IP、IP 段已打码 ✓ |
+| `住宅IP实测-ipinfo-方案三.png` | IP、IP 段已打码 ✓ |
+| `住宅IP实测-ipkk-方案一.png` | 三处 IP 已打码；指纹已打码 ✓ |
+| `住宅IP实测-ipkk-方案三.png` | 三处 IP 已打码；DNS 出口 162.159.101.6 是 Cloudflare；指纹已打码 ✓ |
+| `住宅IP实测-ipok-方案一.png` | 查询结果和输入框里的 IP 已打码，数字 IP 被页面遮住 ✓ |
+| `住宅IP实测-ipok-方案三.png` | 同上 ✓ |
+| `住宅IP实测-scamalytics-作者的白嫖IP.png` | IP 和正文里的 IP 都已打码 ✓ |
+| `住宅IP实测-scamalytics-方案一.png` | 同上 ✓ |
+| `住宅IP实测-scamalytics-方案三.png` | 同上 ✓ |
+
+`截图 2026-10-15 13-43-53 1.png`（`clean-up` 两版都引用）原本不在 `附件/` 里。仓库根目录去掉“ 1”的同名原图没有打码（露出账号名、Organization ID、侧栏对话标题和自定义指令）；按作者选定，从原图裁剪出 Settings → Account 的标题和“Log out of all devices”一行（含 Log out 按钮），其余内容不在图里，核对没有个人信息后入库 ✓（同时放了一份到重写稿的 `附件/`，便于重跑导入）。
+
 ## 全文比对
 
 一次性脚本 `scripts/compare-migration.mjs` 比对两篇原文章和 `src/content/` 下全部 Markdown（博客仓库和本仓库放在同一级时不用传参数）：

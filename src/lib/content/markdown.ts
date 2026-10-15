@@ -3,11 +3,12 @@ import { basename, join, relative, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createMarkdownProcessor, parseFrontmatter, type UnifiedProcessorOptions } from '@astrojs/markdown-remark';
 import rehypeCallouts from 'rehype-callouts';
-import { listMarkdown, resolveLinkIndex, type LinkIndex } from './link-index';
+import { checkPages, listMarkdown, resolveLinkIndex, type LinkIndex } from './link-index';
+import rehypeOperationIds from './rehype-operation-ids';
 import { ID_PATTERN } from './schemas';
-import remarkObsidian, { type ContentProblem } from './remark-obsidian';
+import remarkObsidian, { type ContentHint, type ContentProblem } from './remark-obsidian';
 
-/** 需要经过 Obsidian 写法插件的内容目录（相对内容根目录） */
+/** 需要经过 Obsidian 写法插件的 1.0.0 内容目录（相对内容根目录）；v2.0 的三个集合见 LinkIndex.pages */
 export const CONTENT_DIRS = ['steps', 'choices', 'faq', 'pages'] as const;
 
 export interface MarkdownPipelineOptions {
@@ -16,19 +17,22 @@ export interface MarkdownPipelineOptions {
   linkIndex: LinkIndex | (() => LinkIndex);
   /** 见 RemarkObsidianOptions.onProblems */
   onProblems?: (problems: ContentProblem[]) => void;
+  /** 见 RemarkObsidianOptions.onHints */
+  onHints?: (hints: ContentHint[]) => void;
 }
 
 /**
  * Markdown 管线的唯一配置：astro.config.mjs 用它构造 unified 处理器，校验和单元测试也用它，
  * 保证三处看到的是同一条管线。
  */
-export function markdownPipeline({ base, linkIndex, onProblems }: MarkdownPipelineOptions): UnifiedProcessorOptions {
+export function markdownPipeline({ base, linkIndex, onProblems, onHints }: MarkdownPipelineOptions): UnifiedProcessorOptions {
   return {
     // 关掉 SmartyPants：它在用户插件之前改写正文里的引号、`--`、`...`，
     // 会改坏 [[…]] 里的文件名，也会改动正文里的命令和参数（FR-03 要求原样迁移）。
     smartypants: false,
-    remarkPlugins: [[remarkObsidian, { base, linkIndex, onProblems }]],
+    remarkPlugins: [[remarkObsidian, { base, linkIndex, onProblems, onHints }]],
     rehypePlugins: [
+      [rehypeOperationIds, { linkIndex }],
       [
         rehypeCallouts,
         {
@@ -51,36 +55,54 @@ export function markdownPipeline({ base, linkIndex, onProblems }: MarkdownPipeli
  * 渲染结果还会按文件摘要缓存（下次构建不再渲染未改动的文件）；它传给插件的正文也去掉了 frontmatter
  * 后再 trim，行号会偏。这里直接读源文件、保留 frontmatter 占位，每次构建都完整检查，行号与源文件一致。
  */
-export async function validateContent(options: MarkdownPipelineOptions): Promise<ContentProblem[]> {
+export async function validateContent(options: MarkdownPipelineOptions): Promise<ContentReport> {
   const index = resolveLinkIndex(options.linkIndex);
-  const problems: ContentProblem[] = [];
+  const problems: ContentProblem[] = checkPages(index);
+  const hints: ContentHint[] = missingOperationHints(index);
   const pipeline = markdownPipeline({
     base: options.base,
     linkIndex: index,
     onProblems: (found) => problems.push(...found),
+    onHints: (found) => hints.push(...found),
   });
   const processor = await createMarkdownProcessor({ ...pipeline, syntaxHighlight: false });
-  for (const dir of CONTENT_DIRS) {
-    const abs = join(index.contentRoot, dir);
-    for (const file of listMarkdown(abs).map((name) => join(abs, name))) {
-      const id = basename(file, '.md');
-      if (!ID_PATTERN.test(id)) {
-        problems.push({
-          file: relative(process.cwd(), file).split(sep).join('/'),
-          message: `文件名“${id}”不是英文 kebab-case：标识同时是 URL，只能用小写字母、数字和连字符（ADR-0002）`,
-        });
-      }
-      const source = readFileSync(file, 'utf8');
-      let body: string;
-      try {
-        // 'empty-with-spaces'：frontmatter 换成等长空白，正文行号与源文件一致。
-        body = parseFrontmatter(source, { frontmatter: 'empty-with-spaces' }).content;
-      } catch {
-        continue; // frontmatter 写坏由内容集合的 schema 报错
-      }
-      await processor.render(body, { fileURL: pathToFileURL(file) });
+  const legacy = CONTENT_DIRS.flatMap((dir) => listMarkdown(join(index.contentRoot, dir)).map((name) => ({ file: join(index.contentRoot, dir, name), id: basename(name, '.md') })));
+  for (const { file, id } of [...legacy, ...index.pages]) {
+    // 参考页的标识带子目录（ip-tests/<id>），逐段检查
+    if (!id.split('/').every((part) => ID_PATTERN.test(part))) {
+      problems.push({
+        file: display(file),
+        message: `文件名“${id}”不是英文 kebab-case：标识同时是 URL，只能用小写字母、数字和连字符（ADR-0002）`,
+      });
     }
+    const source = readFileSync(file, 'utf8');
+    let body: string;
+    try {
+      // 'empty-with-spaces'：frontmatter 换成等长空白，正文行号与源文件一致。
+      body = parseFrontmatter(source, { frontmatter: 'empty-with-spaces' }).content;
+    } catch {
+      continue; // frontmatter 写坏由内容集合的 schema 报错
+    }
+    await processor.render(body, { fileURL: pathToFileURL(file) });
   }
-  return problems;
+  return { problems, hints };
+}
+
+/** validateContent 的结果：problems 让构建失败，hints 只在构建输出里提示（FR-21、Q-11） */
+export interface ContentReport {
+  problems: ContentProblem[];
+  hints: ContentHint[];
+}
+
+/** 还没有操作版的页面（不含原理独有步骤和参考页）：操作视图会显示原理版并提示“操作版还在写”（FR-21） */
+function missingOperationHints(index: LinkIndex): ContentHint[] {
+  const operations = new Set(index.pages.filter((p) => p.kind === 'operation').map((p) => p.id));
+  return index.pages
+    .filter((p) => p.kind === 'principle' && !p.principleOnly && !operations.has(p.id))
+    .map((p) => ({ kind: 'missing-operation', file: display(p.file), page: { id: p.id, title: p.title ?? p.id } }));
+}
+
+function display(file: string): string {
+  return relative(process.cwd(), file).split(sep).join('/');
 }
 

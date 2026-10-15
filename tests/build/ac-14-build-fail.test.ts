@@ -88,6 +88,16 @@ describe('AC-14 坏内容让构建失败并报出文件', () => {
       messages: ['路线图校验失败（1 处）', 'route.yaml：分叉点 phone 的分支段（章节 subscribe）之后没有汇合点'],
     },
     {
+      fixture: 'missing-anchor',
+      file: 'src/content/principle/broken-anchor.md',
+      messages: ['“常见问题”里没有小标题“没有这一条”'],
+    },
+    {
+      fixture: 'title-mismatch',
+      file: 'src/content/operation/title-mismatch.md',
+      messages: ['操作版标题“标题乙”与原理版“标题甲”不同'],
+    },
+    {
       fixture: 'missing-metadata',
       file: 'src/content/steps/no-title.md',
       messages: ['title: Required'],

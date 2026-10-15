@@ -65,7 +65,7 @@
 
 **职责**：定义内容文件的格式；加载并校验元数据；把重写稿的 Obsidian 写法转换成 HTML。
 
-**内容文件**（计划，v2.0 由导入任务建立，替换 1.0.0 的 `steps/`、`choices/`、`faq/`、`pages/`）
+**内容文件**（v2.0 内容集合已由 #23 建立并只经过构建校验；1.0.0 的 `steps/`、`choices/`、`faq/`、`pages/` 和页面在 #25 切换时删除）
 
 | 路径 | 内容 | 元数据 |
 | --- | --- | --- |
@@ -144,13 +144,15 @@ side:                              # 旁支页：不在序列里
 | 以 `TODO：` 开头的段落 | `<aside class="author-todo">`，文字原样，前面加“作者待补”标签（FR-21）。**v2.0 新增** | — |
 | `> [!note]`、`> [!caution]` | 两种视图都显示的提示框（1.0.0 已有）；`[!why]` 从白名单删掉，出现即报错 | — |
 
-- **链接索引**：`createLinkIndex(contentRoot)` 同步扫描三个集合的文件，取每个文件第一行的标题和全部小标题的 slug，生成“标题 → 页面”和“页面 → 小标题集合”，外加截图文件名和 `blog-links.yaml`。仍然不依赖内容集合的渲染顺序（1.0.0 已有）。
-- **标题 id**：同一 HTML 里有两版正文（ADR-0004），操作版正文的标题 id 加前缀 `op-`（rehype 插件按文件路径判断），避免重复 id；`[[标题#小标题]]` 指向原理版的 id。
+- **链接索引**：`createLinkIndex(contentRoot)` 同步扫描三个集合的文件，取每个文件第一行（frontmatter 之后第一个非空行）的标题和全部小标题的 slug（跳过代码块），生成 `pages`（每个文件一项：集合、标识、标题、小标题集合、`principleOnly`）和 `titles`（标题 → 页面，只收原理版和参考页），外加截图文件名和 `blogLinks`。`checkPages(index)` 报出页面之间的问题：缺第一行标题、标题重复、两版标题不同、操作版没有同名原理版、原理独有步骤却有操作版、`blog-links.yaml` 形状不对。仍然不依赖内容集合的渲染顺序（1.0.0 已有）。参考页的标识带子目录（`ip-tests/decodo`），URL 统一是 `/<id>/`。
+- **内容提示的接口**：插件通过 `onHints` 交出 `ContentHint`（`author-todo`、`blog-link`，带所在页面）；`validateContent()` 返回 `{ problems, hints }`，另外补上 `missing-operation`；`contentValidation` 在 `astro:build:done` 用 `formatHints()` 打印（M5）。
+- **标题 id**：同一 HTML 里有两版正文（ADR-0004），操作版正文的标题 id 加前缀 `op-`（`rehype-operation-ids.ts` 按文件路径判断，按 Astro 同样的 github-slugger 规则先写好 id），避免重复 id；`[[标题#小标题]]` 指向原理版的 id。
+- **v2 规则只作用于 v2 文件**（expand 阶段，#23）：插件按文件是否属于三个集合选择规则，1.0.0 的文件仍按标识解析、仍接受 `[!why]`；#25 删除旧模式。
 - **1.0.0 已有、继续生效**：管线配置的唯一来源 `markdownPipeline()`；`contentValidation` 集成在 `astro:build:start` 用同一条管线重新处理全部源文件并在失败时终止构建；集合 `deferRender: true`；关闭 SmartyPants；嵌入的宽度、文件名字符和 1x/2x `srcset` 规则；解析后残留 `**` 报错；Shiki 默认开启且不引用外部资源；内容文件名必须是以字母开头的英文 kebab-case。
 
-**导入脚本**（计划，`scripts/import-rewrite.mjs`，[ADR-0005](adr/0005-import-rewrite-verbatim.md)）：
+**导入脚本**（`scripts/import-rewrite.mjs`，#23 建立，[ADR-0005](adr/0005-import-rewrite-verbatim.md)；页面标识表和截图核对记录在 [migration-checklist.md](migration-checklist.md) 的 v2 节）：
 
-- `node scripts/import-rewrite.mjs [重写稿目录，默认 docs/rewrite]`。按标题匹配：读 `src/content/principle/*.md` 的第一行标题，与重写稿 `原理版/<标题>.md` 对应；`operation/` 同理；参考页按固定的文件名对应。
+- `node scripts/import-rewrite.mjs [重写稿目录，默认 docs/rewrite]`。按标题匹配：读 `src/content/principle/*.md` 和 `reference/**/*.md` 的第一行标题，与重写稿 `原理版/<标题>.md` 对应（参考页也按标题，不用固定文件名，新增实测页的做法与新增步骤相同）。操作版跟随原理版：重写稿有 `操作版/<标题>.md` 时写入 `operation/<同一标识>.md`，缺的直接新建（操作版没有元数据，标识由原理版决定，不算“新页面”）。重写稿文件带 frontmatter（Obsidian 属性）时去掉并报告。
 - 对已匹配的页面，**保留目标文件的 frontmatter，正文整段替换成重写稿原文**（只把 Windows 换行统一成 `\n`）；把被引用、但 `src/assets/screenshots/` 里还没有的图片从 `附件/` 复制过去。
 - 重写稿里有、站内没有的页面（新页面）只列出来，不自动建文件：新页面要先手建 `principle/<id>.md`（frontmatter + `# 标题`），再在 `route.yaml` 里放好位置，然后重跑脚本。站内有、重写稿里没有的页面同样列出来，由作者决定是否删除。
 - 脚本不改 `route.yaml`，也不判断截图有没有打码；结束时提醒“新复制的截图要逐张核对打码”（三级边界 Never）。
@@ -288,17 +290,17 @@ function getLocalStorage(scope?): Storage | null;
 ├── AGENTS.md / CLAUDE.md            仓库指南 / Claude Code 入口
 ├── CONTEXT.md                       术语
 ├── docs/                            需求、调研、架构、设计、ADR、计划、交付
-│   └── rewrite/                     重写稿（作者维护的素材来源）：原理版/、操作版/ 由导入任务纳入版本管理；附件/ 不提交（计划加进 .gitignore），截图核对打码后只以 src/assets/screenshots/ 的副本入库
+│   └── rewrite/                     重写稿（作者维护的素材来源）：原理版/、操作版/ 纳入版本管理；附件/ 不提交（.gitignore），截图核对打码后只以 src/assets/screenshots/ 的副本入库
 ├── astro.config.mjs                 M5 构建配置
 ├── package.json / package-lock.json 依赖与脚本；version 字段是版本来源
 ├── src/
-│   ├── content.config.ts            M1 集合：principle、operation、reference（计划，替换 steps/choices/faq/pages）
-│   ├── content/                     route.yaml、principle/、operation/、reference/、blog-links.yaml（计划）
+│   ├── content.config.ts            M1 集合：principle、operation、reference（#25 删除 steps/choices/faq/pages）
+│   ├── content/                     route.yaml、principle/、operation/、reference/、blog-links.yaml
 │   ├── assets/
 │   │   ├── screenshots/             截图（经 Astro 图片处理）
 │   │   └── logo/                    转曲后的 logo SVG（只由 Logo.astro 引用）
 │   ├── lib/
-│   │   ├── content/                 M1：schemas、link-index、remark-obsidian、markdown、integration（+ *.test.ts）
+│   │   ├── content/                 M1：schemas、link-index、remark-obsidian、rehype-operation-ids、markdown、integration（+ *.test.ts）
 │   │   ├── route/                   M2：route-map、types（+ 测试和测试用路线图）
 │   │   ├── reader-state/            M4：reader-store、view-boot（+ *.test.ts）
 │   │   ├── nav-text.ts              导航文案，构建时和页面脚本共用
@@ -310,7 +312,7 @@ function getLocalStorage(scope?): Storage | null;
 │   ├── pages/                       index、[page]、faq/index、ip-tests/index、ip-tests/[test]、404
 │   └── styles/                      tokens.css、base.css、prose.css、toc.css、code-zoom.css
 ├── public/                          favicon.svg
-├── scripts/                         一次性开发脚本：build-logo.mjs、compare-migration.mjs（v2.0 改写）、import-rewrite.mjs（计划）
+├── scripts/                         一次性开发脚本：import-rewrite.mjs（+ 测试）、build-logo.mjs、compare-migration.mjs（v2.0 改写）
 └── tests/
     ├── e2e/                         Playwright，按 v2 的 AC 编号命名
     ├── build/                       构建级用例（AC-14）
@@ -326,7 +328,7 @@ function getLocalStorage(scope?): Storage | null;
 | 命令 | 作用 |
 | --- | --- |
 | `npm run dev` / `build` / `preview` / `test` / `test:build` / `test:e2e` / `check` | 1.0.0 已有，含义不变 |
-| `node scripts/import-rewrite.mjs [目录]` | 从重写稿导入正文和截图（计划） |
+| `node scripts/import-rewrite.mjs [目录]` | 从重写稿导入正文和截图；连跑两次第二次没有改动 |
 | `node scripts/build-logo.mjs` | 用 `.cache/fonts/` 里的开源字体生成 logo SVG 和 favicon（字体下载地址写在脚本开头；输出是确定的，重复运行结果相同） |
 | `node scripts/compare-migration.mjs` | 对照重写稿和构建产物的命令、链接、截图（AC-13，v2.0 改写） |
 
@@ -354,8 +356,9 @@ function getLocalStorage(scope?): Storage | null;
 | 编号 | 事项 | 影响 | 阻塞？ |
 | --- | --- | --- | --- |
 | Q-01 | 部署位置和域名（需求遗留） | 交付阶段 | 否 |
-| Q-07、Q-11 | 联系方式、博客地址待作者提供 | 后记正文、`blog-links.yaml`；提供前构建照常，内容提示里列出 | 否 |
-| Q-13 | 重写稿引用的 `截图 2026-10-15 13-43-53 1.png` 不在 `附件/` 里（仓库根目录有一张同名去掉“ 1”的截图，未核对打码） | 导入后这一处会让构建失败，导入任务要请作者提供打码后的文件 | 否（只影响一页） |
+| Q-07 | 联系方式待作者提供 | 后记正文；提供前构建照常 | 否 |
+| Q-11 | 已解决（#23，2026-10-15）：`blog-links.yaml` 沿用 1.0.0 已上线的三个博客地址（作者确认）；以后新增的博客双链地址未定时仍写 `null` | — | 否 |
+| Q-13 | 已解决（#23，2026-10-15）：`截图 2026-10-15 13-43-53 1.png` 由仓库根目录未打码的原图裁剪而成，只保留 Settings → Account 的“Log out of all devices”一行，作者确认采用 | — | 否 |
 | A-01 | `BASE_PATH` 按部署位置各构建一次（1.0.0 已选定） | — | 否 |
 | A-04 | 两版正文都进 HTML，页面体积约翻倍 | 正文是纯文本，最大的页约 6 KB 原文；图片懒加载、隐藏的不加载。可接受 | 否 |
 

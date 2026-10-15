@@ -1,0 +1,6 @@
+# 指向博客其他文章的双链目标 → 博客地址（架构 §3 M1，需求 Q-11）。
+# 键是重写稿里双链的目标原文；地址待作者提供时写 null：页面上只显示链接文字，构建结束时列进内容提示。
+# 现有地址沿用 1.0.0 已上线的博客链接（作者 2026-10-15 确认）。
+"04技术/读者实测：方案一和方案三的住宅 IP 对比": https://finderlzy.github.io/Writing/tech/residential-ip-test/
+"04技术/自建梯子：VPS + 3x-ui + VLESS Reality": https://finderlzy.github.io/Writing/tech/vless-reality/
+"04技术/给 VPS 节点套上住宅 IP": https://finderlzy.github.io/Writing/tech/vps-residential-ip/

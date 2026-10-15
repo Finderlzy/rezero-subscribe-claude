@@ -76,5 +76,6 @@ location /sub/ {
 | `npm run test:e2e` | 构建后用 Playwright 在 360 和 1280 两种宽度下测试，另按 `/sub/` 子路径构建再测一次 |
 | `npm run check` | `astro check` + 单元测试 + 构建级用例 + 构建，提交前运行 |
 | `node scripts/compare-migration.mjs` | 原文与站内的命令、链接、截图逐项比对（需要原文所在的博客仓库） |
+| `node scripts/import-rewrite.mjs` | 从 `docs/rewrite/` 的重写稿导入正文和截图（v2 内容，规则见 [ADR-0005](docs/adr/0005-import-rewrite-verbatim.md)）；新复制的截图要逐张核对打码 |
 
 开发约定见 [AGENTS.md](AGENTS.md)，需求、架构和设计在 [docs/](docs/)。

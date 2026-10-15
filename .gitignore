@@ -28,3 +28,6 @@ npm-debug.log*
 
 # logo 转曲用的字体（scripts/build-logo.mjs，不提交）
 .cache/
+
+# 重写稿的附件：只导入被引用、核对过打码的截图到 src/assets/screenshots/（#23）
+docs/rewrite/附件/

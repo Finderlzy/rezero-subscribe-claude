@@ -10,7 +10,8 @@ beforeEach(() => {
 });
 afterEach(() => fx.cleanup());
 
-const validate = () => validateContent({ base: '/', linkIndex: () => createLinkIndex(fx.contentRoot) });
+const report = () => validateContent({ base: '/', linkIndex: () => createLinkIndex(fx.contentRoot) });
+const validate = async () => (await report()).problems;
 
 describe('validateContent（构建开始时的全量检查）', () => {
   it('内容全部正确时没有问题', async () => {
@@ -52,5 +53,47 @@ describe('validateContent（构建开始时的全量检查）', () => {
     fx.write('steps/notes.txt', '[[not-exist]]');
     fx.write('drafts/x.md', '[[not-exist]]');
     expect(await validate()).toEqual([]);
+  });
+});
+
+describe('validateContent：v2 内容', () => {
+  const at = (file: string) => relative(process.cwd(), file);
+
+  it('检查 principle、operation、reference（含子目录），并带上页面之间的标题校验', async () => {
+    fx.write('principle/preface.md', md('skippable: true', '# 前言\n\n[[没有这页]]'));
+    const op = fx.write('operation/preface.md', '# 序言\n');
+    const ref = fx.write('reference/ip-tests/decodo.md', '# 实测：Decodo ISP\n\n第一段\n\n![[missing.png]]\n');
+
+    const problems = await validate();
+
+    expect(problems.map((p) => [p.file, p.line, p.message])).toEqual([
+      [at(op), 1, expect.stringMatching(/^操作版标题“序言”与原理版“前言”不同/)],
+      [at(fx.contentRoot + '/principle/preface.md'), 6, expect.stringMatching(/^找不到标题为“没有这页”的页面/)],
+      [at(ref), 5, expect.stringMatching(/^找不到图片“missing\.png”/)],
+    ]);
+  });
+
+  it('参考页标识逐段检查 kebab-case', async () => {
+    fx.write('reference/ip-tests/Bad_Name.md', '# 实测：甲\n');
+    const problems = await validate();
+    expect(problems.map((p) => p.message)).toEqual([expect.stringContaining('文件名“ip-tests/Bad_Name”不是英文 kebab-case')]);
+  });
+
+  it('内容提示：操作版缺失（原理独有步骤和参考页除外）、作者待补、博客链接待填；不算问题', async () => {
+    fx.write('principle/preface.md', '# 前言\n');
+    fx.write('operation/preface.md', '# 前言\n');
+    fx.write('principle/overview.md', md('principleOnly: true', '# 整体思路\n'));
+    fx.write('principle/android-subscribe.md', '# 安卓：订阅\n\nTODO：等我走通了再补。\n\n[[04技术/甲|甲]]\n');
+    fx.write('reference/faq.md', '# 常见问题\n');
+    fx.write('blog-links.yaml', '"04技术/甲": null\n');
+
+    const { problems, hints } = await report();
+
+    expect(problems).toEqual([]);
+    expect(hints.map((h) => [h.kind, h.page.id])).toEqual([
+      ['missing-operation', 'android-subscribe'],
+      ['author-todo', 'android-subscribe'],
+      ['blog-link', 'android-subscribe'],
+    ]);
   });
 });
