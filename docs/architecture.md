@@ -285,6 +285,7 @@ M4 不依赖 M2：`StepId`、`Choices` 等在 M4 里是同义的字符串别名�
 │   ├── pages/                       index、[step]、choose/[fork]、done、404、faq/index、faq/[faq]
 │   └── styles/                      tokens.css、base.css、prose.css
 ├── public/                          直接复制的文件（favicon 等）
+├── scripts/                         一次性开发脚本：compare-migration.mjs（原文与站内的命令、链接比对，#16），不打包进页面
 └── tests/
     ├── e2e/                         Playwright：按 AC 编号命名，例如 ac-03-branch-merge.spec.ts
     ├── build/                       构建级用例（Vitest，单独配置 vitest.build.config.ts）：ac-14-build-fail.test.ts
