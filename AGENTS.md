@@ -18,11 +18,11 @@
 
 工程配置在仓库根目录（`astro.config.mjs`、`tsconfig.json`、`vitest.config.ts`、`playwright.config.ts`）。站内链接一律经 `src/lib/with-base.ts` 的 `withBase()` 生成。标“计划”的目录由后续任务建立：
 
-- `src/content/`（集合定义在 `src/content.config.ts`）：内容。`route.yaml` 是路线图（章节、分叉点、页面顺序）。现状（1.0.0）：`steps/`、`choices/`、`faq/`、`pages/`，迁移记录在 [docs/migration-checklist.md](docs/migration-checklist.md)。v2.0 计划：换成 `principle/<id>.md`（原理版，页面元数据写在它的 frontmatter）、`operation/<id>.md`（同名操作版）、`reference/`（常见问题、实测）和 `blog-links.yaml`，正文由 `scripts/import-rewrite.mjs` 从 `docs/rewrite/` 原样导入，不手改正文（ADR-0005）。截图放在 `src/assets/screenshots/`，嵌入写裸文件名 `![[文件名|宽度]]`；logo 只放 `src/assets/logo/`，只由 `src/components/Logo.astro` 引用（v2.0 计划）。
+- `src/content/`（集合定义在 `src/content.config.ts`）：内容。`route.yaml` 是路线图（章节、分叉点、页面顺序）。现状（1.0.0）：`steps/`、`choices/`、`faq/`、`pages/`，迁移记录在 [docs/migration-checklist.md](docs/migration-checklist.md)。v2.0 计划：换成 `principle/<id>.md`（原理版，页面元数据写在它的 frontmatter）、`operation/<id>.md`（同名操作版）、`reference/`（常见问题、实测）和 `blog-links.yaml`，正文由 `scripts/import-rewrite.mjs` 从 `docs/rewrite/` 原样导入，不手改正文（ADR-0005）。截图放在 `src/assets/screenshots/`，嵌入写裸文件名 `![[文件名|宽度]]`；logo 只放 `src/assets/logo/`，只由 `src/components/Logo.astro` 引用；这些 SVG 和 `public/favicon.svg` 由 `node scripts/build-logo.mjs` 生成，不手改。
 - `src/lib/`：纯逻辑模块，单元测试放在旁边（`*.test.ts`；组件的渲染测试用 Astro Container API，放在组件旁边）。其中 `content/` 是 M1，`route/` 是 M2，`reader-state/` 是 M4。
 - `src/pages/`、`src/layouts/`、`src/components/`、`src/styles/`：页面（M3）。`src/scripts/` 放打包进页面的浏览器脚本（如 `route-enhance.ts`），和根目录放一次性开发脚本的 `scripts/` 不是一回事。
 - `tests/e2e/`：Playwright 测试，文件按验收编号命名，如 `ac-03-branch-merge.spec.ts`；`tests/build/`：构建级用例（AC-14）；`tests/fixtures/`：构建级用例用的坏内容，每个用例一个目录，按 `src/content/` 的相对路径覆盖。
-- `docs/`：文档；新的难以逆转的决策写进 `docs/adr/NNNN-slug.md`。`docs/rewrite/` 是作者维护的重写稿（素材来源），站点代码不直接读它。一次性的开发脚本放在 `scripts/`（v2.0 计划：`import-rewrite.mjs`、`build-logo.mjs`；logo 转曲用的字体放在不提交的 `.cache/fonts/`）。
+- `docs/`：文档；新的难以逆转的决策写进 `docs/adr/NNNN-slug.md`。`docs/rewrite/` 是作者维护的重写稿（素材来源），站点代码不直接读它。一次性的开发脚本放在 `scripts/`（`build-logo.mjs`，logo 转曲用的字体放在不提交的 `.cache/fonts/`，下载地址写在脚本开头；v2.0 计划：`import-rewrite.mjs`）。
 
 ## 构建、测试与开发命令
 

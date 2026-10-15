@@ -25,3 +25,6 @@ npm-debug.log*
 
 # Claude Code 子代理的隔离工作区
 .claude/worktrees/
+
+# logo 转曲用的字体（scripts/build-logo.mjs，不提交）
+.cache/

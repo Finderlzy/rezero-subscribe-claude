@@ -32,7 +32,7 @@
 | Markdown | `@astrojs/markdown-remark`（unified 处理器）+ 自研 remark/rehype 插件 + `rehype-callouts` | Astro 7 默认的 Sätteri 不兼容 remark/rehype 插件（[官方文档](https://docs.astro.build/en/guides/markdown-content/)）。重写稿没有 Callout；`rehype-callouts` 只为 `[!note]`、`[!caution]` 保留，`why` 类型删掉 |
 | 前端交互 | 原生 TypeScript 模块，经 Astro `<script>` 打包；不引入 UI 框架 | 交互只有视图切换、改写导航、目录、视频门面、复制、看大图 |
 | 样式 | 原生 CSS + 设计令牌，不用 CSS 框架；不加载网页字体 | 令牌见 [design.md §3](design.md)；NFR-03 |
-| logo | 开源字体转曲后的内联 SVG；转曲用 `opentype.js` 2.x（MIT，**计划**，devDependency） | FR-70：只用允许转曲的 OFL 字体，页面不加载字体文件；见 [reuse-research.md §5](reuse-research.md) |
+| logo | 开源字体转曲后的内联 SVG；转曲用 `opentype.js` 2.0（MIT，devDependency） | FR-70：只用允许转曲的 OFL 字体，页面不加载字体文件；见 [reuse-research.md §5](reuse-research.md) |
 | 类型检查 | TypeScript **6.x**（固定）+ `@astrojs/check` | `@astrojs/check` 0.9.10 不兼容 TS 7（1.0.0 已有） |
 | 测试 | Vitest 5；Playwright 1.64 + `@axe-core/playwright` | 1.0.0 已有 |
 | 部署 | 纯静态 `dist/`，`BASE_PATH` 指定根路径或子路径；部署位置待定（Q-01） | 1.0.0 已有 |
@@ -232,7 +232,7 @@ function pathOf(stop: Stop): string;        // '/<id>/' 或 '/'；再由 withBas
 - **视图**（1.0.0 已有机制，改为整页）：`<head>` 里的内联脚本 `VIEW_BOOT_SCRIPT` 在首次绘制前设置 `data-view`，取不到时用 `operation`。切换控件 `ViewToggle` 在页眉；`src/scripts/view-toggle.ts` 改 `data-view`、写 M4、滚回页面顶部（FR-30），派发 `reader-view-changed`。没有 JS 时切换控件隐藏，固定操作视图。删除 1.0.0 的“为什么：… · 在原理视图中查看”提示行和“这一步没有额外原理”。
 - **导航改写**（1.0.0 已有 `route-enhance.ts`，改动）：读 M4 的 `choices` 和 `view`，调用 `routeMapFromData(data).view(at, stored, view)`，改写上一步/下一步/跳过/回到的链接与目标标题和进度；收到 `reader-view-changed` 或 `reader-choices-changed` 时重算。打开只属于一个分支的页面时，把它所属的选项写进 `choices`（FR-17，纯函数 `openPatch()` 只剩这一项）。选择页：本机保存的选项块标“当前选择”和 `aria-current`，点块内任何站内链接都先写 `choices` 再跳转；**不标默认**。
 - **目录**（1.0.0 已有 `Toc`/`TocNav`/`toc.ts`，改动）：去掉已读 ✓ 和“清除进度”；原理独有步骤标“原理”，在操作视图下弱化；参考页在末尾单列“卡住了再看”。首页的目录用同一个 `TocNav`（首页变体：不吸顶、不折叠）。
-- **logo**（计划）：`src/assets/logo/` 放转曲后的 SVG（中文版、英文版、“Re:”标记），**只由 `src/components/Logo.astro` 引用**（`?raw` 内联，颜色用 `currentColor` 和设计令牌，深浅主题自动适配）；换 logo 只改这一处（需求 Q-15）。favicon 是 `public/favicon.svg`（SVG 内用 `prefers-color-scheme` 切换配色）。
+- **logo**：`src/assets/logo/` 放转曲后的 SVG（中文版、英文版、“Re:”标记），**只由 `src/components/Logo.astro` 引用**（`?raw` 内联，颜色用 `currentColor` 和设计令牌，深浅主题自动适配）；换 logo 只改这一处（需求 Q-15）。favicon 是 `public/favicon.svg`（SVG 内用 `prefers-color-scheme` 切换配色），由 `BaseLayout` 的 `<link rel="icon">` 引用。“Re”的颜色取 `--logo-re`（SVG 里的回退值是浅色的 `#5B3FA0`），页面要在令牌里设 `--logo-re: var(--accent)`，深色模式才会换成浅紫（#31 接入）。四个 SVG 都由 `scripts/build-logo.mjs` 生成，版式参数（字号、错落、间距）写在脚本里。
 - **参考页的返回**（1.0.0 已有 `faq-return`，泛化为 `reference-return`）：根据 `?from=<page-id>` 查到页面标题，显示“返回刚才的步骤：<标题>”；实测页另有“回到：IP 质量实测合集”；直接打开时显示“打开目录”。
 - **视频门面、代码复制、看大图**：1.0.0 已有，沿用；只改 FR-41：没有视频信息时不输出视频区域（删掉“视频制作中”）。
 
@@ -296,7 +296,7 @@ function getLocalStorage(scope?): Storage | null;
 │   ├── content/                     route.yaml、principle/、operation/、reference/、blog-links.yaml（计划）
 │   ├── assets/
 │   │   ├── screenshots/             截图（经 Astro 图片处理）
-│   │   └── logo/                    转曲后的 logo SVG（计划，只由 Logo.astro 引用）
+│   │   └── logo/                    转曲后的 logo SVG（只由 Logo.astro 引用）
 │   ├── lib/
 │   │   ├── content/                 M1：schemas、link-index、remark-obsidian、markdown、integration（+ *.test.ts）
 │   │   ├── route/                   M2：route-map、types（+ 测试和测试用路线图）
@@ -309,8 +309,8 @@ function getLocalStorage(scope?): Storage | null;
 │   ├── components/                  Logo、SiteHeader（计划）、ViewToggle、StepNav、Toc、TocNav、CodeCopy、ImageZoom、VideoFacade
 │   ├── pages/                       index、[page]、faq/index、ip-tests/index、ip-tests/[test]、404
 │   └── styles/                      tokens.css、base.css、prose.css、toc.css、code-zoom.css
-├── public/                          favicon.svg（计划）
-├── scripts/                         一次性开发脚本：import-rewrite.mjs、build-logo.mjs（计划）、compare-migration.mjs（v2.0 改写）
+├── public/                          favicon.svg
+├── scripts/                         一次性开发脚本：build-logo.mjs、compare-migration.mjs（v2.0 改写）、import-rewrite.mjs（计划）
 └── tests/
     ├── e2e/                         Playwright，按 v2 的 AC 编号命名
     ├── build/                       构建级用例（AC-14）
@@ -318,7 +318,7 @@ function getLocalStorage(scope?): Storage | null;
 ```
 
 - 单元测试放在被测模块旁边；跨页面流程测试放在 `tests/e2e/`（1.0.0 已有）。
-- 不提交：`dist/`、`dist-sub/`、`.astro/`、`node_modules/`、`test-results/`、`playwright-report/`、`coverage/`，以及 logo 转曲用的字体文件目录 `.cache/`（计划加进 `.gitignore`）。
+- 不提交：`dist/`、`dist-sub/`、`.astro/`、`node_modules/`、`test-results/`、`playwright-report/`、`coverage/`，以及 logo 转曲用的字体文件目录 `.cache/`。
 - **版本来源**：`package.json` 的 `version`。v2.0 整体验收通过后定为 `2.0.0`（需求 v0.3）。
 
 ## 7. 命令（以 `package.json` 为准）
@@ -327,7 +327,7 @@ function getLocalStorage(scope?): Storage | null;
 | --- | --- |
 | `npm run dev` / `build` / `preview` / `test` / `test:build` / `test:e2e` / `check` | 1.0.0 已有，含义不变 |
 | `node scripts/import-rewrite.mjs [目录]` | 从重写稿导入正文和截图（计划） |
-| `node scripts/build-logo.mjs` | 用 `.cache/fonts/` 里的开源字体生成 logo SVG 和 favicon（计划；字体下载地址写在脚本开头） |
+| `node scripts/build-logo.mjs` | 用 `.cache/fonts/` 里的开源字体生成 logo SVG 和 favicon（字体下载地址写在脚本开头；输出是确定的，重复运行结果相同） |
 | `node scripts/compare-migration.mjs` | 对照重写稿和构建产物的命令、链接、截图（AC-13，v2.0 改写） |
 
 ## 8. 验收对应的验证方式（需求 v0.3 §8）

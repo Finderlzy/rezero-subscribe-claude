@@ -93,6 +93,17 @@
 
 **字体许可**（只在开发机上用于转曲，不入库、不进页面产物）：Cormorant Garamond、Cinzel、Roboto Condensed（google/fonts 的 `ofl/<名称>/OFL.txt`）和思源黑体（adobe-fonts/source-han-sans 的 `LICENSE.txt`）都是 **SIL OFL 1.1**，允许把字形转成路径后嵌入作品发布。定稿换字体时，同样先核对许可证并补进本表。
 
+**定稿（2026-10-15，#24）**：沿用上面四个草稿字体，没有换。脚本用的文件和来源（地址固定到提交，也写在 `scripts/build-logo.mjs` 开头）：
+
+| 用途 | 文件 | 来源 | 许可证 |
+| --- | --- | --- | --- |
+| “Re”（wght 500；favicon 用 700） | `CormorantGaramond[wght].ttf` | google/fonts `b7c8331` `ofl/cormorantgaramond/` | OFL 1.1 |
+| 冒号（wght 900）、ZERO 和 CLAUDE（wght 800） | `Cinzel[wght].ttf` | google/fonts `b7c8331` `ofl/cinzel/` | OFL 1.1 |
+| 小号英文（wght 700） | `RobotoCondensed[wght].ttf` | google/fonts `b7c8331` `ofl/robotocondensed/` | OFL 1.1 |
+| 中文 | `SourceHanSansCN-Heavy.otf`（SubsetOTF） | adobe-fonts/source-han-sans `a4f7cf9`（release 分支） | OFL 1.1 |
+
+用 opentype.js 2.0 时发现的问题和处理：Google 字体只有可变字体，用 `getPath` 的 `variation` 选项取字重；`Font.getPath` 遇到 Roboto Condensed 的 GSUB（ccmp 链式替换格式 2）会报“不支持”，所以脚本逐字用 `Glyph.getPath` 排版；`Path.toPathData` 遇到 `112.00000000000001` 这类字号会输出 `NaN`，所以路径数据由脚本自己按两位小数写出，并在出现 `NaN` 时报错。
+
 缺口：没有现成工具做“仿某个标题字风格”的版式，这部分是 `scripts/build-logo.mjs` 里的自研排版参数，由作者对照参考图确认（AC-20）。
 
 ## 6. 证据链接

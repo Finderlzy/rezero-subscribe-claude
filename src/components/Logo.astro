@@ -1,0 +1,31 @@
+---
+// 站点 logo（需求 FR-70）：开源字体转曲后的 SVG，由 scripts/build-logo.mjs 生成，这里内联输出。
+// 这是唯一引用 src/assets/logo/ 的地方；换 logo 只改这一处（需求 Q-15）。
+// “Re”取 --logo-re（页面里由设计令牌给），其余跟随 currentColor，深浅主题自动适配；改色只通过这两处，
+// 不要给 .logo-re/.logo-ink 写样式。SVG 自带按字号算出的 width/height，使用方要用 CSS 控制尺寸
+// （例如 svg { height: 24px; width: auto }），否则在窄屏会溢出。
+import zh from '../assets/logo/logo-zh.svg?raw';
+import en from '../assets/logo/logo-en.svg?raw';
+import mark from '../assets/logo/mark.svg?raw';
+
+interface Props {
+  variant: 'zh' | 'en' | 'mark';
+  /** 无障碍名称；不传时用站名 */
+  title?: string;
+}
+
+const sources = { zh, en, mark };
+const defaultTitles = {
+  zh: 'Re:从零开始订阅 claude',
+  en: 'Re:Zero − Starting Life with Claude',
+  mark: 'Re:从零开始订阅 claude',
+};
+
+const { variant } = Astro.props;
+const title = Astro.props.title || defaultTitles[variant];
+const escapeAttr = (s: string) =>
+  s.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+const svg = sources[variant].replace('<svg ', `<svg role="img" aria-label="${escapeAttr(title)}" `);
+---
+
+<Fragment set:html={svg} />

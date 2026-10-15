@@ -29,6 +29,7 @@
     "@playwright/test": "~1.64.0",
     "@types/mdast": "~4.0.4",
     "@types/node": "~22.20.5",
+    "opentype.js": "~2.0.0",
     "typescript": "~6.0.3",
     "vitest": "~5.0.4"
   }
