@@ -22,6 +22,10 @@ export interface Site {
   home: CollectionEntry<'pages'>;
   /** 完成页 `pages/done.md` */
   done: CollectionEntry<'pages'>;
+  /** 常见问题条目，按标识查找（FR-20） */
+  faq: ReadonlyMap<string, CollectionEntry<'faq'>>;
+  /** 常见问题列表页 `pages/faq.md`：引导语和条目列表 */
+  faqPage: CollectionEntry<'pages'>;
 }
 
 /** 只取映射需要的字段，单元测试可以直接传普通对象。 */
@@ -83,14 +87,21 @@ export function loadSite(): Promise<Site> {
 }
 
 async function readSite(): Promise<Site> {
-  const [steps, choices, home, done] = await Promise.all([
+  const [steps, choices, faq, home, done, faqPage] = await Promise.all([
     getCollection('steps'),
     getCollection('choices'),
+    getCollection('faq'),
     getEntry('pages', 'home'),
     getEntry('pages', 'done'),
+    getEntry('pages', 'faq'),
   ]);
   if (!home) throw new Error('缺少首页内容文件 src/content/pages/home.md');
   if (!done) throw new Error('缺少完成页内容文件 src/content/pages/done.md');
+  if (!faqPage) throw new Error('缺少常见问题列表内容文件 src/content/pages/faq.md');
+  const unlisted = unlistedFaq(faqPage.body ?? '', faq.map((entry) => entry.id));
+  if (unlisted.length > 0) {
+    throw new Error(`src/content/pages/faq.md：常见问题列表漏了 ${unlisted.map((id) => `[[faq/${id}]]`).join('、')}`);
+  }
 
   let route: RouteMap;
   try {
@@ -107,5 +118,24 @@ async function readSite(): Promise<Site> {
     choices: new Map(choices.map((entry) => [entry.id, entry])),
     home,
     done,
+    faq: new Map(faq.map((entry) => [entry.id, entry])),
+    faqPage,
   };
+}
+
+/**
+ * 常见问题列表页 `pages/faq.md` 漏列的条目（FR-20）：列表写在内容里决定顺序，漏列的条目读者从列表里找不到，
+ * 所以 `readSite()` 发现漏列就让构建失败。只认列表项开头的 `[[faq/<id>…]]`（允许空格、链接文字和锚点，
+ * 同 remark-obsidian 的写法），代码块和 HTML 注释里的不算。
+ */
+export function unlistedFaq(body: string, ids: Iterable<string>): string[] {
+  const listed = new Set<string>();
+  let fenced = false;
+  for (const line of body.replace(/<!--[\s\S]*?-->/g, '').split('\n')) {
+    if (/^\s*(```|~~~)/.test(line)) fenced = !fenced;
+    if (fenced) continue;
+    const match = /^\s*[-*+]\s+\[\[\s*faq\/([^\]|#]+?)\s*(?:[|#][^\]]*)?\]\]/.exec(line);
+    if (match) listed.add(match[1]!);
+  }
+  return [...ids].filter((id) => !listed.has(id));
 }
