@@ -14,7 +14,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Finderlzy/reality-setup/v1.2
 | 服务器 IP 是 xxx 吗？ | 和你的服务器 IP 一样就回车，不一样就输入正确的 |
 | 住宅代理 IP、端口、用户名、密码 | [[plan1-free-residential-ip\|白嫖住宅 IP]]里记下的 |
 
-**方案二：**问到住宅代理 IP 时直接回车跳过。
+**方案二**：问到住宅代理 IP 时直接回车跳过。
 
 3. 等几分钟（弹出紫色/蓝色对话框就回车），看到 `节点自测 Reality：成功` 和 `节点自测 Hysteria2：成功`。
 4. 最后会打印两个节点，**通过剪贴板**或扫二维码导入代理软件，**不要发给别人**：

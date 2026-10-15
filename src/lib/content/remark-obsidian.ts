@@ -122,6 +122,10 @@ function walk(node: Parent, ctx: DocContext, inLink: boolean): void {
   for (let i = 0; i < node.children.length; i++) {
     const child = node.children[i];
     if (child.type === 'text') {
+      // 解析完还留在文字里的 ** 就是没成加粗的星号，会原样显示（#21）。
+      if (child.value.includes('**')) {
+        ctx.report('“**”没有解析成加粗：结尾的 ** 前是标点、后面紧跟文字时不算加粗，把标点移到 ** 外面', child.position?.start);
+      }
       if (inLink) {
         if (child.value.includes('[[')) ctx.report('链接文字里不能再写双链或嵌入', child.position?.start);
         continue;

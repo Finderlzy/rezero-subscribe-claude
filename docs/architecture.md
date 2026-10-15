@@ -140,6 +140,7 @@ function contentValidation(o: { base; linkIndex }): AstroIntegration;
 - **管线配置**：关闭 SmartyPants（它在用户插件之前改写引号、`--`、`...`，会改坏 `[[…]]` 里的文件名和正文里的命令，FR-03）；`note`、`caution` 的默认标题改为“提示”“注意”。
 - **双链**：href 经 `joinBase(base, …)`（`withBase` 的纯函数版本，base 与 `astro.config.mjs` 相同）；`[[id#小标题]]` 的锚点用 `github-slugger`，与 Astro 生成标题 id 的算法相同（不校验目标小标题是否存在）；不写链接文字时用目标标题，`[[done]]` 用完成页标题，没有完成页文件时用“完成页”。普通 Markdown 链接文字里写双链、双链里夹格式或换行、未知前缀（如 `[[blog/…]]`）都判为错误，不会原样输出。
 - **嵌入**：支持单独成段和行内两种位置；宽度只接受正整数；`09附件/` 前缀和其他路径都报错；截图文件名不能含 `#`、`?`、`%`（会让图片路径出错）。GFM 表格里写作 `[[id\|文字]]`、`![[文件名\|宽度]]`。图片节点带 `data-zoom` 属性（看大图组件的识别标记）；写了宽度时同时传 `densities: [1, 2]`，产物带 1x/2x `srcset`，看大图组件可用 2x 版本。看大图要不要原图链接由负责看大图的任务决定。
+- **没成加粗的星号**（#21）：解析后仍留在文字里的 `**` 报错。典型是 `**方案二：**问…`：结尾的 `**` 前是全角标点、后面紧跟汉字，按 CommonMark 不算加粗，星号会原样显示；改成 `**方案二**：问…`。代码里的 `**` 不受影响。
 - **Callout 白名单**：只允许小写的 `[!why]`、`[!note]`、`[!caution]`；可折叠写法（`[!why]-`、`[!note]+`，库会插入自带的折叠箭头 SVG）、其他类型、标记不在引用第一行开头（库仍会把它当成 Callout 并吞掉前面的文字）都报错。原理块标题原样输出；迁移时去掉原文的“为什么：”前缀（[迁移规则](migration-checklist.md#迁移规则) 第 3 条），操作视图的提示行自己加上“为什么：”。
 - 内容文件名必须是以字母开头的英文 kebab-case，否则构建失败。
 
@@ -202,7 +203,7 @@ function pathOf(stop: Stop): string;
   - 实现（#8）：`src/scripts/route-enhance.ts` 由 `StepLayout` 加载，步骤页和选择页都运行。它从 `data-route-*` 挂载点读当前页（`<main data-route-at>`，`At` 的 JSON），改写 `[data-route-nav="prev|next"]` 的链接和目标标题、`[data-route-progress]` 的进度；文案由 `src/lib/nav-text.ts` 生成，与构建时同一份代码。选择页上每个选项的链接按“本机选择 + 这个选项”重算，本机保存的选项显示“当前选择”并标 `aria-current`（只看本机保存的：没点过选项、也没打开过这个分叉点的分支步骤时，默认选项不算选过；打开分支步骤会记下它所属的选项，见下文），点击时同步写入 `choices` 再跳转。打开步骤页时写入的内容由纯函数 `openPatch()` 决定：`lastStep`、`visited`，以及步骤所属分支的实际生效选项；普通步骤不写选择，没选过的分叉点继续跟随默认路线。从往返缓存恢复的页面（`pageshow` 且 `persisted`）重新计算一次。目录见下文（#18）。
 - **目录**（#18，design §4.5）：组件 `src/components/Toc.astro`（外壳：侧栏和 `<dialog>` 抽屉）和 `TocNav.astro`（列表），样式在 `src/styles/toc.css`（全局样式，因为同一个 `<nav>` 会在侧栏和抽屉之间移动）。构建时按 `view(at, {}).outline` 写好全部链接，没有 JS 也能点；常见问题页和找不到页用 `outline({}, null)`，并由目录自己内嵌 `#route-data`。页面脚本 `src/scripts/toc.ts` 在 route-enhance 之后运行（先写入打开这一页的 `visited`，目录才有这一页的 ✓），按 `outline(本机选择, 当前页)` 改写“其他路线”标记、选中的选项、当前项和已读 ✓——标记和 outline 按文档顺序一一对应，不在浏览器里重新生成 HTML。“切换”写入 `choices` 后派发 `reader-choices-changed`，route-enhance 收到后只重画导航，不再执行 `openPatch()`（否则会把当前页所属的选项写回去）；“清除进度”经 `confirm()` 确认后调用 `clear()`，同样派发该事件。两个脚本经 `src/scripts/reader-store.ts` 的 `readerStoreFor()` 共用一个 ReaderStore，本机存储不可用时内存里的改动也能互相看到。共享步骤在每个选项下各列一份，只有当前路线上的那份标 `aria-current="step"`，都不在时标在它所属的第一个选项下。
   - 在分支步骤上改选（#18 选定）：例如在方案三的“购买住宅节点”里切到方案二，目录立即按方案二显示，这一页标“其他路线”；但这一页自己的上一步/下一步仍按它所属的方案三计算（URL 决定所属选项，S5），沿“下一步”进入方案三的下一页时 `openPatch()` 会把方案三写回去。想走新路线的读者从目录点新路线的步骤或选择页进入，之后的导航都按新路线（FR-14、AC-04）。
-  - 与 design §4.1 的差异：手机顶栏没有章节缩写（RouteData 里没有短名），完整进度放在吸顶顶栏的第二行；缩写和顶栏视觉留给 #21。
+  - 手机顶栏：没有章节缩写（RouteData 里没有短名），完整进度放在吸顶顶栏的第二行；#21 复核后保留这一做法，design §4.1 已同步。
   - 布局：`StepLayout` 在 ≥1100px 时是“300px 侧栏 + 正文”两栏，侧栏吸顶、自己滚动，打开时把当前项滚到侧栏上部；更窄时侧栏隐藏，顶栏（目录按钮、进度、视图切换）吸顶，脚本打开抽屉时把 `<nav>` 移进 `<dialog>`，关闭时移回。常见问题页、找不到页任何宽度都用抽屉。“目录”“切换”“清除进度”按钮在没有 JS 时隐藏（窄屏没有 JS 时看不到目录，宽屏侧栏照常可点）。
 - **视图**：`<head>` 里放一段几十字节的内联脚本，在首次绘制前设置 `<html data-view="operation|principle">`，避免页面闪一下。`[!why]` 块的显示和隐藏只用 CSS 控制（[ADR-0003](adr/0003-principle-content-as-why-callouts.md)）。
   - 实现（#9）：内联脚本是 `src/lib/reader-state/view-boot.ts` 的 `VIEW_BOOT_SCRIPT`，由 `StepLayout` 经 `BaseLayout` 的 `head` slot 放进 `<head>`；它只按 M4 的格式取 `view`，取不到或不合法时用 `operation`。切换控件是 `src/components/ViewToggle.astro`，放在步骤页和选择页标题上方的一行里（#18 起这一行在 <1100px 时吸顶，左侧加“目录”按钮）；按下状态由 CSS 按 `data-view` 画，没有 JS（没有 `data-view`）时整个隐藏。页面脚本 `src/scripts/view-toggle.ts` 处理点击、同步 `aria-pressed`、写 M4 的 `view`，并在每个原理块前插入提示行“为什么：<标题> · 在原理视图中查看”（点它切到原理视图并滚到该块）；提示行由脚本插入，所以没有 JS 时不显示。“这一步没有额外原理”在构建时决定：`StepLayout` 先渲染正文，HTML 里没有 `data-callout="why"` 才输出这一行，只在原理视图下显示。显示规则都在 `src/styles/prose.css` 末尾。
@@ -344,7 +345,7 @@ M4 不依赖 M2：`StepId`、`Choices` 等在 M4 里是同义的字符串别名�
 | Q-01 | 部署位置和域名（需求遗留） | 交付阶段；`BASE_PATH` 已经同时支持根路径和子路径 | 否 |
 | A-01 | AC-15“任意子路径”按“构建时设置 `BASE_PATH`”理解：每个部署位置各构建一次，不做一份产物适配所有路径 | 想要一份产物放到任何路径都能用的话，所有链接都要改成相对路径，复杂度会明显增加 | 否（已按推荐选定；有异议请提出） |
 | A-02 | B 站嵌入参数（`bvid`、是否自动播放）没有官方文档 | 在 #17 里用浏览器实测。原列的 `why` Callout、插件图片进 Astro 图片处理、Shiki 三项已在 #2 验证可行（[reuse-research.md §4.1](reuse-research.md)，结论见 §3 M1） | 否 |
-| A-03 | 视觉令牌的具体色值要用真实内容截图复核（P2） | [design.md](design.md) | 否 |
+| A-03 | 视觉令牌的具体色值要用真实内容截图复核（P2） | 已解决（#21）：截图复核通过；对比度由 `src/styles/tokens.test.ts` 实测，控件边框拆出 `--control-border`，见 [design.md §3.1](design.md) | 否 |
 | Q-02、Q-07 | 需求遗留：F2 是否增加选项；联系方式的具体内容 | 只影响内容和 `route.yaml`，不影响架构 | 否 |
 
 ## 11. 实施前架构评审（2026-10-13）
