@@ -107,7 +107,6 @@
 
 /* 浮层是本页唯一的 <dialog>，用 ::backdrop 压暗背景（design §3.3：只有浮层加阴影）。 */
 .image-zoom {
-  position: relative;
   max-width: 96vw;
   max-height: 96vh;
   margin: auto;
@@ -120,7 +119,7 @@
 }
 
 .image-zoom::backdrop {
-  background: rgb(0 0 0 / 65%);
+  background: var(--backdrop);
 }
 
 .image-zoom figure {
@@ -130,6 +129,13 @@
 .image-zoom-image {
   display: block;
   max-width: 100%;
+  /*
+   * 不超出视口高度，整张图一眼看全，不用在浮层里滚动。减去的是浮层上下内边距和边框、
+   * 关闭按钮那一行（44px + 下边距）、图下文字（手机上可能折两行）：
+   * 32 + 2 + 52 + 12 + 42 ≈ 140px，按 144px 留余量。
+   */
+  max-height: calc(96vh - 144px);
+  width: auto;
   height: auto;
   margin: 0 auto;
   border-radius: var(--radius-image);
@@ -144,12 +150,13 @@
   text-align: center;
 }
 
-/* 关闭按钮浮在右上角，和复制按钮同一套做法。 */
+/*
+ * 关闭按钮单独占图片上方的一行、靠右，不浮在图上：浮在图上会盖住截图右上角的内容，
+ * 图一高起来浮层滚动时它还会跟着滚走。
+ */
 .image-zoom-close {
-  position: absolute;
-  top: var(--space-2);
-  right: var(--space-2);
-  display: inline-flex;
+  display: flex;
+  margin: 0 0 var(--space-2) auto;
   align-items: center;
   justify-content: center;
   width: 44px;
