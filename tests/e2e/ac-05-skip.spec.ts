@@ -7,10 +7,11 @@ import { expect, test } from '@playwright/test';
 const CASES: [string, string, string, string][] = [
   ['clean-claude-code', '没用过，跳过', '/choose/node-plan/', '你想用哪种方式准备住宅 IP？'],
   ['replace-ip-or-refund', 'IP 合格，跳过', '/choose/phone/', '你用什么手机？'],
-  ['create-google-account', '已有，跳过', '/use-google-few-days/', '先用 Google 账号几天，期间固定同一个节点'],
+  ['create-google-account', '已有，跳过', '/google-appeal/', '被封了：申诉解封'],
   // iPhone（默认）：“下载 Gmail”和“创建 Gmail 邮箱和 Google 账号”连续可跳过，一次跳到第八章第一步
-  ['iphone-gmail', '已有，跳过', '/use-google-few-days/', '先用 Google 账号几天，期间固定同一个节点'],
-  ['google-appeal', '没被封，跳过', '/register-claude/', '用 Google 账号注册 claude，先正常用几天'],
+  ['iphone-gmail', '已有，跳过', '/google-appeal/', '被封了：申诉解封'],
+  // “申诉解封”后面是不可跳过的步骤，跳过申诉不会连带跳过改地区
+  ['google-appeal', '没被封，跳过', '/use-google-few-days/', '先用 Google 账号几天，期间固定同一个节点'],
   ['google-region', '已经不是中国大陆或香港，跳过', '/register-claude/', '用 Google 账号注册 claude，先正常用几天'],
 ];
 
@@ -41,8 +42,8 @@ test('已选安卓时，在“安装 Google Play”点跳过，到第八章第�
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('安装 Google Play');
   await page.getByRole('link', { name: '已有，跳过', exact: true }).click();
 
-  await expect(page).toHaveURL(/\/use-google-few-days\/$/);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('先用 Google 账号几天，期间固定同一个节点');
+  await expect(page).toHaveURL(/\/google-appeal\/$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('被封了：申诉解封');
   await expect(page.getByText('八、养号 · 第 1 步，共 3 步', { exact: true })).toBeVisible();
   // 本机选择确实记成了安卓：汇合点的“上一步”是安卓的“下载 Gmail”，不是 iPhone 的
   await page.goto('./create-google-account/');
