@@ -350,6 +350,24 @@ describe('RouteData 与 routeMapFromData', () => {
   });
 });
 
+describe('章节的一句话 intro（design §4.1、架构 §11.4 W-3）', () => {
+  it('写了 intro 的章节在 RouteData 里带上它，没写的没有这个字段', () => {
+    const spec = sampleSpec();
+    chapter(spec, 'start').intro = '这一章的一句话。';
+    const { data } = buildRouteMap(spec, samplePages());
+    expect(data.chapters.find((c) => c.id === 'start')!.intro).toBe('这一章的一句话。');
+    expect(data.chapters.find((c) => c.id === 'ending')!).not.toHaveProperty('intro');
+  });
+
+  it('intro 不是非空字符串时报出 route.yaml', () => {
+    for (const intro of ['', '  ', 42]) {
+      const spec = sampleSpec();
+      (chapter(spec, 'start') as { intro?: unknown }).intro = intro;
+      expectError(errorsOf(spec), 'route.yaml', /第 1 个章节的 intro 必须是非空的一段文字/);
+    }
+  });
+});
+
 describe('pathOf', () => {
   it('页面都是 /<id>/，首页是 /（ADR-0002）', () => {
     expect(pathOf({ kind: 'step', id: 'preface', title: '前言' })).toBe('/preface/');

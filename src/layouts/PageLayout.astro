@@ -1,6 +1,8 @@
 ---
+import ChapterSubtitle from '../components/ChapterSubtitle.astro';
 import CodeCopy from '../components/CodeCopy.astro';
 import ImageZoom from '../components/ImageZoom.astro';
+import Numeral from '../components/Numeral.astro';
 import SiteHeader from '../components/SiteHeader.astro';
 import StepNav from '../components/StepNav.astro';
 import Toc from '../components/Toc.astro';
@@ -25,7 +27,8 @@ import '../styles/prose.css';
  * 目录（design v2.1 §4.5、D5）：所有宽度都是抽屉，由页眉的“目录”打开（toc.ts）；没有 JS 时“目录”链到首页的完整目录。
  * 眉题（design §4.1）：章节号 + 章节名，两端的短横由 CSS 画；平板和手机多写“ · 共 m 步”，旁支页写“ · 旁支”（§4.6）。
  * 看得见的眉题和编号都不进无障碍树，读屏读眉题里单独的一句（“准备节点和住宅 IP，第 2 步，共 5 步”）。
- * 每章第一页（含选择页）在眉题上方多一块章节过场。
+ * 每章第一页（含选择页）在眉题上方多一块章节标题卡（design v2.1 §4.1、D6）：副标题对读屏隐藏，章名照读，
+ * 章节号读“第 n 章”；一句话是 route.yaml 里这一章的 intro（构建时已核对它原样摘自章首页的原理版正文）。
  * 步骤编号（design §3.3、§4.1、§4.2、§4.6）：桌面挂在正文栏左侧的页边栏，底边和 h1 对齐；平板和手机放在 h1 前。
  * 编号、步数和读屏文字是本章进度（FR-10），由 route-enhance 按当前路线和视图改写（renderProgress）。
  */
@@ -51,6 +54,7 @@ const operation = notice === undefined ? await Astro.slots.render('operation') :
 const hasZoom = [principle, operation].some((html) => html !== undefined && hasZoomableImage(html));
 const chapterNo = chapterNoText(view.progress.chapterNo);
 const chapterStart = isChapterStart(routeData.chapters, view.progress, view.current);
+const chapterIntro = routeData.chapters.find((chapter) => chapter.id === view.progress.chapterId)?.intro;
 const markHtml = stepMarkHtml(stepMark(view.progress, view.current));
 ---
 
@@ -62,9 +66,13 @@ const markHtml = stepMarkHtml(stepMark(view.progress, view.current));
     <header class="step-header">
       {
         chapterStart && (
-          <div class="chapter-intro" aria-hidden="true">
-            <span class="chapter-intro-no">{chapterNo}</span>
-            <span class="chapter-intro-title">{view.progress.chapter}</span>
+          <div class="chapter-card">
+            <ChapterSubtitle chapter={view.progress.chapterNo} />
+            <p class="chapter-card-heading">
+              <span class="chapter-card-no"><Numeral text={chapterNo} label={`第 ${view.progress.chapterNo} 章`} /></span>
+              <span class="chapter-card-title">{view.progress.chapter}</span>
+            </p>
+            {chapterIntro !== undefined && <p class="chapter-card-intro">{chapterIntro}</p>}
           </div>
         )
       }
@@ -129,28 +137,80 @@ const markHtml = stepMarkHtml(stepMark(view.progress, view.current));
     padding: var(--space-6) var(--gutter) var(--space-7);
   }
 
-  /* 章节过场（design §4.1）：大号章节号 + 章节名 + 一条细线，上下各留 32px；“从零开始”的点缀，只在每章第一页。 */
-  .chapter-intro {
+  /*
+   * 章节标题卡（design v2.1 §4.1、D6）：没有底色和边框，只靠留白和一条 1px --text 线和下面分开，没有入场动画（§5）。
+   * 留白：卡片上方 96px（手机 48px，减去 .step 已有的 32px），副标题到章节号 16px，章名到一句话 16px，
+   * 一句话到线 32px，线到眉题 48px（手机 32px）。手机上章节号在上、章名在下；平板起两者并排、底边对齐。
+   */
+  .chapter-card {
+    margin: var(--space-4) 0 var(--space-6);
+    padding-bottom: var(--space-6);
+    border-bottom: var(--border-width) solid var(--text);
+  }
+
+  .chapter-card :global(.chapter-subtitle) {
+    display: block;
+    color: var(--text-muted);
+  }
+
+  .chapter-card-heading {
     display: flex;
-    align-items: baseline;
-    gap: var(--space-4);
-    margin: 0 0 var(--space-6);
-    padding-bottom: var(--space-4);
-    border-bottom: var(--border-width) solid var(--border);
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+    margin: var(--space-4) 0 0;
   }
 
-  .chapter-intro-no {
+  .chapter-card-no {
     color: var(--accent);
-    font-family: var(--font-numeral);
-    font-size: var(--fs-numeral);
+    font-size: var(--fs-display);
     line-height: 1;
-    font-weight: 400;
   }
 
-  .chapter-intro-title {
-    font-size: var(--fs-h2);
-    line-height: var(--lh-heading);
-    font-weight: 700;
+  .chapter-card-title {
+    font-size: var(--fs-chapter-title);
+    line-height: var(--lh-title);
+    font-weight: 800;
+  }
+
+  .chapter-card-intro {
+    max-width: 24em;
+    margin: var(--space-4) 0 0;
+    color: var(--text-muted);
+  }
+
+  @media (min-width: 720px) {
+    .chapter-card {
+      margin-top: calc(var(--space-9) - var(--space-6));
+      margin-bottom: var(--space-7);
+    }
+
+    /* 章节号和章名最后一行的基线对齐（last baseline，旧浏览器退回第一行基线，同 .step-heading） */
+    .chapter-card-heading {
+      flex-direction: row;
+      align-items: last baseline;
+      gap: var(--space-4);
+    }
+  }
+
+  /* 桌面：线横跨页边栏和正文栏；章节号放进页边栏、右缘对齐页边栏右缘，和下面的步骤编号在同一条竖线上（§3.3）。 */
+  @media (min-width: 1100px) {
+    .chapter-card {
+      margin-left: calc(-1 * (var(--margin-width) + var(--space-6)));
+      padding-left: calc(var(--margin-width) + var(--space-6));
+    }
+
+    .chapter-card-heading {
+      display: grid;
+      grid-template-columns: var(--margin-width) minmax(0, 1fr);
+      column-gap: var(--space-6);
+      margin-left: calc(-1 * (var(--margin-width) + var(--space-6)));
+    }
+
+    /* 章节号（96px 的“00”约 144px）比页边栏宽：靠右对齐、向左伸出页边栏，右缘仍在竖线上 */
+    .chapter-card-no {
+      justify-self: end;
+    }
   }
 
   /*

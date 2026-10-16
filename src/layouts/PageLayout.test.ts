@@ -114,11 +114,12 @@ describe('PageLayout', () => {
     expect(html).toMatch(/data-route-progress[^>]*>注册和订阅 · 旁支</);
   });
 
-  it('章节过场只在每章第一页出现（design §4.1）', async () => {
+  it('章节标题卡只在每章第一页出现：副标题、章节号（读屏“第 n 章”）+ 章名、一句话（design §4.1、§5）', async () => {
     const chapters: RouteData['chapters'] = [
       {
         id: 'register-and-subscribe',
         title: '注册和订阅',
+        intro: '所以手机也是 claude 会看到的一台设备。',
         items: [
           { kind: 'step', id: 'android-subscribe' },
           { kind: 'step', id: 'after-subscribe' },
@@ -126,11 +127,25 @@ describe('PageLayout', () => {
       },
     ];
     const first = await render({ routeData: { ...routeData, chapters } }, { principle: '<p>原理正文</p>' });
-    expect(first).toMatch(/class="chapter-intro"/);
-    expect(first).toMatch(/class="chapter-intro-no"[^>]*>02</);
+    const card = /<div class="chapter-card"[^>]*>(.*?)<\/div>/s.exec(first)?.[1];
+    expect(card).toBeDefined();
+    expect(card).toMatch(/<svg class="chapter-subtitle" aria-hidden="true"/);
+    expect(card).toMatch(/class="chapter-card-no"[^>]*><svg class="numeral" role="img" aria-label="第 2 章"/);
+    expect(card).toMatch(/class="chapter-card-title"[^>]*>注册和订阅</);
+    expect(card).toMatch(/class="chapter-card-intro"[^>]*>所以手机也是 claude 会看到的一台设备。</);
+    expect(first).not.toContain('chapter-intro');
+    // 标题卡在眉题之前
+    expect(first.indexOf('chapter-card')).toBeLessThan(first.indexOf('class="eyebrow"'));
 
     const later = { ...view, current: { kind: 'step', id: 'after-subscribe', title: '订阅之后' } as const };
     const html = await render({ view: later, routeData: { ...routeData, chapters } }, { principle: '<p>原理正文</p>' });
-    expect(html).not.toContain('chapter-intro');
+    expect(html).not.toContain('chapter-card');
+  });
+
+  it('章节没写 intro 时标题卡不输出一句话', async () => {
+    const chapters: RouteData['chapters'] = [{ id: 'register-and-subscribe', title: '注册和订阅', items: [{ kind: 'step', id: 'android-subscribe' }] }];
+    const html = await render({ routeData: { ...routeData, chapters } }, { principle: '<p>原理正文</p>' });
+    expect(html).toContain('class="chapter-card"');
+    expect(html).not.toContain('chapter-card-intro');
   });
 });

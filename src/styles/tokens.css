@@ -27,15 +27,13 @@
   /* logo 的“Re”跟主色走 */
   --logo-re: var(--accent);
 
-  /* §3.2 字体。--font-numeral 只用于 v2.0 章节过场的章节号：系统自带的旧式衬线，不加载网页字体；
-     其余编号（目录、404、步骤编号）已用固定字形（Numeral，design v2.1 §3.2 D7），过场随 W05 改造；眉题里的章节号用系统字体 */
+  /* §3.2 字体：只用系统字体，不加载网页字体。大号编号（章节号、步骤编号、目录、404）用固定字形
+     （Numeral，design v2.1 §3.2 D7），不靠字体；眉题里的章节号用系统字体 */
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
     "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC",
     "Source Han Sans SC", sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", "Cascadia Code", "JetBrains Mono",
     Menlo, Consolas, monospace;
-  --font-numeral: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua",
-    Georgia, serif;
 
   /*
    * §3.2 字号（手机 <720px 的值；平板 720–1099px、桌面 ≥1100px 见下方媒体查询）。
@@ -43,11 +41,9 @@
    * 需要“仅手机”时写 `max-width: 719px`。
    */
   --fs-title: 26px;
-  /* v2.0 章节过场的旧式衬线章节号（PageLayout），W05 换成章节标题卡后删掉 */
-  --fs-numeral: 40px;
   /* 固定字形的大号编号（Numeral，1em = 数字高度）：章节标题卡的章节号和 404 */
   --fs-display: 64px;
-  /* 章节标题卡的章名和英文副标题（W05 用） */
+  /* 章节标题卡的章名和英文副标题（PageLayout） */
   --fs-chapter-title: 28px;
   --fs-chapter-sub: 13px;
   --tracking-chapter-sub: 0.3em;
@@ -122,7 +118,6 @@
   :root {
     /* 平板 720–1099px */
     --fs-title: 30px;
-    --fs-numeral: 56px;
     --fs-display: 80px;
     --fs-chapter-title: 34px;
     --fs-h2: 21px;

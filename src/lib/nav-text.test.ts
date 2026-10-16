@@ -68,7 +68,7 @@ describe('nav-text：导航文案，构建时和浏览器共用', () => {
     expect(chapterNoText(12)).toBe('12');
   });
 
-  it('章节过场只在每章第一页：普通页或选择页，不含旁支页和分支段（design §4.1）', () => {
+  it('章节标题卡只在每章第一页：普通页或选择页，不含旁支页和分支段（design §4.1）', () => {
     const chapters = [
       { id: 'start', title: '开始', items: [{ kind: 'step' as const, id: 'preface' }, { kind: 'step' as const, id: 'disclaimer' }] },
       {

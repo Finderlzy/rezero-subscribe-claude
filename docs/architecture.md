@@ -88,6 +88,7 @@
 chapters:
   - id: start
     title: 开始
+    intro: 每一步我都会努力去讲清楚为什么要这么做，……   # 可选：章节标题卡下的一句话（#36）
     items: [preface, disclaimer, overview, clean-up]
   - id: node-and-ip
     title: 准备节点和住宅 IP
@@ -203,7 +204,7 @@ function routeMapFromData(data: RouteData): RouteMap;
 function pathOf(stop: Stop): string;        // '/<id>/' 或 '/'；再由 withBase() 加前缀
 ```
 
-实现补充（#25）：`RouteData` 是 `{ chapters, pages, forks: { <分叉点>: { page, options } }, side: { <旁支页>: <returnTo> } }`；旁支页的 `current` 是 `{ kind: 'side' }`；`outline` 的 `onRoute` 在分叉点没选时对它的各选项都为真，操作视图下原理独有步骤为假。测试用路线图在 `src/lib/route/fixtures/sample-route.ts`，真实 `route.yaml` 的边界用例在 `src/lib/site.test.ts`。
+实现补充（#25）：`RouteData` 是 `{ chapters, pages, forks: { <分叉点>: { page, options } }, side: { <旁支页>: <returnTo> } }`（#36 起章节写了 `intro` 时 `chapters[i].intro` 带上它）；旁支页的 `current` 是 `{ kind: 'side' }`；`outline` 的 `onRoute` 在分叉点没选时对它的各选项都为真，操作视图下原理独有步骤为假。测试用路线图在 `src/lib/route/fixtures/sample-route.ts`，真实 `route.yaml` 的边界用例在 `src/lib/site.test.ts`。
 
 **规则**（构建时校验，任何一条不满足就失败，FR-61）：
 
@@ -218,6 +219,7 @@ function pathOf(stop: Stop): string;        // '/<id>/' 或 '/'；再由 withBas
 - **可跳过**：`skipTo` 沿当前路线和视图，跳过从当前页开始连续的可跳过步骤，取其后的第一项（可以跨章节，FR-15）。
 - **进度**：步骤在当前路线和视图的本章序列里才有 `index/total`；本章序列里有折叠的未选分支段、或当前页是选择页、旁支页、不在当前视图序列里的原理独有步骤时，只有章节名（FR-10）。
 - **枚举**：3 × 2 种选择组合 × 2 种视图共 12 条序列，每条都要从 `preface` 走到 `afterword`，不重复经过同一页（无环）。
+- **章节的一句话**（#36，§11.4 W-3）：`intro` 可选；写了就必须是非空字符串（M2 校验形状），并且原样出现在这一章第一项（普通页或选择页）的原理版正文里，第一项是分支段的章节不能写。M2 不读正文，这一条由 `assembleRoute()`（`src/lib/site.ts`）在 `buildRouteMap` 之后核对，错误照样是 `RouteValidationError`、写明 `route.yaml`（ADR-0005：标题卡的一句话不另写，`tests/fixtures/intro-not-in-body`）。
 - **目录 outline**：沿用 1.0.0 的结构（章节 → 普通项 / 选择页 / “或”分组），每一项新增 `principleOnly`；去掉 `placeholder`；`current` 只在一处为真（共享步骤规则 1.0.0 已有）。
 
 ### M3 页面（`src/pages/`、`src/layouts/`、`src/components/`、`src/styles/`、`src/scripts/`）
@@ -244,10 +246,11 @@ function pathOf(stop: Stop): string;        // '/<id>/' 或 '/'；再由 withBas
 - **目录**（1.0.0 已有 `Toc`/`TocNav`/`toc.ts`，改动）：去掉已读 ✓ 和“清除进度”；原理独有步骤标“原理”，在操作视图下弱化；参考页在末尾单列“卡住了再看”。首页的目录用同一个 `TocNav`（首页变体：不吸顶、不折叠）。
   实现（#30，现状）：`TocNav` 章名前写 `00`–`03` 章节号，末尾单列 `site.tocReferences`（`loadSite()` 按常见问题、IP 质量实测合集的顺序给出标题，由页面经 `PageLayout`/`Toc` 的参数传入，`TocNav` 自己不读内容），当前项是 `aria-current="page"`。`Toc` 输出侧栏和空的抽屉 `<dialog data-toc-dialog>`（#34 起取消侧栏，见下）。页面脚本 `src/scripts/toc.ts` 在 `route-enhance` 之后运行（它先记下当前页所属选项），按本机选择和当前视图调用 `outline(stored, at, mode)` 改写标记：`data-off-route`（其他选项的步骤、操作视图下的原理独有步骤）、“其他路线”（只按分支判断，原理独有步骤只弱化不标）、`data-selected`、“切换”按钮和当前项；“切换”写入 `choices` 并派发 `reader-choices-changed`，收到选择或视图变化时重画；跑完给 `<nav>` 加 `data-toc-ready`。
   v2.1（#34，现状）：所有宽度都是抽屉，不常驻（design §4.5、D5）。`Toc` 只输出 `<dialog data-toc-dialog>`，`<nav>` 构建时就写在里面，不再在侧栏和抽屉之间移动；`PageLayout` 去掉 `.step-shell` 两栏网格。手机全屏，≥720px 贴左边宽 400px。页眉的“目录”构建时是 `<a href="…/#home-chapters" data-toc-open>`，没有 JS 也能到首页的完整目录（FR-16，§11.4 W-5）；`toc.ts` 把它换成同样属性（去掉 href）的 `<button aria-haspopup="dialog">`，Esc、点遮罩、点“关闭”都关，关闭后 `<dialog>` 把焦点还给按钮。过渡（design §5）选 CSS 方案：`toc.css` 用 `@starting-style` 做滑入 200ms 和遮罩淡入，关闭时 `display`/`overlay` 加 `transition-behavior: allow-discrete` 推迟移出顶层，做 150ms 滑出，脚本照常 `close()`，Esc 也有过渡；不支持的浏览器直接开关。看大图同样用 `@starting-style` 淡入 150ms，关闭直接消失。时长取 `tokens.css` 的令牌，减少动态效果时归零。章节号换成固定字形 `Numeral`（读屏“第 n 章”）：目录 20px，首页 28px。首页和找不到页的目录是静态的，按 `outline({}, null, 'principle')` 画（没有视图，全部正常显示，不弱化），不跑脚本。参考页不放抽屉，“打开目录”仍链到首页目录。
-- **页眉（#31，现状）**：`src/components/SiteHeader.astro`，首页以外的页面都有（design §4.0）。参数 `views`（显示 `ViewToggle`，视图色带跟 `<html data-view>` 走：操作 `--text`、原理 `--accent`）和 `toc`（显示“目录”：构建时是链到首页目录的 `[data-toc-open]` 链接，所有宽度都有，`toc.ts` 换成打开抽屉的按钮，#34）；`PageLayout` 传两者，`ReferenceLayout` 和找不到页都不传（色带 `--border`）。眉题的章节号、章节过场由 `PageLayout` 按 `view.progress.chapterNo` 和 `routeData.chapters` 的第一项算出，`[data-route-progress]` 仍只放进度文字，页面脚本照旧改写它（#35 起改为读屏文字，见下面的“步骤编号”）。章节号的文字统一由 `lib/nav-text.ts` 的 `chapterNoText()` 给出。
+- **页眉（#31，现状）**：`src/components/SiteHeader.astro`，首页以外的页面都有（design §4.0）。参数 `views`（显示 `ViewToggle`，视图色带跟 `<html data-view>` 走：操作 `--text`、原理 `--accent`）和 `toc`（显示“目录”：构建时是链到首页目录的 `[data-toc-open]` 链接，所有宽度都有，`toc.ts` 换成打开抽屉的按钮，#34）；`PageLayout` 传两者，`ReferenceLayout` 和找不到页都不传（色带 `--border`）。眉题的章节号、章节标题卡由 `PageLayout` 按 `view.progress.chapterNo` 和 `routeData.chapters` 的第一项算出，`[data-route-progress]` 仍只放进度文字，页面脚本照旧改写它（#35 起改为读屏文字，见下面的“步骤编号”）。章节号的文字统一由 `lib/nav-text.ts` 的 `chapterNoText()` 给出。
 - **步骤编号（#35，现状）**：design §4.1、§4.2、§4.6、D3。`lib/nav-text.ts` 给出构建时和页面脚本共用的四个函数：`stepMark(progress, current)`（普通页“本章第几步”补足两位和“共 m 步”；数不清时短横 `–`；选择页“选择”、旁支页“旁支”），`stepMarkHtml(mark)`（编号用 `numeralSvg`，带 `data-step-no` 原文），`eyebrowTotal()`（平板和手机眉题里的“ · 共 m 步”），`progressText()`（读屏文字“准备节点和住宅 IP，第 2 步，共 5 步”；数不清和选择页只有章节名，旁支页“<章> · 旁支”）。`PageLayout` 的眉题分成看得见的部分（`aria-hidden`：章节号用系统字体、章节名、`[data-route-total]`）和 `visually-hidden` 的 `[data-route-progress]`；h1 和 `[data-route-mark]`（`aria-hidden`）包在 `.step-heading` 里：<1100px 是 flex，编号在 h1 前、`--fs-title`、`--text-muted`、按第一行基线对齐，不显示“共 m 步”和选择/旁支二字；≥1100px 是两栏网格（`--margin-width` 96px + `--space-6`），用负外边距挂到正文栏左侧，编号 `--fs-margin-numeral`、`--text`、右对齐，`align-items: last baseline` 和 h1 最后一行基线对齐，“共 m 步”绝对定位在编号下方。`route-enhance` 的 `renderProgress(slots, view)` 在每次重算导航时改写这三个挂载点（切换视图、改选分叉点后编号跟着变）。
 - **logo**：`src/assets/logo/` 放转曲后的 SVG（中文版、英文版、“Re:”标记），**只由 `src/components/Logo.astro` 引用**（`?raw` 内联，颜色用 `currentColor` 和设计令牌，深浅主题自动适配）；换 logo 只改这一处（需求 Q-15）。favicon 是 `public/favicon.svg`（SVG 内用 `prefers-color-scheme` 切换配色），由 `BaseLayout` 的 `<link rel="icon">` 引用。“Re”的颜色取 `--logo-re`（SVG 里的回退值是浅色的 `#5B3FA0`），`tokens.css` 在 `:root` 设 `--logo-re: var(--accent)`，深色模式下换成浅紫（#31 接入）。四个 SVG 都由 `scripts/build-logo.mjs` 生成，版式参数（字号、错落、间距）写在脚本里。
-- **编号字形（#32，现状）**：design §3.2 D7 的固定字形编号。`scripts/build-logo.mjs` 按字形名取 Cormorant Garamond 500 的等高数字 `zero.lf`…`nine.lf` 和 `endash`（§11.4 W-1），输出 `src/assets/numerals/symbols.svg`（`<symbol id="numeral-0">`…`numeral-9`、`numeral-dash`，字体单位 1000/em，共用一个竖向范围）和 `metrics.json`（`top`、`height`、各字宽）；另输出四条章节副标题 `chapter-00.svg`…`chapter-03.svg`（Roboto Condensed 700，13px 原大，字距 0.3em，两端 24px 短横）。接口（§11.4 W-2）：`BaseLayout` 每页内联一份 `NumeralSprite`（隐藏、`aria-hidden`）；纯函数 `numeralSvg(text, label, className?)`（`src/lib/numeral.ts`）用 `<use>` 按字宽拼出数字串，外层 `role="img"` + `aria-label`，`fill="currentColor"`，高 `1em` = 数字高度（用 `font-size` 控制大小，例如找不到页的 `--fs-display` 64/80/96px），只接受 0–9 和 `–`；`Numeral.astro` 在构建时调用它，页面脚本改写编号时调用同一个函数，不重新转曲。`ChapterSubtitle.astro` 内联对应章节的副标题，`aria-hidden`，颜色由使用方给。已用在找不到页的大号 `404` 和步骤编号（#35）；章节号、首页索引由 W05、W07 接入。
+- **章节标题卡（#36，现状）**：design §4.1、§5、D6，替换 v2.0 的 `.chapter-intro`。只在 `isChapterStart()` 为真的页面（每章第一页，含选择页），放在眉题上方：`ChapterSubtitle`（`--text-muted`，对读屏隐藏）、`.chapter-card-heading`（`Numeral` 章节号，`--fs-display`、`--accent`，读屏“第 n 章”；章名 `--fs-chapter-title` 800）、`.chapter-card-intro`（`routeData.chapters` 里这一章的 `intro`，`--text-muted`、最宽 24em，没写就不输出）、一条 1px `--text` 下边线。<720px 章节号在章名上方；≥720px 并排，`align-items: last baseline` 底边对齐；≥1100px 卡片用负外边距把线延伸到页边栏，`.chapter-card-heading` 和 `.step-heading` 一样是两栏网格，章节号 `justify-self: end` 右缘对齐页边栏右缘（比页边栏宽时向左伸出）。留白按 §4.1（上方 96/48px 扣掉 `.step` 的 32px 顶部内边距）。没有入场动画。v2.0 的 `--font-numeral`、`--fs-numeral` 随之删除。
+- **编号字形（#32，现状）**：design §3.2 D7 的固定字形编号。`scripts/build-logo.mjs` 按字形名取 Cormorant Garamond 500 的等高数字 `zero.lf`…`nine.lf` 和 `endash`（§11.4 W-1），输出 `src/assets/numerals/symbols.svg`（`<symbol id="numeral-0">`…`numeral-9`、`numeral-dash`，字体单位 1000/em，共用一个竖向范围）和 `metrics.json`（`top`、`height`、各字宽）；另输出四条章节副标题 `chapter-00.svg`…`chapter-03.svg`（Roboto Condensed 700，13px 原大，字距 0.3em，两端 24px 短横）。接口（§11.4 W-2）：`BaseLayout` 每页内联一份 `NumeralSprite`（隐藏、`aria-hidden`）；纯函数 `numeralSvg(text, label, className?)`（`src/lib/numeral.ts`）用 `<use>` 按字宽拼出数字串，外层 `role="img"` + `aria-label`，`fill="currentColor"`，高 `1em` = 数字高度（用 `font-size` 控制大小，例如找不到页的 `--fs-display` 64/80/96px），只接受 0–9 和 `–`；`Numeral.astro` 在构建时调用它，页面脚本改写编号时调用同一个函数，不重新转曲。`ChapterSubtitle.astro` 内联对应章节的副标题，`aria-hidden`，颜色由使用方给。已用在找不到页的大号 `404`、步骤编号（#35）和章节标题卡（#36）；首页索引由 W07 接入。
 - **参考页的返回**（1.0.0 已有 `faq-return`，泛化为 `reference-return`）：根据 `?from=<page-id>` 查到页面标题，显示“返回刚才的步骤：<标题>”；实测页另有“回到：IP 质量实测合集”；直接打开时显示“打开目录”。
   实现（#27，现状）：纯函数 `referenceReturn(search, pages)`（`src/lib/reference-return.ts`）只认 `RouteData.pages` 里的标识（步骤、选择页、旁支页），其他值当作直接打开；`ReferenceLayout` 内嵌“页面标识 → 标题”（`#reference-pages`），在标题上方和正文末尾写出隐藏的 `[data-reference-return]`，页面脚本 `src/scripts/reference-return.ts` 填好地址和标题后显示，并隐藏“打开目录”（`[data-reference-toc]`，页脚因此空了就整行隐藏），跑完给 `<main>` 加 `data-reference-ready`。“打开目录”是指向首页目录的链接 `/#home-chapters`，没有 JS 也能用；参考页不内嵌路线数据，不放目录抽屉（#30 保持链接）。
 - **视频门面、代码复制、看大图**：1.0.0 已有，沿用；只改 FR-41：没有视频信息时不输出视频区域（删掉“视频制作中”）。
@@ -425,7 +428,7 @@ v2.0 → v2.1 的代码差距（现状 → 目标）：
 | 动效和反馈 | 没有任何过渡、悬停或按下反馈 | 抽屉 200/150ms、看大图 150ms；悬停、按下；`prefers-reduced-motion`（§5、D11） | W02（#33 已完成：悬停、按下，动效时长和位移写成令牌，减少动态效果时在 `tokens.css` 归零）、W03（#34 已完成：抽屉、看大图的过渡） |
 | 目录 | ≥1100px 常驻左侧栏（`.step-shell` 两栏网格、`toc.ts` 在侧栏和抽屉间移动 `<nav>`）；没有 JS 时“目录”按钮隐藏 | 所有宽度都是抽屉；没有 JS 时“目录”链到首页目录（§4.5、§5、D5） | W03（#34 已完成，见 §3 M3“目录”） |
 | 步骤编号 | 只有眉题文字“<章> · 第 n 步，共 m 步” | 桌面悬挂页边栏的大号编号 + “共 m 步”；平板和手机编号在 h1 前；数不清时短横；选择/旁支二字（§4.1、§4.2、§4.6、D3） | W04（#35 已完成，见 §3 M3“步骤编号”） |
-| 章节过场 | `.chapter-intro`：章节号 + 章名 + `--border` 线 | 章节标题卡：CHAPTER 副标题、紫色章节号 + 章名底边对齐、一句话、`--text` 线（§4.1、D6） | W05 |
+| 章节过场 | `.chapter-intro`：章节号 + 章名 + `--border` 线 | 章节标题卡：CHAPTER 副标题、紫色章节号 + 章名底边对齐、一句话、`--text` 线（§4.1、D6） | W05（#36 已完成，见 §3 M3“章节标题卡”） |
 | 截图 | 普通 `<img>`，没有边框和编号 | 图版：边框、上下 24px、编号“图 02-1”（§4.7、D4） | W06 |
 | 首页 | logo + “开始” + 目录 | 说明书封面（眉题、logo、一句话、小字信息行、两个入口、桌面章级索引）+ 完整目录（§4.4、D2） | W07 |
 | 说明图 | 无 | 三页单色线稿（§4.7、§9） | W08（待细化） |
@@ -434,7 +437,7 @@ v2.0 → v2.1 的代码差距（现状 → 目标）：
 | --- | --- | --- | --- | --- |
 | W-1 | design §3.2 要“等高数字”，但 Cormorant Garamond 的默认数字是旧式数字；`build-logo.mjs` 的 `run()` 按 `charToGlyph` 取字，会拿到旧式的 `zero` | 直接沿用 logo 的取字方式会做出 `0` `1` 半高的编号，正是 §3.2 拒绝的 | 已核实（2026-10-16，读 `.cache/fonts/CormorantGaramond.ttf`）：字体里有 `zero.lf`…`nine.lf` 和 `endash`，GSUB 有 `lnum`。W01 按字形名取字，不用 `charToGlyph` | 否 |
 | W-2 | 步骤编号要在浏览器里改写：切换视图、改选分叉点后本章第几步会变（FR-10、§4.3），而编号是转曲后的图形 | 如果每个数字串都在构建时整段转曲，浏览器拿不到新数字的图形 | 推荐：每页内联一份 `<symbol>`（`0`–`9`、`–`，约几 KB），构建时和 `route-enhance` 都用 `<use>` 拼数字串，外层 `role="img"` + `aria-label` 给读屏文字。W01 定接口，W04 接入；不加载网页字体（NFR-03） | 否 |
-| W-3 | 章节标题卡的“一句话”要“从重写稿取，不另写”（§4.1），但 `route.yaml` 和重写稿都没有章节简介字段 | 没有放处；手抄进代码会和重写稿脱节，违背 ADR-0005 | 推荐：`route.yaml` 的章节加可选 `intro`，构建时校验它在这一章第一页的原理版正文里原样出现，不出现就失败（同 FR-61 的做法）。句子由作者从候选里定（实施计划 §6）。W05 实现，实现后写进 §3 M1/M2 | 否 |
+| W-3 | 章节标题卡的“一句话”要“从重写稿取，不另写”（§4.1），但 `route.yaml` 和重写稿都没有章节简介字段 | 没有放处；手抄进代码会和重写稿脱节，违背 ADR-0005 | 推荐：`route.yaml` 的章节加可选 `intro`，构建时校验它在这一章第一页的原理版正文里原样出现，不出现就失败（同 FR-61 的做法）。句子由作者从候选里定（实施计划 §6）。已实现（#36），见 §3 M1“route.yaml 格式”和 M2“章节的一句话” | 否 |
 | W-4 | 截图编号“图 02-1”的前半是本页步骤号（§4.7），而步骤号可能数不清（§4.1 显示短横），文档没写这时怎么编 | 会出现“图 –-1” | 推荐：步骤号数不清时和选择页一样只用序号“图 1”；前缀随视图和选择由页面脚本改写，没有 JS 时按构建时的操作视图写。按作者 2026-10-16 的授权照此定，W06 实现，已补进 design §4.7 | 否 |
 | W-5 | 没有 JS 时“目录”必须能用（§5、FR-16），现在的按钮在没有 JS 时隐藏，而 v2.1 取消了常驻侧栏 | 取消侧栏后，没有 JS 的读者在步骤页上找不到目录 | W03 构建时输出指向 `/#home-chapters` 的链接，脚本接管成抽屉按钮（参考页已经这样链到首页目录） | 否 |
 | W-6 | FR-18、AC-01 写主按钮“开始”，design §4.4 改成“从第 00 章开始 →”（§8 一致性检查第 1 条） | `ac-01-home.spec.ts` 按旧文字找按钮 | W07 同步改 FR-18、AC-01 的按钮文字和用例；行为（进入前言）不变 | 否 |
