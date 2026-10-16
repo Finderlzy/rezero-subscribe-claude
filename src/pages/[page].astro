@@ -24,7 +24,7 @@ const Operation = page.operation && (await render(page.operation)).Content;
 const notice = data.principleOnly ? '这一页只有原理版。' : '操作版还在写，下面是原理版。';
 ---
 
-<PageLayout title={page.title} view={view} routeData={site.route.data} skipLabel={data.skipLabel} notice={Operation ? undefined : notice}>
+<PageLayout title={page.title} view={view} routeData={site.route.data} tocReferences={site.tocReferences} skipLabel={data.skipLabel} notice={Operation ? undefined : notice}>
   <VideoFacade slot="video" video={data.video} stepTitle={page.title} />
   <Principle slot="principle" />
   {Operation && <Operation slot="operation" />}

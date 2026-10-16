@@ -1,5 +1,6 @@
 ---
 import type { OutlineChapter } from '../lib/route/types';
+import type { TocReference } from '../lib/site';
 import TocNav from './TocNav.astro';
 import '../styles/toc.css';
 
@@ -7,8 +8,8 @@ import '../styles/toc.css';
  * 步骤目录的外壳（design §4.5，FR-16）。
  *
  * 构建时按 `outline` 写好全部章节和页面，没有 JS 也能点。≥1100px 时目录是常驻左侧栏；
- * 更窄时由顶栏的“目录”按钮打开抽屉。抽屉（`<dialog>`）和打开按钮的脚本由 #30 重写；在那之前不输出抽屉，
- * 按钮保持 `hidden`，窄屏读者从首页的目录进入各页。
+ * 更窄时由顶栏的“目录”按钮（`[data-toc-open]`，没有 JS 时隐藏）打开抽屉：页面脚本 toc.ts 把侧栏里的
+ * `<nav>` 移进 `<dialog>`，关闭时移回，页面上始终只有一份目录。
  *
  * 标记契约（脚本按文档顺序把它们和 outline 一一对应）：
  *   [data-toc-step]：每个步骤（共享步骤在每个选项下各一个），内含 a、[data-toc-other]；
@@ -16,11 +17,23 @@ import '../styles/toc.css';
  */
 interface Props {
   outline: OutlineChapter[];
+  references: TocReference[];
 }
 
-const { outline } = Astro.props;
+const { outline, references } = Astro.props;
 ---
 
 <aside class="toc-sidebar" data-toc-sidebar>
-  <TocNav outline={outline} />
+  <TocNav outline={outline} references={references} />
 </aside>
+<dialog class="toc-dialog" data-toc-dialog aria-labelledby="toc-dialog-title">
+  <div class="toc-dialog-head">
+    <h2 class="toc-dialog-title" id="toc-dialog-title">目录</h2>
+    <button type="button" class="toc-close" data-toc-close aria-label="关闭目录">
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+        <path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+      </svg>
+    </button>
+  </div>
+  <div class="toc-dialog-body" data-toc-dialog-body></div>
+</dialog>

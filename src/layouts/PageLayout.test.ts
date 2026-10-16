@@ -18,7 +18,7 @@ const routeData: RouteData = { chapters: [], pages: {}, forks: {}, side: {} };
 
 async function render(props: Record<string, unknown>, slots: Record<string, string>) {
   const container = await AstroContainer.create();
-  return container.renderToString(PageLayout, { props: { title: '安卓：订阅', view, routeData, ...props }, slots });
+  return container.renderToString(PageLayout, { props: { title: '安卓：订阅', view, routeData, tocReferences: [], ...props }, slots });
 }
 
 describe('PageLayout', () => {
@@ -51,5 +51,19 @@ describe('PageLayout', () => {
     const html = await render({}, { principle: '<p>原理正文</p>', operation: '<p>操作正文</p>' });
     expect(html).toContain('data-view-option="operation"');
     expect(html).toContain('data-view-option="principle"');
+  });
+
+  it('目录：侧栏、隐藏的打开按钮和抽屉，末尾单列参考页（FR-16）', async () => {
+    const tocReferences = [
+      { id: 'faq', title: '常见问题' },
+      { id: 'ip-tests', title: 'IP 质量实测合集' },
+    ];
+    const html = await render({ tocReferences }, { principle: '<p>原理正文</p>' });
+    expect(html).toContain('data-toc-sidebar');
+    expect(html).toMatch(/<dialog[^>]*data-toc-dialog/);
+    expect(html).toMatch(/<button[^>]*data-toc-open[^>]*hidden/);
+    expect(html).toContain('卡住了再看');
+    expect(html).toMatch(/href="[^"]*\/faq\/"[^>]*>\s*<span class="toc-label"[^>]*>常见问题/);
+    expect(html).toMatch(/href="[^"]*\/ip-tests\/"[^>]*>\s*<span class="toc-label"[^>]*>IP 质量实测合集/);
   });
 });

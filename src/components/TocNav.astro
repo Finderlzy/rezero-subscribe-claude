@@ -1,19 +1,24 @@
 ---
 import { pathOf } from '../lib/route/route-map';
 import type { OutlineBranch, OutlineChapter, OutlineStep } from '../lib/route/types';
+import type { TocReference } from '../lib/site';
 import { withBase } from '../lib/with-base';
 
 /**
- * 目录的列表本身：页面上的侧栏（Toc.astro）、首页和找不到页的目录都用它；标记契约见 Toc.astro。
+ * 目录的列表本身：页面上的侧栏和抽屉（Toc.astro）、首页和找不到页的目录都用它；标记契约见 Toc.astro。
+ * 章名前是从 00 开始的章节号；末尾单列“卡住了再看”的参考页（design §4.5）。
  * 没有已读标记和“清除进度”（FR-16）。原理独有步骤标“原理”（不在当前视图的路线上时弱化）。
  */
 interface Props {
   outline: OutlineChapter[];
+  /** 末尾单列的参考页（`site.tocReferences`） */
+  references: TocReference[];
   /** 无障碍名称；一页里有两个目录时用来区分 */
   label?: string;
 }
 
-const { outline, label = '步骤目录' } = Astro.props;
+const { outline, references, label = '步骤目录' } = Astro.props;
+const chapterNo = (i: number) => String(i).padStart(2, '0');
 const stepHref = (step: OutlineStep) => withBase(pathOf({ kind: 'step', id: step.id, title: step.title }));
 /** 分叉点选了别的选项时，这个选项下的步骤标“其他路线”；没选时不标 */
 const otherRoute = (branch: OutlineBranch, option: OutlineBranch['options'][number]) =>
@@ -23,14 +28,19 @@ const otherRoute = (branch: OutlineBranch, option: OutlineBranch['options'][numb
 <nav class="toc" aria-label={label} data-toc>
   <ol>
     {
-      outline.map((chapter) => (
+      outline.map((chapter, chapterIndex) => (
         <li class="toc-chapter">
-          <p class="toc-chapter-title">{chapter.title}</p>
+          <p class="toc-chapter-head">
+            <span class="toc-chapter-no" aria-hidden="true">
+              {chapterNo(chapterIndex)}
+            </span>
+            <span class="toc-chapter-title">{chapter.title}</span>
+          </p>
           <ol>
             {chapter.items.map((item) =>
               item.kind === 'step' ? (
                 <li class="toc-step" data-toc-step={item.id} data-off-route={item.onRoute ? undefined : ''}>
-                  <a href={stepHref(item)} aria-current={item.current ? 'step' : undefined}>
+                  <a href={stepHref(item)} aria-current={item.current ? 'page' : undefined}>
                     <span class="toc-label">{item.title}</span>
                     {item.principleOnly && <span class="toc-tag">原理</span>}
                     {item.skippable && <span class="toc-tag">可跳过</span>}
@@ -38,7 +48,7 @@ const otherRoute = (branch: OutlineBranch, option: OutlineBranch['options'][numb
                 </li>
               ) : item.kind === 'choose' ? (
                 <li class="toc-step" data-toc-choose={item.fork}>
-                  <a href={withBase(pathOf({ kind: 'choose', id: item.id, title: item.title }))} aria-current={item.current ? 'step' : undefined}>
+                  <a href={withBase(pathOf({ kind: 'choose', id: item.id, title: item.title }))} aria-current={item.current ? 'page' : undefined}>
                     <span class="toc-label">{item.title}</span>
                   </a>
                 </li>
@@ -66,7 +76,7 @@ const otherRoute = (branch: OutlineBranch, option: OutlineBranch['options'][numb
                         <ol>
                           {option.steps.map((step) => (
                             <li class="toc-step" data-toc-step={step.id} data-off-route={step.onRoute ? undefined : ''}>
-                              <a href={stepHref(step)} aria-current={step.current ? 'step' : undefined}>
+                              <a href={stepHref(step)} aria-current={step.current ? 'page' : undefined}>
                                 <span class="toc-label">{step.title}</span>
                                 <span class="toc-tag" data-toc-other hidden={!otherRoute(item, option)}>
                                   其他路线
@@ -87,5 +97,21 @@ const otherRoute = (branch: OutlineBranch, option: OutlineBranch['options'][numb
         </li>
       ))
     }
+    <li class="toc-chapter toc-reference">
+      <p class="toc-chapter-head">
+        <span class="toc-reference-title">卡住了再看</span>
+      </p>
+      <ol>
+        {
+          references.map((reference) => (
+            <li class="toc-step">
+              <a href={withBase(`/${reference.id}/`)}>
+                <span class="toc-label">{reference.title}</span>
+              </a>
+            </li>
+          ))
+        }
+      </ol>
+    </li>
   </ol>
 </nav>

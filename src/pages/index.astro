@@ -8,8 +8,9 @@ import { withBase } from '../lib/with-base';
 import '../styles/toc.css';
 
 /**
- * 首页（FR-18）：logo、站名、英文副标题、“开始”（进入前言）和按章排列的目录。
- * 没有“继续上次”。首页的版式和目录的首页变体在 #30、#31 重做。
+ * 首页（FR-18，design §4.4）：logo、站名、英文副标题、“开始”（进入前言），一条细线下是按章排列的目录。
+ * 没有“继续上次”和已读标记。首页没有视图，目录按原理版目录页的样子画：全部页面正常显示，
+ * 原理独有步骤只标“原理”，不弱化；没有脚本，不按本机选择改写。视觉在全站视觉重做时定稿。
  */
 const site = await loadSite();
 ---
@@ -23,14 +24,24 @@ const site = await loadSite();
       <a class="button" href={withBase(pathOf(site.start))} data-home-start>开始</a>
     </p>
 
-    <section aria-labelledby="home-chapters">
+    <section class="home-chapters" aria-labelledby="home-chapters">
       <h2 id="home-chapters" class="home-chapters-title">目录</h2>
-      <TocNav outline={site.route.outline({}, null, 'operation')} label="全站目录" />
+      <TocNav outline={site.route.outline({}, null, 'principle')} references={site.tocReferences} label="全站目录" />
     </section>
   </main>
 </BaseLayout>
 
 <style>
+  .home {
+    padding-top: var(--space-6);
+  }
+
+  @media (min-width: 720px) {
+    .home {
+      padding-top: var(--space-8);
+    }
+  }
+
   .home-title {
     margin: 0;
     line-height: 0;
@@ -52,8 +63,13 @@ const site = await loadSite();
     font-weight: 500;
   }
 
+  .home-chapters {
+    margin-top: var(--space-6);
+    border-top: var(--border-width) solid var(--border);
+  }
+
   .home-chapters-title {
-    margin: var(--space-7) 0 var(--space-3);
+    margin: var(--space-5) 0 var(--space-3);
     font-size: var(--fs-h3);
     line-height: var(--lh-heading);
     font-weight: 600;

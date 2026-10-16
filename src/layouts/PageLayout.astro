@@ -8,6 +8,7 @@ import { hasZoomableImage } from '../lib/code-zoom/labels';
 import { progressText } from '../lib/nav-text';
 import { VIEW_BOOT_SCRIPT } from '../lib/reader-state/view-boot';
 import type { RouteData, RouteView } from '../lib/route/types';
+import type { TocReference } from '../lib/site';
 import BaseLayout from './BaseLayout.astro';
 import '../styles/prose.css';
 
@@ -21,7 +22,7 @@ import '../styles/prose.css';
  *
  * 导航按“操作视图 + 未选”在构建时写好（`view`）；页面脚本 route-enhance 读内嵌的 RouteData（`#route-data`），
  * 按本机选择和当前视图改写导航；view-toggle 处理顶栏的“操作｜原理”切换（架构 §3 M3）。
- * 目录（design §4.5）：≥1100px 是常驻左侧栏；更窄时顶栏的“目录”按钮在目录脚本接上之前保持隐藏。
+ * 目录（design §4.5）：≥1100px 是常驻左侧栏；更窄时由顶栏的“目录”按钮打开抽屉（toc.ts，没有 JS 时按钮隐藏）。
  */
 interface Props {
   title: string;
@@ -29,12 +30,14 @@ interface Props {
   view: RouteView;
   /** `routeMap.data`：内嵌进页面，浏览器用它重算导航 */
   routeData: RouteData;
+  /** `site.tocReferences`：目录末尾单列的参考页 */
+  tocReferences: TocReference[];
   skipLabel?: string | undefined;
   /** 只有原理版时传：操作视图下正文上方的说明。传了就不渲染 `operation` slot */
   notice?: string | undefined;
 }
 
-const { title, view, routeData, skipLabel, notice } = Astro.props;
+const { title, view, routeData, tocReferences, skipLabel, notice } = Astro.props;
 // 内嵌在 <script> 里的 JSON 不能出现 `</script>`，把 `<` 转义掉。
 const routeJson = JSON.stringify(routeData).replace(/</g, '\\u003c');
 const principle = await Astro.slots.render('principle');
@@ -46,7 +49,7 @@ const hasZoom = [principle, operation].some((html) => html !== undefined && hasZ
 <BaseLayout title={title}>
   <script is:inline slot="head" set:html={VIEW_BOOT_SCRIPT} />
   <div class="step-shell">
-    <Toc outline={view.outline} />
+    <Toc outline={view.outline} references={tocReferences} />
     <main id="main" class="step" data-route-at={view.current.kind === 'home' ? undefined : view.current.id}>
       <header class="step-header">
         <div class="step-topbar">
@@ -87,13 +90,18 @@ const hasZoom = [principle, operation].some((html) => html !== undefined && hasZ
   import { initCodeZoom } from '../scripts/code-zoom';
   import { pageReaderStore, readRouteData } from '../scripts/reader-store';
   import { initRouteEnhance } from '../scripts/route-enhance';
+  import { initToc } from '../scripts/toc';
   import { initViewToggle } from '../scripts/view-toggle';
 
   const data = readRouteData(document);
   const store = pageReaderStore(data);
-  // 先 view-toggle：从往返缓存恢复时它先把视图改回本机保存的值，route-enhance 再按它重算。
+  // 先 view-toggle：从往返缓存恢复时它先把视图改回本机保存的值，route-enhance 再按它重算；
+  // route-enhance 在目录之前：它先记下这一页所属的选项，目录再按这条路线画。
   initViewToggle(document, store);
-  if (data) initRouteEnhance(document, data, store);
+  if (data) {
+    initRouteEnhance(document, data, store);
+    initToc(document, data, store);
+  }
   initCodeZoom(document);
 </script>
 

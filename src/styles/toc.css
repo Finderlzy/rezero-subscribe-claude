@@ -1,6 +1,6 @@
 /*
- * 步骤目录（design §4.5）：Toc.astro / TocNav.astro 的样式。#30 的目录脚本会把同一个 <nav> 在侧栏和抽屉之间移动，
- * 所以样式写成全局的，不用组件作用域。抽屉（.toc-dialog）的样式留给 #30 接上。
+ * 步骤目录（design §4.5）：Toc.astro / TocNav.astro 的样式。目录脚本（toc.ts）会把同一个 <nav> 在侧栏和抽屉之间移动，
+ * 所以样式写成全局的，不用组件作用域。
  */
 
 /* ≥1100px 的常驻侧栏（步骤页、选择页）；更窄时隐藏，目录从顶栏的按钮打开抽屉。 */
@@ -59,7 +59,7 @@
   background: var(--bg);
 }
 
-/* 留白放在内层：点到 dialog 自身才算点背景（#30 的目录脚本按这个判断）。 */
+/* 留白放在内层：点到 dialog 自身才算点背景（toc.ts 按这个判断）。 */
 .toc-dialog-body {
   padding: 0 var(--space-4) var(--space-6);
 }
@@ -101,10 +101,24 @@
   margin-top: var(--space-4);
 }
 
-.toc-chapter-title {
+.toc-chapter-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
   margin: 0 0 var(--space-1);
   color: var(--text-muted);
   font-weight: 600;
+}
+
+/* 章节号从 00 开始（design §4.4）；字形和配色在全站视觉重做时定稿。 */
+.toc-chapter-no {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 参考页单列在末尾，和上面的章节隔一条细线（design §4.5）。 */
+.toc-reference {
+  padding-top: var(--space-4);
+  border-top: var(--border-width) solid var(--border);
 }
 
 .toc-step a {
@@ -126,7 +140,7 @@
 }
 
 /* 当前项：加粗，左侧一条强调色竖线（不只靠颜色，另有 aria-current）。 */
-.toc-step a[aria-current='step'] {
+.toc-step a[aria-current='page'] {
   font-weight: 700;
   background: var(--surface);
   box-shadow: inset 3px 0 0 var(--accent);

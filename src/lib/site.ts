@@ -34,7 +34,17 @@ export interface Site {
   pages: ReadonlyMap<string, SitePage>;
   /** 按标识查找：`faq`、`ip-tests`、`ip-tests/<id>` */
   references: ReadonlyMap<string, SiteReference>;
+  /** 目录末尾“卡住了再看”单列的参考页：常见问题、IP 质量实测合集（design §4.5） */
+  tocReferences: TocReference[];
 }
+
+export interface TocReference {
+  id: string;
+  title: string;
+}
+
+/** 目录末尾单列的参考页，按这个顺序 */
+const TOC_REFERENCES = ['faq', 'ip-tests'];
 
 /** 只取映射需要的字段，单元测试可以直接传普通对象。 */
 export type PrincipleEntry = Pick<CollectionEntry<'principle'>, 'id' | 'body'> & {
@@ -113,6 +123,9 @@ async function readSite(): Promise<Site> {
     throw error;
   }
   const operationById = new Map(operations.map((entry) => [entry.id, entry]));
+  const referenceById = new Map(
+    references.map((entry) => [entry.id, { id: entry.id, title: pageTitle(entry.body, `src/content/reference/${entry.id}.md`), entry }]),
+  );
   return {
     route,
     start: startOf(route),
@@ -122,8 +135,11 @@ async function readSite(): Promise<Site> {
         { id: entry.id, title: route.data.pages[entry.id]!.title, principle: entry, operation: operationById.get(entry.id) },
       ]),
     ),
-    references: new Map(
-      references.map((entry) => [entry.id, { id: entry.id, title: pageTitle(entry.body, `src/content/reference/${entry.id}.md`), entry }]),
-    ),
+    references: referenceById,
+    tocReferences: TOC_REFERENCES.map((id) => {
+      const reference = referenceById.get(id);
+      if (!reference) throw new Error(`src/content/reference/${id}.md：缺少目录要列出的参考页`);
+      return { id, title: reference.title };
+    }),
   };
 }
