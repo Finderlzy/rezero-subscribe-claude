@@ -8,9 +8,9 @@ import { withBase } from '../lib/with-base';
 import '../styles/toc.css';
 
 /**
- * 首页（FR-18，design §4.4）：logo、站名、英文副标题、“开始”（进入前言），一条细线下是按章排列的目录。
+ * 首页（FR-18，design §4.4）：没有页眉。中文两行版 logo（含中间一行英文）、“开始”（进入前言），一条细线下是按章排列的目录。
  * 没有“继续上次”和已读标记。首页没有视图，目录按原理版目录页的样子画：全部页面正常显示，
- * 原理独有步骤只标“原理”，不弱化；没有脚本，不按本机选择改写。视觉在全站视觉重做时定稿。
+ * 原理独有步骤只标“原理”，不弱化；没有脚本，不按本机选择改写。章节号是首页唯一的装饰。
  */
 const site = await loadSite();
 ---
@@ -18,15 +18,14 @@ const site = await loadSite();
 <BaseLayout>
   <main id="main" class="page home">
     <h1 class="home-title"><Logo variant="zh" /></h1>
-    <p class="home-subtitle" lang="en">Re:Zero − Starting Life with Claude</p>
 
     <p class="page-actions">
-      <a class="button" href={withBase(pathOf(site.start))} data-home-start>开始</a>
+      <a class="button home-start" href={withBase(pathOf(site.start))} data-home-start>开始<span aria-hidden="true">→</span></a>
     </p>
 
     <section class="home-chapters" aria-labelledby="home-chapters">
       <h2 id="home-chapters" class="home-chapters-title">目录</h2>
-      <TocNav outline={site.route.outline({}, null, 'principle')} references={site.tocReferences} label="全站目录" />
+      <TocNav outline={site.route.outline({}, null, 'principle')} references={site.tocReferences} label="全站目录" home />
     </section>
   </main>
 </BaseLayout>
@@ -47,31 +46,28 @@ const site = await loadSite();
     line-height: 0;
   }
 
-  /* logo 的 SVG 自带按字号算出的宽高，这里按宽度缩放，窄屏不溢出（Logo.astro）。 */
+  /* logo 的 SVG 自带按字号算出的宽高，这里按宽度缩放，窄屏不溢出（Logo.astro）；左对齐，宽不超过 560px。 */
   .home-title :global(svg) {
     width: 100%;
-    max-width: 480px;
+    max-width: 560px;
     height: auto;
-    --logo-re: var(--accent);
   }
 
-  .home-subtitle {
-    margin: var(--space-2) 0 var(--space-6);
-    color: var(--text-muted);
-    font-size: var(--fs-meta);
-    line-height: var(--lh-meta);
-    font-weight: 500;
+  .home-start {
+    gap: var(--space-2);
   }
 
   .home-chapters {
-    margin-top: var(--space-6);
+    margin-top: var(--space-7);
     border-top: var(--border-width) solid var(--border);
   }
 
   .home-chapters-title {
-    margin: var(--space-5) 0 var(--space-3);
-    font-size: var(--fs-h3);
-    line-height: var(--lh-heading);
-    font-weight: 600;
+    margin: var(--space-5) 0 var(--space-4);
+    color: var(--text-muted);
+    font-size: var(--fs-meta);
+    line-height: var(--lh-meta);
+    font-weight: 500;
+    letter-spacing: var(--tracking-meta);
   }
 </style>

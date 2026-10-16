@@ -73,7 +73,7 @@ test('目录区分当前路线、其他路线、当前页和原理独有步骤�
   await expect(stepNav(page).getByRole('link', { name: /上一步/ })).toHaveAttribute('href', /\/choose-plan\/$/);
 });
 
-// 抽屉：<1100px 时从顶栏的“目录”按钮打开，Esc 关闭，焦点回到按钮；≥1100px 是常驻侧栏，没有按钮。
+// 抽屉：<1100px 时从页眉的“目录”按钮打开，Esc 关闭，焦点回到按钮；≥1100px 是常驻侧栏，没有按钮。
 test('窄屏用抽屉打开目录，Esc 关闭；宽屏是常驻侧栏', async ({ page }, testInfo) => {
   await page.goto('./overview/');
   await expect(page.locator('[data-toc-ready]')).toHaveCount(1);

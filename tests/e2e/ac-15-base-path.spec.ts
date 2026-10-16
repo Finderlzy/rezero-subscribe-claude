@@ -99,11 +99,11 @@ test('截图在 base 下加载出来', async ({ page, baseURL }) => {
   }
 });
 
-test('不存在的页面显示“找不到这一页”，“回首页”回到 base 下的首页', async ({ page, baseURL }) => {
+test('不存在的页面显示“找不到这一页”，“回到首页”回到 base 下的首页', async ({ page, baseURL }) => {
   const response = await page.goto('./no-such-page/');
   expect(response?.status()).toBe(404);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('找不到这一页');
-  await page.getByRole('link', { name: '回首页' }).click();
+  await page.getByRole('link', { name: '回到首页' }).click();
   await expect(page).toHaveURL(new URL('./', baseURL).href);
   await expect(page.getByRole('heading', { level: 1 })).toHaveAccessibleName('Re:从零开始订阅 claude');
 });

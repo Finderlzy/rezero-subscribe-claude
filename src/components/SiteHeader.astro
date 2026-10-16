@@ -1,0 +1,133 @@
+---
+import { withBase } from '../lib/with-base';
+import Logo from './Logo.astro';
+import ViewToggle from './ViewToggle.astro';
+
+/**
+ * 页眉（design §4.0）：首页以外的所有页面都有，吸顶，高 56px，下边一条 3px 的视图色带。
+ * 左边是“目录”按钮（`toc`，<1100px 时才有，没有 JS 时隐藏）和链到首页的 logo 标记 + 站名（<480px 时只留标记）；
+ * 右边是“操作｜原理”切换（`views`）。色带：操作视图 `--text`、原理视图 `--accent`（跟 `<html data-view>` 走，
+ * 没有 JS 时是操作视图）；没有视图的页面（参考页、找不到页）用 `--border`。
+ */
+interface Props {
+  /** 页面有两种视图：显示切换控件，色带跟视图换色 */
+  views?: boolean;
+  /** 页面内嵌了目录抽屉（Toc.astro）：显示打开它的按钮 */
+  toc?: boolean;
+}
+
+const { views = false, toc = false } = Astro.props;
+---
+
+<header class="site-header" data-views={views ? '' : undefined}>
+  <div class="site-header-bar">
+    {
+      toc && (
+        <button type="button" class="toc-open" data-toc-open hidden>
+          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+            <path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+          目录
+        </button>
+      )
+    }
+    <a class="site-home" href={withBase('/')} aria-label="Re:从零开始订阅 claude 首页">
+      <span class="site-mark" aria-hidden="true"><Logo variant="mark" /></span>
+      <span class="site-name" aria-hidden="true">从零开始订阅 claude</span>
+    </a>
+    {views && <ViewToggle />}
+  </div>
+</header>
+
+<style>
+  .site-header {
+    --band: var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--bg);
+    border-bottom: var(--band-height) solid var(--band);
+  }
+
+  /* 视图色带：切换时直接换色，不做动画（design §4.0） */
+  .site-header[data-views] {
+    --band: var(--text);
+  }
+
+  :global(:root[data-view='principle']) .site-header[data-views] {
+    --band: var(--accent);
+  }
+
+  .site-header-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    height: var(--header-height);
+    padding: 0 var(--space-4);
+  }
+
+  @media (min-width: 720px) {
+    .site-header-bar {
+      padding: 0 var(--space-5);
+    }
+  }
+
+  .site-home {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 44px;
+    margin-right: auto;
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  /* logo 的 SVG 自带按字号算出的宽高，这里按高度缩放（Logo.astro）；高 24px、站名 16px 都按 design §4.0 */
+  .site-mark :global(svg) {
+    display: block;
+    width: auto;
+    height: 24px;
+  }
+
+  .site-name {
+    font-size: 16px;
+    line-height: 1;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 479px) {
+    .site-name {
+      display: none;
+    }
+  }
+
+  .toc-open {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: var(--space-1);
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 var(--space-3) 0 var(--space-2);
+    border: var(--border-width) solid var(--control-border);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    font-size: var(--fs-meta);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .toc-open[hidden] {
+    display: none;
+  }
+
+  /* ≥1100px 目录是常驻左侧栏，不需要打开按钮 */
+  @media (min-width: 1100px) {
+    .toc-open {
+      display: none;
+    }
+  }
+</style>

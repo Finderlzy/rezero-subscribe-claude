@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { progressText, stopTitle } from './nav-text';
+import { chapterNoText, isChapterStart, progressText, stopTitle } from './nav-text';
 
 describe('nav-text：导航文案，构建时和浏览器共用', () => {
   const chapter = { chapterId: 'register-and-subscribe', chapter: '注册和订阅', chapterNo: 2 };
@@ -19,5 +19,30 @@ describe('nav-text：导航文案，构建时和浏览器共用', () => {
     expect(stopTitle({ kind: 'choose', id: 'choose-plan', title: '选择方案' }, 'prev')).toBe('选择方案');
     expect(stopTitle({ kind: 'home' }, 'prev')).toBe('首页');
     expect(stopTitle({ kind: 'home' }, 'next')).toBe('回到首页');
+  });
+
+  it('章节号从 00 开始，补足两位（design §2“从零开始”）', () => {
+    expect(chapterNoText(0)).toBe('00');
+    expect(chapterNoText(3)).toBe('03');
+    expect(chapterNoText(12)).toBe('12');
+  });
+
+  it('章节过场只在每章第一页：普通页或选择页，不含旁支页和分支段（design §4.1）', () => {
+    const chapters = [
+      { id: 'start', title: '开始', items: [{ kind: 'step' as const, id: 'preface' }, { kind: 'step' as const, id: 'disclaimer' }] },
+      {
+        id: 'node',
+        title: '准备节点',
+        items: [{ kind: 'choose' as const, fork: 'plan', id: 'choose-plan' }, { kind: 'branch' as const, fork: 'plan', options: { a: ['a1'] } }],
+      },
+    ];
+    const at = (chapterId: string) => ({ chapterId, chapter: '', chapterNo: 0 });
+    expect(isChapterStart(chapters, at('start'), { kind: 'step', id: 'preface', title: '前言' })).toBe(true);
+    expect(isChapterStart(chapters, at('start'), { kind: 'step', id: 'disclaimer', title: '免责声明' })).toBe(false);
+    expect(isChapterStart(chapters, at('node'), { kind: 'choose', id: 'choose-plan', title: '选择方案' })).toBe(true);
+    expect(isChapterStart(chapters, at('node'), { kind: 'step', id: 'a1', title: '甲' })).toBe(false);
+    expect(isChapterStart(chapters, at('start'), { kind: 'side', id: 'preface', title: '旁支' })).toBe(false);
+    expect(isChapterStart(chapters, at('missing'), { kind: 'step', id: 'preface', title: '前言' })).toBe(false);
+    expect(isChapterStart(chapters, at('start'), { kind: 'home' })).toBe(false);
   });
 });

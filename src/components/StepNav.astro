@@ -48,11 +48,12 @@ const backLabel = returnTo ? '回到' : '上一步';
           class="step-nav-link step-nav-prev"
           href={withBase(pathOf(back))}
           rel={returnTo ? undefined : 'prev'}
+          data-return={returnTo ? '' : undefined}
           data-route-nav={returnTo ? 'return' : 'prev'}
         >
           <span class="step-nav-dir">
             <span aria-hidden="true">← </span>
-            {backLabel}
+            <span class="step-nav-dir-label">{backLabel}</span>
           </span>
           <span class="step-nav-title">
             <span class="visually-hidden">：</span>
@@ -91,7 +92,7 @@ const backLabel = returnTo ? '回到' : '上一步';
     align-items: center;
     min-height: 44px;
     color: var(--accent);
-    font-weight: 500;
+    font-weight: 600;
     text-decoration: none;
   }
 
@@ -109,6 +110,7 @@ const backLabel = returnTo ? '回到' : '上一步';
     margin-top: var(--space-3);
   }
 
+  /* 桌面：正文结尾两个大块链接，写出方向和目标标题；“下一步”是主按钮，“上一步”是次按钮（design §4.1）。 */
   .step-nav {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -124,36 +126,43 @@ const backLabel = returnTo ? '回到' : '上一步';
     padding: var(--space-4);
     border: var(--border-width) solid var(--control-border);
     border-radius: var(--radius-panel);
+    background: var(--surface);
     color: var(--text);
     text-decoration: none;
   }
 
-  .step-nav-link:hover {
+  .step-nav-prev:hover {
     border-color: var(--accent);
   }
 
   .step-nav-next {
     grid-column: 2;
     text-align: right;
+    background: var(--accent);
     border-color: var(--accent);
+    color: var(--accent-contrast);
+  }
+
+  .step-nav-next:hover .step-nav-title {
+    text-decoration: underline;
   }
 
   .step-nav-dir {
-    color: var(--text-muted);
     font-size: var(--fs-meta);
     line-height: var(--lh-meta);
     font-weight: 500;
+    letter-spacing: var(--tracking-meta);
+  }
+
+  .step-nav-prev .step-nav-dir {
+    color: var(--text-muted);
   }
 
   .step-nav-title {
-    font-weight: 600;
+    font-weight: 700;
   }
 
-  .step-nav-next .step-nav-title {
-    color: var(--accent);
-  }
-
-  /* 手机：吸底的底栏，“下一步”是主按钮，约占 2/3 宽；正文末尾的留白见 PageLayout。 */
+  /* 手机：吸底的底栏，“下一步”约占 2/3 宽；“上一步”只留箭头（无障碍名称仍是“上一步：<标题>”）。正文末尾的留白见 PageLayout。 */
   @media (max-width: 719px) {
     .step-nav {
       position: fixed;
@@ -175,14 +184,7 @@ const backLabel = returnTo ? '回到' : '上一步';
     }
 
     .step-nav-next {
-      background: var(--accent);
-      border-color: var(--accent);
       text-align: left;
-    }
-
-    .step-nav-next .step-nav-dir,
-    .step-nav-next .step-nav-title {
-      color: var(--accent-contrast);
     }
 
     .step-nav-title {
@@ -191,13 +193,24 @@ const backLabel = returnTo ? '回到' : '上一步';
       text-overflow: ellipsis;
     }
 
-    /* 次按钮只写方向，目标标题仍留给读屏软件。只在手机断点隐藏，所以不能直接套全局的 .visually-hidden。 */
-    .step-nav-prev .step-nav-title {
+    .step-nav-prev {
+      align-items: center;
+    }
+
+    .step-nav-prev .step-nav-dir {
+      color: var(--text);
+      font-size: var(--fs-body);
+    }
+
+    /* 只在手机断点隐藏，所以不能直接套全局的 .visually-hidden。旁支页的“回到”保留文字，和“上一步”区分开。 */
+    .step-nav-prev .step-nav-title,
+    .step-nav-prev:not([data-return]) .step-nav-dir-label {
       position: absolute;
       width: 1px;
       height: 1px;
       overflow: hidden;
       clip-path: inset(50%);
+      white-space: nowrap;
     }
   }
 </style>

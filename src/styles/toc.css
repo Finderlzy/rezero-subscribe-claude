@@ -3,7 +3,7 @@
  * 所以样式写成全局的，不用组件作用域。
  */
 
-/* ≥1100px 的常驻侧栏（步骤页、选择页）；更窄时隐藏，目录从顶栏的按钮打开抽屉。 */
+/* ≥1100px 的常驻侧栏（步骤页、选择页），在吸顶页眉的下方；更窄时隐藏，目录从页眉的按钮打开抽屉。 */
 .toc-sidebar {
   display: none;
 }
@@ -12,8 +12,8 @@
   .toc-sidebar {
     display: block;
     position: sticky;
-    top: 0;
-    height: 100vh;
+    top: calc(var(--header-height) + var(--band-height));
+    height: calc(100vh - var(--header-height) - var(--band-height));
     overflow-y: auto;
     padding: var(--space-6) var(--space-4) var(--space-7);
     border-right: var(--border-width) solid var(--border);
@@ -84,10 +84,11 @@
   cursor: pointer;
 }
 
-/* 列表本身 */
+/* 列表本身（design §3.2：目录 14px，字距 0.06em） */
 .toc {
   font-size: var(--fs-meta);
   line-height: var(--lh-meta);
+  letter-spacing: var(--tracking-meta);
 }
 
 .toc ol,
@@ -107,11 +108,17 @@
   gap: var(--space-2);
   margin: 0 0 var(--space-1);
   color: var(--text-muted);
-  font-weight: 600;
+  font-weight: 500;
+  letter-spacing: var(--tracking-meta);
 }
 
-/* 章节号从 00 开始（design §4.4）；字形和配色在全站视觉重做时定稿。 */
+/* 章节号从 00 开始，用系统自带的旧式衬线（design §3.2、§4.4），首页和目录共用。 */
 .toc-chapter-no {
+  color: var(--accent);
+  font-family: var(--font-numeral);
+  /* 和眉题的章节号（base.css 的 .eyebrow-no）同一放大比例 */
+  font-size: 1.15em;
+  font-weight: 400;
   font-variant-numeric: tabular-nums;
 }
 
@@ -139,10 +146,10 @@
   text-decoration: underline;
 }
 
-/* 当前项：加粗，左侧一条强调色竖线（不只靠颜色，另有 aria-current）。 */
+/* 当前项：加粗、--accent-soft 底，左侧一条强调色竖线（不只靠颜色，另有 aria-current）。 */
 .toc-step a[aria-current='page'] {
   font-weight: 700;
-  background: var(--surface);
+  background: var(--accent-soft);
   box-shadow: inset 3px 0 0 var(--accent);
 }
 
@@ -202,4 +209,22 @@
   font: inherit;
   font-weight: 600;
   cursor: pointer;
+}
+
+/* 首页的目录（design §4.4）：字号放大到正文，章名用正文色加粗，章节号更醒目，是首页唯一的装饰。 */
+.toc-home {
+  font-size: var(--fs-body);
+}
+
+.toc-home .toc-chapter-head {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.toc-home .toc-chapter-no {
+  font-size: 1.4em;
+}
+
+.toc-home .toc-chapter + .toc-chapter {
+  margin-top: var(--space-5);
 }

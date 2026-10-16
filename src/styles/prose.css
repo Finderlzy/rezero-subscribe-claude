@@ -19,19 +19,19 @@
   margin: var(--space-6) 0 var(--space-3);
   font-size: var(--fs-h2);
   line-height: var(--lh-heading);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .prose h3 {
   margin: var(--space-5) 0 var(--space-2);
   font-size: var(--fs-h3);
   line-height: var(--lh-heading);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 /* 原文的加粗是“照做的关键点”：只加字重，不改颜色。 */
 .prose strong {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 /* 列表编号和正文左对齐，不缩进太深。 */
@@ -102,7 +102,7 @@
 }
 
 .prose .callout-title {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .prose .callout-content > :first-child {
@@ -192,7 +192,7 @@
 
 .prose .option-title {
   margin: 0 0 var(--space-2);
-  font-size: var(--fs-h2);
+  font-size: var(--fs-option);
   line-height: var(--lh-heading);
 }
 
@@ -200,16 +200,18 @@
   font-weight: 700;
 }
 
+/* “当前选择”标签：--accent-soft 底、--accent 字（design §4.2） */
 .prose .option-current {
   display: inline-block;
-  margin-left: var(--space-1);
+  margin-left: var(--space-2);
   padding: 0 var(--space-2);
-  border: var(--border-width) solid var(--accent);
   border-radius: var(--radius-control);
+  background: var(--accent-soft);
   color: var(--accent);
   font-size: var(--fs-meta);
   line-height: var(--lh-meta);
   font-weight: 600;
+  letter-spacing: var(--tracking-meta);
   vertical-align: middle;
 }
 

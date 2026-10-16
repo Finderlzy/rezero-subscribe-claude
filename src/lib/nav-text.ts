@@ -1,4 +1,4 @@
-import type { Progress, Stop } from './route/types';
+import type { Progress, RouteDataChapter, Stop } from './route/types';
 
 /**
  * 导航文案（design §4.1）。构建时的页面和浏览器里的页面脚本共用，两边写出的文字一致。
@@ -20,4 +20,16 @@ export function progressText(progress: Progress, current?: Stop): string {
 /** 导航按钮里写出的目标标题；`dir` 是按钮的方向（“回到”算上一步那一侧）。 */
 export function stopTitle(stop: Stop, dir: 'prev' | 'next'): string {
   return stop.kind === 'home' ? HOME_TITLE[dir] : stop.title;
+}
+
+/** 章节号：从 00 开始补足两位（design §2 “从零开始”），眉题、章节过场和目录共用。 */
+export function chapterNoText(chapterNo: number): string {
+  return String(chapterNo).padStart(2, '0');
+}
+
+/** 是不是本章第一页（含选择页）：只有它在眉题上方多一块章节过场（design §4.1）。旁支页不算。 */
+export function isChapterStart(chapters: RouteDataChapter[], progress: Progress, current: Stop): boolean {
+  if (current.kind === 'home' || current.kind === 'side') return false;
+  const first = chapters.find((chapter) => chapter.id === progress.chapterId)?.items[0];
+  return first !== undefined && first.kind !== 'branch' && first.id === current.id;
 }

@@ -4,6 +4,7 @@ import { builtPages } from './built-pages';
 // AC-17（NFR-03）：屏蔽 Google 和 YouTube 域名后访问 → 除 YouTube 视频外，内容完整显示。
 // 按架构 §8 屏蔽下面这些域名（含子域名），逐页断言：没有失败的请求，正文、截图、样式都在。
 // 视频门面在点击前不请求视频平台（AC-07），所以任何页面都不应碰到被屏蔽的域名。
+// logo 是转曲的内联 SVG，页面只用系统字体（NFR-03、design §3.2）：任何页面都不发字体请求。
 const BLOCKED = /^https?:\/\/([^/]+\.)?(google\.com|googleapis\.com|gstatic\.com|youtube\.com|youtube-nocookie\.com|ytimg\.com)(:\d+)?\//;
 
 const PAGES = builtPages();
@@ -12,6 +13,10 @@ const PAGES = builtPages();
 async function watchRequests(page: Page) {
   const blocked: string[] = [];
   const failed: string[] = [];
+  const fonts: string[] = [];
+  page.on('request', (request) => {
+    if (request.resourceType() === 'font') fonts.push(request.url());
+  });
   await page.route(BLOCKED, (route) => {
     blocked.push(route.request().url());
     return route.abort('blockedbyclient');
@@ -24,7 +29,7 @@ async function watchRequests(page: Page) {
       failed.push(`${response.url()}：HTTP ${response.status()}`);
     }
   });
-  return { blocked, failed };
+  return { blocked, failed, fonts };
 }
 
 test('屏蔽规则覆盖子域名、不误伤其他域名', () => {
@@ -37,8 +42,8 @@ test('屏蔽规则覆盖子域名、不误伤其他域名', () => {
 });
 
 for (const path of PAGES) {
-  test(`屏蔽 Google 和 YouTube 后 /${path} 内容完整、没有失败的请求`, async ({ page }) => {
-    const { blocked, failed } = await watchRequests(page);
+  test(`屏蔽 Google 和 YouTube 后 /${path} 内容完整、没有失败的请求和字体请求`, async ({ page }) => {
+    const { blocked, failed, fonts } = await watchRequests(page);
     const response = await page.goto(`./${path}`, { waitUntil: 'load' });
     // 直接打开 404.html 时各服务器给的状态不一样，只要它的内容完整
     if (path !== '404.html') expect(response?.status()).toBe(200);
@@ -66,5 +71,6 @@ for (const path of PAGES) {
 
     expect(failed).toEqual([]);
     expect(blocked).toEqual([]);
+    expect(fonts, '页面不加载网页字体').toEqual([]);
   });
 }

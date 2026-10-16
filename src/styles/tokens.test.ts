@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 // 实测 design §3.1 的每一组颜色（#21）：正文和控件上的文字与背景 ≥ 4.5:1，
-// 控件边界、状态标识（按下的切换、焦点环）、原理块和风险提示的竖线 ≥ 3:1。
+// 控件边界、状态标识（按下的切换、焦点环）、作者待补和风险提示的竖线 ≥ 3:1。
 // 色值直接从 tokens.css 读，改令牌时这里会把不达标的组合报出来。
 const css = readFileSync(new URL('./tokens.css', import.meta.url), 'utf8');
 
@@ -45,6 +45,9 @@ const PAIRS: [string, string, number, string][] = [
   ['--accent', '--bg', 4.5, '链接、文字按钮'],
   ['--accent', '--surface', 4.5, '面板里的链接'],
   ['--accent-contrast', '--accent', 4.5, '主按钮上的文字'],
+  ['--text', '--accent-soft', 4.5, '目录当前项的文字'],
+  ['--text-muted', '--accent-soft', 4.5, '目录当前项里的标签'],
+  ['--accent', '--accent-soft', 4.5, '“当前选择”标签'],
   ['--text', '--todo-bg', 4.5, '作者待补提示正文'],
   ['--text-muted', '--todo-bg', 4.5, '提示里的次要文字'],
   ['--accent', '--todo-bg', 4.5, '提示里的链接'],
@@ -56,6 +59,7 @@ const PAIRS: [string, string, number, string][] = [
   ['--control-border', '--surface', 3, '控件边界（面板上）'],
   ['--focus', '--bg', 3, '键盘焦点环'],
   ['--focus', '--surface', 3, '键盘焦点环（面板上）'],
+  ['--focus', '--accent-soft', 3, '键盘焦点环（目录当前项）'],
   ['--focus', '--todo-bg', 3, '键盘焦点环（提示里）'],
   ['--focus', '--caution-bg', 3, '键盘焦点环（风险提示里）'],
   ['--todo-rule', '--todo-bg', 3, '提示竖线'],

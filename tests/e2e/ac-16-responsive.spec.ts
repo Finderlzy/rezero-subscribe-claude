@@ -7,8 +7,10 @@ import { builtPages } from './built-pages';
 
 const PAGES = builtPages();
 
-/** 每页都要能点到的导航控件（只取当前可见的）。 */
+/** 每页都要能点到的导航控件（只取当前可见的）：页眉的首页链接、目录按钮和视图切换，底部导航，页面上的按钮。 */
 const NAV_CONTROLS = [
+  '.site-header a',
+  '.site-header button',
   'nav[aria-label="上一步和下一步"] a',
   '[data-route-skip] a',
   '.page-actions a',

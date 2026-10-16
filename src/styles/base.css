@@ -1,4 +1,10 @@
 /* 全站基础：页面底色、正文字体、焦点环，以及几个跨页面共用的小样式。 */
+
+/* 吸顶的页眉不挡住锚点跳转的目标（常见问题的条目、“跳到正文”）。 */
+:root:has(.site-header) {
+  scroll-padding-top: calc(var(--header-height) + var(--band-height) + var(--space-4));
+}
+
 body {
   margin: 0;
   background: var(--bg);
@@ -6,6 +12,8 @@ body {
   font-family: var(--font-sans);
   font-size: var(--fs-body);
   line-height: var(--lh-body);
+  /* 中文标点按大陆规范断行，不断开省略号、破折号（design §1，W3C clreq） */
+  line-break: strict;
 }
 
 a {
@@ -32,7 +40,7 @@ a {
   position: absolute;
   top: var(--space-2);
   left: var(--space-2);
-  z-index: 2;
+  z-index: 3;
   padding: var(--space-2) var(--space-3);
   background: var(--surface);
   border: var(--border-width) solid var(--control-border);
@@ -53,9 +61,50 @@ a {
 
 .page-title {
   margin: 0 0 var(--space-5);
-  font-size: var(--fs-step-title);
-  line-height: var(--lh-step-title);
-  font-weight: 700;
+  font-size: var(--fs-title);
+  line-height: var(--lh-title);
+  font-weight: 800;
+}
+
+/*
+ * 眉题（design §4.1、§4.6）：14px 次要色，加宽字距，两端各一条短横（学番剧英文副标题的两端短横）。
+ * 短横用伪元素画成线，不进文字内容，屏幕阅读器不读。章节号和 404 的数字用 --font-numeral。
+ */
+.eyebrow {
+  margin: 0 0 var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--fs-meta);
+  line-height: var(--lh-meta);
+  font-weight: 500;
+  letter-spacing: var(--tracking-meta);
+}
+
+.eyebrow::before,
+.eyebrow::after {
+  /* 内容是不可见的 U+2060 词连接符，短横是 1em 宽、1px 高的背景：手机上折行时短横不会单独掉到下一行 */
+  content: '\2060';
+  /* 显式给空的替代文本，不进无障碍树；不支持这种写法的浏览器退回上一行 */
+  content: '\2060' / '';
+  padding-left: 1em;
+  background: linear-gradient(currentColor, currentColor) no-repeat center / 1em 1px;
+}
+
+.eyebrow::before {
+  margin-right: 0.5em;
+}
+
+.eyebrow::after {
+  margin-left: 0.5em;
+}
+
+.eyebrow-no {
+  font-family: var(--font-numeral);
+  /* --font-numeral 的字面比黑体小，放大一点和旁边的文字齐平；目录的章节号（toc.css）用同一比例 */
+  font-size: 1.15em;
+}
+
+.eyebrow-no:not(:last-child) {
+  margin-right: 0.5em;
 }
 
 .page-actions {

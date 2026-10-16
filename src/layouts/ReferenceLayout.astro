@@ -1,6 +1,7 @@
 ---
 import CodeCopy from '../components/CodeCopy.astro';
 import ImageZoom from '../components/ImageZoom.astro';
+import SiteHeader from '../components/SiteHeader.astro';
 import { hasZoomableImage } from '../lib/code-zoom/labels';
 import { loadSite } from '../lib/site';
 import { withBase } from '../lib/with-base';
@@ -9,7 +10,7 @@ import '../styles/prose.css';
 
 /**
  * 参考页（常见问题、IP 质量实测合集、各篇实测）的骨架（design §4.6，FR-20）：只有一版正文，
- * 没有上一步/下一步和视图切换。实测页多一个“回到：IP 质量实测合集”（`back`）。
+ * 没有上一步/下一步和视图切换（页眉没有切换控件，色带用 --border）。实测页多一个“回到：IP 质量实测合集”（`back`）。
  * 从步骤链接进来（`?from=<page-id>`）时，页面脚本在标题上方和正文末尾显示“← 返回刚才的步骤：<标题>”，
  * 并隐藏“打开目录”；直接打开（或没有 JS）时只有“打开目录”。“打开目录”链到首页的目录（参考页不内嵌路线数据，不放抽屉）。
  */
@@ -28,6 +29,7 @@ const pagesJson = JSON.stringify(pageTitles).replace(/</g, '\\u003c');
 ---
 
 <BaseLayout title={title}>
+  <SiteHeader />
   <main id="main" class="page">
     <p class="reference-return" data-reference-return hidden>
       <a>← 返回刚才的步骤</a>

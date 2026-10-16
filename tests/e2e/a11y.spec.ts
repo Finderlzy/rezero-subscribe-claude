@@ -1,8 +1,8 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { builtPages } from './built-pages';
 
-// design §7、§5：axe-core 扫描没有 serious 及以上的问题；只用 Tab 键从前言走到选择页。
+// design §7、§5：axe-core 扫描没有 serious 及以上的问题；只用 Tab 键走完一条路线的前五页（前言到方案一的第一步）。
 // 浅色、深色各扫一遍（color-contrast 规则按实际渲染出的颜色量），两版正文的页面在原理视图下再扫一遍
 // （切换控件由 #26 接上，这里直接改 data-view）。
 // 页面清单取自构建产物（built-pages.ts），两种宽度由 playwright.config.ts 的两个 project 提供。
@@ -44,36 +44,50 @@ for (const colorScheme of ['light', 'dark'] as const) {
   });
 }
 
-// 操作视图下从前言沿“下一步”到第一个选择页（没选时选择页没有下一步）
+// 操作视图下从前言沿“下一步”到第一个选择页（没选时选择页没有下一步），再从选项块进入方案一的第一步：共五页
 const FIRST_STEPS = ['/preface/', '/disclaimer/', '/clean-up/', '/choose-plan/'];
+const AFTER_CHOICE = '/plan1-free-isp/';
 
-test('只用键盘：Tab 到“跳到正文”回车，再 Tab 到“下一步”回车，从前言走到选择方案', async ({ page }) => {
+/** 按 Tab 直到 `target` 拿到焦点，途中每个拿到焦点的元素都要有可见的焦点环（design §5：2px，不能去掉）。 */
+async function tabUntil(page: Page, target: Locator, label: string) {
+  let presses = 0;
+  while (!(await target.evaluate((el) => el === document.activeElement))) {
+    expect(presses++, `按了 100 次 Tab 还没到${label}`).toBeLessThan(100);
+    await page.keyboard.press('Tab');
+    const outline = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement;
+      const style = getComputedStyle(el);
+      return { tag: el.tagName, style: style.outlineStyle, width: style.outlineWidth };
+    });
+    expect(outline.style, `${outline.tag} 拿到焦点时没有焦点环`).not.toBe('none');
+    expect(outline.width).toBe('2px');
+  }
+  // 吸顶的页眉、吸底的底栏不能挡住拿到焦点的目标
+  await expect(target).toBeInViewport();
+  await target.click({ trial: true });
+}
+
+test('只用键盘：Tab 到“跳到正文”回车，再 Tab 到“下一步”回车，从前言走到选择方案，再从选项块进入方案一', async ({ page }) => {
   await page.goto('.' + FIRST_STEPS[0]);
 
-  for (const target of FIRST_STEPS.slice(1)) {
-    const next = page.getByRole('navigation', { name: '上一步和下一步' }).locator('a[rel="next"]');
-
+  const skipToMain = async () => {
     await page.keyboard.press('Tab');
     await expect(page.getByRole('link', { name: '跳到正文' })).toBeFocused();
     await expect(page.getByRole('link', { name: '跳到正文' })).toBeInViewport();
     await page.keyboard.press('Enter');
+  };
 
-    // 跳过目录后，正文里的链接、按钮挨个 Tab 过去，直到“下一步”；上限防止死循环
-    let presses = 0;
-    while (!(await next.evaluate((el) => el === document.activeElement))) {
-      expect(presses++, '按了 100 次 Tab 还没到“下一步”').toBeLessThan(100);
-      await page.keyboard.press('Tab');
-      // 每个拿到焦点的元素都有可见的焦点环（design §5：2px，不能去掉）
-      const outline = await page.evaluate(() => {
-        const el = document.activeElement as HTMLElement;
-        const style = getComputedStyle(el);
-        return { tag: el.tagName, style: style.outlineStyle, width: style.outlineWidth };
-      });
-      expect(outline.style, `${outline.tag} 拿到焦点时没有焦点环`).not.toBe('none');
-      expect(outline.width).toBe('2px');
-    }
-    await expect(next).toBeInViewport();
+  for (const target of FIRST_STEPS.slice(1)) {
+    await skipToMain();
+    // 跳过页眉和目录后，正文里的链接、按钮挨个 Tab 过去，直到“下一步”
+    await tabUntil(page, page.getByRole('navigation', { name: '上一步和下一步' }).locator('a[rel="next"]'), '“下一步”');
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL(new RegExp(`${target.replace(/\//g, '\\/')}$`));
   }
+
+  // 选择页没选时没有“下一步”：Tab 到方案一选项块的第一步链接，回车进入
+  await skipToMain();
+  await tabUntil(page, page.locator('.option-block a[data-option-start]').filter({ visible: true }).first(), '方案一的第一步');
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(new RegExp(`${AFTER_CHOICE.replace(/\//g, '\\/')}$`));
 });

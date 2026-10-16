@@ -83,3 +83,30 @@ test.describe('没有 JS', () => {
     await expect(toggle(page)).toBeHidden();
   });
 });
+
+// FR-71“两种视图轻区分”（design §4.0）：页眉下的视图色带，操作视图用 --text、原理视图用 --accent；
+// 没有视图的参考页、找不到页用 --border。
+const band = (page: Page) => page.locator('.site-header').evaluate((el) => getComputedStyle(el).borderBottomColor);
+const token = (page: Page, name: string) =>
+  page.evaluate((n) => {
+    // 把令牌解析成 rgb()，和 computed style 的写法一致
+    const probe = document.createElement('div');
+    probe.style.color = `var(${n})`;
+    document.body.append(probe);
+    const color = getComputedStyle(probe).color;
+    probe.remove();
+    return color;
+  }, name);
+
+test('视图色带跟着视图换色，参考页和找不到页用分隔线色', async ({ page }) => {
+  await page.goto('./leak-protection/');
+  await expectScriptRan(page);
+  expect(await band(page)).toBe(await token(page, '--text'));
+  await toggle(page).getByRole('button', { name: '原理' }).click();
+  expect(await band(page)).toBe(await token(page, '--accent'));
+
+  for (const path of ['./faq/', './no-such-page/']) {
+    await page.goto(path);
+    expect(await band(page), path).toBe(await token(page, '--border'));
+  }
+});

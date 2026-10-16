@@ -1,11 +1,11 @@
 ---
 import CodeCopy from '../components/CodeCopy.astro';
 import ImageZoom from '../components/ImageZoom.astro';
+import SiteHeader from '../components/SiteHeader.astro';
 import StepNav from '../components/StepNav.astro';
 import Toc from '../components/Toc.astro';
-import ViewToggle from '../components/ViewToggle.astro';
 import { hasZoomableImage } from '../lib/code-zoom/labels';
-import { progressText } from '../lib/nav-text';
+import { chapterNoText, isChapterStart, progressText } from '../lib/nav-text';
 import { VIEW_BOOT_SCRIPT } from '../lib/reader-state/view-boot';
 import type { RouteData, RouteView } from '../lib/route/types';
 import type { TocReference } from '../lib/site';
@@ -21,8 +21,9 @@ import '../styles/prose.css';
  * 操作视图下在正文上方显示这句说明（FR-21、FR-30）。
  *
  * 导航按“操作视图 + 未选”在构建时写好（`view`）；页面脚本 route-enhance 读内嵌的 RouteData（`#route-data`），
- * 按本机选择和当前视图改写导航；view-toggle 处理顶栏的“操作｜原理”切换（架构 §3 M3）。
- * 目录（design §4.5）：≥1100px 是常驻左侧栏；更窄时由顶栏的“目录”按钮打开抽屉（toc.ts，没有 JS 时按钮隐藏）。
+ * 按本机选择和当前视图改写导航；view-toggle 处理页眉的“操作｜原理”切换（架构 §3 M3）。
+ * 目录（design §4.5）：≥1100px 是常驻左侧栏；更窄时由页眉的“目录”按钮打开抽屉（toc.ts，没有 JS 时按钮隐藏）。
+ * 眉题（design §4.1）：章节号 + 进度文字，两端的短横由 CSS 画；每章第一页（含选择页）在眉题上方多一块章节过场。
  */
 interface Props {
   title: string;
@@ -44,24 +45,29 @@ const principle = await Astro.slots.render('principle');
 // 不能用 Astro.slots.has 判断：页面里写成条件渲染的 slot 即使为空也算“有”
 const operation = notice === undefined ? await Astro.slots.render('operation') : undefined;
 const hasZoom = [principle, operation].some((html) => html !== undefined && hasZoomableImage(html));
+const chapterNo = chapterNoText(view.progress.chapterNo);
+const chapterStart = isChapterStart(routeData.chapters, view.progress, view.current);
 ---
 
 <BaseLayout title={title}>
   <script is:inline slot="head" set:html={VIEW_BOOT_SCRIPT} />
+  <SiteHeader views toc />
   <div class="step-shell">
     <Toc outline={view.outline} references={tocReferences} />
     <main id="main" class="step" data-route-at={view.current.kind === 'home' ? undefined : view.current.id}>
       <header class="step-header">
-        <div class="step-topbar">
-          <button type="button" class="toc-open" data-toc-open hidden>
-            <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
-              <path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
-            </svg>
-            目录
-          </button>
-          <p class="step-progress" data-route-progress>{progressText(view.progress, view.current)}</p>
-          <ViewToggle />
-        </div>
+        {
+          chapterStart && (
+            <div class="chapter-intro" aria-hidden="true">
+              <span class="chapter-intro-no">{chapterNo}</span>
+              <span class="chapter-intro-title">{view.progress.chapter}</span>
+            </div>
+          )
+        }
+        <p class="eyebrow">
+          <span class="eyebrow-no" aria-hidden="true">{chapterNo}</span>
+          <span data-route-progress>{progressText(view.progress, view.current)}</span>
+        </p>
         <h1 class="step-title">{title}</h1>
       </header>
       <slot name="video" />
@@ -112,60 +118,43 @@ const hasZoom = [principle, operation].some((html) => html !== undefined && hasZ
     padding: var(--space-6) var(--space-4) var(--space-7);
   }
 
-  .step-topbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-3);
-    margin: 0 0 var(--space-2);
-  }
-
-  .toc-open {
-    display: inline-flex;
-    flex: none;
-    align-items: center;
-    gap: var(--space-1);
-    min-height: 44px;
-    padding: 0 var(--space-3) 0 var(--space-2);
-    border: var(--border-width) solid var(--control-border);
-    border-radius: var(--radius-control);
-    background: var(--surface);
-    color: var(--text);
-    font: inherit;
-    font-size: var(--fs-meta);
-    font-weight: 600;
-    cursor: pointer;
-  }
-
-  .toc-open[hidden] {
-    display: none;
-  }
-
-  /* 宽屏：左侧常驻目录，正文在右栏居中；不需要打开按钮。 */
+  /* 宽屏：页眉下方左侧常驻目录，正文在右栏居中。 */
   @media (min-width: 1100px) {
     .step-shell {
       display: grid;
       grid-template-columns: 300px minmax(0, 1fr);
     }
-
-    .toc-open {
-      display: none;
-    }
   }
 
-  .step-progress {
-    margin: 0;
-    color: var(--text-muted);
-    font-size: var(--fs-meta);
-    line-height: var(--lh-meta);
-    font-weight: 500;
+  /* 章节过场（design §4.1）：大号章节号 + 章节名 + 一条细线，上下各留 32px；“从零开始”的点缀，只在每章第一页。 */
+  .chapter-intro {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-4);
+    margin: 0 0 var(--space-6);
+    padding-bottom: var(--space-4);
+    border-bottom: var(--border-width) solid var(--border);
+  }
+
+  .chapter-intro-no {
+    color: var(--accent);
+    font-family: var(--font-numeral);
+    font-size: var(--fs-numeral);
+    line-height: 1;
+    font-weight: 400;
+  }
+
+  .chapter-intro-title {
+    font-size: var(--fs-h2);
+    line-height: var(--lh-heading);
+    font-weight: 700;
   }
 
   .step-title {
     margin: 0 0 var(--space-5);
-    font-size: var(--fs-step-title);
-    line-height: var(--lh-step-title);
-    font-weight: 700;
+    font-size: var(--fs-title);
+    line-height: var(--lh-title);
+    font-weight: 800;
   }
 
   /* 手机上底栏吸底：正文末尾预留等高留白，最后一段不被挡住（design §5）。

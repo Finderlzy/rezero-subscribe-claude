@@ -1,4 +1,5 @@
 ---
+import { chapterNoText } from '../lib/nav-text';
 import { pathOf } from '../lib/route/route-map';
 import type { OutlineBranch, OutlineChapter, OutlineStep } from '../lib/route/types';
 import type { TocReference } from '../lib/site';
@@ -15,24 +16,25 @@ interface Props {
   references: TocReference[];
   /** 无障碍名称；一页里有两个目录时用来区分 */
   label?: string;
+  /** 首页的放大样式（toc.css 的 .toc-home） */
+  home?: boolean;
 }
 
-const { outline, references, label = '步骤目录' } = Astro.props;
-const chapterNo = (i: number) => String(i).padStart(2, '0');
+const { outline, references, label = '步骤目录', home = false } = Astro.props;
 const stepHref = (step: OutlineStep) => withBase(pathOf({ kind: 'step', id: step.id, title: step.title }));
 /** 分叉点选了别的选项时，这个选项下的步骤标“其他路线”；没选时不标 */
 const otherRoute = (branch: OutlineBranch, option: OutlineBranch['options'][number]) =>
   !option.selected && branch.options.some((o) => o.selected);
 ---
 
-<nav class="toc" aria-label={label} data-toc>
+<nav class:list={['toc', { 'toc-home': home }]} aria-label={label} data-toc>
   <ol>
     {
       outline.map((chapter, chapterIndex) => (
         <li class="toc-chapter">
           <p class="toc-chapter-head">
             <span class="toc-chapter-no" aria-hidden="true">
-              {chapterNo(chapterIndex)}
+              {chapterNoText(chapterIndex)}
             </span>
             <span class="toc-chapter-title">{chapter.title}</span>
           </p>

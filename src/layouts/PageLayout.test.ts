@@ -66,4 +66,37 @@ describe('PageLayout', () => {
     expect(html).toMatch(/href="[^"]*\/faq\/"[^>]*>\s*<span class="toc-label"[^>]*>常见问题/);
     expect(html).toMatch(/href="[^"]*\/ip-tests\/"[^>]*>\s*<span class="toc-label"[^>]*>IP 质量实测合集/);
   });
+
+  it('页眉：链到首页的 logo 标记，带视图切换和目录按钮，色带跟视图走（design §4.0）', async () => {
+    const html = await render({}, { principle: '<p>原理正文</p>' });
+    expect(html).toMatch(/<header class="site-header[^"]*"[^>]*data-views/);
+    expect(html).toMatch(/<a[^>]*href="\/"[^>]*aria-label="Re:从零开始订阅 claude 首页"/);
+    expect(html.indexOf('site-header')).toBeLessThan(html.indexOf('id="main"'));
+  });
+
+  it('眉题：章节号从 00 起，进度文字单独放给页面脚本改写（design §4.1）', async () => {
+    const html = await render({}, { principle: '<p>原理正文</p>' });
+    expect(html).toMatch(/class="eyebrow-no"[^>]*>02</);
+    expect(html).toMatch(/data-route-progress[^>]*>注册和订阅</);
+  });
+
+  it('章节过场只在每章第一页出现（design §4.1）', async () => {
+    const chapters: RouteData['chapters'] = [
+      {
+        id: 'register-and-subscribe',
+        title: '注册和订阅',
+        items: [
+          { kind: 'step', id: 'android-subscribe' },
+          { kind: 'step', id: 'after-subscribe' },
+        ],
+      },
+    ];
+    const first = await render({ routeData: { ...routeData, chapters } }, { principle: '<p>原理正文</p>' });
+    expect(first).toMatch(/class="chapter-intro"/);
+    expect(first).toMatch(/class="chapter-intro-no"[^>]*>02</);
+
+    const later = { ...view, current: { kind: 'step', id: 'after-subscribe', title: '订阅之后' } as const };
+    const html = await render({ view: later, routeData: { ...routeData, chapters } }, { principle: '<p>原理正文</p>' });
+    expect(html).not.toContain('chapter-intro');
+  });
 });

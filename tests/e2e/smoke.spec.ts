@@ -3,13 +3,14 @@ import { expect, test } from '@playwright/test';
 const SITE_NAME = 'Re:从零开始订阅 claude';
 
 test.describe('首页冒烟', () => {
-  test('大标题是 logo（内联 SVG，名称是站名），有英文副标题，title 含站名', async ({ page }) => {
+  test('大标题是 logo（内联 SVG，名称是站名，英文副标题是 logo 的中间一行），title 含站名', async ({ page }) => {
     await page.goto('./');
 
     const heading = page.getByRole('heading', { level: 1 });
     await expect(heading).toHaveAccessibleName(SITE_NAME);
     await expect(heading.locator('svg')).toHaveCount(1);
-    await expect(page.getByText('Re:Zero − Starting Life with Claude', { exact: true })).toBeVisible();
+    // design §4.4：英文副标题画在中文 logo 的中间一行里，页面上不再单独写一行文字
+    await expect(heading.locator('svg')).toBeVisible();
     expect(await page.evaluate(() => document.title)).toContain(SITE_NAME);
   });
 
@@ -29,9 +30,9 @@ test.describe('首页冒烟', () => {
 
     await page.emulateMedia({ colorScheme: 'light' });
     await page.goto('./');
-    expect(await bodyBg()).toBe('rgb(247, 245, 240)'); // #F7F5F0
+    expect(await bodyBg()).toBe('rgb(248, 246, 241)'); // #F8F6F1
 
     await page.emulateMedia({ colorScheme: 'dark' });
-    expect(await bodyBg()).toBe('rgb(23, 22, 20)'); // #171614
+    expect(await bodyBg()).toBe('rgb(21, 20, 26)'); // #15141A
   });
 });

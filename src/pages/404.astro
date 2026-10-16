@@ -1,24 +1,46 @@
 ---
+import SiteHeader from '../components/SiteHeader.astro';
 import TocNav from '../components/TocNav.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { loadSite } from '../lib/site';
 import { withBase } from '../lib/with-base';
 import '../styles/toc.css';
 
-/** 找不到页（design §4.6，AC-18）：“找不到这一页”、回首页，以及直接写在页面上的目录。 */
+/**
+ * 找不到页（design §4.6，AC-18）：眉题“— 404 —”、“找不到这一页”、一句说明，“回到首页”（主）和“打开目录”（次），
+ * 目录直接写在页面上，“打开目录”跳到它，不靠 JS。
+ */
 const site = await loadSite();
 ---
 
 <BaseLayout title="找不到这一页">
+  <SiteHeader />
   <main id="main" class="page">
+    <p class="eyebrow"><span class="eyebrow-no">404</span></p>
     <h1 class="page-title">找不到这一页</h1>
-    <p>这个地址没有对应的页面，可能是链接写错了。可以回首页，或者从下面的目录找。</p>
+    <p>这个地址没有对应的页面，可能是链接写错了。可以回到首页，或者从下面的目录找。</p>
     <p class="page-actions">
-      <a class="button" href={withBase('/')}>回首页</a>
+      <a class="button" href={withBase('/')}>回到首页</a>
+      <a class="button button-secondary" href="#not-found-toc">打开目录</a>
     </p>
-    <section aria-labelledby="not-found-toc">
-      <h2 id="not-found-toc">目录</h2>
+    <section class="not-found-toc" aria-labelledby="not-found-toc">
+      <h2 id="not-found-toc" class="not-found-toc-title">目录</h2>
       <TocNav outline={site.route.outline({}, null, 'principle')} references={site.tocReferences} label="全站目录" />
     </section>
   </main>
 </BaseLayout>
+
+<style>
+  .not-found-toc {
+    margin-top: var(--space-7);
+    padding-top: var(--space-5);
+    border-top: var(--border-width) solid var(--border);
+  }
+
+  .not-found-toc-title {
+    margin: 0 0 var(--space-3);
+    font-size: var(--fs-h3);
+    line-height: var(--lh-heading);
+    font-weight: 700;
+  }
+</style>
