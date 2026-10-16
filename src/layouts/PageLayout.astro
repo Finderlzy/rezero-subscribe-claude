@@ -22,7 +22,7 @@ import '../styles/prose.css';
  *
  * 导航按“操作视图 + 未选”在构建时写好（`view`）；页面脚本 route-enhance 读内嵌的 RouteData（`#route-data`），
  * 按本机选择和当前视图改写导航；view-toggle 处理页眉的“操作｜原理”切换（架构 §3 M3）。
- * 目录（design §4.5）：≥1100px 是常驻左侧栏；更窄时由页眉的“目录”按钮打开抽屉（toc.ts，没有 JS 时按钮隐藏）。
+ * 目录（design v2.1 §4.5、D5）：所有宽度都是抽屉，由页眉的“目录”打开（toc.ts）；没有 JS 时“目录”链到首页的完整目录。
  * 眉题（design §4.1）：章节号 + 进度文字，两端的短横由 CSS 画；每章第一页（含选择页）在眉题上方多一块章节过场。
  */
 interface Props {
@@ -52,41 +52,39 @@ const chapterStart = isChapterStart(routeData.chapters, view.progress, view.curr
 <BaseLayout title={title}>
   <script is:inline slot="head" set:html={VIEW_BOOT_SCRIPT} />
   <SiteHeader views toc />
-  <div class="step-shell">
-    <Toc outline={view.outline} references={tocReferences} />
-    <main id="main" class="step" data-route-at={view.current.kind === 'home' ? undefined : view.current.id}>
-      <header class="step-header">
-        {
-          chapterStart && (
-            <div class="chapter-intro" aria-hidden="true">
-              <span class="chapter-intro-no">{chapterNo}</span>
-              <span class="chapter-intro-title">{view.progress.chapter}</span>
-            </div>
-          )
-        }
-        <p class="eyebrow">
-          <span class="eyebrow-no" aria-hidden="true">{chapterNo}</span>
-          <span data-route-progress>{progressText(view.progress, view.current)}</span>
-        </p>
-        <h1 class="step-title">{title}</h1>
-      </header>
-      <slot name="video" />
+  <Toc outline={view.outline} references={tocReferences} />
+  <main id="main" class="step" data-route-at={view.current.kind === 'home' ? undefined : view.current.id}>
+    <header class="step-header">
       {
-        operation === undefined ? (
-          <>
-            <p class="view-notice">{notice}</p>
-            <div class="prose" set:html={principle} />
-          </>
-        ) : (
-          <>
-            <div class="prose" data-body="principle" set:html={principle} />
-            <div class="prose" data-body="operation" set:html={operation} />
-          </>
+        chapterStart && (
+          <div class="chapter-intro" aria-hidden="true">
+            <span class="chapter-intro-no">{chapterNo}</span>
+            <span class="chapter-intro-title">{view.progress.chapter}</span>
+          </div>
         )
       }
-      <StepNav prev={view.prev} next={view.next} returnTo={view.returnTo} skipTo={view.skipTo} skipLabel={skipLabel} />
-    </main>
-  </div>
+      <p class="eyebrow">
+        <span class="eyebrow-no" aria-hidden="true">{chapterNo}</span>
+        <span data-route-progress>{progressText(view.progress, view.current)}</span>
+      </p>
+      <h1 class="step-title">{title}</h1>
+    </header>
+    <slot name="video" />
+    {
+      operation === undefined ? (
+        <>
+          <p class="view-notice">{notice}</p>
+          <div class="prose" set:html={principle} />
+        </>
+      ) : (
+        <>
+          <div class="prose" data-body="principle" set:html={principle} />
+          <div class="prose" data-body="operation" set:html={operation} />
+        </>
+      )
+    }
+    <StepNav prev={view.prev} next={view.next} returnTo={view.returnTo} skipTo={view.skipTo} skipLabel={skipLabel} />
+  </main>
   <CodeCopy />
   {hasZoom && <ImageZoom />}
   <script type="application/json" id="route-data" set:html={routeJson} />
@@ -116,14 +114,6 @@ const chapterStart = isChapterStart(routeData.chapters, view.progress, view.curr
     max-width: var(--measure);
     margin: 0 auto;
     padding: var(--space-6) var(--gutter) var(--space-7);
-  }
-
-  /* 宽屏：页眉下方左侧常驻目录，正文在右栏居中。 */
-  @media (min-width: 1100px) {
-    .step-shell {
-      display: grid;
-      grid-template-columns: 300px minmax(0, 1fr);
-    }
   }
 
   /* 章节过场（design §4.1）：大号章节号 + 章节名 + 一条细线，上下各留 32px；“从零开始”的点缀，只在每章第一页。 */

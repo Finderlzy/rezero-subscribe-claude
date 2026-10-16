@@ -4,10 +4,11 @@ import { pathOf } from '../lib/route/route-map';
 import type { OutlineBranch, OutlineChapter, OutlineStep } from '../lib/route/types';
 import type { TocReference } from '../lib/site';
 import { withBase } from '../lib/with-base';
+import Numeral from './Numeral.astro';
 
 /**
- * 目录的列表本身：页面上的侧栏和抽屉（Toc.astro）、首页和找不到页的目录都用它；标记契约见 Toc.astro。
- * 章名前是从 00 开始的章节号；末尾单列“卡住了再看”的参考页（design §4.5）。
+ * 目录的列表本身：页面上的抽屉（Toc.astro）、首页和找不到页的目录都用它；标记契约见 Toc.astro。
+ * 章名前是从 00 开始的章节号（固定字形 Numeral，读屏读“第 n 章”）；末尾单列“卡住了再看”的参考页（design §4.5）。
  * 没有已读标记和“清除进度”（FR-16）。原理独有步骤标“原理”（不在当前视图的路线上时弱化）。
  */
 interface Props {
@@ -33,8 +34,8 @@ const otherRoute = (branch: OutlineBranch, option: OutlineBranch['options'][numb
       outline.map((chapter, chapterIndex) => (
         <li class="toc-chapter">
           <p class="toc-chapter-head">
-            <span class="toc-chapter-no" aria-hidden="true">
-              {chapterNoText(chapterIndex)}
+            <span class="toc-chapter-no">
+              <Numeral text={chapterNoText(chapterIndex)} label={`第 ${chapterIndex} 章`} />
             </span>
             <span class="toc-chapter-title">{chapter.title}</span>
           </p>

@@ -53,15 +53,23 @@ describe('PageLayout', () => {
     expect(html).toContain('data-view-option="principle"');
   });
 
-  it('目录：侧栏、隐藏的打开按钮和抽屉，末尾单列参考页（FR-16）', async () => {
+  it('目录：只有抽屉，没有常驻侧栏；“目录”是链到首页目录的链接，末尾单列参考页（design §4.5、§5，FR-16）', async () => {
     const tocReferences = [
       { id: 'faq', title: '常见问题' },
       { id: 'ip-tests', title: 'IP 质量实测合集' },
     ];
-    const html = await render({ tocReferences }, { principle: '<p>原理正文</p>' });
-    expect(html).toContain('data-toc-sidebar');
-    expect(html).toMatch(/<dialog[^>]*data-toc-dialog/);
-    expect(html).toMatch(/<button[^>]*data-toc-open[^>]*hidden/);
+    const outline = [{ id: 'start', title: '开始', items: [] }];
+    const html = await render({ tocReferences, view: { ...view, outline } }, { principle: '<p>原理正文</p>' });
+    expect(html).not.toContain('data-toc-sidebar');
+    expect(html).not.toContain('step-shell');
+    // 目录在抽屉里，页面上只有一份
+    expect(html).toMatch(/<dialog[^>]*data-toc-dialog[\s\S]*<nav[^>]*data-toc[\s\S]*<\/dialog>/);
+    expect(html.match(/<nav[^>]*data-toc[\s>]/g)).toHaveLength(1);
+    // 没有 JS 时就是指向首页完整目录的链接，不隐藏
+    expect(html).toMatch(/<a[^>]*href="\/#home-chapters"[^>]*data-toc-open/);
+    expect(html).not.toMatch(/data-toc-open[^>]*hidden/);
+    // 章节号用固定字形，读屏读“第 n 章”
+    expect(html).toMatch(/class="toc-chapter-no"[^>]*>\s*<svg class="numeral"[^>]*aria-label="第 0 章"/);
     expect(html).toContain('卡住了再看');
     expect(html).toMatch(/href="[^"]*\/faq\/"[^>]*>\s*<span class="toc-label"[^>]*>常见问题/);
     expect(html).toMatch(/href="[^"]*\/ip-tests\/"[^>]*>\s*<span class="toc-label"[^>]*>IP 质量实测合集/);

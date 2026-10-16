@@ -113,7 +113,7 @@ button:active,
 
 .eyebrow-no {
   font-family: var(--font-numeral);
-  /* --font-numeral 的字面比黑体小，放大一点和旁边的文字齐平；目录的章节号（toc.css）用同一比例 */
+  /* --font-numeral 的字面比黑体小，放大一点和旁边的文字齐平 */
   font-size: 1.15em;
 }
 

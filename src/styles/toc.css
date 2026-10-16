@@ -1,28 +1,16 @@
 /*
- * 步骤目录（design §4.5）：Toc.astro / TocNav.astro 的样式。目录脚本（toc.ts）会把同一个 <nav> 在侧栏和抽屉之间移动，
+ * 步骤目录（design v2.1 §4.5）：Toc.astro / TocNav.astro 的样式。TocNav 也用在首页和找不到页（Toc.astro 之外），
  * 所以样式写成全局的，不用组件作用域。
  */
 
-/* ≥1100px 的常驻侧栏（步骤页、选择页），在吸顶页眉的下方；更窄时隐藏，目录从页眉的按钮打开抽屉。 */
-.toc-sidebar {
-  display: none;
-}
-
-@media (min-width: 1100px) {
-  .toc-sidebar {
-    display: block;
-    position: sticky;
-    top: calc(var(--header-height) + var(--band-height));
-    height: calc(100vh - var(--header-height) - var(--band-height));
-    overflow-y: auto;
-    padding: var(--space-6) var(--space-4) var(--space-7);
-    border-right: var(--border-width) solid var(--border);
-    box-sizing: border-box;
-  }
-}
-
-/* 抽屉：手机上全屏，更宽时是贴左边的一栏。只有浮层可以加一层很淡的阴影（design §3.3）。 */
+/*
+ * 抽屉：所有宽度都是抽屉，不常驻（D5）。手机上全屏，更宽时是贴左边、宽 400px 的一栏。
+ * 只有浮层可以加一层很淡的阴影（design §3.3）。
+ */
 .toc-dialog {
+  /* 位置不靠浏览器给 :modal 的默认样式：close() 后 :modal 立刻失效，滑出的 150ms 里仍要钉在视口左边 */
+  position: fixed;
+  inset: 0 auto 0 0;
   width: 100%;
   max-width: none;
   height: 100%;
@@ -46,6 +34,52 @@
 
 .toc-dialog::backdrop {
   background: var(--backdrop);
+}
+
+/*
+ * 过渡（design §5、D11）：从左侧滑入 200ms、减速曲线，遮罩同时淡入；关闭 150ms。
+ * 打开时的起点写在 @starting-style 里；关闭时 `[open]` 去掉，`display`/`overlay` 用 allow-discrete
+ * 推迟到过渡结束再移出顶层，所以脚本照常调用 `close()`，Esc 也一样有过渡（架构 §3 M3“目录”）。
+ * 不支持这些特性的浏览器直接显示、直接关闭。减少动态效果时时长令牌归零（tokens.css）。
+ */
+.toc-dialog,
+.toc-dialog::backdrop {
+  transition-duration: var(--duration-drawer-out);
+  transition-timing-function: var(--ease-decelerate);
+  transition-behavior: allow-discrete;
+}
+
+.toc-dialog {
+  transform: translateX(-100%);
+  transition-property: transform, display, overlay;
+}
+
+.toc-dialog::backdrop {
+  opacity: 0;
+  transition-property: opacity, display, overlay;
+}
+
+.toc-dialog[open] {
+  transform: none;
+}
+
+.toc-dialog[open]::backdrop {
+  opacity: 1;
+}
+
+.toc-dialog[open],
+.toc-dialog[open]::backdrop {
+  transition-duration: var(--duration-drawer-in);
+}
+
+@starting-style {
+  .toc-dialog[open] {
+    transform: translateX(-100%);
+  }
+
+  .toc-dialog[open]::backdrop {
+    opacity: 0;
+  }
 }
 
 .toc-dialog-head {
@@ -112,14 +146,12 @@
   letter-spacing: var(--tracking-meta);
 }
 
-/* 章节号从 00 开始，用系统自带的旧式衬线（design §3.2、§4.4），首页和目录共用。 */
+/* 章节号从 00 开始，用固定字形（Numeral，1em = 数字高度）：目录里 20px（design §4.5），首页 28px（§4.4）。 */
 .toc-chapter-no {
+  flex: none;
   color: var(--accent);
-  font-family: var(--font-numeral);
-  /* 和眉题的章节号（base.css 的 .eyebrow-no）同一放大比例 */
-  font-size: 1.15em;
-  font-weight: 400;
-  font-variant-numeric: tabular-nums;
+  font-size: 20px;
+  line-height: 1;
 }
 
 /* 参考页单列在末尾，和上面的章节隔一条细线（design §4.5）。 */
@@ -222,7 +254,7 @@
 }
 
 .toc-home .toc-chapter-no {
-  font-size: 1.4em;
+  font-size: 28px;
 }
 
 .toc-home .toc-chapter + .toc-chapter {

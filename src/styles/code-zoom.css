@@ -122,6 +122,19 @@
   background: var(--backdrop);
 }
 
+/* 打开时淡入 150ms（design §5、D11），关闭直接消失；减少动态效果时时长令牌归零（tokens.css）。 */
+.image-zoom[open],
+.image-zoom[open]::backdrop {
+  transition: opacity var(--duration-fade) var(--ease-decelerate);
+}
+
+@starting-style {
+  .image-zoom[open],
+  .image-zoom[open]::backdrop {
+    opacity: 0;
+  }
+}
+
 .image-zoom figure {
   margin: 0;
 }

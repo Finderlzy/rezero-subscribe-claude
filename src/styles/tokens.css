@@ -27,8 +27,8 @@
   /* logo 的“Re”跟主色走 */
   --logo-re: var(--accent);
 
-  /* §3.2 字体。--font-numeral 只用于眉题和目录的章节号：系统自带的旧式衬线，不加载网页字体；
-     大号编号改用固定字形（Numeral，design v2.1 §3.2 D7），眉题和目录随 W04、W07 改造 */
+  /* §3.2 字体。--font-numeral 只用于眉题和 v2.0 章节过场的章节号：系统自带的旧式衬线，不加载网页字体；
+     其余编号（目录、404）已用固定字形（Numeral，design v2.1 §3.2 D7），眉题和过场随 W04、W05 改造 */
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
     "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC",
     "Source Han Sans SC", sans-serif;
@@ -93,7 +93,7 @@
   --button-height: 48px;
 
   /*
-   * §5 动效（D11）：只有目录抽屉（滑入 200ms、关闭 150ms，减速曲线）和看大图（淡入 150ms）两处过渡（W03 用）；
+   * §5 动效（D11）：只有目录抽屉（滑入 200ms、关闭 150ms，减速曲线，toc.css）和看大图（淡入 150ms，code-zoom.css）两处过渡；
    * 悬停、按下是直接切换的轻位移：主按钮的箭头右移 --nudge，按钮按下时下移 --press-shift。
    * 减少动态效果时这些令牌在下方归零，组件不用另写一遍。
    */

@@ -5,14 +5,16 @@ import ViewToggle from './ViewToggle.astro';
 
 /**
  * 页眉（design §4.0）：首页以外的所有页面都有，吸顶，高 56px，下边一条 3px 的视图色带。
- * 左边是“目录”按钮（`toc`，<1100px 时才有，没有 JS 时隐藏）和链到首页的 logo 标记 + 站名（<480px 时只留标记）；
+ * 左边是“目录”（`toc`，所有宽度都有，design v2.1 §4.5、D5）和链到首页的 logo 标记 + 站名（<480px 时只留标记）；
+ * “目录”构建时是指向首页完整目录 `/#home-chapters` 的链接，没有 JS 也能到达目录（design §5，FR-16），
+ * 页面脚本 toc.ts 把它换成打开抽屉的按钮（换元素时保留这里的属性，样式照样选得中）。
  * 右边是“操作｜原理”切换（`views`）。色带：操作视图 `--text`、原理视图 `--accent`（跟 `<html data-view>` 走，
  * 没有 JS 时是操作视图）；没有视图的页面（参考页、找不到页）用 `--border`。
  */
 interface Props {
   /** 页面有两种视图：显示切换控件，色带跟视图换色 */
   views?: boolean;
-  /** 页面内嵌了目录抽屉（Toc.astro）：显示打开它的按钮 */
+  /** 页面内嵌了目录抽屉（Toc.astro）：显示“目录” */
   toc?: boolean;
 }
 
@@ -23,12 +25,12 @@ const { views = false, toc = false } = Astro.props;
   <div class="site-header-bar">
     {
       toc && (
-        <button type="button" class="toc-open" data-toc-open hidden>
+        <a class="toc-open" href={withBase('/#home-chapters')} data-toc-open>
           <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
             <path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
           </svg>
           目录
-        </button>
+        </a>
       )
     }
     <a class="site-home" href={withBase('/')} aria-label="Re:从零开始订阅 claude 首页">
@@ -109,6 +111,7 @@ const { views = false, toc = false } = Astro.props;
     gap: var(--space-1);
     min-width: 44px;
     min-height: 44px;
+    box-sizing: border-box;
     padding: 0 var(--space-3) 0 var(--space-2);
     border: var(--border-width) solid var(--control-border);
     border-radius: var(--radius-control);
@@ -117,17 +120,17 @@ const { views = false, toc = false } = Astro.props;
     font: inherit;
     font-size: var(--fs-meta);
     font-weight: 600;
+    text-decoration: none;
     cursor: pointer;
   }
 
-  .toc-open[hidden] {
-    display: none;
+  /* 悬停时边框变 --text，同次按钮（design §5） */
+  .toc-open:hover {
+    border-color: var(--text);
   }
 
-  /* ≥1100px 目录是常驻左侧栏，不需要打开按钮 */
-  @media (min-width: 1100px) {
-    .toc-open {
-      display: none;
-    }
+  /* 没有 JS 时它是链接，按下反馈要自己加（base.css 只管 button 和 .button） */
+  .toc-open:active {
+    translate: 0 var(--press-shift);
   }
 </style>

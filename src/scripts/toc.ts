@@ -9,7 +9,7 @@ import { CHOICES_CHANGED_EVENT, VIEW_CHANGED_EVENT } from './reader-store';
  * - 按本机选择和当前视图改写目录（M2 `outline()`）：哪个选项在当前路线上、“其他路线”标记、
  *   操作视图下弱化原理独有步骤、当前项；收到视图或选择变化时重画；
  * - “切换”：写入这个分叉点的选择，派发 CHOICES_CHANGED_EVENT，目录和上一步/下一步一起重算（FR-14）；
- * - 抽屉：`[data-toc-open]` 打开 `<dialog>`，把侧栏里的 `<nav>` 移进抽屉，关闭时移回。
+ * - 抽屉：页眉的 `[data-toc-open]` 构建时是链到首页目录的链接，这里换成打开 `<dialog>` 的按钮。
  *
  * 页面先运行 route-enhance（打开分支页时写入它的选项），再运行本脚本，目录才按这一页所在的路线画。
  * 跑完给 `<nav>` 加 `data-toc-ready`。
@@ -89,39 +89,39 @@ function setCurrent(link: HTMLAnchorElement | null, current: boolean): void {
   else link?.removeAttribute('aria-current');
 }
 
-/** 抽屉：Esc 由 `<dialog>` 原生支持，点背景或关闭按钮关闭。≥1100px 有常驻侧栏，打开按钮由 CSS 隐藏。 */
+/**
+ * 抽屉（design v2.1 §4.5、§5）：所有宽度都是抽屉。Esc 由 `<dialog>` 原生支持，点遮罩或“关闭”关闭；
+ * 关闭后把焦点还给打开它的按钮（不只靠 `<dialog>` 原生的恢复：Safari 点按钮时按钮不拿焦点，原生会落到 body）。滑入、滑出的过渡全在 toc.css（`allow-discrete`），脚本照常 `close()`。
+ *
+ * 页眉的 `[data-toc-open]` 没有 JS 时是指向首页目录的链接（FR-16）；这里换成同样外观的 `<button>`（保留除 href
+ * 以外的属性，组件样式照样选得中），读屏听到的是“按钮，打开对话框”，而不是一个会跳走的链接。
+ */
 function initDrawer(doc: Document, nav: HTMLElement): void {
   const dialog = doc.querySelector<HTMLDialogElement>('dialog[data-toc-dialog]');
-  const body = dialog?.querySelector<HTMLElement>('[data-toc-dialog-body]');
-  const sidebar = doc.querySelector<HTMLElement>('[data-toc-sidebar]');
-  if (!dialog || !body || !sidebar || typeof dialog.showModal !== 'function') return;
-  const win = doc.defaultView;
+  if (!dialog || typeof dialog.showModal !== 'function') return;
 
-  const open = () => {
-    body.append(nav);
-    dialog.showModal();
-    nav.querySelector<HTMLElement>('[aria-current="page"]')?.scrollIntoView({ block: 'center' });
-  };
-  dialog.addEventListener('close', () => sidebar.append(nav));
   // 抽屉本身没有内边距（留白在内层），点到 dialog 自身就是点在 ::backdrop 上。
   dialog.addEventListener('click', (event) => {
     if (event.target === dialog) dialog.close();
   });
   dialog.querySelector('[data-toc-close]')?.addEventListener('click', () => dialog.close());
-  // 抽屉开着时把窗口拉宽到出现侧栏，就关掉抽屉，目录回到侧栏。
-  win?.matchMedia('(min-width: 1100px)').addEventListener('change', (event) => {
-    if (event.matches && dialog.open) dialog.close();
+  let opener: HTMLElement | null = null;
+  dialog.addEventListener('close', () => {
+    opener?.focus();
+    opener = null;
   });
 
-  for (const button of doc.querySelectorAll<HTMLButtonElement>('[data-toc-open]')) {
+  for (const link of doc.querySelectorAll<HTMLElement>('[data-toc-open]')) {
+    const button = doc.createElement('button');
+    for (const { name, value } of link.attributes) if (name !== 'href') button.setAttribute(name, value);
+    button.type = 'button';
     button.setAttribute('aria-haspopup', 'dialog');
-    button.addEventListener('click', open);
-    button.hidden = false;
-  }
-
-  // 常驻侧栏里，把当前项滚到侧栏可见处（只滚侧栏，不动页面）。
-  const current = nav.querySelector<HTMLElement>('[aria-current="page"]');
-  if (current && sidebar.clientHeight > 0) {
-    sidebar.scrollTop = current.offsetTop - sidebar.clientHeight / 3;
+    button.append(...link.childNodes);
+    button.addEventListener('click', () => {
+      opener = button;
+      dialog.showModal();
+      nav.querySelector<HTMLElement>('[aria-current="page"]')?.scrollIntoView({ block: 'center' });
+    });
+    link.replaceWith(button);
   }
 }

@@ -61,8 +61,8 @@ test('目录区分当前路线、其他路线、当前页和原理独有步骤�
   await expect(toc.getByRole('link', { name: /五、安装面板/ })).toContainText('可跳过');
   await expect(toc.locator('.toc-reference').getByRole('link')).toHaveText(['常见问题', 'IP 质量实测合集']);
 
-  const dialog = page.getByRole('dialog', { name: '目录' });
-  if (await dialog.isVisible()) await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: '目录' })).toBeHidden();
   await page.getByRole('group', { name: '视图' }).getByRole('button', { name: '原理' }).click();
   await openToc(page);
   await expect(recap).not.toHaveAttribute('data-off-route');
@@ -73,36 +73,63 @@ test('目录区分当前路线、其他路线、当前页和原理独有步骤�
   await expect(stepNav(page).getByRole('link', { name: /上一步/ })).toHaveAttribute('href', /\/choose-plan\/$/);
 });
 
-// 抽屉：<1100px 时从页眉的“目录”按钮打开，Esc 关闭，焦点回到按钮；≥1100px 是常驻侧栏，没有按钮。
-test('窄屏用抽屉打开目录，Esc 关闭；宽屏是常驻侧栏', async ({ page }, testInfo) => {
+// 抽屉（design v2.1 §4.5、D5）：所有宽度都没有常驻目录，点页眉的“目录”打开；手机全屏，更宽时贴左边宽 400px。
+// Esc、点遮罩、点“关闭”都能关，关闭后焦点回到“目录”按钮。
+test('没有常驻目录，“目录”打开抽屉；Esc、点遮罩、点“关闭”都能关，焦点回到按钮', async ({ page }) => {
   await page.goto('./overview/');
   await expect(page.locator('[data-toc-ready]')).toHaveCount(1);
+  const toc = page.getByRole('navigation', { name: '步骤目录' });
+  const dialog = page.getByRole('dialog', { name: '目录' });
   const button = page.getByRole('button', { name: '目录', exact: true });
-  if (testInfo.project.name !== 'mobile-360') {
-    await expect(button).toBeHidden();
-    await expect(page.getByRole('navigation', { name: '步骤目录' })).toBeVisible();
-    return;
-  }
-  await expect(page.getByRole('navigation', { name: '步骤目录' })).toBeHidden();
+  await expect(toc).toBeHidden();
+  await expect(button).toHaveAttribute('aria-haspopup', 'dialog');
+
   await openToc(page);
+  const viewport = page.viewportSize()!;
+  // 等滑入结束再量位置（过渡 200ms）
+  await expect.poll(async () => (await dialog.boundingBox())?.x).toBe(0);
+  const box = (await dialog.boundingBox())!;
+  expect(box.width).toBe(viewport.width < 720 ? viewport.width : 400);
+  expect(box.height).toBe(viewport.height);
   await page.keyboard.press('Escape');
-  await expect(page.getByRole('dialog', { name: '目录' })).toBeHidden();
+  await expect(dialog).toBeHidden();
   await expect(button).toBeFocused();
 
   await openToc(page);
   await page.getByRole('button', { name: '关闭目录' }).click();
-  await expect(page.getByRole('dialog', { name: '目录' })).toBeHidden();
+  await expect(dialog).toBeHidden();
+  await expect(button).toBeFocused();
+
+  // 手机上抽屉全屏，没有露出来的遮罩可点
+  if (viewport.width >= 720) {
+    await openToc(page);
+    await page.mouse.click(viewport.width - 20, viewport.height / 2);
+    await expect(dialog).toBeHidden();
+    await expect(button).toBeFocused();
+  }
+});
+
+// 768 宽（平板，架构 §11.4 W-8）：抽屉同样贴左边宽 400px
+test.describe('768 宽（平板）', () => {
+  test.use({ viewport: { width: 768, height: 1024 } });
+
+  test('抽屉宽 400px，贴左边', async ({ page }) => {
+    await page.goto('./overview/');
+    await openToc(page);
+    const dialog = page.getByRole('dialog', { name: '目录' });
+    await expect.poll(async () => (await dialog.boundingBox())?.x).toBe(0);
+    expect((await dialog.boundingBox())!.width).toBe(400);
+  });
 });
 
 test.describe('没有 JS', () => {
   test.use({ javaScriptEnabled: false });
 
-  test('宽屏侧栏照常可点；窄屏没有打不开的“目录”按钮', async ({ page }, testInfo) => {
+  test('“目录”是链接，点击到达首页的完整目录', async ({ page }) => {
     await page.goto('./overview/');
-    await expect(page.getByRole('button', { name: '目录', exact: true })).toBeHidden();
-    if (testInfo.project.name === 'mobile-360') return;
-    const toc = page.getByRole('navigation', { name: '步骤目录' });
-    await toc.getByRole('link', { name: /^测 IP 质量/ }).click();
-    await expect(page).toHaveURL(/\/check-ip\/$/);
+    await expect(page.getByRole('button', { name: '目录', exact: true })).toHaveCount(0);
+    await page.getByRole('link', { name: '目录', exact: true }).click();
+    await expect(page).toHaveURL(/\/#home-chapters$/);
+    await expect(page.getByRole('navigation', { name: '全站目录' }).getByRole('link', { name: '前言' })).toBeVisible();
   });
 });
