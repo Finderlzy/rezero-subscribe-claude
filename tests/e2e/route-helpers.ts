@@ -8,6 +8,13 @@ export const stepNav = (page: Page) => page.getByRole('navigation', { name: '上
 /** 当前页的标识：`/<id>/` 里的 id */
 export const pageId = (page: Page) => new URL(page.url()).pathname.split('/').at(-2)!;
 
+/** 点当前可见正文里的站内链接，等新页面的脚本跑完 */
+export async function clickBodyLink(page: Page, name: string): Promise<void> {
+  await page.locator('.prose').filter({ visible: true }).getByRole('link', { name, exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(name);
+  await expectScriptRan(page);
+}
+
 /** 当前可见正文里标题含 `title` 的选项块（选择页，FR-12） */
 export const optionBlock = (page: Page, title: string) =>
   page
