@@ -9,7 +9,7 @@
 | 任何任务前 | [CONTEXT.md](CONTEXT.md)：术语（步骤、路线、分叉点、操作视图……），命名和文案要用这里的词 |
 | 判断做不做、怎么验收 | [docs/requirements.md](docs/requirements.md)：范围、三级边界、FR/AC 编号 |
 | 改代码结构、接口、目录 | [docs/architecture.md](docs/architecture.md)、[docs/adr/](docs/adr/) |
-| 改页面或样式 | [docs/design.md](docs/design.md)：设计令牌、页面结构、拒绝清单；v2.1 已定稿（2026-10-16），代码现状仍是 v2.0，改页面时按 v2.1 |
+| 改页面或样式 | [docs/design.md](docs/design.md)：设计令牌、页面结构、拒绝清单；v2.1 已定稿（2026-10-16），代码现状仍是 v2.0，改页面时按 v2.1（改造任务见实施计划 v2.1 节和 `[v2.1]` Issues #32–#40） |
 | 选依赖 | [docs/reuse-research.md](docs/reuse-research.md) |
 | 看交付状态、未解决项 | [docs/delivery.md](docs/delivery.md)：验收基线、结果和待补项；使用和部署说明在 [README.md](README.md) |
 | 选任务、看顺序和档位 | [docs/implementation-plan.md](docs/implementation-plan.md)：里程碑、依赖和 Issue 链接；任务范围与状态以 GitHub Issues 为准 |
