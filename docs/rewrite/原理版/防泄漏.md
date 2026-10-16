@@ -52,7 +52,7 @@ IP 其实有两种。我们前面说的 IP，大多是 **IPv4**，就是 `1.2.3.
 - Chrome / Edge：装插件“WebRTC Control”；或者在 uBlock Origin 设置里勾选“防止 WebRTC 泄露本地 IP 地址”。
 - Firefox：地址栏输入 `about:config`，把 `media.peerconnection.enabled` 改为 `false`。
 
-**检测**：打开 [browserleaks.com/webrtc](https://browserleaks.com/webrtc)，“Public IP”里不能出现你国内的 IP。用方案一的，这里显示的是服务器的 IP，这是正常的，因为只有 claude 和 ipinfo.io 走 ISP。
+**检测**：打开 [browserleaks.com/webrtc](https://browserleaks.com/webrtc)，“Public IP”里不能出现你国内的 IP。用方案一的，这里显示的是服务器的 IP，这是正常的，因为只有 claude 和 ipinfo.io 走 ISP。DNS、WebRTC 测出来的 IP 看不懂的，见 [[常见问题#测出来好几个不同的 IP？|测出来好几个不同的 IP？]]。
 
 防 IPv6 泄漏：
 
