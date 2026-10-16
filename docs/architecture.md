@@ -230,9 +230,9 @@ function pathOf(stop: Stop): string;        // '/<id>/' 或 '/'；再由 withBas
 | IP 质量实测合集 / 各篇实测 | `/ip-tests/`、`/ip-tests/<id>/` | `src/pages/ip-tests/index.astro`、`[test].astro` |
 | 找不到 | `404.html` | `src/pages/404.astro` |
 
-已删除（#25）：`[step].astro`、`choose/[fork].astro`、`done.astro`、`faq/[faq].astro`、`StepLayout`、`ChoiceOption`、`PlaceholderNotice`，以及依赖旧路线的页面脚本 `home.ts`、`done.ts`、`route-enhance.ts`、`toc.ts`、`view-toggle.ts`、`faq-return.ts`、`reader-store.ts`（#26、#27、#30 参照 `v1.0.0` 标签重写；`route-enhance.ts`、`view-toggle.ts`、`reader-store.ts` 已由 #26 重写）。
+已删除（#25）：`[step].astro`、`choose/[fork].astro`、`done.astro`、`faq/[faq].astro`、`StepLayout`、`ChoiceOption`、`PlaceholderNotice`，以及依赖旧路线的页面脚本 `home.ts`、`done.ts`、`route-enhance.ts`、`toc.ts`、`view-toggle.ts`、`faq-return.ts`、`reader-store.ts`（#26、#27、#30 参照 `v1.0.0` 标签重写；`route-enhance.ts`、`view-toggle.ts`、`reader-store.ts` 已由 #26 重写，`faq-return.ts` 已由 #27 重写为 `reference-return.ts`）。
 
-- **#25 的静态骨架（现状）**：`PageLayout` 输出两版正文，只有原理版时在正文上方输出提示条 `.view-notice`；`ReferenceLayout` 只有“回首页”，实测页另有“回到：IP 质量实测合集”；首页和找不到页把 `TocNav` 直接写在页面上；步骤页的目录侧栏只在 ≥1100px 显示，抽屉的打开按钮在目录脚本接上前保持隐藏。
+- **#25 的静态骨架（现状）**：`PageLayout` 输出两版正文，只有原理版时在正文上方输出提示条 `.view-notice`；`ReferenceLayout` 的页脚见下文“参考页的返回”；首页和找不到页把 `TocNav` 直接写在页面上；步骤页的目录侧栏只在 ≥1100px 显示，抽屉的打开按钮在目录脚本接上前保持隐藏。
 - **#26 的交互（现状）**：`PageLayout` 内嵌 `RouteData`（`<script type="application/json" id="route-data">`，`<` 转义），顶栏右侧渲染 `ViewToggle`（页眉在 #31 重做），加载 `view-toggle` 和 `route-enhance`，路线数据由 `readRouteData(document)` 解析一次，两者共用 `src/scripts/reader-store.ts` 的 `pageReaderStore(data)`（一页一个 store，内存兜底时彼此可见；页面脚本的 `reader-store.ts` 和 M4 的 `lib/reader-state/reader-store.ts` 同名沿用 1.0.0，前者只做页面装配）。`StepNav` 总是写出“下一步”的链接，没有目标时带 `hidden`、不写地址，选择页在本机选过之后由脚本显示；脚本跑完给 `<main>` 加 `data-route-ready`。选择页的选项块（#29）和目录（#30）派发 `reader-choices-changed` 即可让导航重算。
 
 - **构建时**（1.0.0 已有，改接口）：页面调用 `loadSite()`（`src/lib/site.ts`），它读取三个集合和 `route.yaml`，经纯函数 `assembleRoute()` 映射成 `PageMeta[]` 后调用 `buildRouteMap`，一次构建内缓存。每页用 `view(id, {}, 'operation')` 把导航写进 HTML——没有 JS 时，读者看到的就是“操作视图 + 未选”的导航：未选的分叉点处指向选择页，选择页的选项块是普通链接，进入分支后按所属选项计算。唯一的折返在“订阅”：它的“下一步”指向“选择手机系统”，静态页面上的选项链接只能进入手机的第一段，所以没有 JS 的读者要用“订阅”正文里的链接进入订阅分支（正文原本就列出了两条路的每一步）。这是降级体验，不是验收路径；“禁用存储”（AC-18）时脚本仍运行，靠 M4 的 `window.name` 兜底记住选择。
@@ -242,6 +242,7 @@ function pathOf(stop: Stop): string;        // '/<id>/' 或 '/'；再由 withBas
 - **目录**（1.0.0 已有 `Toc`/`TocNav`/`toc.ts`，改动）：去掉已读 ✓ 和“清除进度”；原理独有步骤标“原理”，在操作视图下弱化；参考页在末尾单列“卡住了再看”。首页的目录用同一个 `TocNav`（首页变体：不吸顶、不折叠）。
 - **logo**：`src/assets/logo/` 放转曲后的 SVG（中文版、英文版、“Re:”标记），**只由 `src/components/Logo.astro` 引用**（`?raw` 内联，颜色用 `currentColor` 和设计令牌，深浅主题自动适配）；换 logo 只改这一处（需求 Q-15）。favicon 是 `public/favicon.svg`（SVG 内用 `prefers-color-scheme` 切换配色），由 `BaseLayout` 的 `<link rel="icon">` 引用。“Re”的颜色取 `--logo-re`（SVG 里的回退值是浅色的 `#5B3FA0`），页面要在令牌里设 `--logo-re: var(--accent)`，深色模式才会换成浅紫（#31 接入）。四个 SVG 都由 `scripts/build-logo.mjs` 生成，版式参数（字号、错落、间距）写在脚本里。
 - **参考页的返回**（1.0.0 已有 `faq-return`，泛化为 `reference-return`）：根据 `?from=<page-id>` 查到页面标题，显示“返回刚才的步骤：<标题>”；实测页另有“回到：IP 质量实测合集”；直接打开时显示“打开目录”。
+  实现（#27，现状）：纯函数 `referenceReturn(search, pages)`（`src/lib/reference-return.ts`）只认 `RouteData.pages` 里的标识（步骤、选择页、旁支页），其他值当作直接打开；`ReferenceLayout` 内嵌“页面标识 → 标题”（`#reference-pages`），在标题上方和正文末尾写出隐藏的 `[data-reference-return]`，页面脚本 `src/scripts/reference-return.ts` 填好地址和标题后显示，并隐藏“打开目录”（`[data-reference-toc]`，页脚因此空了就整行隐藏），跑完给 `<main>` 加 `data-reference-ready`。“打开目录”是指向首页目录的链接 `/#home-chapters`，没有 JS 也能用；目录抽屉由 #30 接上后可改成打开抽屉。
 - **视频门面、代码复制、看大图**：1.0.0 已有，沿用；只改 FR-41：没有视频信息时不输出视频区域（删掉“视频制作中”）。
 
 ### M4 本机状态（`src/lib/reader-state/`）
@@ -311,10 +312,10 @@ function getNameHost(scope?): { name: string } | null;   // 浏览器里是 wind
 │   │   ├── route/                   M2：route-map、types（+ 测试和测试用路线图）
 │   │   ├── reader-state/            M4：reader-store、view-boot（+ *.test.ts）
 │   │   ├── nav-text.ts              导航文案，构建时和页面脚本共用
-│   │   ├── reference-return.ts      参考页按 ?from= 找回步骤（计划，由 faq-return.ts 改名）
+│   │   ├── reference-return.ts      参考页按 ?from= 找回步骤（#27 由 faq-return.ts 改名）
 │   │   └── site.ts                  构建时装配 loadSite()、assembleRoute()
 │   ├── scripts/                     页面脚本：route-enhance、view-toggle、toc、reference-return、code-zoom、video-facade
-│   ├── layouts/                     BaseLayout、PageLayout（计划，替换 StepLayout）、ReferenceLayout（计划）
+│   ├── layouts/                     BaseLayout、PageLayout（替换 StepLayout）、ReferenceLayout
 │   ├── components/                  Logo、SiteHeader（计划）、ViewToggle、StepNav、Toc、TocNav、CodeCopy、ImageZoom、VideoFacade
 │   ├── pages/                       index、[page]、faq/index、ip-tests/index、ip-tests/[test]、404
 │   └── styles/                      tokens.css、base.css、prose.css、toc.css、code-zoom.css
