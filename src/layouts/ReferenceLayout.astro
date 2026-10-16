@@ -2,6 +2,7 @@
 import CodeCopy from '../components/CodeCopy.astro';
 import ImageZoom from '../components/ImageZoom.astro';
 import { hasZoomableImage } from '../lib/code-zoom/labels';
+import { loadSite } from '../lib/site';
 import { withBase } from '../lib/with-base';
 import BaseLayout from './BaseLayout.astro';
 import '../styles/prose.css';
@@ -9,7 +10,8 @@ import '../styles/prose.css';
 /**
  * 参考页（常见问题、IP 质量实测合集、各篇实测）的骨架（design §4.6，FR-20）：只有一版正文，
  * 没有上一步/下一步和视图切换。实测页多一个“回到：IP 质量实测合集”（`back`）。
- * “返回刚才的步骤”（按 `?from=`）和直接打开时的目录入口由 #27 接上；在那之前只有回首页。
+ * 从步骤链接进来（`?from=<page-id>`）时，页面脚本在标题上方和正文末尾显示“← 返回刚才的步骤：<标题>”，
+ * 并隐藏“打开目录”；直接打开（或没有 JS）时只有“打开目录”。“打开目录”链到首页的目录，抽屉由 #30 接上。
  */
 interface Props {
   title: string;
@@ -19,23 +21,54 @@ interface Props {
 const { title, back } = Astro.props;
 const body = await Astro.slots.render('default');
 const hasZoom = hasZoomableImage(body);
+const site = await loadSite();
+// 页面脚本只需要“页面标识 → 标题”来写返回链接；内嵌 JSON 里的 `<` 转义掉（同 PageLayout）。
+const pageTitles = Object.fromEntries(Object.entries(site.route.data.pages).map(([id, page]) => [id, page.title]));
+const pagesJson = JSON.stringify(pageTitles).replace(/</g, '\\u003c');
 ---
 
 <BaseLayout title={title}>
   <main id="main" class="page">
+    <p class="reference-return" data-reference-return hidden>
+      <a>← 返回刚才的步骤</a>
+    </p>
     <h1 class="page-title">{title}</h1>
     <div class="prose" set:html={body} />
+    <p class="reference-return" data-reference-return hidden>
+      <a>← 返回刚才的步骤</a>
+    </p>
     <p class="page-actions">
       {back && <a class="button button-secondary" href={withBase(back.href)}>回到：{back.title}</a>}
-      <a class="button" href={withBase('/')}>回首页</a>
+      <a class="button" href={withBase('/#home-chapters')} data-reference-toc>打开目录</a>
     </p>
   </main>
   <CodeCopy />
   {hasZoom && <ImageZoom />}
+  <script type="application/json" id="reference-pages" set:html={pagesJson} />
 </BaseLayout>
 
 <script>
   import { initCodeZoom } from '../scripts/code-zoom';
+  import { initReferenceReturn } from '../scripts/reference-return';
 
+  initReferenceReturn(document);
   initCodeZoom(document);
 </script>
+
+<style>
+  .reference-return {
+    margin: 0 0 var(--space-4);
+    font-size: var(--fs-meta);
+    line-height: var(--lh-meta);
+  }
+
+  .reference-return a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .prose + .reference-return {
+    margin-top: var(--space-6);
+  }
+</style>

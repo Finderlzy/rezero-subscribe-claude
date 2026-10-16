@@ -33,9 +33,11 @@ IP 不只是一个地址，它还能看出两件事：
 
 | 选项   | 怎么选                                |
 | ---- | ---------------------------------- |
-| 系统   | **Ubuntu 22.04 / 24.04** 或 **Debian 12** |
+| 系统   | **Debian 12**（不要选 Ubuntu）             |
 | 配置   | 1 核 CPU、1 GB 内存就够                  |
 | 流量   | 每月几百 GB 足够                         |
+
+系统只选 Debian。我自己用的就是 Debian，教程里的命令和脚本都是照着 Debian 来的。Ubuntu 和 Debian 是一家子，长得很像，但有读者反馈，Ubuntu 上有些命令有些许区别，照着教程做容易出岔子，所以干脆统一用 Debian。已经装成别的系统的，在商家后台把系统重装成 Debian 12 就行。
 
 买完在商家控制台记下**服务器 IP** 和 **root 密码**。
 
@@ -51,6 +53,8 @@ IP 不只是一个地址，它还能看出两件事：
 ```bash
 ssh root@你的服务器IP
 ```
+
+提示 `Permission denied, please try again.`，见 [[常见问题#SSH 提示 Permission denied？|SSH 提示 Permission denied？]]。
 
 **3. 把服务器变成节点**
 

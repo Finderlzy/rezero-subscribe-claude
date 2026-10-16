@@ -12,9 +12,11 @@
 
 | 选项   | 怎么选                                |
 | ---- | ---------------------------------- |
-| 系统   | **Ubuntu 22.04 / 24.04** 或 **Debian 12** |
+| 系统   | **Debian 12**（不要选 Ubuntu）             |
 | 配置   | 1 核 CPU、1 GB 内存就够                  |
 | 流量   | 每月几百 GB 足够                         |
+
+已经装成别的系统的，在商家后台把系统重装成 Debian 12。
 
 买完在商家控制台记下**服务器 IP** 和 **root 密码**。
 
@@ -28,6 +30,8 @@
 ```bash
 ssh root@你的服务器IP
 ```
+
+提示 `Permission denied, please try again.`，见 [[常见问题#SSH 提示 Permission denied？|SSH 提示 Permission denied？]]。
 
 **3. 把服务器变成节点**
 
