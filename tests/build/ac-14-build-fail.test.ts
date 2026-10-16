@@ -69,7 +69,7 @@ describe('AC-14 坏内容让构建失败并报出文件', () => {
     expect(code, output).toBe(0);
   });
 
-  // 每个用例只覆盖一个现有文件（致谢页或 route.yaml），其余内容不变，所以只会因为这一处坏内容失败
+  // 每个用例只覆盖一个现有文件（致谢页、选择页或 route.yaml），其余内容不变，所以只会因为这一处坏内容失败
   test.concurrent.each([
     {
       fixture: 'missing-image',
@@ -101,6 +101,12 @@ describe('AC-14 坏内容让构建失败并报出文件', () => {
       fixture: 'title-mismatch',
       file: 'src/content/operation/thanks.md',
       messages: ['操作版标题“感谢”与原理版“致谢”不同'],
+    },
+    {
+      // 选项块（FR-12）：方案三的块里第一个链接改成方案二的页面，与路线图不一致
+      fixture: 'option-first-step',
+      file: 'src/content/operation/choose-plan.md',
+      messages: ['选项块“方案三：直接买住宅节点”的第一个链接指向“方案二：住宅 IP 服务器”，但路线图里选项 plan-3 在操作视图下的第一步是“方案三：直接买住宅节点”'],
     },
     {
       fixture: 'bad-metadata',

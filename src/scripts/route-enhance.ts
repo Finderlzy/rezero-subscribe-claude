@@ -1,7 +1,7 @@
 import { progressText, stopTitle } from '../lib/nav-text';
 import type { ReaderState, ReaderStore } from '../lib/reader-state/reader-store';
 import { pathOf, routeMapFromData } from '../lib/route/route-map';
-import type { PageId, RouteData, RouteView, Stop, ViewMode } from '../lib/route/types';
+import type { ForkId, PageId, RouteData, RouteView, Stop, ViewMode } from '../lib/route/types';
 import { withBase } from '../lib/with-base';
 import { CHOICES_CHANGED_EVENT, VIEW_CHANGED_EVENT } from './reader-store';
 
@@ -30,6 +30,11 @@ export function openPatch(data: RouteData, at: PageId): Pick<ReaderState, 'choic
   return null;
 }
 
+/** `at` 是哪个分叉点的选择页；不是选择页时为 null */
+export function forkOfChoosePage(data: RouteData, at: PageId): ForkId | null {
+  return Object.keys(data.forks).find((fork) => data.forks[fork]!.page === at) ?? null;
+}
+
 // ---------------------------------------------------------------- DOM
 
 /**
@@ -39,6 +44,7 @@ export function openPatch(data: RouteData, at: PageId): Pick<ReaderState, 'choic
  * - `[data-route-nav="prev|return|next|skip"]`：导航链接，其中的 `[data-route-title]` 是目标标题；
  *   跳过链接只改地址（文案是页面自己的），外层是 `[data-route-skip]`。没有目标时链接隐藏：
  *   选择页没选时没有“下一步”，选了之后才出现，所以 StepNav 总是写出“下一步”的链接，没有目标时带 `hidden`。
+ * - 选择页正文里的 `section.option-block[data-option]`（M1 插件包出的选项块，两版正文各一份）。
  * 第一次计算完成后给 `[data-route-at]` 加上 `data-route-ready`，e2e 据此确认脚本已跑完。
  */
 export function initRouteEnhance(doc: Document, data: RouteData, store: ReaderStore): void {
@@ -49,7 +55,12 @@ export function initRouteEnhance(doc: Document, data: RouteData, store: ReaderSt
   const map = routeMapFromData(data);
   const mode = (): ViewMode => (doc.documentElement.dataset.view === 'principle' ? 'principle' : 'operation');
 
-  const render = () => renderNav(doc, map.view(at, store.read().choices, mode()));
+  const fork = forkOfChoosePage(data, at);
+  const render = () => {
+    const view = map.view(at, store.read().choices, mode());
+    renderNav(doc, view);
+    if (fork) markChoice(doc, view.choices[fork]);
+  };
   const open = () => {
     const patch = openPatch(data, at);
     if (patch) store.write(patch);
@@ -65,6 +76,39 @@ export function initRouteEnhance(doc: Document, data: RouteData, store: ReaderSt
   // 在本页切换视图、在选择页或目录里改选时只重算：读者没有重新打开这一页，不应把当前页所属的选项写回去。
   doc.addEventListener(VIEW_CHANGED_EVENT, render);
   doc.addEventListener(CHOICES_CHANGED_EVENT, render);
+  if (fork) recordChoice(doc, fork, store);
+}
+
+/**
+ * 选择页（FR-12）：点选项块里任何站内链接，先把这个选项写进本机选择，再照常跳转；整块的点击区域是
+ * 块内第一个链接（CSS 撑满），所以点块内空白处也走这里。写完派发 CHOICES_CHANGED_EVENT，导航和目录重算。
+ */
+function recordChoice(doc: Document, fork: ForkId, store: ReaderStore): void {
+  doc.addEventListener('click', (event) => {
+    const link = (event.target as Element | null)?.closest?.<HTMLAnchorElement>('a[href]');
+    const block = link?.closest<HTMLElement>('.option-block[data-option]');
+    const option = block?.dataset.option;
+    if (!link || !option || link.origin !== doc.defaultView?.location.origin) return;
+    store.write({ choices: { [fork]: option } });
+    doc.dispatchEvent(new Event(CHOICES_CHANGED_EVENT));
+  });
+}
+
+/** 本机保存的选项块标“当前选择”和 aria-current；没选时都不标，也不标默认（FR-12） */
+function markChoice(doc: Document, chosen: string | undefined): void {
+  for (const block of doc.querySelectorAll<HTMLElement>('.option-block[data-option]')) {
+    const current = block.dataset.option === chosen;
+    let label = block.querySelector<HTMLElement>('.option-current');
+    if (current && !label) {
+      label = doc.createElement('span');
+      label.className = 'option-current';
+      label.textContent = '当前选择';
+      (block.querySelector('.option-title') ?? block).append(' ', label);
+    }
+    if (label) label.hidden = !current;
+    if (current) block.setAttribute('aria-current', 'true');
+    else block.removeAttribute('aria-current');
+  }
 }
 
 function renderNav(doc: Document, view: RouteView): void {

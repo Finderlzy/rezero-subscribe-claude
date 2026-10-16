@@ -1,10 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
-import { clickBodyLink, collectErrors, expectScriptRan, nextUntil, pageId, stepNav } from './route-helpers';
+import { chooseOption, collectErrors, expectScriptRan, nextUntil, pageId, stepNav } from './route-helpers';
 
 // AC-18（禁用本机存储部分）：浏览器禁用本机存储时，在选择页选好后走完 AC-02 的一条路线，导航正常、不报错。
 // 取消默认路线后，选择如果只存在内存里，换页就会忘掉：“订阅”的下一步会回到“选择手机系统”，形成绕圈（评审 V11）。
 // M4 退到 window.name 保存选择和视图，同一标签页换页后仍记得。找不到页的部分见 ac-18-not-found.spec.ts。
-// 选择页的选项块由 #29 实现；在那之前用正文里的链接进入分支，由页面脚本记下所属选项（FR-17），#29 完成后改成点选项块。
+// 在选择页点选项块进入分支：点击时先写下选择（选项块，FR-12），换页后要靠 window.name 记住。
 
 /** 两种“禁用”：访问 localStorage 本身就抛异常（Safari 禁用网站数据等），或读写时抛异常。 */
 const DISABLERS: [string, () => void][] = [
@@ -45,14 +45,14 @@ for (const [name, disable] of DISABLERS) {
       await expectScriptRan(page);
 
       await nextUntil(page, 'choose-plan', seen);
-      await clickBodyLink(page, '方案三：直接买住宅节点');
+      await chooseOption(page, '方案三：直接买住宅节点');
       seen.push(pageId(page));
       await nextUntil(page, 'import-proxy', seen);
       // 换页后仍记得方案三：汇合点的上一步是方案三，不是选择页
       await expect(stepNav(page).getByRole('link', { name: /上一步/ })).toHaveAttribute('href', /\/plan3-residential-node\/$/);
 
       await nextUntil(page, 'choose-phone', seen);
-      await clickBodyLink(page, 'iPhone：把 App Store 改到奥地利');
+      await chooseOption(page, 'iPhone');
       seen.push(pageId(page));
       await nextUntil(page, 'afterword', seen);
       await expect(stepNav(page).getByRole('link', { name: /下一步.*回到首页/ })).toBeVisible();

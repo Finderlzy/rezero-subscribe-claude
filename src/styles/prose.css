@@ -146,3 +146,85 @@
   border: var(--border-width) solid var(--border);
   border-radius: var(--radius-panel);
 }
+
+/*
+ * 选择页的选项块（design §4.2，FR-12）：M1 插件把正文里每个选项的小节包成 section.option-block。
+ * 整块可点：块内第一个链接（这个选项的第一步，data-option-start）用伪元素撑满整块；
+ * 块内其他链接（以及代码块、图片等可操作的内容）浮在上面，仍可单独点、选中；块里的普通文字被伪元素盖住，
+ * 点它就是进入第一步。本机选过的块由页面脚本标 aria-current 和“当前选择”，不标默认。
+ */
+.prose .option-block {
+  position: relative;
+  margin: var(--space-4) 0;
+  padding: var(--space-4);
+  background: var(--surface);
+  border: var(--border-width) solid var(--control-border);
+  border-radius: var(--radius-panel);
+}
+
+@media (min-width: 720px) {
+  .prose .option-block {
+    padding: var(--space-5);
+  }
+}
+
+.prose .option-block:hover,
+.prose .option-block:focus-within {
+  border-color: var(--accent);
+}
+
+/* 左边框加粗 3px，内边距减 3px，正文不跟着挪动 */
+.prose .option-block[aria-current='true'] {
+  border-color: var(--accent);
+  border-left-width: 4px;
+  padding-left: calc(var(--space-4) - 3px);
+}
+
+@media (min-width: 720px) {
+  .prose .option-block[aria-current='true'] {
+    padding-left: calc(var(--space-5) - 3px);
+  }
+}
+
+.prose .option-block > :last-child {
+  margin-bottom: 0;
+}
+
+.prose .option-title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--fs-h2);
+  line-height: var(--lh-heading);
+}
+
+.prose .option-title strong {
+  font-weight: 700;
+}
+
+.prose .option-current {
+  display: inline-block;
+  margin-left: var(--space-1);
+  padding: 0 var(--space-2);
+  border: var(--border-width) solid var(--accent);
+  border-radius: var(--radius-control);
+  color: var(--accent);
+  font-size: var(--fs-meta);
+  line-height: var(--lh-meta);
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.prose .option-current[hidden] {
+  display: none;
+}
+
+.prose .option-block a[data-option-start]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.prose .option-block :is(a:not([data-option-start]), button, summary, pre, img) {
+  position: relative;
+  z-index: 1;
+}

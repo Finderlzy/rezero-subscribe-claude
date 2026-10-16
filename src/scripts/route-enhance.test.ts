@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { samplePages, sampleSpec } from '../lib/route/fixtures/sample-route';
 import { buildRouteMap } from '../lib/route/route-map';
-import { openPatch } from './route-enhance';
+import { forkOfChoosePage, openPatch } from './route-enhance';
 
 const { data } = buildRouteMap(sampleSpec(), samplePages());
 
@@ -31,5 +31,13 @@ describe('openPatch：打开一页时写入的本机状态（FR-17、FR-50）', 
 
   it('不在路线图里的标识：不写', () => {
     expect(openPatch(data, 'no-such-page')).toBeNull();
+  });
+});
+
+describe('forkOfChoosePage：选择页对应的分叉点（FR-12）', () => {
+  it('选择页返回它的分叉点，其余页面返回 null', () => {
+    expect(forkOfChoosePage(data, 'choose-plan')).toBe('node-plan');
+    expect(forkOfChoosePage(data, 'choose-phone')).toBe('phone');
+    for (const id of ['preface', 'plan3-node', 'google-appeal', 'no-such-page']) expect(forkOfChoosePage(data, id)).toBeNull();
   });
 });

@@ -8,10 +8,21 @@ export const stepNav = (page: Page) => page.getByRole('navigation', { name: '上
 /** 当前页的标识：`/<id>/` 里的 id */
 export const pageId = (page: Page) => new URL(page.url()).pathname.split('/').at(-2)!;
 
-/** 点当前可见正文里的站内链接，等新页面的脚本跑完 */
-export async function clickBodyLink(page: Page, name: string): Promise<void> {
-  await page.locator('.prose').filter({ visible: true }).getByRole('link', { name, exact: true }).click();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(name);
+/** 当前可见正文里标题含 `title` 的选项块（选择页，FR-12） */
+export const optionBlock = (page: Page, title: string) =>
+  page
+    .locator('.prose')
+    .filter({ visible: true })
+    .locator('.option-block', { has: page.locator('.option-title', { hasText: title }) });
+
+/**
+ * 在选择页点选项块的空白处（左上角的内边距），进入这个选项的第一步，等新页面的脚本跑完。
+ * 空白处由块内第一个链接的伪元素撑满（design §4.2），点中的就是那个链接。
+ */
+export async function chooseOption(page: Page, title: string): Promise<void> {
+  const from = page.url();
+  await optionBlock(page, title).click({ position: { x: 6, y: 6 } });
+  await expect(page).not.toHaveURL(from);
   await expectScriptRan(page);
 }
 

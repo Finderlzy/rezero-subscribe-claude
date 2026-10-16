@@ -5,6 +5,7 @@ import { slug } from 'github-slugger';
 import type { Blockquote, Image, Link, Paragraph, Parent, PhrasingContent, Root, RootContent, Text } from 'mdast';
 import { joinBase } from '../with-base';
 import { resolveLinkIndex, type IndexedPage, type LinkIndex } from './link-index';
+import { wrapOptionBlocks } from './option-blocks';
 
 /**
  * M1 的 Obsidian 写法插件（架构 §3 M1）：把双链、嵌入转换成链接和图片节点，
@@ -129,6 +130,8 @@ export default function remarkObsidian(options: RemarkObsidianOptions) {
     };
     if (ctx.page) preparePage(tree, ctx.page);
     walk(tree, ctx, false);
+    // 选项块要在双链转成链接之后包：核对的是块内第一个站内链接的目标页
+    if (ctx.page) wrapOptionBlocks(tree, ctx.page, index, ctx);
     if (hints.length > 0) options.onHints?.(hints);
     if (problems.length === 0) return;
     if (options.onProblems) options.onProblems(problems);
@@ -368,7 +371,9 @@ function convertLink(raw: string, source: string, at: Point | undefined, ctx: Do
   const hash = anchor === undefined ? '' : `#${anchor}`;
   const fromStep = page.kind === 'reference' && ctx.page !== undefined && ctx.page.kind !== 'reference';
   const query = fromStep ? `?from=${encodeURIComponent(ctx.page!.id)}` : '';
-  return link(joinBase(ctx.base, `/${page.id}/${query}${hash}`), text ?? (heading ? `${target} > ${heading}` : target));
+  const out = link(joinBase(ctx.base, `/${page.id}/${query}${hash}`), text ?? (heading ? `${target} > ${heading}` : target));
+  out.data = { targetPage: page.id };
+  return out;
 }
 
 function convertEmbed(raw: string, source: string, at: Point | undefined, ctx: DocContext): Image | undefined {

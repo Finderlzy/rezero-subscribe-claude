@@ -44,6 +44,8 @@ export interface IndexedPage {
   headings: ReadonlySet<string>;
   /** 原理版 frontmatter 的 principleOnly */
   principleOnly: boolean;
+  /** 选择页原理版 frontmatter 的 `options`：选项标识 → 块标题原文（heading），按书写顺序；其他页面没有 */
+  options: ReadonlyMap<string, string> | undefined;
 }
 
 /**
@@ -68,6 +70,17 @@ export function createLinkIndex(
     titles,
     ...readBlogLinks(join(root, 'blog-links.yaml')),
   };
+}
+
+/** frontmatter 的 options 里写了 heading 的选项；形状不对时由内容集合的 schema 报错，这里只取能用的部分 */
+function readOptions(raw: unknown): Map<string, string> | undefined {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return undefined;
+  const options = new Map<string, string>();
+  for (const [id, value] of Object.entries(raw)) {
+    const heading = (value as { heading?: unknown } | null)?.heading;
+    if (typeof heading === 'string' && heading.trim() !== '') options.set(id, heading.trim());
+  }
+  return options;
 }
 
 /** 链接索引可以直接给，也可以给一个每次调用都重新扫描的函数 */
@@ -142,6 +155,7 @@ function scanPage(kind: PageKind, id: string, file: string): IndexedPage {
     titleLine: (first === -1 ? 0 : first) + 1,
     headings,
     principleOnly: kind === 'principle' && frontmatter.principleOnly === true,
+    options: kind === 'principle' ? readOptions(frontmatter.options) : undefined,
   };
 }
 

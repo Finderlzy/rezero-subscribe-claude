@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { clickBodyLink, expectScriptRan, stepNav } from './route-helpers';
+import { chooseOption, expectScriptRan, stepNav } from './route-helpers';
 
 // AC-09（FR-12、FR-13）：没有默认路线。在无痕窗口（新的浏览器上下文）打开汇合点和“订阅”，
 // 没选的分叉点处指向它的选择页；选择页没选时没有“下一步”，也没有“默认”字样。
@@ -52,7 +52,7 @@ test('收到 reader-choices-changed 后按新选择重算导航', async ({ page 
 test('进入方案三后，选择页出现“下一步”，汇合点的上一步是方案三', async ({ page }) => {
   await page.goto('./choose-plan/');
   await expectScriptRan(page);
-  await clickBodyLink(page, '方案三：直接买住宅节点');
+  await chooseOption(page, '方案三');
 
   await page.goto('./choose-plan/');
   await expectScriptRan(page);

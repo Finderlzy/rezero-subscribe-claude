@@ -1,0 +1,29 @@
+import { expect, test } from '@playwright/test';
+import { chooseOption, expectScriptRan } from './route-helpers';
+
+// AC-10（选择页部分，FR-12、Never）：两个选择页在两种视图下、选之前和选之后，都没有任何“默认”字样。
+// 目录和首页没有已读标记等的部分由目录任务（#30）补上。
+
+for (const [choose, option] of [
+  ['choose-plan', '方案三'],
+  ['choose-phone', '安卓'],
+] as const) {
+  test(`${choose}：两种视图、选前选后都没有“默认”`, async ({ page }) => {
+    const noDefault = async () => {
+      for (const view of ['原理', '操作']) {
+        await page.getByRole('group', { name: '视图' }).getByRole('button', { name: view }).click();
+        await expect(page.locator('body')).not.toContainText('默认');
+      }
+    };
+    await page.goto(`./${choose}/`);
+    await expectScriptRan(page);
+    await expect(page.locator('.option-block').filter({ visible: true })).not.toHaveCount(0);
+    await noDefault();
+
+    await chooseOption(page, option);
+    await page.goto(`./${choose}/`);
+    await expectScriptRan(page);
+    await expect(page.locator('.option-block[aria-current="true"]').filter({ visible: true })).toHaveCount(1);
+    await noDefault();
+  });
+}

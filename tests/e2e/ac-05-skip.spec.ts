@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { clickBodyLink, expectScriptRan, stepNav } from './route-helpers';
+import { chooseOption, expectScriptRan, stepNav } from './route-helpers';
 
 // AC-05（FR-15）：已选方案一，在“四、购买 ISP 代理”点“下一步”到“五、安装面板”，点跳过 → 到“导入代理软件”。
-// 选方案一：在选择页点正文里方案一的第一步，打开只属于方案一的页面时页面脚本记下这个选项（FR-17）。
+// 选方案一：在选择页点方案一的选项块，先记下选择再进入它的第一步（FR-12）。
 test('已选方案一：四、购买 ISP 代理 → 下一步 → 五、安装面板 → 跳过 → 导入代理软件', async ({ page }) => {
   await page.goto('./choose-plan/');
   await expectScriptRan(page);
-  await clickBodyLink(page, '一、白嫖 ISP');
+  await chooseOption(page, '方案一');
 
   await page.goto('./plan1-buy-isp/');
   await expectScriptRan(page);
