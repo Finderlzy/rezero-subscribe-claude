@@ -1,4 +1,4 @@
-import { progressText, stopTitle } from '../lib/nav-text';
+import { eyebrowTotal, progressText, stepMark, stepMarkHtml, stopTitle } from '../lib/nav-text';
 import type { ReaderState, ReaderStore } from '../lib/reader-state/reader-store';
 import { pathOf, routeMapFromData } from '../lib/route/route-map';
 import type { ForkId, PageId, RouteData, RouteView, Stop, ViewMode } from '../lib/route/types';
@@ -40,7 +40,8 @@ export function forkOfChoosePage(data: RouteData, at: PageId): ForkId | null {
 /**
  * 页面里的挂载点（由 PageLayout、StepNav 写出）：
  * - `[data-route-at]`：当前页的标识（RouteData 由调用方用 readRouteData 读出后传入）；
- * - `[data-route-progress]`：顶部进度；
+ * - 进度（renderProgress）：`[data-route-mark]` 是页边栏或 h1 前的编号，`[data-route-total]` 是眉题里平板和手机才显示的步数，
+ *   `[data-route-progress]` 是眉题的读屏文字；
  * - `[data-route-nav="prev|return|next|skip"]`：导航链接，其中的 `[data-route-title]` 是目标标题；
  *   跳过链接只改地址（文案是页面自己的），外层是 `[data-route-skip]`。没有目标时链接隐藏：
  *   选择页没选时没有“下一步”，选了之后才出现，所以 StepNav 总是写出“下一步”的链接，没有目标时带 `hidden`。
@@ -111,9 +112,33 @@ function markChoice(doc: Document, chosen: string | undefined): void {
   }
 }
 
+/** 进度的三个挂载点；只用到这几个属性，测试可以传普通对象 */
+export interface ProgressSlots {
+  mark?: { innerHTML: string } | null;
+  total?: { textContent: string | null } | null;
+  text?: { textContent: string | null } | null;
+}
+
+/**
+ * 改写进度（FR-10，design §4.1）：编号是本章第几步，按当前路线和视图计数，切换视图、改选分叉点后跟着变；
+ * 和 PageLayout 构建时写出的是同一组函数，两边一致。
+ */
+export function renderProgress(slots: ProgressSlots, view: RouteView): void {
+  const { progress, current } = view;
+  if (slots.mark) slots.mark.innerHTML = stepMarkHtml(stepMark(progress, current));
+  if (slots.total) slots.total.textContent = eyebrowTotal(progress, current);
+  if (slots.text) slots.text.textContent = progressText(progress, current);
+}
+
 function renderNav(doc: Document, view: RouteView): void {
-  const progressEl = doc.querySelector('[data-route-progress]');
-  if (progressEl) progressEl.textContent = progressText(view.progress, view.current);
+  renderProgress(
+    {
+      mark: doc.querySelector('[data-route-mark]'),
+      total: doc.querySelector('[data-route-total]'),
+      text: doc.querySelector('[data-route-progress]'),
+    },
+    view,
+  );
 
   const targets: [string, Stop | null, 'prev' | 'next'][] = [
     ['prev', view.prev, 'prev'],

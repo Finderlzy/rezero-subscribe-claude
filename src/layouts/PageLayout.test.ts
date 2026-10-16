@@ -82,10 +82,36 @@ describe('PageLayout', () => {
     expect(html.indexOf('site-header')).toBeLessThan(html.indexOf('id="main"'));
   });
 
-  it('眉题：章节号从 00 起，进度文字单独放给页面脚本改写（design §4.1）', async () => {
+  it('眉题：章节号从 00 起；看得见的部分不进无障碍树，读屏文字单独放给页面脚本改写（design §4.1）', async () => {
     const html = await render({}, { principle: '<p>原理正文</p>' });
-    expect(html).toMatch(/class="eyebrow-no"[^>]*>02</);
-    expect(html).toMatch(/data-route-progress[^>]*>注册和订阅</);
+    expect(html).toMatch(/<span aria-hidden="true"[^>]*><span class="eyebrow-no"[^>]*>02<\/span>注册和订阅<span class="eyebrow-total"[^>]*data-route-total[^>]*><\/span><\/span>/);
+    expect(html).toMatch(/class="visually-hidden"[^>]*data-route-progress[^>]*>注册和订阅</);
+  });
+
+  it('步骤编号：数清时是本章第几步和“共 m 步”，平板和手机的眉题多写步数（FR-10、design §4.1）', async () => {
+    const progress = { ...view.progress, index: 2, total: 5 };
+    const html = await render({ view: { ...view, progress } }, { principle: '<p>原理正文</p>' });
+    expect(html).toMatch(/class="step-mark"[^>]*data-route-mark[^>]*aria-hidden="true"[^>]*><span class="step-no" data-step-no="02"><svg class="numeral"/);
+    expect(html).toContain('<span class="step-total">共 5 步</span>');
+    expect(html).toMatch(/data-route-total[^>]*> · 共 5 步</);
+    expect(html).toMatch(/data-route-progress[^>]*>注册和订阅，第 2 步，共 5 步</);
+    // 编号在 h1 前（桌面由 CSS 挂到页边栏）
+    expect(html.indexOf('data-route-mark')).toBeLessThan(html.indexOf('<h1'));
+  });
+
+  it('数不清时编号是短横；选择页写“选择”，旁支页写“旁支”，眉题写“章节 · 旁支”（design §4.2、§4.6）', async () => {
+    const dash = await render({}, { principle: '<p>原理正文</p>' });
+    expect(dash).toContain('data-step-no="–"');
+    expect(dash).not.toContain('step-total');
+
+    const choose = { ...view, current: { kind: 'choose', id: 'choose-phone', title: '选择手机系统' } as const };
+    expect(await render({ view: choose }, { principle: '<p>原理正文</p>' })).toContain('<span class="step-label">选择</span>');
+
+    const side = { ...view, current: { kind: 'side', id: 'google-appeal', title: '被封了：申诉解封' } as const };
+    const html = await render({ view: side }, { principle: '<p>原理正文</p>' });
+    expect(html).toContain('<span class="step-label">旁支</span>');
+    expect(html).toMatch(/<\/span>注册和订阅 · 旁支<span class="eyebrow-total"/);
+    expect(html).toMatch(/data-route-progress[^>]*>注册和订阅 · 旁支</);
   });
 
   it('章节过场只在每章第一页出现（design §4.1）', async () => {

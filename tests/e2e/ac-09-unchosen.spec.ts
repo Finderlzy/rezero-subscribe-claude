@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { chooseOption, expectScriptRan, stepNav } from './route-helpers';
+import { chooseOption, expectScriptRan, stepLabel, stepNav, stepNo, stepTotal } from './route-helpers';
 
 // AC-09（FR-12、FR-13）：没有默认路线。在无痕窗口（新的浏览器上下文）打开汇合点和“订阅”，
 // 没选的分叉点处指向它的选择页；选择页没选时没有“下一步”，也没有“默认”字样。
@@ -9,6 +9,10 @@ test('导入代理软件：上一步是“选择方案”，进度只有章节',
   await expectScriptRan(page);
   await expect(stepNav(page).getByRole('link', { name: /上一步.*选择方案/ })).toHaveAttribute('href', /\/choose-plan\/$/);
   await expect(page.locator('[data-route-progress]')).toHaveText('准备节点和住宅 IP');
+  // 数不清第几步：编号是短横，不写步数（FR-10、design §4.1）
+  expect(await stepNo(page)).toBe('–');
+  expect(await stepTotal(page)).toBeNull();
+  await expect(page.locator('[data-route-total]')).toHaveText('');
 });
 
 test('注册 Gmail：上一步是“选择手机系统”', async ({ page }) => {
@@ -30,6 +34,9 @@ test('选择页没选时没有“下一步”，没有“默认”字样', async
     await expect(stepNav(page).getByRole('link', { name: /上一步/ })).toBeVisible();
     await expect(stepNav(page).getByRole('link', { name: /下一步/ })).toHaveCount(0);
     await expect(page.getByRole('main').getByText('默认')).toHaveCount(0);
+    // 选择页不计步数：编号位置写“选择”（design §4.2）
+    expect(await stepLabel(page)).toBe('选择');
+    expect(await stepNo(page)).toBeNull();
   }
 });
 
@@ -67,5 +74,6 @@ test('进入方案三后，选择页出现“下一步”，汇合点的上一�
     'href',
     /\/plan3-residential-node\/$/,
   );
-  await expect(page.locator('[data-route-progress]')).toHaveText(/^准备节点和住宅 IP · 第 \d+ 步，共 \d+ 步$/);
+  await expect(page.locator('[data-route-progress]')).toHaveText(/^准备节点和住宅 IP，第 \d+ 步，共 \d+ 步$/);
+  expect(await stepNo(page)).toMatch(/^\d\d$/);
 });

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { expectScriptRan, stepNav } from './route-helpers';
+import { expectScriptRan, stepNav, stepNo, stepTotal } from './route-helpers';
 
 // AC-06（FR-30、FR-31，ADR-0004）：在“防泄漏”切到原理视图 → 整页换成原理版正文，URL 不变、回到顶部；
 // 点“下一步” → “改时区”仍是原理视图；切回操作视图 → 显示操作版正文。
@@ -130,4 +130,87 @@ test('视图切换按下的一段是墨色底，切换后跟着换', async ({ pa
   await toggle(page).getByRole('button', { name: '原理' }).click();
   expect(await colors('原理')).toEqual(ink);
   expect((await colors('操作')).color).toBe(await token(page, '--text'));
+});
+
+// FR-10、design §4.1、§4.3：编号是本章进度，按当前视图计数，切换后重算。“整体思路”是原理独有步骤，
+// 操作视图下“开始”这一章是 3 步，原理视图是 4 步。
+test('切换视图后步骤编号和“共 m 步”重算', async ({ page }) => {
+  await page.goto('./preface/');
+  await expectScriptRan(page);
+  expect(await stepNo(page)).toBe('01');
+  expect(await stepTotal(page)).toBe('共 3 步');
+  await expect(page.locator('[data-route-progress]')).toHaveText('开始，第 1 步，共 3 步');
+  await toggle(page).getByRole('button', { name: '原理' }).click();
+  await expect.poll(() => stepTotal(page)).toBe('共 4 步');
+  expect(await stepNo(page)).toBe('01');
+  await expect(page.locator('[data-route-progress]')).toHaveText('开始，第 1 步，共 4 步');
+
+  await page.goto('./clean-up/');
+  await expectScriptRan(page);
+  expect(await stepNo(page)).toBe('04');
+  await toggle(page).getByRole('button', { name: '操作' }).click();
+  await expect.poll(() => stepNo(page)).toBe('03');
+  expect(await stepTotal(page)).toBe('共 3 步');
+});
+
+// design §3.3、§4.1：桌面的编号挂在正文栏左侧 96px 的页边栏里、隔 32px，右对齐，底边和 h1 对齐（≤2px）；
+// 眉题不写步数。平板和手机编号在 h1 前，眉题多写“ · 共 m 步”。“底边”指 h1 最后一行文字的基线（数字坐在基线上），
+// 不是 h1 盒子的下沿（行高 1.3 会多出半个行距）。
+async function expectMarkPosition(page: Page) {
+  for (const path of ['./preface/', './disclaimer/', './clean-up/']) {
+    await page.goto(path);
+    await expectScriptRan(page);
+    await expect(page.locator('[data-route-mark] .step-no svg')).toBeVisible();
+    const box = await page.evaluate(() => {
+      const h1 = document.querySelector('h1')!;
+      // h1 最后一行的基线：在末尾放一个零高的行内块，它的底边就在基线上
+      const probe = document.createElement('span');
+      probe.style.cssText = 'display:inline-block;width:0;height:0';
+      h1.append(probe);
+      const baseline = probe.getBoundingClientRect().bottom;
+      probe.remove();
+      const no = document.querySelector('[data-route-mark] .step-no svg')!.getBoundingClientRect();
+      const title = h1.getBoundingClientRect();
+      const total = document.querySelector<HTMLElement>('[data-route-total]')!;
+      return { baseline, no: { bottom: no.bottom, right: no.right, top: no.top }, title: { left: title.left, top: title.top }, eyebrowTotal: total.offsetParent === null ? '' : total.textContent };
+    });
+    if ((page.viewportSize()?.width ?? 0) >= 1100) {
+      expect(Math.abs(box.no.bottom - box.baseline), path).toBeLessThanOrEqual(2);
+      expect(box.title.left - box.no.right, path).toBeCloseTo(32, 0);
+      expect(box.eyebrowTotal, path).toBe('');
+    } else {
+      expect(box.no.right, path).toBeLessThan(box.title.left);
+      expect(box.no.top, path).toBeGreaterThanOrEqual(box.title.top - 2);
+      expect(box.eyebrowTotal, path).toMatch(/^ · 共 \d+ 步$/);
+    }
+  }
+}
+
+test('编号的位置：桌面在页边栏、和 h1 底边对齐，手机在 h1 前、眉题写步数', async ({ page }) => {
+  await expectMarkPosition(page);
+});
+
+// 平板档（720–1099px）同手机：没有页边栏（design §3.3，架构 §11.4 W-8）
+test.describe('768 宽（平板）', () => {
+  test.use({ viewport: { width: 768, height: 1024 } });
+  test('编号在 h1 前、眉题写步数', async ({ page }) => {
+    await expectMarkPosition(page);
+  });
+});
+
+// 构建时按操作视图写编号；原理视图的读者打开页面时，重算前不显示编号，不会看到 03 跳成 04（design §4.3）
+test('原理视图打开页面：编号直接是原理视图的计数', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('rezero-subscribe-claude:v2', JSON.stringify({ choices: {}, view: 'principle' }));
+  });
+  await page.goto('./clean-up/', { waitUntil: 'commit' });
+  await page.waitForSelector('[data-route-mark]', { state: 'attached' });
+  const before = await page.locator('main').evaluate((main) => ({
+    ready: main.hasAttribute('data-route-ready'),
+    visibility: getComputedStyle(main.querySelector('[data-route-mark]')!).visibility,
+  }));
+  if (!before.ready) expect(before.visibility).toBe('hidden');
+  await expectScriptRan(page);
+  await expect(page.locator('[data-route-mark]')).toBeVisible();
+  expect(await stepNo(page)).toBe('04');
 });

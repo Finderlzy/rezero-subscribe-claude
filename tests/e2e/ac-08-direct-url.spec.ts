@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { expectScriptRan, stepNav } from './route-helpers';
+import { expectScriptRan, stepNav, stepNo, stepTotal } from './route-helpers';
 
 // AC-08（FR-17）：在新的浏览器上下文（相当于无痕窗口，没有本机选择）直接打开只属于 iPhone 的页面，
 // 按它所属的选项计算导航，并把这个选项记进本机。
@@ -8,7 +8,11 @@ test('直接打开“iPhone：下载 Gmail”：上一步“iPhone：导入代�
   await expectScriptRan(page);
 
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('iPhone：下载 Gmail');
-  await expect(page.getByText('注册和订阅 · 第 3 步，共 15 步', { exact: true })).toBeVisible();
+  // 进度按 iPhone 这条路线计数（FR-10）：编号 03、“共 15 步”，读屏读“注册和订阅，第 3 步，共 15 步”（design §4.1）
+  await expect(page.locator('[data-route-mark] .step-no svg')).toBeVisible();
+  expect(await stepNo(page)).toBe('03');
+  expect(await stepTotal(page)).toBe('共 15 步');
+  await expect(page.locator('[data-route-progress]')).toHaveText('注册和订阅，第 3 步，共 15 步');
   await expect(stepNav(page).getByRole('link', { name: /上一步.*iPhone：导入代理软件/ })).toHaveAttribute('href', /\/iphone-proxy\/$/);
   await expect(stepNav(page).getByRole('link', { name: /下一步.*注册 Gmail/ })).toHaveAttribute('href', /\/register-gmail\/$/);
 });
@@ -37,5 +41,8 @@ test.describe('没有 JS', () => {
     await page.goto('./iphone-gmail/');
     await expect(stepNav(page).getByRole('link', { name: /上一步.*iPhone：导入代理软件/ })).toHaveAttribute('href', /\/iphone-proxy\/$/);
     await expect(stepNav(page).getByRole('link', { name: /下一步.*注册 Gmail/ })).toHaveAttribute('href', /\/register-gmail\/$/);
+    // 编号构建时就写好并显示（不等页面脚本）
+    await expect(page.locator('[data-route-mark] .step-no svg')).toBeVisible();
+    expect(await stepNo(page)).toBe('03');
   });
 });

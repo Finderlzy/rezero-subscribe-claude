@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { samplePages, sampleSpec } from '../lib/route/fixtures/sample-route';
 import { buildRouteMap } from '../lib/route/route-map';
-import { forkOfChoosePage, openPatch } from './route-enhance';
+import { forkOfChoosePage, openPatch, renderProgress } from './route-enhance';
 
-const { data } = buildRouteMap(sampleSpec(), samplePages());
+const map = buildRouteMap(sampleSpec(), samplePages());
+const { data } = map;
 
 describe('openPatch：打开一页时写入的本机状态（FR-17、FR-50）', () => {
   it('只属于一个分支的页面：记下它所属的选项，只写 choices（AC-08）', () => {
@@ -39,5 +40,33 @@ describe('forkOfChoosePage：选择页对应的分叉点（FR-12）', () => {
     expect(forkOfChoosePage(data, 'choose-plan')).toBe('node-plan');
     expect(forkOfChoosePage(data, 'choose-phone')).toBe('phone');
     for (const id of ['preface', 'plan3-node', 'google-appeal', 'no-such-page']) expect(forkOfChoosePage(data, id)).toBeNull();
+  });
+});
+
+describe('renderProgress：改写编号、步数和读屏文字（FR-10，design §4.1）', () => {
+  const render = (at: string, choices: Record<string, string>, mode: 'operation' | 'principle') => {
+    const slots = { mark: { innerHTML: '' }, total: { textContent: '' as string | null }, text: { textContent: '' as string | null } };
+    renderProgress(slots, map.view(at, choices, mode));
+    return { no: /data-step-no="([^"]*)"/.exec(slots.mark.innerHTML)?.[1], mark: slots.mark.innerHTML, total: slots.total.textContent, text: slots.text.textContent };
+  };
+
+  it('切换视图后编号和步数重算：整体思路是原理独有步骤，清理旧账号在操作视图是第 2 步，原理视图是第 3 步', () => {
+    expect(render('clean-up', {}, 'operation')).toMatchObject({ no: '02', total: ' · 共 2 步', text: '开始，第 2 步，共 2 步' });
+    expect(render('clean-up', {}, 'principle')).toMatchObject({ no: '03', total: ' · 共 3 步', text: '开始，第 3 步，共 3 步' });
+    expect(render('clean-up', {}, 'principle').mark).toContain('<span class="step-total">共 3 步</span>');
+  });
+
+  it('改选分叉点后重算：没选时汇合点是短横，选了之后有编号', () => {
+    expect(render('import-proxy', {}, 'operation')).toMatchObject({ no: '–', total: '', text: '准备节点和住宅 IP' });
+    expect(render('import-proxy', { 'node-plan': 'plan-3' }, 'operation')).toMatchObject({ no: '02', total: ' · 共 4 步' });
+  });
+
+  it('选择页和旁支页写文字，不写编号', () => {
+    expect(render('choose-plan', {}, 'operation')).toMatchObject({ no: undefined, mark: '<span class="step-label">选择</span>', total: '' });
+    expect(render('google-appeal', {}, 'operation')).toMatchObject({ mark: '<span class="step-label">旁支</span>', text: '注册和订阅 · 旁支' });
+  });
+
+  it('挂载点缺了也不报错', () => {
+    expect(() => renderProgress({}, map.view('preface', {}, 'operation'))).not.toThrow();
   });
 });

@@ -1,9 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
-import { chooseOption, collectErrors, expectScriptRan, nextUntil, pageId, stepNav } from './route-helpers';
+import { chooseOption, collectErrors, expectScriptRan, nextUntil, pageId, stepLabel, stepNav, stepNo, stepTotal } from './route-helpers';
 
 // AC-02（FR-10、FR-11）：6 种选择组合（方案一/二/三 × iPhone/安卓）× 两种视图，从“前言”一直点“下一步”走到“后记”，
 // 中途没有断链；操作视图下不经过整体思路、小结、为什么用美区 Apple ID，原理视图下经过。
 // 分叉点处在选择页点选项块（FR-12）。不运行 JS 的静态走法见 ac-02-static-walk.spec.ts。
+// 一路上的步骤编号是本章进度（FR-10）：每章从 01 数到 m，“共 m 步”一致；选择页不计步数，写“选择”。
 
 const PLANS = {
   方案一: ['plan1-free-isp', 'plan1-buy-server', 'plan1-make-node', 'plan1-buy-isp', 'plan1-panel'],
@@ -49,20 +50,41 @@ for (const view of ['operation', 'principle'] as const) {
           if (r.request().isNavigationRequest() && r.status() !== 200) broken.push(`${r.url()}：${r.status()}`);
         });
         const seen = ['preface'];
+        const marks: (string | null)[][] = [];
+        const record = async () => {
+          marks.push([pageId(page), await stepNo(page), await stepTotal(page), await stepLabel(page)]);
+        };
         await page.goto('./preface/');
         await expectScriptRan(page);
         await setView(page, view);
+        await record();
 
-        await nextUntil(page, 'choose-plan', seen);
+        await nextUntil(page, 'choose-plan', seen, record);
         await chooseOption(page, plan);
         seen.push(pageId(page));
-        await nextUntil(page, 'choose-phone', seen);
+        await record();
+        await nextUntil(page, 'choose-phone', seen, record);
         await chooseOption(page, phone);
         seen.push(pageId(page));
-        await nextUntil(page, 'afterword', seen);
+        await record();
+        await nextUntil(page, 'afterword', seen, record);
         await expect(stepNav(page).getByRole('link', { name: /下一步.*回到首页/ })).toBeVisible();
 
         expect(seen).toEqual(expected(plan, phone, view));
+        expect(marks.map(([id]) => id)).toEqual(seen);
+        // 选择页写“选择”；其余页按章从 01 起连续编号，一章的最后一步编号等于步数
+        let next = 1;
+        let total: string | null = null;
+        for (const [id, no, stepsTotal, label] of marks) {
+          if (id!.startsWith('choose-')) {
+            expect([id, label, no]).toEqual([id, '选择', null]);
+            continue;
+          }
+          if (next === 1) total = stepsTotal;
+          expect([id, no, stepsTotal]).toEqual([id, String(next).padStart(2, '0'), total]);
+          next = `共 ${next} 步` === total ? 1 : next + 1;
+        }
+        expect(next, '最后一章没有走完').toBe(1);
         expect(broken).toEqual([]);
         expect(errors).toEqual([]);
       });

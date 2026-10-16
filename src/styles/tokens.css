@@ -27,8 +27,8 @@
   /* logo 的“Re”跟主色走 */
   --logo-re: var(--accent);
 
-  /* §3.2 字体。--font-numeral 只用于眉题和 v2.0 章节过场的章节号：系统自带的旧式衬线，不加载网页字体；
-     其余编号（目录、404）已用固定字形（Numeral，design v2.1 §3.2 D7），眉题和过场随 W04、W05 改造 */
+  /* §3.2 字体。--font-numeral 只用于 v2.0 章节过场的章节号：系统自带的旧式衬线，不加载网页字体；
+     其余编号（目录、404、步骤编号）已用固定字形（Numeral，design v2.1 §3.2 D7），过场随 W05 改造；眉题里的章节号用系统字体 */
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
     "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC",
     "Source Han Sans SC", sans-serif;
@@ -51,7 +51,7 @@
   --fs-chapter-title: 28px;
   --fs-chapter-sub: 13px;
   --tracking-chapter-sub: 0.3em;
-  /* 页边栏的步骤编号（固定字形），只有桌面有页边栏（W04 用）；平板和手机放在 h1 前，跟 h1 同字号 */
+  /* 页边栏的步骤编号（固定字形），只有桌面有页边栏；平板和手机放在 h1 前，跟 h1 同字号 */
   --fs-margin-numeral: 56px;
   --fs-h2: 20px;
   --fs-h3: 17px;
@@ -86,6 +86,8 @@
   --space-7: 48px;
   --space-8: 64px;
   --space-9: 96px;
+  /* §3.3 步骤页（桌面）悬挂在正文栏左侧的页边栏宽度，和正文栏隔 --space-6 */
+  --margin-width: 96px;
   /* §3.3 页面左右边距：手机 16px，平板起 32px */
   --gutter: var(--space-4);
 

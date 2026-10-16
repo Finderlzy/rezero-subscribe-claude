@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { clickBodyLink, expectScriptRan, nextUntil, pageId, stepNav } from './route-helpers';
+import { clickBodyLink, expectScriptRan, nextUntil, pageId, stepLabel, stepNav, stepNo } from './route-helpers';
 
 // AC-19（FR-19）：在“先用两天”点“被封了：申诉解封” → 页脚有“回到：先用两天”和“下一步：修改 Google 账号地区”；
 // 沿“先用两天”的“下一步”走 → 不经过申诉页。不运行 JS 的版本在 ac-02-static-walk。
@@ -12,6 +12,10 @@ test('从“先用两天”进入旁支页，页脚是“回到：先用两天�
   await expect(nav.getByRole('link', { name: /回到.*先用两天/ })).toHaveAttribute('href', /\/use-two-days\/$/);
   await expect(nav.getByRole('link', { name: /下一步.*修改 Google 账号地区/ })).toHaveAttribute('href', /\/google-region\/$/);
   await expect(nav.getByRole('link', { name: /上一步/ })).toHaveCount(0);
+  // 旁支页不计步数：编号位置写“旁支”，眉题“<章节名> · 旁支”（design §4.6）
+  expect(await stepLabel(page)).toBe('旁支');
+  expect(await stepNo(page)).toBeNull();
+  await expect(page.locator('[data-route-progress]')).toHaveText('注册和订阅 · 旁支');
 
   await nav.getByRole('link', { name: /回到.*先用两天/ }).click();
   await expectScriptRan(page);

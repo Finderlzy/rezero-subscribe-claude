@@ -33,13 +33,14 @@ export async function chooseOption(page: Page, title: string): Promise<void> {
   await expectScriptRan(page);
 }
 
-/** 沿“下一步”走到 `until`（含），把经过的页面标识追加到 `seen`；每一页都等脚本跑完再点 */
-export async function nextUntil(page: Page, until: string, seen: string[]): Promise<void> {
+/** 沿“下一步”走到 `until`（含），把经过的页面标识追加到 `seen`；每一页都等脚本跑完再点，跑完后调用 `onPage` */
+export async function nextUntil(page: Page, until: string, seen: string[], onPage?: () => Promise<void>): Promise<void> {
   for (let n = 0; pageId(page) !== until; n++) {
     expect(n, `沿“下一步”走不到 ${until}，停在 ${page.url()}`).toBeLessThan(40);
     await stepNav(page).getByRole('link', { name: /下一步/ }).click();
     await expectScriptRan(page);
     seen.push(pageId(page));
+    await onPage?.();
   }
 }
 
@@ -52,3 +53,12 @@ export function collectErrors(page: Page): string[] {
   });
   return errors;
 }
+
+/** 页边栏（桌面）或 h1 前（平板和手机）的步骤编号原文，如 "01"、"–"；选择页、旁支页没有编号时为 null（design §4.1） */
+export const stepNo = (page: Page) => page.locator('[data-route-mark]').evaluate((el) => el.querySelector<HTMLElement>('[data-step-no]')?.dataset.stepNo ?? null);
+
+/** 编号下一行的“共 m 步”；没有时为 null */
+export const stepTotal = (page: Page) => page.locator('[data-route-mark]').evaluate((el) => el.querySelector('.step-total')?.textContent ?? null);
+
+/** 选择页、旁支页在编号位置写的字（“选择”“旁支”）；没有时为 null */
+export const stepLabel = (page: Page) => page.locator('[data-route-mark]').evaluate((el) => el.querySelector('.step-label')?.textContent ?? null);

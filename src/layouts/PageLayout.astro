@@ -5,7 +5,7 @@ import SiteHeader from '../components/SiteHeader.astro';
 import StepNav from '../components/StepNav.astro';
 import Toc from '../components/Toc.astro';
 import { hasZoomableImage } from '../lib/code-zoom/labels';
-import { chapterNoText, isChapterStart, progressText } from '../lib/nav-text';
+import { chapterNoText, eyebrowSuffix, eyebrowTotal, isChapterStart, progressText, stepMark, stepMarkHtml } from '../lib/nav-text';
 import { VIEW_BOOT_SCRIPT } from '../lib/reader-state/view-boot';
 import type { RouteData, RouteView } from '../lib/route/types';
 import type { TocReference } from '../lib/site';
@@ -23,7 +23,11 @@ import '../styles/prose.css';
  * 导航按“操作视图 + 未选”在构建时写好（`view`）；页面脚本 route-enhance 读内嵌的 RouteData（`#route-data`），
  * 按本机选择和当前视图改写导航；view-toggle 处理页眉的“操作｜原理”切换（架构 §3 M3）。
  * 目录（design v2.1 §4.5、D5）：所有宽度都是抽屉，由页眉的“目录”打开（toc.ts）；没有 JS 时“目录”链到首页的完整目录。
- * 眉题（design §4.1）：章节号 + 进度文字，两端的短横由 CSS 画；每章第一页（含选择页）在眉题上方多一块章节过场。
+ * 眉题（design §4.1）：章节号 + 章节名，两端的短横由 CSS 画；平板和手机多写“ · 共 m 步”，旁支页写“ · 旁支”（§4.6）。
+ * 看得见的眉题和编号都不进无障碍树，读屏读眉题里单独的一句（“准备节点和住宅 IP，第 2 步，共 5 步”）。
+ * 每章第一页（含选择页）在眉题上方多一块章节过场。
+ * 步骤编号（design §3.3、§4.1、§4.2、§4.6）：桌面挂在正文栏左侧的页边栏，底边和 h1 对齐；平板和手机放在 h1 前。
+ * 编号、步数和读屏文字是本章进度（FR-10），由 route-enhance 按当前路线和视图改写（renderProgress）。
  */
 interface Props {
   title: string;
@@ -47,6 +51,7 @@ const operation = notice === undefined ? await Astro.slots.render('operation') :
 const hasZoom = [principle, operation].some((html) => html !== undefined && hasZoomableImage(html));
 const chapterNo = chapterNoText(view.progress.chapterNo);
 const chapterStart = isChapterStart(routeData.chapters, view.progress, view.current);
+const markHtml = stepMarkHtml(stepMark(view.progress, view.current));
 ---
 
 <BaseLayout title={title}>
@@ -64,10 +69,18 @@ const chapterStart = isChapterStart(routeData.chapters, view.progress, view.curr
         )
       }
       <p class="eyebrow">
-        <span class="eyebrow-no" aria-hidden="true">{chapterNo}</span>
-        <span data-route-progress>{progressText(view.progress, view.current)}</span>
+        <span aria-hidden="true"
+          ><span class="eyebrow-no">{chapterNo}</span>{view.progress.chapter}{eyebrowSuffix(view.current)}<span
+            class="eyebrow-total"
+            data-route-total>{eyebrowTotal(view.progress, view.current)}</span
+          ></span
+        >
+        <span class="visually-hidden" data-route-progress>{progressText(view.progress, view.current)}</span>
       </p>
-      <h1 class="step-title">{title}</h1>
+      <div class="step-heading">
+        <div class="step-mark" data-route-mark aria-hidden="true" set:html={markHtml} />
+        <h1 class="step-title">{title}</h1>
+      </div>
     </header>
     <slot name="video" />
     {
@@ -140,11 +153,96 @@ const chapterStart = isChapterStart(routeData.chapters, view.progress, view.curr
     font-weight: 700;
   }
 
-  .step-title {
+  /*
+   * 步骤编号（design §4.1）。平板和手机：放在 h1 前，和 h1 同字号、次要色，后面空一个字，和 h1 第一行基线对齐；
+   * 不写“共 m 步”（写进眉题），选择页、旁支页的文字标记也不显示（眉题和 h1 已经说明）。
+   */
+  .step-heading {
+    display: flex;
+    align-items: baseline;
     margin: 0 0 var(--space-5);
+  }
+
+  .step-mark {
+    flex: none;
+    color: var(--text-muted);
+    font-size: var(--fs-title);
+    line-height: var(--lh-title);
+  }
+
+  .step-mark :global(.step-no) {
+    margin-right: 1em;
+  }
+
+  /* 构建时的编号按“操作视图 + 未选”算；有 JS 时（VIEW_BOOT_SCRIPT 总会设 data-view）先占位不显示，
+     等 route-enhance 按本机视图和选择重算完（data-route-ready）再露出，原理视图的读者不会看到编号跳变（§4.3）。
+     没有 JS 时没有 data-view，构建时的编号照常显示。 */
+  :global(:root[data-view]) .step:not([data-route-ready]) .step-mark,
+  :global(:root[data-view]) .step:not([data-route-ready]) .eyebrow-total {
+    visibility: hidden;
+  }
+
+  .step-mark :global(.step-total),
+  .step-mark :global(.step-label) {
+    display: none;
+  }
+
+  .step-title {
+    min-width: 0;
+    margin: 0;
     font-size: var(--fs-title);
     line-height: var(--lh-title);
     font-weight: 800;
+  }
+
+  /*
+   * 桌面：96px 的页边栏悬挂在正文栏左侧，隔 32px，不占正文的位置（design §3.3）。编号 56px、--text，右对齐，
+   * 和 h1 最后一行的基线对齐（last baseline；不支持的旧浏览器退回第一行基线，h1 折行时编号对齐到第一行）；
+   * “共 m 步”绝对定位在编号下方，不参与对齐。
+   * 选择页、旁支页在同一位置写 14px 的“选择”“旁支”（§4.2、§4.6）。
+   */
+  @media (min-width: 1100px) {
+    .eyebrow-total {
+      display: none;
+    }
+
+    .step-heading {
+      display: grid;
+      grid-template-columns: var(--margin-width) minmax(0, 1fr);
+      column-gap: var(--space-6);
+      align-items: last baseline;
+      margin-left: calc(-1 * (var(--margin-width) + var(--space-6)));
+    }
+
+    .step-mark {
+      position: relative;
+      color: var(--text);
+      font-size: var(--fs-margin-numeral);
+      line-height: 1;
+      text-align: right;
+    }
+
+    .step-mark :global(.step-no) {
+      margin-right: 0;
+    }
+
+    .step-mark :global(.step-total),
+    .step-mark :global(.step-label) {
+      display: inline;
+      color: var(--text-muted);
+      font-size: var(--fs-meta);
+      line-height: var(--lh-meta);
+      font-weight: 500;
+      letter-spacing: var(--tracking-meta);
+      white-space: nowrap;
+    }
+
+    .step-mark :global(.step-total) {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: var(--space-2);
+    }
   }
 
   /* 手机上底栏吸底：正文末尾预留等高留白，最后一段不被挡住（design §5）。
