@@ -16,8 +16,22 @@ body {
   line-break: strict;
 }
 
+/* 链接（design §4.7、§5）：1px 下划线、离字 0.2em，悬停时变 2px。去掉了下划线的链接（按钮、导航）不受影响。 */
 a {
   color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+a:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* 所有按钮按下时下移 1px（design §5）；减少动态效果时 --press-shift 归零。用 translate，不和元素自己的 transform 冲突。
+   不带 .button 类的按钮式链接（如 StepNav 的上一步/下一步）要自己加一条。 */
+button:active,
+.button:active {
+  translate: 0 var(--press-shift);
 }
 
 /* 焦点环 2px 并留 2px 间隔，不能去掉（design §5）。 */
@@ -56,7 +70,7 @@ a {
 .page {
   max-width: var(--measure);
   margin: 0 auto;
-  padding: var(--space-7) var(--space-4);
+  padding: var(--space-7) var(--gutter);
 }
 
 .page-title {
@@ -114,27 +128,45 @@ a {
   margin: var(--space-6) 0 0;
 }
 
-/* 主按钮：页面里唯一的强调色块。 */
+/*
+ * 主按钮（design §4.7）：页面里唯一的大块紫色（§3.1 用紫规则）。高 ≥ 48px、16px 700。
+ * 悬停时只把箭头（.button-arrow）右移 4px，不改颜色（§5），免得再多一块紫。
+ */
 .button {
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
+  min-height: var(--button-height);
   padding: 0 var(--space-5);
+  box-sizing: border-box;
   background: var(--accent);
   color: var(--accent-contrast);
+  border: var(--border-width) solid var(--accent);
   border-radius: var(--radius-control);
-  font-weight: 600;
+  font: inherit;
+  font-size: var(--fs-button);
+  font-weight: 700;
   text-decoration: none;
+  cursor: pointer;
 }
 
-/* 次按钮：和主按钮同尺寸，表面色底加边框；也用于 <button>（如“打开目录”）。 */
+/* 主按钮里的箭头；StepNav 的“下一步”也用它 */
+.button-arrow {
+  display: inline-block;
+}
+
+.button:hover .button-arrow {
+  translate: var(--nudge) 0;
+}
+
+/* 次按钮：和主按钮同尺寸，--bg 底加控件边框，悬停时边框变成 --text（§4.7、§5）；也用于 <button>。 */
 .button-secondary {
-  background: var(--surface);
+  background: var(--bg);
   color: var(--text);
-  border: var(--border-width) solid var(--control-border);
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
+  border-color: var(--control-border);
+}
+
+.button-secondary:hover {
+  border-color: var(--text);
 }
 
 .button[hidden] {

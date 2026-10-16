@@ -110,3 +110,24 @@ test('视图色带跟着视图换色，参考页和找不到页用分隔线色',
     expect(await band(page), path).toBe(await token(page, '--border'));
   }
 });
+
+// design §4.3、D8：按下的一段用 --text 底、--bg 字（v2.0 是紫底），没按下的一段 --bg 底、--text 字；一屏只留主按钮一块紫。
+test('视图切换按下的一段是墨色底，切换后跟着换', async ({ page }) => {
+  await page.goto('./leak-protection/');
+  await expectScriptRan(page);
+  const colors = (name: string) =>
+    toggle(page)
+      .getByRole('button', { name })
+      .evaluate((el) => {
+        const style = getComputedStyle(el);
+        return { background: style.backgroundColor, color: style.color };
+      });
+  const ink = { background: await token(page, '--text'), color: await token(page, '--bg') };
+
+  expect(await colors('操作')).toEqual(ink);
+  expect((await colors('原理')).color).toBe(await token(page, '--text'));
+
+  await toggle(page).getByRole('button', { name: '原理' }).click();
+  expect(await colors('原理')).toEqual(ink);
+  expect((await colors('操作')).color).toBe(await token(page, '--text'));
+});

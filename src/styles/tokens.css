@@ -1,5 +1,5 @@
 /*
- * 设计令牌：照抄 docs/design.md v2.0 §3.1–§3.3。颜色、间距只用这里的令牌。
+ * 设计令牌：照抄 docs/design.md v2.1 §3.1–§3.3、§5。颜色、间距只用这里的令牌。
  * 浅色/深色按 prefers-color-scheme 自动切换，不提供手动切换。
  * 主色取自 logo：--accent 就是 logo 里“Re”的紫色（logo 的 SVG 自带同一色值作后备，见 Logo.astro）。
  */
@@ -37,20 +37,38 @@
   --font-numeral: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua",
     Georgia, serif;
 
-  /* §3.2 排版（手机 <720px；桌面值见下方媒体查询） */
+  /*
+   * §3.2 字号（手机 <720px 的值；平板 720–1099px、桌面 ≥1100px 见下方媒体查询）。
+   * 断点只有这三档（§3.3）：媒体查询里不能用自定义属性，组件里一律写 `min-width: 720px` / `1100px`，
+   * 需要“仅手机”时写 `max-width: 719px`。
+   */
   --fs-title: 26px;
+  /* v2.0 章节过场的旧式衬线章节号（PageLayout），W05 换成章节标题卡后删掉 */
   --fs-numeral: 40px;
-  /* 固定字形的大号编号（Numeral，1em = 数字高度）：章节标题卡的章节号和 404，手机 / 平板 / 桌面 64 / 80 / 96px */
+  /* 固定字形的大号编号（Numeral，1em = 数字高度）：章节标题卡的章节号和 404 */
   --fs-display: 64px;
+  /* 章节标题卡的章名和英文副标题（W05 用） */
+  --fs-chapter-title: 28px;
+  --fs-chapter-sub: 13px;
+  --tracking-chapter-sub: 0.3em;
+  /* 页边栏的步骤编号（固定字形），只有桌面有页边栏（W04 用）；平板和手机放在 h1 前，跟 h1 同字号 */
+  --fs-margin-numeral: 56px;
   --fs-h2: 20px;
   --fs-h3: 17px;
   --fs-option: 19px;
   --fs-body: 17px;
+  /* 首页 logo 下的一句话（W07 用） */
+  --fs-tagline: 18px;
   --fs-meta: 14px;
+  /* 截图编号“图 02-1”（W06 用） */
+  --fs-caption: 13px;
   --fs-code: 0.875em;
+  /* 主按钮、次按钮的文字（§4.7） */
+  --fs-button: 16px;
   --lh-title: 1.3;
   --lh-heading: 1.4;
   --lh-body: 1.8;
+  --lh-tagline: 1.6;
   --lh-meta: 1.5;
   --lh-code: 1.6;
   --tracking-meta: 0.06em;
@@ -58,7 +76,7 @@
   --paragraph-gap: 0.9em;
   --list-item-gap: 0.4em;
 
-  /* §3.3 间距刻度（px） */
+  /* §3.3 间距刻度（px）；--space-9 只用于首页顶部和章节标题卡上方 */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -67,6 +85,24 @@
   --space-6: 32px;
   --space-7: 48px;
   --space-8: 64px;
+  --space-9: 96px;
+  /* §3.3 页面左右边距：手机 16px，平板起 32px */
+  --gutter: var(--space-4);
+
+  /* §4.7 按钮高度：主按钮、次按钮 ≥ 48px（手机吸底栏里 ≥ 56px，见 StepNav） */
+  --button-height: 48px;
+
+  /*
+   * §5 动效（D11）：只有目录抽屉（滑入 200ms、关闭 150ms，减速曲线）和看大图（淡入 150ms）两处过渡（W03 用）；
+   * 悬停、按下是直接切换的轻位移：主按钮的箭头右移 --nudge，按钮按下时下移 --press-shift。
+   * 减少动态效果时这些令牌在下方归零，组件不用另写一遍。
+   */
+  --duration-drawer-in: 200ms;
+  --duration-drawer-out: 150ms;
+  --duration-fade: 150ms;
+  --ease-decelerate: cubic-bezier(0, 0, 0.2, 1);
+  --nudge: 4px;
+  --press-shift: 1px;
 
   /* §3.3 圆角、边框、浮层阴影（只有浮层可以加：目录抽屉、看大图） */
   --radius-control: 4px;
@@ -82,18 +118,36 @@
 
 @media (min-width: 720px) {
   :root {
-    --fs-title: 32px;
+    /* 平板 720–1099px */
+    --fs-title: 30px;
     --fs-numeral: 56px;
     --fs-display: 80px;
-    --fs-h2: 22px;
+    --fs-chapter-title: 34px;
+    --fs-h2: 21px;
     --fs-h3: 18px;
     --fs-body: 18px;
+    --fs-tagline: 20px;
+    --gutter: var(--space-6);
   }
 }
 
 @media (min-width: 1100px) {
   :root {
+    /* 桌面 ≥1100px */
+    --fs-title: 32px;
     --fs-display: 96px;
+    --fs-chapter-title: 40px;
+    --fs-h2: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-drawer-in: 0ms;
+    --duration-drawer-out: 0ms;
+    --duration-fade: 0ms;
+    --nudge: 0px;
+    --press-shift: 0px;
   }
 }
 

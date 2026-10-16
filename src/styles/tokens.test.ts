@@ -45,6 +45,7 @@ const PAIRS: [string, string, number, string][] = [
   ['--accent', '--bg', 4.5, '链接、文字按钮'],
   ['--accent', '--surface', 4.5, '面板里的链接'],
   ['--accent-contrast', '--accent', 4.5, '主按钮上的文字'],
+  ['--bg', '--text', 4.5, '视图切换按下的一段（design §4.3，D8）'],
   ['--text', '--accent-soft', 4.5, '目录当前项的文字'],
   ['--text-muted', '--accent-soft', 4.5, '目录当前项里的标签'],
   ['--accent', '--accent-soft', 4.5, '“当前选择”标签'],
@@ -71,6 +72,21 @@ it('浅色、深色两块令牌都读到了', () => {
   expect(Object.keys(light).length).toBeGreaterThanOrEqual(15);
   expect(Object.keys(darkOnly).length).toBeGreaterThanOrEqual(15);
   expect(darkOnly['--bg']).not.toBe(light['--bg']);
+});
+
+// design §5（D11）：开启“减少动态效果”时去掉所有过渡和位移。组件里的过渡时长和位移都取这几个令牌，
+// 令牌在 reduced-motion 块里归零，就不用每个组件各写一遍。
+it('减少动态效果时，动效时长和位移令牌都归零', () => {
+  const motion = Object.fromEntries(
+    [...block(':root {').matchAll(/(--(?:duration|nudge|press)[\w-]*):\s*([^;]+);/g)].map(([, name, value]) => [name, value!.trim()]),
+  );
+  expect(Object.keys(motion).sort()).toEqual(
+    ['--duration-drawer-in', '--duration-drawer-out', '--duration-fade', '--nudge', '--press-shift'].sort(),
+  );
+  const reduced = block('@media (prefers-reduced-motion: reduce)');
+  for (const name of Object.keys(motion)) {
+    expect(reduced, `${name} 没有在 reduced-motion 里归零`).toMatch(new RegExp(`${name}:\\s*0(ms|px)?\\s*;`));
+  }
 });
 
 describe.each([

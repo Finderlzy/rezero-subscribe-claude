@@ -17,7 +17,7 @@
     flex: none;
     border: var(--border-width) solid var(--control-border);
     border-radius: var(--radius-control);
-    background: var(--surface);
+    background: var(--bg);
   }
 
   :global(:root:not([data-view])) .view-toggle {
@@ -31,17 +31,18 @@
     border: 0;
     border-radius: calc(var(--radius-control) - var(--border-width));
     background: transparent;
-    color: var(--text-muted);
+    color: var(--text);
     font: inherit;
     font-size: var(--fs-meta);
     font-weight: 600;
     cursor: pointer;
   }
 
-  /* 按下状态跟着 data-view 画，不等页面脚本同步 aria-pressed，避免首屏闪一下。 */
+  /* 按下的一段用 --text 底、--bg 字（design §4.3、D8：一屏只留主按钮一块紫）。
+     按下状态跟着 data-view 画，不等页面脚本同步 aria-pressed，避免首屏闪一下。 */
   :global(:root:not([data-view='principle'])) .view-toggle-option[data-view-option='operation'],
   :global(:root[data-view='principle']) .view-toggle-option[data-view-option='principle'] {
-    background: var(--accent);
-    color: var(--accent-contrast);
+    background: var(--text);
+    color: var(--bg);
   }
 </style>

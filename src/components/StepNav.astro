@@ -69,7 +69,7 @@ const backLabel = returnTo ? '回到' : '上一步';
         data-route-nav="next"
       >
         <span class="step-nav-dir">
-          下一步<span aria-hidden="true"> →</span>
+          下一步<span class="button-arrow" aria-hidden="true">→</span>
         </span>
         <span class="step-nav-title">
           <span class="visually-hidden">：</span>
@@ -122,7 +122,7 @@ const backLabel = returnTo ? '回到' : '上一步';
     display: flex;
     flex-direction: column;
     gap: var(--space-1);
-    min-height: 44px;
+    min-height: var(--button-height);
     padding: var(--space-4);
     border: var(--border-width) solid var(--control-border);
     border-radius: var(--radius-panel);
@@ -131,8 +131,18 @@ const backLabel = returnTo ? '回到' : '上一步';
     text-decoration: none;
   }
 
+  /* 两个都是按钮：按下时下移 1px（design §5，减少动态效果时 --press-shift 归零） */
+  .step-nav-link:active {
+    translate: 0 var(--press-shift);
+  }
+
+  /* 次按钮：--bg 底，悬停时边框变成 --text（design §4.7、§5） */
+  .step-nav-prev {
+    background: var(--bg);
+  }
+
   .step-nav-prev:hover {
-    border-color: var(--accent);
+    border-color: var(--text);
   }
 
   .step-nav-next {
@@ -143,8 +153,13 @@ const backLabel = returnTo ? '回到' : '上一步';
     color: var(--accent-contrast);
   }
 
-  .step-nav-next:hover .step-nav-title {
-    text-decoration: underline;
+  /* 主按钮悬停：箭头（全局的 .button-arrow，base.css）右移 4px，不改颜色（design §5） */
+  .step-nav-next .button-arrow {
+    margin-left: var(--space-1);
+  }
+
+  .step-nav-next:hover .button-arrow {
+    translate: var(--nudge) 0;
   }
 
   .step-nav-dir {

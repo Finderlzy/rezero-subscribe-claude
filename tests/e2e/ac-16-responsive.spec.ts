@@ -49,3 +49,29 @@ for (const path of PAGES) {
     }
   });
 }
+
+// 平板档（design §3.2、§3.3，三档断点 <720 / 720–1099 / ≥1100）：playwright.config.ts 只有 360 和 1280 两个项目，
+// 这里单独设 768 宽（架构 §11.4 W-8）。正文 18px、h1 30px，逐页没有页面级横向滚动。
+test.describe('768 宽（平板）', () => {
+  test.use({ viewport: { width: 768, height: 1024 } });
+
+  test('步骤页和参考页：正文 18px、h1 30px、左右边距 32px', async ({ page }) => {
+    for (const path of ['leak-protection/', 'faq/']) {
+      await page.goto(`./${path}`);
+      const size = (selector: string) =>
+        page.locator(selector).first().evaluate((el) => getComputedStyle(el).fontSize);
+      expect(await size('.prose p'), path).toBe('18px');
+      expect(await size('h1'), path).toBe('30px');
+      // 平板左右边距 32px（design §3.3）
+      const gutter = await page.locator('main').evaluate((el) => getComputedStyle(el).paddingLeft);
+      expect(gutter, path).toBe('32px');
+    }
+  });
+
+  test('逐页没有页面级横向滚动', async ({ page }) => {
+    for (const path of PAGES) {
+      await page.goto(`./${path}`, { waitUntil: 'load' });
+      await expectNoPageScroll(page, `/${path}`);
+    }
+  });
+});
