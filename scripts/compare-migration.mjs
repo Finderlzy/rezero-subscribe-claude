@@ -12,7 +12,9 @@
 // - 两种视图：原理视图对应 `原理版/<标题>.md`（导入到 src/content/principle/<id>.md，元数据在 frontmatter 里），
 //   操作视图对应 `操作版/<标题>.md`（导入到 src/content/operation/<id>.md）。两版各自和产物里
 //   `<div class="prose" data-body="principle|operation">` 的那一段比。重写稿里没有对应视图的文件时：
-//   登记的“操作版缺失”页算待补项，原理独有步骤不算差异。
+//   登记的“操作版缺失”页算待补项，原理独有步骤不算差异。只有一版的页面（原理独有步骤、参考页）只渲染一段
+//   不带 data-body 的正文，按原理版比；重写稿有这一版、产物里却没有对应正文时报差异。
+// - TODO 段落：每页两种视图合计的段数要等于 PENDING.todos 的登记（和构建提示“作者待补”的处数一致）。
 // - 命令：围栏代码块（连同语言标记，去掉 Callout 的 `>` 前缀和公共缩进后逐字比较）；行内代码按渲染出来的
 //   正文文字找（表格单元格里的 `x` 渲染成不带标签的纯文本，产物里没有 <code>）。
 // - 外链：重写稿正文里的外链（Markdown 链接、裸地址）必须原样出现在该视图的产物里，地址和链接文字都要对上；
@@ -69,6 +71,11 @@ const CONVERSIONS = [
     check: '站内 principle/<id>.md 的 frontmatter 与重写稿正文无关，脚本只核对正文',
   },
   {
+    kind: 'code-lang',
+    what: '没写语言的围栏代码块，Shiki 渲染时语言标记写成 `plaintext`，代码本身逐字不变',
+    check: '只把重写稿里空的语言标记当成 `plaintext` 比较，写了语言的照原样比',
+  },
+  {
     kind: 'todo-label',
     what: '`TODO：` 段落渲染成“作者待补 + 原文”（FR-21），正文文字不变，只多一个标签',
     check: '登记的页面里 TODO 段落数 = 产物里“作者待补”标签数',
@@ -77,30 +84,21 @@ const CONVERSIONS = [
 
 // 登记的待补项：重写稿没有、产物也就没有的内容。补上后从这里删掉。
 const PENDING = {
-  operations: {
-    'leak-protection': '防泄漏',
-    'iphone-proxy': 'iPhone：导入代理软件',
-    'plan1-make-node': '三、把服务器变成节点',
-    'plan1-buy-isp': '四、购买 ISP 代理',
-    'plan1-panel': '五、安装面板',
-    'plan2-residential-server': '方案二：住宅 IP 服务器',
-    'iphone-app-store-austria': 'iPhone：把 App Store 改到奥地利',
-    'google-appeal': '被封了：申诉解封',
-    'android-subscribe': '安卓：订阅',
-  },
+  // 重写稿里还没有操作版的步骤（非原理独有）：现在没有（构建没有“操作版缺失”提示），补上后从这里删掉
+  operations: {},
   // 参考页正文还没写的页面：现在没有（参考页的正文都在重写稿里），留在这里方便以后登记
   pages: {},
-  // 作者待补的 TODO 段落（构建提示“作者待补”的页面），段里的命令、链接和截图还没写，不参与比对
+  // 作者待补的 TODO 段落（构建提示“作者待补”的页面），按两种视图合计，和构建提示的处数一致。
+  // 重写稿里的 TODO 段数和这里对不上（多了、少了或已经补完）都报差异。
   todos: {
-    'leak-protection': 1,
-    'plan1-buy-isp': 2,
-    'plan1-make-node': 1,
-    'plan1-panel': 1,
-    'plan2-residential-server': 1,
-    'iphone-proxy': 1,
-    'iphone-app-store-austria': 1,
-    'google-appeal': 1,
-    'android-subscribe': 1,
+    'leak-protection': 2,
+    'plan1-buy-isp': 4,
+    'plan1-make-node': 2,
+    'plan1-panel': 2,
+    'iphone-proxy': 2,
+    'iphone-app-store-austria': 2,
+    'google-appeal': 2,
+    'android-subscribe': 2,
     'reference/ip-tests/qsu-residential': 1,
     'reference/ip-tests/decodo': 1,
   },
@@ -143,7 +141,8 @@ function splitCode(text) {
     while (j < lines.length && !close.test(lines[j])) body.push(lines[j++]);
     const indent = Math.min(...body.filter((l) => l.trim()).map((l) => /^\s*/.exec(l)[0].length));
     const code = body.map((l) => l.slice(indent).trimEnd()).join('\n');
-    blocks.push({ line: i + 1, startLine: i + 1, endLine: j + 1, code: `${open[2].trim()}\n${code}` });
+    // 没写语言的代码块，Shiki 渲染成 data-language="plaintext"（登记在 CONVERSIONS 的 code-lang）
+    blocks.push({ line: i + 1, startLine: i + 1, endLine: j + 1, code: `${open[2].trim() || 'plaintext'}\n${code}` });
     i = j;
   }
   return { blocks, prose: prose.join('\n') };
@@ -187,18 +186,17 @@ function extractRewrite(text) {
       .replace(/\[\[([^\]|]*)\]\]/g, '$1');
     for (const m of line.matchAll(/(?<!!)\[([^\]\n]+)\]\((https?:\/\/[^)\s]+)\)/g)) {
       const end = m.index + m[0].length;
-      const before = line.slice(Math.max(0, m.index - LINK_CONTEXT), m.index);
-      mdLinks.push({ key: `${before}⟦${m[0]}⟧${line.slice(end, end + LINK_CONTEXT)}`, label: m[1], url: m[2], line: i + 1 });
+      // 上下文里的其他 Markdown 链接在页面上只显示链接文字
+      const shown = (s) => s.replace(/(?<!!)\[([^\]\n]+)\]\((https?:\/\/[^)\s]+)\)/g, '$1');
+      const before = shown(line.slice(0, m.index)).slice(-LINK_CONTEXT);
+      mdLinks.push({ key: `${before}⟦${m[0]}⟧${shown(line.slice(end)).slice(0, LINK_CONTEXT)}`, label: m[1], url: m[2], line: i + 1 });
     }
   });
   const wikilinks = [];
   const embeds = [];
-  const todoIndex = new Set(todoParagraphs(body).map((p) => body.indexOf(p)));
   for (const m of body.matchAll(/(!?)\[\[([^[\]\n]+)\]\]/g)) {
     const raw = unescapePipe(m[2]);
-    // TODO 段落里的嵌入是“作者待补”的占位写法，产物里没有这个标签，不参与比对
-    const inTodo = [...todoIndex].some((start) => m.index >= start && m.index < body.indexOf('\n\n', start) + 2);
-    const item = { raw, line: lineOf(body, m.index), inTodo };
+    const item = { raw, line: lineOf(body, m.index) };
     if (m[1]) embeds.push({ ...item, name: raw.split('|')[0].trim(), width: raw.includes('|') ? raw.split('|')[1].trim() : undefined });
     else wikilinks.push(item);
   }
@@ -258,6 +256,12 @@ function readBodies(html) {
   while ((m = open.exec(html))) {
     const body = elementAt(html, m.index, 'div');
     if (body) out[m[1]] = { html: html.slice(m.index, body.end), text: body.text };
+  }
+  // 只有一版的页面（原理独有步骤、参考页）只渲染一段不带 data-body 的正文，两种视图都显示它，按原理版比
+  if (Object.keys(out).length === 0) {
+    const single = /<div class="prose"(?![^>]*data-body)[^>]*>/.exec(html);
+    const body = single && elementAt(html, single.index, 'div');
+    if (body) out.principle = { html: html.slice(single.index, body.end), text: body.text };
   }
   return out;
 }
@@ -501,6 +505,8 @@ const pagesByTitle = new Map(pages.map((p) => [p.title, p]));
 
 const differences = { 命令: [], 链接: [], 截图: [] };
 const pending = [];
+/** 每页两种视图合计的 TODO 段数，和 PENDING.todos 核对 */
+const todoCounts = new Map();
 const notes = [];
 
 // 登记过的双链去向：raw → { to, where }。普通双链（[[标题]]）走 wikiLinkTarget，不用逐条登记。
@@ -533,12 +539,16 @@ function compareView(page, view) {
   const source = rewriteFile(view.view, page.title);
   const html = readFileSync(join(distDir, page.id.replace(/^reference\//, ''), 'index.html'), 'utf8');
   const bodies = readBodies(html);
-  if (bodies[view.view] === undefined) return; // 这一页没有这个视图（原理独有步骤、还没写操作版、选择页）
   const where = `${path(source)}·${page.id}`;
 
   if (source === undefined) {
     // 有视图没有重写稿：新建的页面（选择页、参考页等），正文不是从重写稿来的，登记在 notes 里
-    notes.push(`${page.id} · ${view.label} 没有对应的重写稿文件，正文由页面自己的内容组成（不在比对范围）`);
+    if (bodies[view.view] !== undefined) notes.push(`${page.id} · ${view.label} 没有对应的重写稿文件，正文由页面自己的内容组成（不在比对范围）`);
+    return;
+  }
+  if (bodies[view.view] === undefined) {
+    // 重写稿有这一版，产物里却没有这个视图的正文：内容丢了
+    differences.命令.push(`产物里没有${view.label}的正文（${where}）：找不到 data-body="${view.view}"`);
     return;
   }
 
@@ -556,14 +566,7 @@ function compareView(page, view) {
   const todo = todoParagraphs(rewrite.body).length;
   const labelCount = (body.match(/作者待补/g) ?? []).length;
   if (todo !== labelCount) differences.命令.push(`TODO 段落和“作者待补”标签对不上（${where}）：重写稿 ${todo} 段、产物 ${labelCount} 处`);
-  if (todo > 0) {
-    const registered = PENDING.todos[page.id];
-    if (registered === undefined) {
-      differences.命令.push(`重写稿里有 TODO 段落，还没登记（${where}）：${todo} 段，补进脚本的 PENDING.todos`);
-    } else if (todo !== registered) {
-      differences.命令.push(`TODO 段落数和登记的待补数对不上（${where}）：重写稿 ${todo} 段、登记 ${registered} 段`);
-    }
-  }
+  todoCounts.set(page.id, (todoCounts.get(page.id) ?? 0) + todo);
 
   // ---- 命令 ----
   // 代码块：围栏块不进表格，逐字比。行内代码：Markdown 段落里的 `x` 渲染成 `<code>x</code>`，
@@ -572,9 +575,8 @@ function compareView(page, view) {
   const distBlocks = code.blocks.map((b) => b.code);
   for (const b of rewrite.blocks) if (!distBlocks.includes(b.code)) differences.命令.push(`产物缺少代码块（${where}:${b.line}）：\n${b.code}`);
   for (const b of code.blocks) if (!sourceBlocks.includes(b.code)) differences.命令.push(`产物多出重写稿没有的代码块（${where}）：\n${b.code}`);
-  const distText = body.replace(/&/g, '&');
   for (const c of new Set(rewrite.inline)) {
-    if (!distText.includes(c)) differences.命令.push(`产物的正文里找不到重写稿的行内代码（${where}）：\`${c}\``);
+    if (!body.includes(c)) differences.命令.push(`产物的正文里找不到重写稿的行内代码（${where}）：\`${c}\``);
   }
   const sourceInline = new Set(rewrite.inline);
   for (const c of new Set(code.inline)) {
@@ -638,7 +640,6 @@ function compareView(page, view) {
   for (const e of rewrite.embeds) {
     const img = distImages.get(stem(e.name));
     if (img === undefined) {
-      if (e.inTodo) continue;
       differences.截图.push(`产物缺少截图（${where}:${e.line}）：![[${e.raw}]]`);
       continue;
     }
@@ -659,7 +660,6 @@ function compareView(page, view) {
   // 站内链接和链接文字都从重写稿的双链来：普通双链按标题解析，`[[04技术/…]]` 查 blog-links.yaml，
   // 目录页指向首页。登记过的一律打印；对不上的报差异。
   for (const w of rewrite.wikilinks) {
-    if (w.inTodo) continue;
     const [targetPart, rest] = splitOnce(w.raw, '|');
     const [title] = splitOnce(targetPart, '#');
     const registered = wikiTargets.get(title.trim());
@@ -731,6 +731,17 @@ for (const page of pages) {
       continue;
     }
     compareView(page, view);
+  }
+}
+
+// TODO 段落：两种视图合计的段数要和登记的一致；重写稿里补完了的也要报，提醒删掉登记
+for (const id of new Set([...todoCounts.keys(), ...Object.keys(PENDING.todos)])) {
+  const count = todoCounts.get(id) ?? 0;
+  const registered = PENDING.todos[id] ?? 0;
+  if (count !== registered) {
+    differences.命令.push(`TODO 段落数和登记的待补数对不上（${id}）：重写稿两种视图合计 ${count} 段、登记 ${registered} 段，改脚本的 PENDING.todos`);
+  } else if (count > 0) {
+    pending.push(`作者待补：${id} ${count} 处`);
   }
 }
 
