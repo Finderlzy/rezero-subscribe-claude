@@ -9,6 +9,8 @@
 ssh root@你的服务器IP
 ```
 
+提示 `Permission denied, please try again.`，见 [[常见问题#SSH 提示 Permission denied？|SSH 提示 Permission denied？]]。
+
 **运行脚本**
 
 TODO：下面的命令用的是还没发布的 v1.3.0。脚本在 reality-setup 的 split-scripts 分支上，还没在真实服务器上跑过；发版并打上 v1.3.0 标签后，这条命令才能用。
@@ -29,6 +31,8 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Finderlzy/reality-setup/v1.3
 脚本内容公开在 [reality-setup](https://github.com/Finderlzy/reality-setup)，运行前可以先看一眼。
 
 想重装的，见 [[常见问题#装过了，想重装？|装过了，想重装？]]。
+
+走 [[方案二：住宅 IP 服务器|方案二]] 的，服务器本身就是住宅 IP，做完这一步直接去 [[导入代理软件]]，不用看下一步。
 
 ---
 

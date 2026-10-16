@@ -13,6 +13,8 @@
 ssh root@你的服务器IP
 ```
 
+提示 `Permission denied, please try again.`，见 [[常见问题#SSH 提示 Permission denied？|SSH 提示 Permission denied？]]。
+
 连上之后，就要把它变成一个节点了。
 
 刚买来的服务器只是一台空电脑，什么都不会做。要让它替我们收发请求，就得在上面装一个专门干这件事的程序，这个程序叫 **Xray**。装好 Xray，这台服务器才真正变成了节点。
@@ -37,6 +39,8 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Finderlzy/reality-setup/v1.3
 脚本内容公开在 [reality-setup](https://github.com/Finderlzy/reality-setup)，运行前可以先看一眼。
 
 想自己动手、弄懂每一步的，看这两篇：[[04技术/自建梯子：VPS + 3x-ui + VLESS Reality|自建梯子：VPS + 3x-ui + VLESS Reality]]、[[04技术/给 VPS 节点套上住宅 IP|给 VPS 节点套上住宅 IP]]。
+
+走 [[方案二：住宅 IP 服务器|方案二]] 的，服务器本身就是住宅 IP，做完这一步直接去 [[导入代理软件]]，不用看下一步。
 
 ---
 
