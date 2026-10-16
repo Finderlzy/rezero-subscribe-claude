@@ -27,7 +27,8 @@
   /* logo 的“Re”跟主色走 */
   --logo-re: var(--accent);
 
-  /* §3.2 字体。--font-numeral 只用于章节号和 404 的数字：系统自带的旧式衬线，不加载网页字体 */
+  /* §3.2 字体。--font-numeral 只用于眉题和目录的章节号：系统自带的旧式衬线，不加载网页字体；
+     大号编号改用固定字形（Numeral，design v2.1 §3.2 D7），眉题和目录随 W04、W07 改造 */
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
     "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC",
     "Source Han Sans SC", sans-serif;
@@ -39,6 +40,8 @@
   /* §3.2 排版（手机 <720px；桌面值见下方媒体查询） */
   --fs-title: 26px;
   --fs-numeral: 40px;
+  /* 固定字形的大号编号（Numeral，1em = 数字高度）：章节标题卡的章节号和 404，手机 / 平板 / 桌面 64 / 80 / 96px */
+  --fs-display: 64px;
   --fs-h2: 20px;
   --fs-h3: 17px;
   --fs-option: 19px;
@@ -81,9 +84,16 @@
   :root {
     --fs-title: 32px;
     --fs-numeral: 56px;
+    --fs-display: 80px;
     --fs-h2: 22px;
     --fs-h3: 18px;
     --fs-body: 18px;
+  }
+}
+
+@media (min-width: 1100px) {
+  :root {
+    --fs-display: 96px;
   }
 }
 

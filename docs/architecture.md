@@ -245,6 +245,7 @@ function pathOf(stop: Stop): string;        // '/<id>/' 或 '/'；再由 withBas
   实现（#30，现状）：`TocNav` 章名前写 `00`–`03` 章节号，末尾单列 `site.tocReferences`（`loadSite()` 按常见问题、IP 质量实测合集的顺序给出标题，由页面经 `PageLayout`/`Toc` 的参数传入，`TocNav` 自己不读内容），当前项是 `aria-current="page"`。`Toc` 输出侧栏和空的抽屉 `<dialog data-toc-dialog>`。页面脚本 `src/scripts/toc.ts` 在 `route-enhance` 之后运行（它先记下当前页所属选项），按本机选择和当前视图调用 `outline(stored, at, mode)` 改写标记：`data-off-route`（其他选项的步骤、操作视图下的原理独有步骤）、“其他路线”（只按分支判断，原理独有步骤只弱化不标）、`data-selected`、“切换”按钮和当前项；“切换”写入 `choices` 并派发 `reader-choices-changed`，收到选择或视图变化时重画；页眉的“目录”按钮打开抽屉时把侧栏的 `<nav>` 移进去，关闭时移回；跑完给 `<nav>` 加 `data-toc-ready`。首页和找不到页的目录是静态的，按 `outline({}, null, 'principle')` 画（没有视图，全部正常显示，不弱化），不跑脚本。参考页不放抽屉，“打开目录”仍链到首页目录。
 - **页眉（#31，现状）**：`src/components/SiteHeader.astro`，首页以外的页面都有（design §4.0）。参数 `views`（显示 `ViewToggle`，视图色带跟 `<html data-view>` 走：操作 `--text`、原理 `--accent`）和 `toc`（显示打开目录抽屉的 `[data-toc-open]` 按钮，`toc.ts` 按原来的标记接管）；`PageLayout` 传两者，`ReferenceLayout` 和找不到页都不传（色带 `--border`）。眉题的章节号、章节过场由 `PageLayout` 按 `view.progress.chapterNo` 和 `routeData.chapters` 的第一项算出，`[data-route-progress]` 仍只放进度文字，页面脚本照旧改写它。章节号的文字统一由 `lib/nav-text.ts` 的 `chapterNoText()` 给出。
 - **logo**：`src/assets/logo/` 放转曲后的 SVG（中文版、英文版、“Re:”标记），**只由 `src/components/Logo.astro` 引用**（`?raw` 内联，颜色用 `currentColor` 和设计令牌，深浅主题自动适配）；换 logo 只改这一处（需求 Q-15）。favicon 是 `public/favicon.svg`（SVG 内用 `prefers-color-scheme` 切换配色），由 `BaseLayout` 的 `<link rel="icon">` 引用。“Re”的颜色取 `--logo-re`（SVG 里的回退值是浅色的 `#5B3FA0`），`tokens.css` 在 `:root` 设 `--logo-re: var(--accent)`，深色模式下换成浅紫（#31 接入）。四个 SVG 都由 `scripts/build-logo.mjs` 生成，版式参数（字号、错落、间距）写在脚本里。
+- **编号字形（#32，现状）**：design §3.2 D7 的固定字形编号。`scripts/build-logo.mjs` 按字形名取 Cormorant Garamond 500 的等高数字 `zero.lf`…`nine.lf` 和 `endash`（§11.4 W-1），输出 `src/assets/numerals/symbols.svg`（`<symbol id="numeral-0">`…`numeral-9`、`numeral-dash`，字体单位 1000/em，共用一个竖向范围）和 `metrics.json`（`top`、`height`、各字宽）；另输出四条章节副标题 `chapter-00.svg`…`chapter-03.svg`（Roboto Condensed 700，13px 原大，字距 0.3em，两端 24px 短横）。接口（§11.4 W-2）：`BaseLayout` 每页内联一份 `NumeralSprite`（隐藏、`aria-hidden`）；纯函数 `numeralSvg(text, label, className?)`（`src/lib/numeral.ts`）用 `<use>` 按字宽拼出数字串，外层 `role="img"` + `aria-label`，`fill="currentColor"`，高 `1em` = 数字高度（用 `font-size` 控制大小，例如找不到页的 `--fs-display` 64/80/96px），只接受 0–9 和 `–`；`Numeral.astro` 在构建时调用它，页面脚本改写编号时调用同一个函数，不重新转曲。`ChapterSubtitle.astro` 内联对应章节的副标题，`aria-hidden`，颜色由使用方给。已用在找不到页的大号 `404`；章节号、步骤编号、首页索引由 W04、W05、W07 接入。
 - **参考页的返回**（1.0.0 已有 `faq-return`，泛化为 `reference-return`）：根据 `?from=<page-id>` 查到页面标题，显示“返回刚才的步骤：<标题>”；实测页另有“回到：IP 质量实测合集”；直接打开时显示“打开目录”。
   实现（#27，现状）：纯函数 `referenceReturn(search, pages)`（`src/lib/reference-return.ts`）只认 `RouteData.pages` 里的标识（步骤、选择页、旁支页），其他值当作直接打开；`ReferenceLayout` 内嵌“页面标识 → 标题”（`#reference-pages`），在标题上方和正文末尾写出隐藏的 `[data-reference-return]`，页面脚本 `src/scripts/reference-return.ts` 填好地址和标题后显示，并隐藏“打开目录”（`[data-reference-toc]`，页脚因此空了就整行隐藏），跑完给 `<main>` 加 `data-reference-ready`。“打开目录”是指向首页目录的链接 `/#home-chapters`，没有 JS 也能用；参考页不内嵌路线数据，不放目录抽屉（#30 保持链接）。
 - **视频门面、代码复制、看大图**：1.0.0 已有，沿用；只改 FR-41：没有视频信息时不输出视频区域（删掉“视频制作中”）。
@@ -310,7 +311,8 @@ function getNameHost(scope?): { name: string } | null;   // 浏览器里是 wind
 │   ├── content/                     route.yaml、principle/、operation/、reference/、blog-links.yaml
 │   ├── assets/
 │   │   ├── screenshots/             截图（经 Astro 图片处理）
-│   │   └── logo/                    转曲后的 logo SVG（只由 Logo.astro 引用）
+│   │   ├── logo/                    转曲后的 logo SVG（只由 Logo.astro 引用）
+│   │   └── numerals/                转曲后的编号字形和 CHAPTER 副标题（build-logo.mjs 生成）
 │   ├── lib/
 │   │   ├── content/                 M1：schemas、link-index、remark-obsidian、rehype-operation-ids、markdown、integration（+ *.test.ts）
 │   │   ├── route/                   M2：route-map、types（+ 测试和测试用路线图）
@@ -341,7 +343,7 @@ function getNameHost(scope?): { name: string } | null;   // 浏览器里是 wind
 | --- | --- |
 | `npm run dev` / `build` / `preview` / `test` / `test:build` / `test:e2e` / `check` | 1.0.0 已有，含义不变 |
 | `node scripts/import-rewrite.mjs [目录]` | 从重写稿导入正文和截图；连跑两次第二次没有改动 |
-| `node scripts/build-logo.mjs` | 用 `.cache/fonts/` 里的开源字体生成 logo SVG 和 favicon（字体下载地址写在脚本开头；输出是确定的，重复运行结果相同） |
+| `node scripts/build-logo.mjs` | 用 `.cache/fonts/` 里的开源字体生成 logo SVG、favicon 和编号字形（字体下载地址写在脚本开头；输出是确定的，重复运行结果相同） |
 | `node scripts/compare-migration.mjs` | 对照重写稿和构建产物的命令、链接、截图（AC-13，v2.0 改写） |
 
 ## 8. 验收对应的验证方式（需求 v0.3 §8）
@@ -415,7 +417,7 @@ v2.0 → v2.1 的代码差距（现状 → 目标）：
 
 | 项 | 现状（#31） | v2.1 目标 | 任务 |
 | --- | --- | --- | --- |
-| 编号字形 | `--font-numeral` 用系统旧式衬线（`tokens.css`），各设备不同 | Cormorant Garamond 500 等高数字，转成图形（design §3.2、D7） | W01 |
+| 编号字形 | `--font-numeral` 用系统旧式衬线（`tokens.css`），各设备不同 | Cormorant Garamond 500 等高数字，转成图形（design §3.2、D7） | W01（#32 已完成：字形和 `Numeral`，先用在找不到页，见 §3 M3“编号字形”） |
 | 断点和字号 | 两档（<720 / ≥720），没有标题卡和页边编号的字号 | 三档（<720 / 720–1099 / ≥1100），§3.2 全表；平板边距 32px | W02 |
 | 视图切换按下 | `--accent` 底（`ViewToggle.astro`） | `--text` 底、`--bg` 字（§4.3、D8） | W02 |
 | 动效和反馈 | 没有任何过渡、悬停或按下反馈 | 抽屉 200/150ms、看大图 150ms；悬停、按下；`prefers-reduced-motion`（§5、D11） | W02、W03 |

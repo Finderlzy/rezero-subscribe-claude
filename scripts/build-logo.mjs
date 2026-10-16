@@ -1,5 +1,5 @@
-// 把 logo 文字用开源字体转成 SVG 路径（需求 FR-70，架构 §5 logo）。
-// 用法：node scripts/build-logo.mjs
+// 把 logo 文字、编号字形用开源字体转成 SVG 路径（需求 FR-70，design §3.2 D7，架构 §5 logo）。
+// 用法：node scripts/build-logo.mjs [--out <目录>]（--out 默认是仓库根目录，测试用它把输出写到临时目录）
 // 先把下面四个字体下载到 .cache/fonts/（不提交）。都是 SIL OFL 1.1，许可证核对见 docs/reuse-research.md §5。
 // 地址固定到具体提交，重新下载得到的是同一份文件，输出的 SVG 也就相同。
 //
@@ -8,16 +8,21 @@
 //   RobotoCondensed.ttf        https://raw.githubusercontent.com/google/fonts/b7c8331cf620346575487ef8db0e2c729f014675/ofl/robotocondensed/RobotoCondensed%5Bwght%5D.ttf
 //   SourceHanSansCN-Heavy.otf  https://raw.githubusercontent.com/adobe-fonts/source-han-sans/a4f7cf94edfb9d7ffbdfc4841de276358bd7e0f2/SubsetOTF/CN/SourceHanSansCN-Heavy.otf
 //
-// 输出：src/assets/logo/{logo-zh,logo-en,mark}.svg（由 Logo.astro 内联）、public/favicon.svg。
+// 输出：src/assets/logo/{logo-zh,logo-en,mark}.svg（由 Logo.astro 内联）、public/favicon.svg；
+// src/assets/numerals/ 的编号字形 symbols.svg + metrics.json（由 NumeralSprite.astro 和 lib/numeral.ts 使用）
+// 和四条章节副标题 chapter-00.svg…chapter-03.svg（由 ChapterSubtitle.astro 内联）。
 // 颜色：“Re”用 var(--logo-re, #5B3FA0)，其余用 currentColor；favicon 单独用文件，自带深浅配色。
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import opentype from 'opentype.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const fontDir = join(root, '.cache/fonts');
+const outFlag = process.argv.indexOf('--out');
+if (outFlag !== -1 && !process.argv[outFlag + 1]) throw new Error('--out 后面要写输出目录');
+const outDir = outFlag === -1 ? root : resolve(process.argv[outFlag + 1]);
 
 function loadFont(file, variation) {
   let buffer;
@@ -76,11 +81,13 @@ function bbox(paths) {
 }
 
 // 自己把路径命令写成 path data：opentype.js 的 toPathData 遇到 112.00000000000001 这类字号会输出 NaN。
-const num = (v) => {
-  const r = Math.round(v * 100) / 100;
-  return Object.is(r, -0) ? '0' : String(r);
-};
-function pathData(path) {
+// 默认保留两位小数；编号字形按 1000 单位/em 取，取整就够细。
+function pathData(path, decimals = 2) {
+  const scale = 10 ** decimals;
+  const num = (v) => {
+    const r = Math.round(v * scale) / scale;
+    return Object.is(r, -0) ? '0' : String(r);
+  };
   return path.commands
     .map((c) => {
       switch (c.type) {
@@ -101,8 +108,9 @@ function pathData(path) {
 }
 
 // 把若干段文字合成一个 SVG：外框按字形实际范围加留白，路径按颜色各合成一条。
-// 传了 style 时（favicon）配色全由 style 决定，不写内联颜色。
-function svg(runs, { pad = 4, style = '' } = {}) {
+// 传了 style 时（favicon）配色全由 style 决定，不写内联颜色。logo 以外的图形（章节副标题）传 classes: false，
+// 不带 .logo-re/.logo-ink，免得 logo 的约定波及它们。
+function svg(runs, { pad = 4, style = '', classes = true } = {}) {
   const re = runs.flatMap((r) => r.paths[RE]);
   const ink = runs.flatMap((r) => r.paths[INK]);
   const b = bbox([...re, ...ink]);
@@ -110,14 +118,15 @@ function svg(runs, { pad = 4, style = '' } = {}) {
   const y = Math.floor(b.y1 - pad);
   const w = Math.ceil(b.x2 + pad) - x;
   const h = Math.ceil(b.y2 + pad) - y;
-  const d = (paths) => paths.map(pathData).join('');
+  const d = (paths) => paths.map((p) => pathData(p)).join('');
   if (d(re).includes('NaN') || d(ink).includes('NaN')) throw new Error('路径里出现 NaN');
   const parts = [`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x} ${y} ${w} ${h}" width="${w}" height="${h}">`];
   if (style) parts.push(`<style>${style}</style>`);
   const reFill = style ? '' : ' style="fill:var(--logo-re, #5B3FA0)"';
   const inkFill = style ? '' : ' fill="currentColor"';
-  if (re.length) parts.push(`<path class="logo-re"${reFill} d="${d(re)}"/>`);
-  if (ink.length) parts.push(`<path class="logo-ink"${inkFill} d="${d(ink)}"/>`);
+  const cls = (name) => (classes ? ` class="${name}"` : '');
+  if (re.length) parts.push(`<path${cls('logo-re')}${reFill} d="${d(re)}"/>`);
+  if (ink.length) parts.push(`<path${cls('logo-ink')}${inkFill} d="${d(ink)}"/>`);
   parts.push('</svg>');
   return parts.join('\n') + '\n';
 }
@@ -228,15 +237,94 @@ function square(text) {
   });
 }
 
+// —— 编号字形（design §3.2、D7）——
+// 和 logo“Re”同一种细衬线（Cormorant Garamond 500）的等高数字。这款字体默认是旧式数字（zero…），
+// charToGlyph 会拿到半高的 0 和 1，所以按字形名取 zero.lf…nine.lf，短横取 endash（架构 §11.4 W-1）。
+// 输出一份 <symbol> 雪碧图和字宽表：页面内联一次雪碧图，构建时和浏览器脚本都用 lib/numeral.ts 拼 <use>，
+// 不必为每个数字串单独转曲（架构 §11.4 W-2）。坐标是字体单位（1000/em），y 向下、基线是 0。
+const NUMERAL_GLYPHS = {
+  0: 'zero.lf',
+  1: 'one.lf',
+  2: 'two.lf',
+  3: 'three.lf',
+  4: 'four.lf',
+  5: 'five.lf',
+  6: 'six.lf',
+  7: 'seven.lf',
+  8: 'eight.lf',
+  9: 'nine.lf',
+  '–': 'endash',
+};
+// symbol 的 id 后缀；短横不能直接放进 id
+const numeralKey = (ch) => (ch === '–' ? 'dash' : ch);
+
+function numerals() {
+  const { font, variation } = fonts.re;
+  const glyphs = Object.entries(NUMERAL_GLYPHS).map(([ch, name]) => {
+    const glyph = font.nameToGlyph(name);
+    if (!glyph || glyph.name !== name) throw new Error(`字体 re 没有字形 ${name}`);
+    const path = glyph.getPath(0, 0, font.unitsPerEm, { variation }, font);
+    // advanceWidth 在 getPath 之后才是当前字重的值
+    return { ch, path, advance: Math.round(glyph.advanceWidth) };
+  });
+  // 所有字形共用一个竖向范围：上到最高的数字，下到圆形笔画压过基线的部分，数字之间才对得齐
+  const b = bbox(glyphs.map((g) => g.path));
+  const top = Math.floor(b.y1);
+  const height = Math.ceil(b.y2) - top;
+  const symbols = glyphs.map(({ ch, path, advance }) => {
+    const d = pathData(path, 0);
+    if (d.includes('NaN')) throw new Error('路径里出现 NaN');
+    return `<symbol id="numeral-${numeralKey(ch)}" viewBox="0 ${top} ${advance} ${height}"><path d="${d}"/></symbol>`;
+  });
+  const metrics = {
+    top,
+    height,
+    advance: Object.fromEntries(glyphs.map((g) => [g.ch, g.advance])),
+  };
+  return {
+    symbols: `<svg xmlns="http://www.w3.org/2000/svg">\n${symbols.join('\n')}\n</svg>\n`,
+    metrics: JSON.stringify(metrics, null, 2) + '\n',
+  };
+}
+
+// —— 章节标题卡的英文副标题（design §3.2、§4.1）：− CHAPTER 0n − ——
+// Roboto Condensed 700，13px，字距 0.3em；两端是 24px 长、1px 粗的细短横，竖向落在大写字母的中线上。
+function chapterSubtitle(n) {
+  const size = 13;
+  const dash = 24;
+  const gap = size * 0.6;
+  const { font } = fonts.sub;
+  const capHeight = (font.tables.os2.sCapHeight * size) / font.unitsPerEm;
+  // 短横的上下边落在整像素上，13px 原大显示时不发虚
+  const y = Math.round(-capHeight / 2 - 0.5);
+  const rule = (x) => {
+    const p = new opentype.Path();
+    p.moveTo(x, y);
+    p.lineTo(x + dash, y);
+    p.lineTo(x + dash, y + 1);
+    p.lineTo(x, y + 1);
+    p.close();
+    return p;
+  };
+  const text = run({ font: 'sub', text: `CHAPTER ${String(n).padStart(2, '0')}`, x: dash + gap, y: 0, size, tracking: size * 0.3 });
+  const ends = { paths: { [RE]: [], [INK]: [rule(0), rule(Math.round(text.end + gap))] } };
+  return svg([ends, text], { pad: 0, classes: false });
+}
+
+const numeralOut = numerals();
+
 const outputs = {
   'src/assets/logo/logo-zh.svg': logoZh(),
   'src/assets/logo/logo-en.svg': logoEn(),
   'src/assets/logo/mark.svg': mark(),
   'public/favicon.svg': favicon(),
+  'src/assets/numerals/symbols.svg': numeralOut.symbols,
+  'src/assets/numerals/metrics.json': numeralOut.metrics,
+  ...Object.fromEntries([0, 1, 2, 3].map((n) => [`src/assets/numerals/chapter-0${n}.svg`, chapterSubtitle(n)])),
 };
 
 for (const [file, content] of Object.entries(outputs)) {
-  const target = join(root, file);
+  const target = join(outDir, file);
   mkdirSync(dirname(target), { recursive: true });
   writeFileSync(target, content);
   console.log(`${file}  ${content.length} 字节`);

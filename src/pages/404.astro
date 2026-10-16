@@ -1,4 +1,5 @@
 ---
+import Numeral from '../components/Numeral.astro';
 import SiteHeader from '../components/SiteHeader.astro';
 import TocNav from '../components/TocNav.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
@@ -7,7 +8,7 @@ import { withBase } from '../lib/with-base';
 import '../styles/toc.css';
 
 /**
- * 找不到页（design §4.6，AC-18）：眉题“— 404 —”、“找不到这一页”、一句说明，“回到首页”（主）和“打开目录”（次），
+ * 找不到页（design §4.6，AC-18）：大号 `404`（固定字形，Numeral）、“找不到这一页”、一句说明，“回到首页”（主）和“打开目录”（次），
  * 目录直接写在页面上，“打开目录”跳到它，不靠 JS。
  */
 const site = await loadSite();
@@ -16,7 +17,7 @@ const site = await loadSite();
 <BaseLayout title="找不到这一页">
   <SiteHeader />
   <main id="main" class="page">
-    <p class="eyebrow"><span class="eyebrow-no">404</span></p>
+    <p class="not-found-no"><Numeral text="404" label="404" /></p>
     <h1 class="page-title">找不到这一页</h1>
     <p>这个地址没有对应的页面，可能是链接写错了。可以回到首页，或者从下面的目录找。</p>
     <p class="page-actions">
@@ -31,6 +32,13 @@ const site = await loadSite();
 </BaseLayout>
 
 <style>
+  .not-found-no {
+    margin: 0 0 var(--space-5);
+    color: var(--text);
+    font-size: var(--fs-display);
+    line-height: 1;
+  }
+
   .not-found-toc {
     margin-top: var(--space-7);
     padding-top: var(--space-5);

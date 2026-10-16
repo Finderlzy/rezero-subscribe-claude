@@ -1,6 +1,7 @@
 ---
 import '../styles/tokens.css';
 import '../styles/base.css';
+import NumeralSprite from '../components/NumeralSprite.astro';
 import { withBase } from '../lib/with-base';
 
 interface Props {
@@ -24,6 +25,7 @@ const fullTitle = title ? `${title} - ${SITE_NAME}` : SITE_NAME;
   </head>
   <body>
     <a class="skip-link" href="#main">跳到正文</a>
+    <NumeralSprite />
     <slot />
   </body>
 </html>
