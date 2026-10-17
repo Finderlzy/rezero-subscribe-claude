@@ -154,10 +154,9 @@
   line-height: 1;
 }
 
-/* 参考页单列在末尾，和上面的章节隔一条细线（design §4.5）。 */
+/* 参考页挂在附录页下面，缩进一级（design §4.5）。 */
 .toc-reference {
-  padding-top: var(--space-4);
-  border-top: var(--border-width) solid var(--border);
+  margin-left: var(--space-5);
 }
 
 .toc-step a {
@@ -180,7 +179,7 @@
 
 /* 当前项：加粗、--accent-soft 底，左侧一条强调色竖线（不只靠颜色，另有 aria-current）。 */
 .toc-step a[aria-current='page'] {
-  font-weight: 700;
+  font-weight: var(--fw-heading);
   background: var(--accent-soft);
   box-shadow: inset 3px 0 0 var(--accent);
 }
@@ -222,7 +221,7 @@
   min-height: 44px;
   padding-left: var(--space-2);
   color: var(--text-muted);
-  font-weight: 600;
+  font-weight: var(--fw-heading);
 }
 
 .toc-option[data-selected] .toc-option-head {
@@ -239,7 +238,7 @@
   background: var(--surface);
   color: var(--accent);
   font: inherit;
-  font-weight: 600;
+  font-weight: var(--fw-heading);
   cursor: pointer;
 }
 
@@ -253,7 +252,7 @@
 
 .toc-home .toc-chapter-head {
   color: var(--text);
-  font-weight: 700;
+  font-weight: var(--fw-heading);
 }
 
 .toc-home .toc-chapter-no {

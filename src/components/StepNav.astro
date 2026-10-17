@@ -92,7 +92,7 @@ const backLabel = returnTo ? '回到' : '上一步';
     align-items: center;
     min-height: 44px;
     color: var(--accent);
-    font-weight: 600;
+    font-weight: var(--fw-heading);
     text-decoration: none;
   }
 
@@ -148,9 +148,9 @@ const backLabel = returnTo ? '回到' : '上一步';
   .step-nav-next {
     grid-column: 2;
     text-align: right;
-    background: var(--accent);
-    border-color: var(--accent);
-    color: var(--accent-contrast);
+    background: var(--primary-bg);
+    border-color: var(--primary-bg);
+    color: var(--primary-fg);
   }
 
   /* 章首页的第一屏，大块的紫留给章节号（design §3.1 用紫规则、§4.1）：手机上吸底、短章首页在更宽时，“下一步”都在第一屏，
@@ -182,7 +182,7 @@ const backLabel = returnTo ? '回到' : '上一步';
   }
 
   .step-nav-title {
-    font-weight: 700;
+    font-weight: var(--fw-heading);
   }
 
   /* 手机：吸底的底栏，“下一步”约占 2/3 宽；“上一步”只留箭头（无障碍名称仍是“上一步：<标题>”）。正文末尾的留白见 PageLayout。 */

@@ -180,7 +180,7 @@ const markHtml = stepMarkHtml(mark);
   .chapter-card-title {
     font-size: var(--fs-chapter-title);
     line-height: var(--lh-title);
-    font-weight: 800;
+    font-weight: var(--fw-heading);
   }
 
   .chapter-card-intro {
@@ -263,7 +263,7 @@ const markHtml = stepMarkHtml(mark);
     margin: 0;
     font-size: var(--fs-title);
     line-height: var(--lh-title);
-    font-weight: 800;
+    font-weight: var(--fw-heading);
   }
 
   /*
@@ -288,6 +288,8 @@ const markHtml = stepMarkHtml(mark);
     .step-mark {
       position: relative;
       color: var(--text);
+      /* 旧衬线数字的两侧留白比数字本身宽，右对齐时数字会缩进页边栏右缘一截，这里补回来 */
+      right: -0.18em;
       font-size: var(--fs-margin-numeral);
       line-height: 1;
       text-align: right;

@@ -19,19 +19,19 @@
   margin: var(--space-6) 0 var(--space-3);
   font-size: var(--fs-h2);
   line-height: var(--lh-heading);
-  font-weight: 700;
+  font-weight: var(--fw-heading);
 }
 
 .prose h3 {
   margin: var(--space-5) 0 var(--space-2);
   font-size: var(--fs-h3);
   line-height: var(--lh-heading);
-  font-weight: 700;
+  font-weight: var(--fw-heading);
 }
 
 /* 原文的加粗是“照做的关键点”：只加字重，不改颜色。 */
 .prose strong {
-  font-weight: 700;
+  font-weight: var(--fw-heading);
 }
 
 /* 列表编号和正文左对齐，不缩进太深。 */
@@ -49,12 +49,13 @@
   font-size: var(--fs-code);
 }
 
-/* 代码块：长行在块内横向滚动，不折行，命令必须原样复制（NFR-02）。 */
+/* 代码块：长行在块内横向滚动，不折行，命令必须原样复制（NFR-02）。
+   v2.2：--surface-muted 底、无边框、圆角 10px（design §4.7）。 */
 .prose pre {
   overflow-x: auto;
   padding: var(--space-3) var(--space-4);
-  border: var(--border-width) solid var(--border);
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-panel);
+  background: var(--surface-muted);
   line-height: var(--lh-code);
   white-space: pre;
 }
@@ -64,7 +65,7 @@
 }
 
 .prose pre:not(.astro-code) {
-  background: var(--surface);
+  background: var(--surface-muted);
 }
 
 .prose img {
@@ -125,7 +126,8 @@
   color: var(--accent);
 }
 
-/* 表格在自己的容器里横向滚动（NFR-01）。 */
+/* 表格在自己的容器里横向滚动（NFR-01）。v2.2：没有竖线，只在行与行之间留一条横向细线；
+   表头 13px、--text-muted（design §4.7）。 */
 .prose table {
   display: block;
   overflow-x: auto;
@@ -135,8 +137,15 @@
 .prose th,
 .prose td {
   padding: var(--space-2) var(--space-3);
-  border: var(--border-width) solid var(--border);
+  border: 0;
+  border-bottom: var(--border-width) solid var(--border);
   text-align: left;
+}
+
+.prose th {
+  color: var(--text-muted);
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-heading);
 }
 
 /* 表头不折行，窄屏上列宽不会被挤成一字一行，整张表改在容器里横向滚动；第一列粘性固定（design §4.7） */
@@ -151,24 +160,33 @@
   background: var(--bg);
 }
 
-/* Callout（rehype-callouts 输出 .callout[data-callout]）：note 中性面板，caution 风险色。 */
+/*
+ * 提示框（rehype-callouts 输出 .callout[data-callout]，design §4.7 v2.2）：没有边框和左侧色条，整块浅底、圆角 10px；
+ * 第一行是 13px 600 的小标签，颜色用对应的 rule 色。note 用 --accent-soft，caution 用 --caution-bg。
+ */
 .prose .callout {
-  padding: var(--space-3) var(--space-4);
-  background: var(--surface);
-  border: var(--border-width) solid var(--border);
-  border-left-width: 4px;
+  padding: 14px 16px;
+  background: var(--accent-soft);
   border-radius: var(--radius-panel);
 }
 
 .prose .callout[data-callout='caution'] {
   background: var(--caution-bg);
-  border-color: var(--caution-rule);
 }
 
 .prose .callout-title {
-  font-weight: 700;
+  color: var(--accent);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-meta);
+  font-weight: var(--fw-heading);
 }
 
+.prose .callout[data-callout='caution'] .callout-title {
+  color: var(--caution-rule);
+}
+
+/* 有标题时正文紧跟标签，不再多出段间距；没有标题（showIndicator + 无 title）时正文顶格 */
+.prose .callout-title + .callout-content > :first-child,
 .prose .callout-content > :first-child {
   margin-top: var(--space-2);
 }
@@ -223,26 +241,27 @@
   display: none;
 }
 
-/* 正文里的“作者待补”（design §5 组件表，FR-21）：两种视图都显示。 */
+/* 正文里的“作者待补”（design §4.7，FR-21）：两种视图都显示。v2.2：浅底、圆角，第一行是 13px 标签。 */
 .prose .author-todo {
   display: block;
-  padding: var(--space-3) var(--space-4);
+  padding: 14px 16px;
   background: var(--todo-bg);
-  border-left: 4px solid var(--todo-rule);
   border-radius: var(--radius-panel);
 }
 
 .prose .author-todo-label {
-  margin-right: var(--space-1);
-  font-weight: 700;
+  display: block;
+  color: var(--todo-rule);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-meta);
+  font-weight: var(--fw-heading);
 }
 
-/* 只有原理版时的提示条（design §4.1，FR-21、FR-30），在标题下、正文上。 */
+/* 只有原理版时的提示条（design §4.1，FR-21、FR-30），在正文上、页头色带下方。 */
 .view-notice {
   margin: 0 0 var(--space-5);
-  padding: var(--space-3) var(--space-4);
-  background: var(--surface);
-  border: var(--border-width) solid var(--border);
+  padding: 14px 16px;
+  background: var(--accent-soft);
   border-radius: var(--radius-panel);
 }
 
@@ -296,7 +315,7 @@
 }
 
 .prose .option-title strong {
-  font-weight: 700;
+  font-weight: var(--fw-heading);
 }
 
 /* “当前选择”标签：--accent-soft 底、--accent 字（design §4.2） */
@@ -309,7 +328,7 @@
   color: var(--accent);
   font-size: var(--fs-meta);
   line-height: var(--lh-meta);
-  font-weight: 600;
+  font-weight: var(--fw-heading);
   letter-spacing: var(--tracking-meta);
   vertical-align: middle;
 }

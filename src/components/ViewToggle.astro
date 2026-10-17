@@ -1,6 +1,7 @@
 ---
 /**
- * 操作｜原理两段式切换（design §4.3，FR-30）。当前视图由 `<html data-view>` 决定：
+ * 操作｜原理两段式切换（design §4.3、§4.0，FR-30）：分段控件，--surface-muted 轨道、高 32px，选中的一段是 --surface 底、
+ * 1px --border、--text 字色，没选中的是 --text-muted（v2.2 D1，不再用黑色实心块）。当前视图由 `<html data-view>` 决定：
  * 首次绘制前由 head 里的内联脚本设好，CSS 按它画出按下状态；页面脚本 view-toggle
  * 再同步 `aria-pressed`、处理点击。没有 JS 时没有 `data-view`，切换控件整个隐藏（design §5）。
  */
@@ -15,34 +16,38 @@
   .view-toggle {
     display: inline-flex;
     flex: none;
-    border: var(--border-width) solid var(--control-border);
+    gap: 2px;
+    padding: 2px;
     border-radius: var(--radius-control);
-    background: var(--bg);
+    background: var(--surface-muted);
   }
 
   :global(:root:not([data-view])) .view-toggle {
     display: none;
   }
 
+  /* 轨道高 32px，按钮 44×44 的可点区域用负外边距补上：看得见的是 32px，点得中的仍是 44px（design §5）。 */
   .view-toggle-option {
     min-width: 44px;
     min-height: 44px;
+    margin: -6px 0;
     padding: 0 var(--space-3);
-    border: 0;
-    border-radius: calc(var(--radius-control) - var(--border-width));
+    border: var(--border-width) solid transparent;
+    border-radius: calc(var(--radius-control) - 2px);
     background: transparent;
-    color: var(--text);
+    color: var(--text-muted);
     font: inherit;
     font-size: var(--fs-meta);
-    font-weight: 600;
+    font-weight: var(--fw-heading);
     cursor: pointer;
   }
 
-  /* 按下的一段用 --text 底、--bg 字（design §4.3、D8：一屏只留主按钮一块紫）。
-     按下状态跟着 data-view 画，不等页面脚本同步 aria-pressed，避免首屏闪一下。 */
+  /* 选中一段：--surface 底、1px --border、--text 字色（design §4.0）。
+     选中状态跟着 data-view 画，不等页面脚本同步 aria-pressed，避免首屏闪一下。 */
   :global(:root:not([data-view='principle'])) .view-toggle-option[data-view-option='operation'],
   :global(:root[data-view='principle']) .view-toggle-option[data-view-option='principle'] {
-    background: var(--text);
-    color: var(--bg);
+    background: var(--surface);
+    border-color: var(--border);
+    color: var(--text);
   }
 </style>
