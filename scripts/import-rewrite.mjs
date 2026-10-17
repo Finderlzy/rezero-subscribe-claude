@@ -11,7 +11,8 @@
 // - 重写稿有、站内没有的页面（新页面）和站内有、重写稿没有的页面只报告：新页面要先手建
 //   principle/<id>.md（frontmatter + `# 标题`）并在 route.yaml 放好位置，再重跑脚本。
 // - 正文嵌入的图片，src/assets/screenshots/ 里没有的从重写稿的 `附件/` 复制过去；不判断是否打码，
-//   新复制的截图要逐张核对（三级边界 Never）。
+//   新复制的截图要逐张核对（三级边界 Never）。说明图（`.svg`，design §4.7）复制到 src/assets/diagrams/，
+//   附件里的就是原稿，所以内容变了也覆盖。
 // - 不改 route.yaml；内容没变的文件不重写，连跑两次第二次没有改动。
 
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -64,10 +65,12 @@ function writeIfChanged(file, text) {
 export function importRewrite({ repoRoot, rewriteDir }) {
   const contentRoot = join(repoRoot, 'src', 'content');
   const screenshotsDir = join(repoRoot, 'src', 'assets', 'screenshots');
+  const diagramsDir = join(repoRoot, 'src', 'assets', 'diagrams');
   const principleSrc = join(rewriteDir, '原理版');
   const operationSrc = join(rewriteDir, '操作版');
   const attachments = join(rewriteDir, '附件');
   const rel = (file) => relative(repoRoot, file).split('\\').join('/');
+  /** @type {{ written: string[], unchanged: number, newPages: string[], orphans: string[], untitled: string[], copied: string[], missingImages: string[], droppedFrontmatter: string[] }} */
   const report = { written: [], unchanged: 0, newPages: [], orphans: [], untitled: [], copied: [], missingImages: [], droppedFrontmatter: [] };
 
   /** 重写稿正文：去掉 Obsidian 属性（frontmatter 不属于正文，报告出来） */
@@ -134,17 +137,22 @@ export function importRewrite({ repoRoot, rewriteDir }) {
     }
   }
 
-  // 截图：只复制缺的
+  // 截图只复制缺的（站内的可能是打码后的版本）；说明图跟着附件里的原稿更新
   for (const name of [...embeds].sort()) {
-    const target = join(screenshotsDir, name);
-    if (existsSync(target)) continue;
+    const diagram = extname(name).toLowerCase() === '.svg';
+    const target = join(diagram ? diagramsDir : screenshotsDir, name);
+    if (!diagram && existsSync(target)) continue;
     const source = join(attachments, name);
-    if (existsSync(source)) {
+    if (!existsSync(source)) {
+      if (!existsSync(target)) report.missingImages.push(name);
+      continue;
+    }
+    if (diagram) {
+      if (writeIfChanged(target, readFileSync(source, 'utf8'))) report.copied.push(rel(target));
+    } else {
       mkdirSync(screenshotsDir, { recursive: true });
       copyFileSync(source, target);
       report.copied.push(rel(target));
-    } else {
-      report.missingImages.push(name);
     }
   }
   return report;
@@ -162,8 +170,8 @@ function printReport(report) {
   section('站内有、重写稿里没有的页面（由作者决定是否删除）', report.orphans);
   section('站内文件缺少第一行的 # 标题，无法匹配', report.untitled);
   section('重写稿文件带 frontmatter，导入时已去掉', report.droppedFrontmatter);
-  section('新复制的截图：请逐张核对打码，记进 docs/migration-checklist.md', report.copied);
-  section('附件里也找不到的截图：请作者提供打码后的文件，放进 src/assets/screenshots/', report.missingImages);
+  section('新复制的截图和更新的说明图：截图请逐张核对打码，记进 docs/migration-checklist.md', report.copied);
+  section('附件里也找不到的图：截图请作者提供打码后的文件，放进 src/assets/screenshots/；说明图放进重写稿的附件/', report.missingImages);
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {

@@ -16,6 +16,10 @@ export interface LinkIndex {
   readonly screenshotsDir: string;
   /** 截图文件名（含扩展名，可含空格和中文） */
   readonly screenshots: ReadonlySet<string>;
+  /** 说明图目录（绝对路径），即 `src/assets/diagrams`（design §4.7） */
+  readonly diagramsDir: string;
+  /** 说明图文件名（`.svg`） */
+  readonly diagrams: ReadonlySet<string>;
   /** `principle/`、`operation/`、`reference/` 下的全部页面文件（ADR-0005） */
   readonly pages: readonly IndexedPage[];
   /** 标题 → 页面，只收原理版和参考页（操作版与原理版同 URL）；标题重复时保留先扫描到的 */
@@ -49,12 +53,13 @@ export interface IndexedPage {
 }
 
 /**
- * 扫描 `contentRoot` 下的三个内容集合、`blog-links.yaml` 和截图目录，目录不存在时视为空。
+ * 扫描 `contentRoot` 下的三个内容集合、`blog-links.yaml`、截图目录和说明图目录，目录不存在时视为空。
  * 标识取相对集合目录、去掉 `.md` 的路径；标题取正文第一行的 `# 标题`（缺失由 checkPages 报错）。
  */
 export function createLinkIndex(
   contentRoot: string,
   screenshotsDir: string = resolve(contentRoot, '../assets/screenshots'),
+  diagramsDir: string = resolve(contentRoot, '../assets/diagrams'),
 ): LinkIndex {
   const root = resolve(contentRoot);
   const pages = COLLECTIONS.flatMap((kind) => listMarkdownDeep(join(root, kind)).map((id) => scanPage(kind, id, join(root, kind, `${id}.md`))));
@@ -66,6 +71,8 @@ export function createLinkIndex(
     contentRoot: root,
     screenshotsDir: resolve(screenshotsDir),
     screenshots: new Set(listFiles(resolve(screenshotsDir))),
+    diagramsDir: resolve(diagramsDir),
+    diagrams: new Set(listFiles(resolve(diagramsDir))),
     pages,
     titles,
     ...readBlogLinks(join(root, 'blog-links.yaml')),

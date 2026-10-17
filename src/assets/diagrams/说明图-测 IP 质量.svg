@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 328 300">
+<title>方案一：为什么只有 ipinfo.io 看得到 ISP 的 IP</title>
+<desc>开着代理上网，请求都先到节点服务器。脚本里设置了只有 claude 和 ipinfo.io 转交 ISP 代理，所以 ipinfo.io 显示的是 ISP 的出口 IP；别的测 IP 网站直接从服务器自己的出口出去，显示的是服务器的机房 IP。</desc>
+  <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="0.75" y="0.75" width="134.5" height="34.5" rx="4"/>
+    <path d="M24 39V75M20 69L24 75L28 69"/>
+    <rect x="0.75" y="78.75" width="134.5" height="34.5" rx="4"/>
+    <path d="M24 117V136H252"/>
+    <path d="M252 136V175M248 169L252 175L256 169"/>
+    <rect x="188.75" y="178.75" width="138.5" height="34.5" rx="4"/>
+    <path d="M252 217V249M248 243L252 249L256 243"/>
+    <rect x="178.75" y="252.75" width="148.5" height="46.5" rx="4"/>
+  </g>
+  <g fill="currentColor" font-family="system-ui, sans-serif" font-size="14">
+    <text x="68" y="18" text-anchor="middle" dominant-baseline="central">开着代理上网</text>
+    <text x="68" y="96" text-anchor="middle" dominant-baseline="central">节点（服务器）</text>
+    <text x="262" y="156" dominant-baseline="central">别的网站</text>
+    <text x="258" y="196" text-anchor="middle" dominant-baseline="central">服务器自己的出口</text>
+    <text x="253" y="266" text-anchor="middle" dominant-baseline="central">别的测 IP 网站显示</text>
+    <text x="253" y="286" text-anchor="middle" dominant-baseline="central">服务器的机房 IP</text>
+  </g>
+<g class="accent">
+    <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M24 136V175M20 169L24 175L28 169"/>
+      <rect x="0.75" y="178.75" width="108.5" height="34.5" rx="4"/>
+      <path d="M24 217V249M20 243L24 249L28 243"/>
+      <rect x="0.75" y="252.75" width="148.5" height="46.5" rx="4"/>
+    </g>
+    <g fill="currentColor" font-family="system-ui, sans-serif" font-size="14">
+      <text x="38" y="156" dominant-baseline="central">ipinfo.io、claude</text>
+      <text x="55" y="196" text-anchor="middle" dominant-baseline="central">ISP 代理</text>
+      <text x="75" y="266" text-anchor="middle" dominant-baseline="central">ipinfo.io 显示</text>
+      <text x="75" y="286" text-anchor="middle" dominant-baseline="central">ISP 的出口 IP</text>
+    </g>
+</g>
+</svg>

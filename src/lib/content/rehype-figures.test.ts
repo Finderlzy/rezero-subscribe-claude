@@ -95,6 +95,15 @@ describe('rehype-figures：截图图版', () => {
     expect(plates(html)).toEqual([{ no: '1', file: 'b.jpg' }]);
   });
 
+  it('说明图（design §4.7）也是图版，加 diagram 类，和截图一起按文档顺序编号', async () => {
+    fx.diagram('说明图-路线.svg', '<svg viewBox="0 0 300 80"><title>路线</title><path d="M0 0H1" stroke="currentColor"/></svg>');
+    const html = await render('principle/recap.md', '# 小结\n\n![[a.png]]\n\n正文\n\n![[说明图-路线.svg]]\n\n后文\n');
+    expect(html).toMatch(
+      new RegExp(`<figure class="plate diagram" data-figure="2"><figcaption class="plate-no">图 ${FIGURE_STEP_SLOT}2</figcaption><svg [^>]*data-diagram[^>]*>.*?</svg></figure>`, 's'),
+    );
+    expect(html).not.toMatch(/<p>\s*<figure|<p>\s*<\/p>/);
+  });
+
   it('普通 Markdown 图片（不是 ![[…]] 嵌入）不处理', async () => {
     const html = await render('principle/subscribe.md', '# 订阅\n\n![x](https://example.com/x.png)\n');
     expect(html).toBe('<p><img src="https://example.com/x.png" alt="x"></p>');

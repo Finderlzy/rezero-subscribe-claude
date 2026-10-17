@@ -4,6 +4,7 @@ import type { Element, ElementContent, Root, RootContent } from 'hast';
  * 截图图版（design v2.1 §4.7、D4）：独占一行的截图嵌入（remark-obsidian 输出的 `img[data-zoom]`）包成
  * `<figure class="plate" data-figure="n">`，编号写在 `<figcaption class="plate-no">图 1</figcaption>`，放在截图前面：
  * 桌面上它绝对定位到页边栏、竖向位置就是截图顶边；平板和手机由 CSS 排到截图下方（prose.css）。
+ * 说明图（remark-obsidian 内联的 `svg[data-diagram]`，design §4.7）同样包成图版，多一个 `diagram` 类，和截图一起编号。
  * 每篇正文单独处理，所以原理版、操作版各自从 1 编号。
  *
  * 编号前半的步骤号（“图 02-1”的 `02-`）取决于路线和视图，这里只留空的 FIGURE_STEP_SLOT：
@@ -25,8 +26,13 @@ export function fillFigureSteps(html: string, prefix: string): string {
 /** 可以放进 figure 的容器（流内容）：只在这些元素和段落里找截图；标题、行内元素等里面放不下块级的 figure，不处理 */
 const FLOW = new Set(['li', 'blockquote', 'div', 'section', 'aside', 'td', 'th', 'dd', 'details']);
 
+/** 截图（`img[data-zoom]`）或说明图（`svg[data-diagram]`，remark-obsidian 内联的 SVG）都做成图版 */
 function isScreenshot(node: ElementContent): node is Element {
-  return node.type === 'element' && node.tagName === 'img' && 'data-zoom' in node.properties;
+  return node.type === 'element' && ((node.tagName === 'img' && 'data-zoom' in node.properties) || isDiagram(node));
+}
+
+function isDiagram(node: Element): boolean {
+  return node.tagName === 'svg' && 'dataDiagram' in node.properties;
 }
 
 /** 截图是否独占一行：到前后的换行（或父元素的边界）之间只有空白 */
@@ -48,7 +54,8 @@ function ownLine(siblings: readonly ElementContent[], i: number): boolean {
 }
 
 function plate(img: Element, plates: WeakSet<Element>): Element {
-  const figure: Element = { type: 'element', tagName: 'figure', properties: { className: ['plate'] }, children: [img] };
+  const className = isDiagram(img) ? ['plate', 'diagram'] : ['plate'];
+  const figure: Element = { type: 'element', tagName: 'figure', properties: { className }, children: [img] };
   plates.add(figure);
   return figure;
 }

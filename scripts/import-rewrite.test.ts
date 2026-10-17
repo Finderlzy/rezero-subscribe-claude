@@ -66,6 +66,21 @@ describe('importRewrite', () => {
     expect(report.missingImages).toEqual(['缺失.png']);
   });
 
+  it('说明图（.svg）复制到 src/assets/diagrams/，附件里的是原稿，内容变了就更新；附件里没有的报告出来', () => {
+    write('docs/rewrite/原理版/整体思路.md', '# 整体思路\n\n![[说明图-整体思路.svg]]\n\n![[说明图-缺失.svg]]\n');
+    write('docs/rewrite/附件/说明图-整体思路.svg', '<svg>v1</svg>');
+    const first = run();
+    expect(first.copied.filter((p) => p.endsWith('.svg'))).toEqual(['src/assets/diagrams/说明图-整体思路.svg']);
+    expect(first.missingImages).toEqual(['说明图-缺失.svg']);
+    expect(read('src/assets/diagrams/说明图-整体思路.svg')).toBe('<svg>v1</svg>');
+    expect(existsSync(join(root, 'src/assets/screenshots/说明图-整体思路.svg'))).toBe(false);
+
+    write('docs/rewrite/附件/说明图-整体思路.svg', '<svg>v2</svg>');
+    expect(run().copied).toEqual(['src/assets/diagrams/说明图-整体思路.svg']);
+    expect(read('src/assets/diagrams/说明图-整体思路.svg')).toBe('<svg>v2</svg>');
+    expect(run().copied).toEqual([]);
+  });
+
   it('新页面、多出的页面只报告，不建文件也不删文件；目录页不导入', () => {
     write('docs/rewrite/原理版/新页面.md', '# 新页面\n');
     write('docs/rewrite/操作版/新页面.md', '# 新页面\n');

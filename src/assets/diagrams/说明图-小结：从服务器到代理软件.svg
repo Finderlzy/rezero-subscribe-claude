@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 328 476">
+<title>方案一：请求从你的设备到 claude 的路线</title>
+<desc>你的电脑或手机开着 tun 模式，整台设备的流量都交给代理软件；代理软件加密，伪装成访问普通的大网站；国内网络出口的防火墙看起来是一次普通的上网，放行；海外的节点服务器上跑着 Xray，拆开伪装，看你要去哪儿：访问 claude 和 ipinfo.io 的请求转交 ISP 代理，claude 看到的是 ISP 的 IP；访问其他网站的请求直接从服务器自己的出口出去。</desc>
+  <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="0.75" y="0.75" width="134.5" height="34.5" rx="4"/>
+    <path d="M24 39V75M20 69L24 75L28 69"/>
+    <rect x="0.75" y="78.75" width="94.5" height="34.5" rx="4"/>
+    <path d="M24 117V153M20 147L24 153L28 147"/>
+    <rect x="0.75" y="156.75" width="194.5" height="34.5" rx="4"/>
+    <path d="M24 195V231M20 225L24 231L28 225"/>
+    <rect x="0.75" y="234.75" width="218.5" height="34.5" rx="4"/>
+    <path d="M24 273V310H252"/>
+    <path d="M24 310V343M20 337L24 343L28 337"/>
+    <path d="M252 310V343M248 337L252 343L256 337"/>
+    <rect x="0.75" y="346.75" width="108.5" height="34.5" rx="4"/>
+    <rect x="188.75" y="346.75" width="138.5" height="34.5" rx="4"/>
+  </g>
+  <g fill="currentColor" font-family="system-ui, sans-serif" font-size="14">
+    <text x="68" y="18" text-anchor="middle" dominant-baseline="central">你的电脑/手机</text>
+    <text x="38" y="57" dominant-baseline="central">tun 模式：整台设备的流量都交给代理软件</text>
+    <text x="48" y="96" text-anchor="middle" dominant-baseline="central">代理软件</text>
+    <text x="38" y="135" dominant-baseline="central">加密，伪装成访问普通的大网站</text>
+    <text x="98" y="174" text-anchor="middle" dominant-baseline="central">防火墙（国内网络的出口）</text>
+    <text x="38" y="213" dominant-baseline="central">看起来是一次普通的上网，放行</text>
+    <text x="110" y="252" text-anchor="middle" dominant-baseline="central">节点（海外服务器，跑着 Xray）</text>
+    <text x="38" y="288" dominant-baseline="central">拆开伪装，看你要去哪儿</text>
+    <text x="38" y="330" dominant-baseline="central">claude、ipinfo.io</text>
+    <text x="262" y="330" dominant-baseline="central">其他网站</text>
+    <text x="55" y="364" text-anchor="middle" dominant-baseline="central">ISP 代理</text>
+    <text x="258" y="364" text-anchor="middle" dominant-baseline="central">服务器自己的出口</text>
+  </g>
+<g class="accent">
+    <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M24 385V417M20 411L24 417L28 411"/>
+      <rect x="0.75" y="420.75" width="170.5" height="54.5" rx="4"/>
+    </g>
+    <g fill="currentColor" font-family="system-ui, sans-serif" font-size="14">
+      <text x="86" y="438" text-anchor="middle" dominant-baseline="central">claude 看到的</text>
+      <text x="86" y="458" text-anchor="middle" dominant-baseline="central">是 ISP 的 IP</text>
+    </g>
+</g>
+</svg>

@@ -32,6 +32,13 @@ describe('createLinkIndex', () => {
     expect(index.contentRoot).toBe(fx.contentRoot);
   });
 
+  it('说明图目录默认是 assets/diagrams（design §4.7）', () => {
+    fx.diagram('说明图-整体思路.svg', '<svg/>');
+    const index = createLinkIndex(fx.contentRoot);
+    expect(index.diagramsDir).toBe(fx.diagramsDir);
+    expect([...index.diagrams]).toEqual(['说明图-整体思路.svg']);
+  });
+
   it('可以另指截图目录', () => {
     const index = createLinkIndex(fx.contentRoot, fx.contentRoot);
     expect(index.screenshotsDir).toBe(fx.contentRoot);

@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 328 380">
+<title>几个账号和环节的关系</title>
+<desc>你是谁：用 Google 账号注册、登录 claude 账号。从哪来：手机和电脑开着 tun 和分流，经住宅 IP 访问 claude.ai，注册、使用、订阅全程都走这条线。谁付钱：用支付宝买礼品卡，充值到美区 Apple ID 余额，在 claude iOS app 里升级、用余额付款，订阅加到你的 claude 账号上。</desc>
+  <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="0.75" y="26.75" width="116.5" height="34.5" rx="4"/>
+    <path d="M124 44H204M198 40L204 44L198 48"/>
+    <rect x="0.75" y="112.75" width="84.5" height="34.5" rx="4"/>
+    <rect x="124.75" y="112.75" width="78.5" height="34.5" rx="4"/>
+    <rect x="242.75" y="112.75" width="84.5" height="34.5" rx="4"/>
+    <path d="M92 130H118M112 126L118 130L112 134"/>
+    <path d="M210 130H236M230 126L236 130L230 134"/>
+    <rect x="0.75" y="246.75" width="62.5" height="34.5" rx="4"/>
+    <rect x="108.75" y="246.75" width="62.5" height="34.5" rx="4"/>
+    <rect x="216.75" y="246.75" width="110.5" height="34.5" rx="4"/>
+    <path d="M70 264H102M96 260L102 264L96 268"/>
+    <path d="M178 264H210M204 260L210 264L204 268"/>
+    <path d="M272 288V322M268 316L272 322L276 316"/>
+    <rect x="0.75" y="324.75" width="326.5" height="54.5" rx="4"/>
+  </g>
+  <g fill="currentColor" font-family="system-ui, sans-serif" font-size="14">
+    <text x="0" y="10" font-weight="700" dominant-baseline="central">你是谁</text>
+    <text x="59" y="44" text-anchor="middle" dominant-baseline="central">Google 账号</text>
+    <text x="164" y="30" text-anchor="middle" dominant-baseline="central">注册、登录</text>
+    <text x="0" y="96" font-weight="700" dominant-baseline="central">从哪来</text>
+    <text x="43" y="130" text-anchor="middle" dominant-baseline="central">手机/电脑</text>
+    <text x="164" y="130" text-anchor="middle" dominant-baseline="central">住宅 IP</text>
+    <text x="285" y="130" text-anchor="middle" dominant-baseline="central">claude.ai</text>
+    <text x="0" y="168" dominant-baseline="central">设备上开着 tun 和分流</text>
+    <text x="0" y="190" dominant-baseline="central">注册、使用、订阅，全程都走这条线</text>
+    <text x="0" y="230" font-weight="700" dominant-baseline="central">谁付钱</text>
+    <text x="32" y="264" text-anchor="middle" dominant-baseline="central">支付宝</text>
+    <text x="140" y="264" text-anchor="middle" dominant-baseline="central">礼品卡</text>
+    <text x="272" y="264" text-anchor="middle" dominant-baseline="central">美区 Apple ID</text>
+    <text x="86" y="250" text-anchor="middle" dominant-baseline="central">买</text>
+    <text x="194" y="250" text-anchor="middle" dominant-baseline="central">充值</text>
+    <text x="262" y="302" text-anchor="end" dominant-baseline="central">用余额付款</text>
+    <text x="164" y="342" text-anchor="middle" dominant-baseline="central">在 claude iOS app 里升级</text>
+    <text x="164" y="362" text-anchor="middle" dominant-baseline="central">订阅加到你的 claude 账号上</text>
+  </g>
+<g class="accent">
+    <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="210.75" y="26.75" width="116.5" height="34.5" rx="4"/>
+    </g>
+    <g fill="currentColor" font-family="system-ui, sans-serif" font-size="14">
+      <text x="269" y="44" text-anchor="middle" dominant-baseline="central">claude 账号</text>
+    </g>
+</g>
+</svg>

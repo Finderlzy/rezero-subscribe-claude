@@ -99,6 +99,32 @@
   font-weight: 500;
 }
 
+/*
+ * 说明图（design v2.1 §4.7）：内联的单色线稿，上下各留 32px，编号和截图一样。
+ * 按 1:1 显示（宽高属性是 viewBox 的宽高，不超过手机正文栏，见 diagram.ts），图中文字始终 14px；
+ * 线条和文字用 currentColor 跟着 --text，本页讲的那一环（class="accent"）用 --accent。没有边框。
+ */
+.prose .plate.diagram {
+  margin: var(--space-6) 0;
+}
+
+.prose .diagram-svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  color: var(--text);
+}
+
+/* 直接写在 text 上，盖过 SVG 文件里 <g> 的字体属性（那是给 Obsidian 里预览用的） */
+.prose .diagram-svg text {
+  font-family: var(--font-sans);
+  font-size: var(--fs-meta);
+}
+
+.prose .diagram-svg .accent {
+  color: var(--accent);
+}
+
 /* 表格在自己的容器里横向滚动（NFR-01）。 */
 .prose table {
   display: block;

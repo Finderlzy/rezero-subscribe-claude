@@ -2,13 +2,14 @@ import { readFileSync } from 'node:fs';
 import { basename, dirname, extname, join, relative, sep } from 'node:path';
 import { parseFrontmatter } from '@astrojs/markdown-remark';
 import { slug } from 'github-slugger';
-import type { Blockquote, Image, Link, Paragraph, Parent, PhrasingContent, Root, RootContent, Text } from 'mdast';
+import type { Blockquote, Html, Image, Link, Paragraph, Parent, PhrasingContent, Root, RootContent, Text } from 'mdast';
 import { joinBase } from '../with-base';
+import { parseDiagram } from './diagram';
 import { resolveLinkIndex, type IndexedPage, type LinkIndex } from './link-index';
 import { wrapOptionBlocks } from './option-blocks';
 
 /**
- * M1 的 Obsidian 写法插件（架构 §3 M1）：把双链、嵌入转换成链接和图片节点，
+ * M1 的 Obsidian 写法插件（架构 §3 M1）：把双链、嵌入转换成链接、图片节点和内联的说明图，
  * 并检查 Callout 类型；任何找不到的目标或无法识别的写法都记为问题，整篇处理完后一次性抛出。
  */
 
@@ -26,6 +27,8 @@ const TODO_START = /^TODO[：:]/;
 
 /** 截图目录在仓库里的位置，只用于错误提示 */
 const SCREENSHOTS_HINT = 'src/assets/screenshots/';
+/** 说明图目录在仓库里的位置，只用于错误提示 */
+const DIAGRAMS_HINT = 'src/assets/diagrams/';
 /** 原文章的附件目录前缀：迁移时要去掉（评审 R5） */
 const LEGACY_ATTACHMENT_PREFIX = '09附件/';
 
@@ -376,7 +379,7 @@ function convertLink(raw: string, source: string, at: Point | undefined, ctx: Do
   return out;
 }
 
-function convertEmbed(raw: string, source: string, at: Point | undefined, ctx: DocContext): Image | undefined {
+function convertEmbed(raw: string, source: string, at: Point | undefined, ctx: DocContext): Image | Html | undefined {
   const [nameRaw, widthRaw] = splitOnce(raw, '|');
   const name = nameRaw.trim();
   if (name.startsWith(LEGACY_ATTACHMENT_PREFIX)) {
@@ -392,6 +395,7 @@ function convertEmbed(raw: string, source: string, at: Point | undefined, ctx: D
     ctx.report(`截图文件名不能含 #、?、%，请改名后再嵌入：${source}`, at);
     return undefined;
   }
+  if (extname(name).toLowerCase() === '.svg') return convertDiagram(name, widthRaw, source, at, ctx);
   let width: number | undefined;
   if (widthRaw !== undefined) {
     const w = widthRaw.trim();
@@ -423,5 +427,42 @@ function convertEmbed(raw: string, source: string, at: Point | undefined, ctx: D
     alt: basename(name, extname(name)),
     title: null,
     data: { hProperties },
+  };
+}
+
+/**
+ * 说明图（design §4.7）：`.svg` 嵌入从说明图目录读出、检查后原样内联，线条才能跟着 --text 和 --accent 变色。
+ * 输出 html 节点（Astro 允许原始 HTML，由 rehype-raw 解析），hName 让它在 hast 里是一个 svg 元素，
+ * rehype-figures 才能把它当图版编号。宽高写成 viewBox 的宽高，按 1:1 显示，CSS 再限制不超过正文栏。
+ */
+function convertDiagram(name: string, widthRaw: string | undefined, source: string, at: Point | undefined, ctx: DocContext): Html | undefined {
+  if (widthRaw !== undefined) {
+    ctx.report(`说明图不写宽度（按 viewBox 显示）：${source}`, at);
+    return undefined;
+  }
+  if (!ctx.index.diagrams.has(name)) {
+    ctx.report(`找不到说明图“${name}”（应放在 ${DIAGRAMS_HINT}）：${source}`, at);
+    return undefined;
+  }
+  const diagram = parseDiagram(readFileSync(join(ctx.index.diagramsDir, name), 'utf8'));
+  if ('errors' in diagram) {
+    for (const error of diagram.errors) ctx.report(`说明图“${name}”：${error}`, at);
+    return undefined;
+  }
+  return {
+    type: 'html',
+    value: diagram.inner,
+    data: {
+      hName: 'svg',
+      hProperties: {
+        viewBox: `0 0 ${diagram.width} ${diagram.height}`,
+        width: diagram.width,
+        height: diagram.height,
+        role: 'img',
+        ariaLabel: diagram.title,
+        className: ['diagram-svg'],
+        dataDiagram: '',
+      },
+    },
   };
 }

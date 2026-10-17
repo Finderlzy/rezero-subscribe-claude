@@ -119,6 +119,47 @@ describe('嵌入', () => {
     expect(r.problems[0].message).toContain('不能含 #、?、%');
   });
 
+  describe('说明图（.svg，design §4.7）', () => {
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 90"><title>三个账号</title><g class="accent"><path d="M0 0H10" stroke="currentColor"/></g></svg>';
+
+    it('原样内联：图按 1:1 显示，标题当替代文字，不当截图交给图片服务、不能看大图', async () => {
+      fx.diagram('说明图-整体思路.svg', svg);
+      const r = await renderStep('![[说明图-整体思路.svg]]');
+      expect(r.problems).toEqual([]);
+      expect(r.images).toEqual([]);
+      expect(r.localImagePaths).toEqual([]);
+      expect(r.html).toContain(
+        '<svg viewBox="0 0 320 90" width="320" height="90" role="img" aria-label="三个账号" class="diagram-svg" data-diagram=""><title>三个账号</title><g class="accent"><path d="M0 0H10" stroke="currentColor"></path></g></svg>',
+      );
+      expect(r.html).not.toContain('data-zoom');
+    });
+
+    it('找不到说明图：报出文件和行号，提示放进 src/assets/diagrams/', async () => {
+      const r = await renderStep('文字\n\n![[说明图-没有.svg]]');
+      expect(r.problems).toEqual([
+        expect.objectContaining({ line: BODY_LINE + 2, message: expect.stringContaining('找不到说明图“说明图-没有.svg”（应放在 src/assets/diagrams/）') }),
+      ]);
+    });
+
+    it('不写宽度：说明图按 viewBox 显示', async () => {
+      fx.diagram('说明图-整体思路.svg', svg);
+      const r = await renderStep('![[说明图-整体思路.svg|600]]');
+      expect(r.problems[0].message).toContain('说明图不写宽度');
+    });
+
+    it('SVG 不合格时逐条报出', async () => {
+      fx.diagram('说明图-坏.svg', '<svg viewBox="0 0 400 90"><path d="M0 0H1" stroke="red" onclick="x()"/></svg>');
+      const r = await renderStep('![[说明图-坏.svg]]');
+      expect(r.problems.map((p) => p.message)).toEqual([
+        expect.stringContaining('不超过 328'),
+        expect.stringContaining('stroke="red"'),
+        expect.stringContaining('onclick'),
+        expect.stringContaining('<title>'),
+      ]);
+      expect(r.problems.every((p) => p.message.includes('说明图-坏.svg'))).toBe(true);
+    });
+  });
+
   it('表格里用 \\| 分隔的双链和嵌入也能转换', async () => {
     const r = await renderStep('| 步骤 | 截图 |\n| --- | --- |\n| [[导入代理软件\\|连服务器]] | ![[plain.png\\|100]] |');
     expect(r.problems).toEqual([]);
