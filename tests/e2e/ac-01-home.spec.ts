@@ -1,18 +1,31 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 const SITE_NAME = 'Re:从零开始订阅 claude';
+const START = '从第 00 章开始';
+const TAGLINE = '下面每一步，其实都在做同一件事：让每一项信息都不露出“我在国内”，而且像一个普通用户。';
 
-// AC-01（FR-18）：在新浏览器打开首页 → 看到 logo、站名、四章目录和“开始”，没有“继续上次”；点“开始” → 进入“前言”。
-test('新浏览器打开首页：logo 和站名（英文副标题是 logo 的中间一行）、“开始”、四章目录，没有“继续上次”', async ({ page }) => {
+const width = (page: Page) => page.viewportSize()?.width ?? 0;
+const isDesktop = (page: Page) => width(page) >= 1100;
+
+// AC-01（FR-18，design v2.1 §4.4）：在新浏览器打开首页 → 看到 logo、站名、四章目录和“从第 00 章开始”，没有“继续上次”；
+// 点“从第 00 章开始” → 进入“前言”。
+test('新浏览器打开首页：眉题、logo 和站名、一句话、小字信息行、“从第 00 章开始”、四章目录，没有“继续上次”', async ({ page }) => {
   await page.goto('./');
 
+  await expect(page.locator('.home-eyebrow')).toHaveText('一份照着做的说明书');
   const heading = page.getByRole('heading', { level: 1 });
   await expect(heading).toHaveAccessibleName(SITE_NAME);
   await expect(heading.locator('svg')).toHaveCount(1);
   // design §4.4：英文副标题画在中文 logo 的中间一行里，页面上不再单独写一行文字
   await expect(heading.locator('svg')).toBeVisible();
-  await expect(page.getByRole('link', { name: '开始', exact: true })).toBeVisible();
+  await expect(page.locator('.home-tagline')).toHaveText(TAGLINE);
+  // 章节数从路线图取，现在是 4 章
+  await expect(page.locator('.home-meta')).toHaveText('4 章 · 需要一台电脑和一部手机');
+  await expect(page.getByRole('link', { name: START })).toBeVisible();
+  await expect(page.getByRole('link', { name: '先看整体思路' })).toBeVisible();
   await expect(page.getByText('继续上次')).toHaveCount(0);
+  // 首页没有页眉
+  await expect(page.locator('.site-header')).toHaveCount(0);
 
   const toc = page.getByRole('navigation', { name: '全站目录' });
   // 章节号是固定字形（Numeral），读屏读“第 n 章”
@@ -37,12 +50,111 @@ test('新浏览器打开首页：logo 和站名（英文副标题是 logo 的中
   await expect(reference.getByRole('link')).toHaveText(['常见问题', 'IP 质量实测合集']);
 });
 
-test('点“开始”进入前言', async ({ page }) => {
+test('点“从第 00 章开始”进入前言', async ({ page }) => {
   await page.goto('./');
-  await page.getByRole('link', { name: '开始', exact: true }).click();
+  await page.getByRole('link', { name: START }).click();
 
   await expect(page).toHaveURL(/\/preface\/$/);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('前言');
+});
+
+test('点“先看整体思路”进入整体思路，一句话原样出现在它的正文里', async ({ page }) => {
+  await page.goto('./');
+  await page.getByRole('link', { name: '先看整体思路' }).click();
+
+  await expect(page).toHaveURL(/\/overview\/$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('整体思路');
+  // 一句话摘自原理版正文（去掉开头的“所以”和加粗），正文改了这里就会失败
+  await expect(page.locator('main')).toContainText(TAGLINE);
+});
+
+test('章级索引：桌面四行，点“02”跳到下方目录的第 02 章；平板和手机没有', async ({ page }) => {
+  await page.goto('./');
+  const index = page.getByRole('navigation', { name: '章级索引' });
+  if (!isDesktop(page)) {
+    await expect(index).toBeHidden();
+    return;
+  }
+  await expect(index.locator('.home-index-title')).toHaveText(['开始', '准备节点和住宅 IP', '注册和订阅', '结尾']);
+  expect(await index.locator('[role="img"]').evaluateAll((els) => els.map((el) => el.getAttribute('aria-label')))).toEqual([
+    '第 0 章',
+    '第 1 章',
+    '第 2 章',
+    '第 3 章',
+  ]);
+
+  await index.getByRole('link', { name: /第 2 章/ }).click();
+  await expect(page).toHaveURL(/#chapter-register-and-subscribe$/);
+  const chapter = page.getByRole('navigation', { name: '全站目录' }).locator('#chapter-register-and-subscribe');
+  await expect(chapter.locator('.toc-chapter-title')).toHaveText('注册和订阅');
+  await expect(chapter).toBeInViewport();
+});
+
+test('版式：桌面索引和主区顶部对齐；logo 手机满宽、更宽时不超过 560px；没有横向滚动', async ({ page }) => {
+  await page.goto('./');
+  const box = await page.evaluate(() => {
+    const rect = (sel: string) => document.querySelector(sel)!.getBoundingClientRect().toJSON() as DOMRect;
+    return {
+      hero: rect('.home-hero'),
+      index: rect('.home-index'),
+      logo: rect('.home-title svg'),
+      main: rect('.home'),
+      gutter: parseFloat(getComputedStyle(document.querySelector('.home')!).paddingLeft),
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    };
+  });
+  expect(box.scrollWidth).toBeLessThanOrEqual(box.clientWidth);
+  expect(box.logo.left).toBeCloseTo(box.hero.left, 0);
+  if (isDesktop(page)) {
+    expect(Math.abs(box.index.top - box.hero.top)).toBeLessThan(1);
+    expect(box.index.left).toBeGreaterThan(box.hero.right);
+  }
+  if (width(page) < 720) {
+    // 手机满宽：logo 占满左右边距之间
+    expect(box.logo.width).toBeCloseTo(box.main.width - 2 * box.gutter, 0);
+  } else {
+    expect(box.logo.width).toBeLessThanOrEqual(560.5);
+  }
+});
+
+test('首屏只有主按钮和 logo 的“Re”是 --accent', async ({ page }) => {
+  await page.goto('./');
+  const result = await page.evaluate(() => {
+    const probe = document.createElement('div');
+    probe.style.color = 'var(--accent)';
+    document.body.append(probe);
+    const accent = getComputedStyle(probe).color;
+    probe.remove();
+
+    const offenders: string[] = [];
+    const describe = (el: Element) => `${el.tagName.toLowerCase()}${el.className && typeof el.className === 'string' ? `.${el.className.split(' ').join('.')}` : ''}`;
+    for (const el of document.body.querySelectorAll('*')) {
+      const rect = el.getBoundingClientRect();
+      // 首屏：和视口有交集、看得见的元素
+      if (rect.width === 0 || rect.height === 0 || rect.bottom <= 0 || rect.top >= innerHeight) continue;
+      const style = getComputedStyle(el);
+      if (style.visibility === 'hidden' || style.display === 'none') continue;
+      if (el.closest('.home-start') || el.closest('.logo-re')) continue;
+      const colors: string[] = [style.backgroundColor];
+      for (const side of ['Top', 'Right', 'Bottom', 'Left'] as const) {
+        if (parseFloat(style[`border${side}Width`]) > 0) colors.push(style[`border${side}Color`]);
+      }
+      if (el instanceof SVGElement) colors.push(style.fill, style.stroke);
+      // 文字颜色只看自己直接带文字的元素
+      else if ([...el.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && n.textContent!.trim() !== '')) colors.push(style.color);
+      if (colors.includes(accent)) offenders.push(describe(el));
+    }
+    return {
+      accent,
+      offenders,
+      start: getComputedStyle(document.querySelector('.home-start')!).backgroundColor,
+      re: getComputedStyle(document.querySelector('.home-title .logo-re')!).fill,
+    };
+  });
+  expect(result.start).toBe(result.accent);
+  expect(result.re).toBe(result.accent);
+  expect(result.offenders).toEqual([]);
 });
 
 test('首页目录的链接都能打开，参考页链接到参考页', async ({ page }) => {

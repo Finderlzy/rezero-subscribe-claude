@@ -14,13 +14,13 @@ test.describe('首页冒烟', () => {
     expect(await page.evaluate(() => document.title)).toContain(SITE_NAME);
   });
 
-  test('“开始”进入前言；首页有按章的目录，没有“继续上次”', async ({ page }) => {
+  test('“从第 00 章开始”进入前言；首页有按章的目录，没有“继续上次”', async ({ page }) => {
     await page.goto('./');
     const toc = page.getByRole('navigation', { name: '全站目录' });
     await expect(toc.locator('.toc-chapter-title')).toHaveText(['开始', '准备节点和住宅 IP', '注册和订阅', '结尾']);
     await expect(page.getByText('继续上次')).toHaveCount(0);
 
-    await page.getByRole('link', { name: '开始', exact: true }).click();
+    await page.getByRole('link', { name: '从第 00 章开始' }).click();
     await expect(page).toHaveURL(/\/preface\/$/);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('前言');
   });

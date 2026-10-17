@@ -17,7 +17,7 @@ interface Props {
   references: TocReference[];
   /** 无障碍名称；一页里有两个目录时用来区分 */
   label?: string;
-  /** 首页的放大样式（toc.css 的 .toc-home） */
+  /** 首页的放大样式（toc.css 的 .toc-home）；每章带锚点 `#chapter-<章节标识>`，首页的章级索引链到这里 */
   home?: boolean;
 }
 
@@ -32,7 +32,7 @@ const otherRoute = (branch: OutlineBranch, option: OutlineBranch['options'][numb
   <ol>
     {
       outline.map((chapter, chapterIndex) => (
-        <li class="toc-chapter">
+        <li class="toc-chapter" id={home ? `chapter-${chapter.id}` : undefined}>
           <p class="toc-chapter-head">
             <span class="toc-chapter-no">
               <Numeral text={chapterNoText(chapterIndex)} label={`第 ${chapterIndex} 章`} />

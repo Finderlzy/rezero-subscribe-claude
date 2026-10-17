@@ -243,7 +243,10 @@
   cursor: pointer;
 }
 
-/* 首页的目录（design §4.4）：字号放大到正文，章名用正文色加粗，章节号更醒目，是首页唯一的装饰。 */
+/*
+ * 首页的完整目录（design v2.1 §4.4）：字号放大到正文，章名用正文色加粗，章节号 28px。
+ * 章节号用正文色：手机首屏就能看到目录开头，首屏只有 logo 的“Re”和主按钮用 --accent。
+ */
 .toc-home {
   font-size: var(--fs-body);
 }
@@ -254,6 +257,7 @@
 }
 
 .toc-home .toc-chapter-no {
+  color: var(--text);
   font-size: 28px;
 }
 

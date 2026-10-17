@@ -60,7 +60,7 @@ test('从首页点进去，沿“下一步”和选择页走几步，地址一�
 
   await page.goto('./');
   await expectAt('./');
-  await page.getByRole('link', { name: '开始', exact: true }).click();
+  await page.getByRole('link', { name: '从第 00 章开始' }).click();
   await expectAt('./preface/');
   await nav.getByRole('link', { name: /下一步/ }).click();
   await expectAt('./disclaimer/');
