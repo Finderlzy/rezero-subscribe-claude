@@ -1,8 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import { builtPages } from './built-pages';
 
-// AC-16（NFR-01）：在 360px 宽和 1280px 宽下逐章浏览 → 没有页面级横向滚动，导航按钮都能点到。
-// 两种宽度由 playwright.config.ts 的两个 project 提供；页面清单取自构建产物（built-pages.ts），每个步骤都在内。
+// AC-16（NFR-01）：在 360px、768px 和 1280px 宽下逐章浏览 → 没有页面级横向滚动，导航按钮都能点到。
+// 三种宽度（360、768、1280）由 playwright.config.ts 的三个 project 提供；页面清单取自构建产物（built-pages.ts），每个步骤都在内。
 // 宽表格和代码块允许在各自区域内横向滚动，不算页面级。
 
 const PAGES = builtPages();
@@ -50,28 +50,47 @@ for (const path of PAGES) {
   });
 }
 
-// 平板档（design §3.2、§3.3，三档断点 <720 / 720–1099 / ≥1100）：playwright.config.ts 只有 360 和 1280 两个项目，
-// 这里单独设 768 宽（架构 §11.4 W-8）。正文 18px、h1 30px，逐页没有页面级横向滚动。
-test.describe('768 宽（平板）', () => {
-  test.use({ viewport: { width: 768, height: 1024 } });
+// 三档断点（design §3.2、§3.3：<720 / 720–1099 / ≥1100）的字号和边距，三个宽度各由一个 project 提供
+const TIERS = [
+  { min: 1100, body: '18px', h1: '32px', gutter: '32px' },
+  { min: 720, body: '18px', h1: '30px', gutter: '32px' },
+  { min: 0, body: '17px', h1: '26px', gutter: '16px' },
+];
 
-  test('步骤页和参考页：正文 18px、h1 30px、左右边距 32px', async ({ page }) => {
-    for (const path of ['leak-protection/', 'faq/']) {
-      await page.goto(`./${path}`);
-      const size = (selector: string) =>
-        page.locator(selector).first().evaluate((el) => getComputedStyle(el).fontSize);
-      expect(await size('.prose p'), path).toBe('18px');
-      expect(await size('h1'), path).toBe('30px');
-      // 平板左右边距 32px（design §3.3）
-      const gutter = await page.locator('main').evaluate((el) => getComputedStyle(el).paddingLeft);
-      expect(gutter, path).toBe('32px');
-    }
-  });
+test('步骤页和参考页：正文、h1 字号和左右边距按当前档位', async ({ page }) => {
+  const width = page.viewportSize()!.width;
+  const tier = TIERS.find((t) => width >= t.min)!;
+  for (const path of ['leak-protection/', 'faq/']) {
+    await page.goto(`./${path}`);
+    const size = (selector: string) =>
+      page.locator(selector).first().evaluate((el) => getComputedStyle(el).fontSize);
+    expect(await size('.prose p'), path).toBe(tier.body);
+    expect(await size('h1'), path).toBe(tier.h1);
+    const gutter = await page.locator('main').evaluate((el) => getComputedStyle(el).paddingLeft);
+    expect(gutter, path).toBe(tier.gutter);
+  }
+});
 
-  test('逐页没有页面级横向滚动', async ({ page }) => {
-    for (const path of PAGES) {
-      await page.goto(`./${path}`, { waitUntil: 'load' });
-      await expectNoPageScroll(page, `/${path}`);
-    }
+// 宽表格（design §4.7）：表头不折行，窄屏上整张表在自己的容器里横向滚动，第一列粘性固定
+test('实测合集的表格：表头不折行、第一列粘性固定', async ({ page }) => {
+  await page.goto('./ip-tests/');
+  const table = page.locator('.prose table').first();
+  const header = await table.locator('th').evaluateAll((cells) =>
+    cells.map((th) => ({
+      text: th.textContent!.trim(),
+      height: th.getBoundingClientRect().height,
+      lineHeight: parseFloat(getComputedStyle(th).lineHeight),
+    })),
+  );
+  for (const th of header) expect(th.height, th.text).toBeLessThan(th.lineHeight * 2);
+
+  // 放不下时表格自己横向滚动；滚动后第一列的单元格仍贴着表格容器的左缘
+  const scrolled = await table.evaluate((el) => {
+    if (el.scrollWidth <= el.clientWidth) return null;
+    el.scrollLeft = 80;
+    const left = el.getBoundingClientRect().left + el.clientLeft;
+    return [...el.querySelectorAll('tr > :first-child')].map((cell) => cell.getBoundingClientRect().left - left);
   });
+  if ((page.viewportSize()?.width ?? 0) < 720) expect(scrolled, '360 宽时表格应该在容器里横向滚动').not.toBeNull();
+  if (scrolled) for (const offset of scrolled) expect(offset).toBeCloseTo(0, 0);
 });

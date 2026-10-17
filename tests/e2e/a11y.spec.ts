@@ -5,8 +5,8 @@ import { builtPages } from './built-pages';
 // design §7、§5：axe-core 扫描没有 serious 及以上的问题；只用 Tab 键走完一条路线的前五页（前言到方案一的第一步）。
 // 浅色、深色各扫一遍（color-contrast 规则按实际渲染出的颜色量），两版正文的页面在原理视图下再扫一遍
 // （切换控件由 #26 接上，这里直接改 data-view）。
-// 页面清单取自构建产物（built-pages.ts），两种宽度由 playwright.config.ts 的两个 project 提供。
-// 代价：约 50 页 × 两种主题 × 两种宽度，步骤页再加原理视图，整套 e2e 因此多出约 2 分钟。
+// 页面清单取自构建产物（built-pages.ts），三种宽度（360、768、1280）由 playwright.config.ts 的三个 project 提供。
+// 代价：约 50 页 × 两种主题 × 三种宽度，步骤页再加原理视图，整套 e2e 因此多出约 3 分钟。
 
 const PAGES = builtPages();
 

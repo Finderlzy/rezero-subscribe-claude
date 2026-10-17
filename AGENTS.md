@@ -1,6 +1,6 @@
 # 仓库指南
 
-「Re:从零开始订阅 claude」是把《如何订阅claude》做成分步引导的静态网站。当前状态：**1.0.0 已交付**（2026-10-15，按旧文章和 11 章路线，见 [docs/delivery.md](docs/delivery.md)）；**v2.0 规划已完成**（需求 v0.3、架构 v2.0、设计 v2.0、ADR-0004/0005，2026-10-15）：内容改为从 `docs/rewrite/` 的重写稿原样导入，原理/操作整页切换，路线和 URL 按原理版目录重建，取消默认路线和阅读记录，重做视觉和 logo；v2.0 任务见 [实施计划](docs/implementation-plan.md) 和 `[v2.0]` 开头的 Issues。v2 骨架（内容集合、路线图、静态页面）已由 #23、#25 建立，1.0.0 的内容和页面已删除；导航改写和整页视图切换已由 #26 接上，目录和首页由 #30 接上，全站视觉和页眉由 #31 按设计 v2.0 重做；v2.1 的编号字形（`Numeral`）由 #32 建立，先用在找不到页；令牌、三档断点和控件的悬停/按下反馈由 #33 按 v2.1 调整；目录由 #34 改为所有宽度都用抽屉（没有 JS 时“目录”链到首页目录）；步骤页的页边栏和步骤编号由 #35 接上；每章第一页的章节标题卡由 #36 接上（一句话写在 `route.yaml` 各章的 `intro`，构建时核对它原样摘自章首页的原理版正文）；截图图版和页边注由 #37 接上（`rehype-figures.ts` 编号“图 02-1”，桌面在页边栏，平板和手机在截图下方）；首页首屏和桌面章级索引由 #38 按 design §4.4 重做（一句话摘自整体思路，构建时核对它原样出现在原理版正文里）；三页原理版的说明图由 #39 接上（重写稿里写 `![[说明图-….svg]]`，`diagram.ts` 白名单检查后内联，和截图一起编号）；标“v2.0 计划”的由对应任务建立，建立后改成现状。
+「Re:从零开始订阅 claude」是把《如何订阅claude》做成分步引导的静态网站。当前状态：**1.0.0 已交付**（2026-10-15，按旧文章和 11 章路线，见 [docs/delivery.md](docs/delivery.md)）；**v2.0 规划已完成**（需求 v0.3、架构 v2.0、设计 v2.0、ADR-0004/0005，2026-10-15）：内容改为从 `docs/rewrite/` 的重写稿原样导入，原理/操作整页切换，路线和 URL 按原理版目录重建，取消默认路线和阅读记录，重做视觉和 logo；v2.0 任务见 [实施计划](docs/implementation-plan.md) 和 `[v2.0]` 开头的 Issues。v2 骨架（内容集合、路线图、静态页面）已由 #23、#25 建立，1.0.0 的内容和页面已删除；导航改写和整页视图切换已由 #26 接上，目录和首页由 #30 接上，全站视觉和页眉由 #31 按设计 v2.0 重做；v2.1 的编号字形（`Numeral`）由 #32 建立，先用在找不到页；令牌、三档断点和控件的悬停/按下反馈由 #33 按 v2.1 调整；目录由 #34 改为所有宽度都用抽屉（没有 JS 时“目录”链到首页目录）；步骤页的页边栏和步骤编号由 #35 接上；每章第一页的章节标题卡由 #36 接上（一句话写在 `route.yaml` 各章的 `intro`，构建时核对它原样摘自章首页的原理版正文）；截图图版和页边注由 #37 接上（`rehype-figures.ts` 编号“图 02-1”，桌面在页边栏，平板和手机在截图下方）；首页首屏和桌面章级索引由 #38 按 design §4.4 重做（一句话摘自整体思路，构建时核对它原样出现在原理版正文里）；三页原理版的说明图由 #39 接上（重写稿里写 `![[说明图-….svg]]`，`diagram.ts` 白名单检查后内联，和截图一起编号）；v2.1 的视觉验收由 #40 做完（e2e 加了 768 平板项目，结果和待补项见 delivery.md）；标“v2.0 计划”的由对应任务建立，建立后改成现状。
 
 ## 文档入口
 
@@ -26,7 +26,7 @@
 
 ## 构建、测试与开发命令
 
-Node ≥ 22.12，使用 npm，以 `package.json` 为准。`npm run dev`、`npm run build`（含全部内容校验：frontmatter、Obsidian 写法和路线图校验都已接入，结束时列出内容提示：操作版缺失、作者待补、博客链接待填；可用 `BASE_PATH=/sub/` 生成子路径版本）、`npm run preview`、`npm test`（Vitest）、`npm run test:e2e`（先构建，再用 Playwright 在 360 和 1280 两种宽度下测试；AC-15 另按 `BASE_PATH=/sub/` 构建到 `dist-sub/`，用 `tests/e2e/static-server.mjs` 挂在子路径下再测一次，这次构建要排在 `dist/` 的构建之后，不能并行（两者共用 Astro 内容缓存）；首次运行前执行 `npx playwright install chromium`）、`npm run test:build`（用 `tests/fixtures/` 的坏内容逐个构建，断言失败并报出文件）、`npm run check`（`astro check` + 单元测试 + 构建级用例 + 构建，提交前运行）。
+Node ≥ 22.12，使用 npm，以 `package.json` 为准。`npm run dev`、`npm run build`（含全部内容校验：frontmatter、Obsidian 写法和路线图校验都已接入，结束时列出内容提示：操作版缺失、作者待补、博客链接待填；可用 `BASE_PATH=/sub/` 生成子路径版本）、`npm run preview`、`npm test`（Vitest）、`npm run test:e2e`（先构建，再用 Playwright 在 360、768 和 1280 三种宽度下测试；AC-15 另按 `BASE_PATH=/sub/` 构建到 `dist-sub/`，用 `tests/e2e/static-server.mjs` 挂在子路径下再测一次，这次构建要排在 `dist/` 的构建之后，不能并行（两者共用 Astro 内容缓存）；首次运行前执行 `npx playwright install chromium`）、`npm run test:build`（用 `tests/fixtures/` 的坏内容逐个构建，断言失败并报出文件）、`npm run check`（`astro check` + 单元测试 + 构建级用例 + 构建，提交前运行）。
 
 在 AI Agent 里运行时，Astro 会把 `astro dev`/`astro preview` 自动转入后台，用 `npx astro dev stop`/`npx astro preview stop` 停止；需要前台运行时加 `--ignore-lock`。
 

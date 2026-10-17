@@ -186,16 +186,9 @@ async function expectMarkPosition(page: Page) {
   }
 }
 
-test('编号的位置：桌面在页边栏、和 h1 底边对齐，手机在 h1 前、眉题写步数', async ({ page }) => {
+// 平板档（720–1099px，tablet-768 项目）同手机：没有页边栏（design §3.3）
+test('编号的位置：桌面在页边栏、和 h1 底边对齐，平板和手机在 h1 前、眉题写步数', async ({ page }) => {
   await expectMarkPosition(page);
-});
-
-// 平板档（720–1099px）同手机：没有页边栏（design §3.3，架构 §11.4 W-8）
-test.describe('768 宽（平板）', () => {
-  test.use({ viewport: { width: 768, height: 1024 } });
-  test('编号在 h1 前、眉题写步数', async ({ page }) => {
-    await expectMarkPosition(page);
-  });
 });
 
 // 构建时按操作视图写编号；原理视图的读者打开页面时，重算前不显示编号，不会看到 03 跳成 04（design §4.3）

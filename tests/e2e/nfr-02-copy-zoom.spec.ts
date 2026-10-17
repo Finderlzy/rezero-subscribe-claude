@@ -283,16 +283,9 @@ test.describe('截图图版', () => {
     }
   }
 
-  test('步骤页：编号是“步骤号-序号”，桌面在页边栏和截图顶边齐平，手机在截图下方', async ({ page }) => {
+  // 平板档（720–1099px，tablet-768 项目）同手机：没有页边栏，编号在截图下方
+  test('步骤页：编号是“步骤号-序号”，桌面在页边栏和截图顶边齐平，平板和手机在截图下方', async ({ page }) => {
     await expectStepPlates(page);
-  });
-
-  // 平板档（720–1099px）同手机：没有页边栏，编号在截图下方（架构 §11.4 W-8）
-  test.describe('768 宽（平板）', () => {
-    test.use({ viewport: { width: 768, height: 1024 } });
-    test('编号在截图下方', async ({ page }) => {
-      await expectStepPlates(page);
-    });
   });
 
   test.describe('没有 JS', () => {

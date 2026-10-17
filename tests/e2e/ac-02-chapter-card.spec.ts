@@ -62,10 +62,11 @@ async function measure(page: Page, path: string) {
   });
 }
 
-test('标题卡版式：桌面章节号挂在页边栏、和章名底边对齐；手机章节号在章名上方', async ({ page }) => {
-  for (const path of ['./preface/', './choose-plan/']) {
+test('标题卡版式：桌面章节号挂在页边栏、和章名底边对齐；平板并排、底边对齐；手机章节号在章名上方', async ({ page }) => {
+  const width = page.viewportSize()?.width ?? 0;
+  for (const path of ['./preface/', './choose-plan/', './choose-phone/']) {
     const box = await measure(page, path);
-    if ((page.viewportSize()?.width ?? 0) >= 1100) {
+    if (width >= 1100) {
       expect(Math.abs(box.no.bottom - box.baseline), path).toBeLessThanOrEqual(2);
       // 32 = --space-6，128 = --margin-width + --space-6（tokens.css）
       expect(box.title.left - box.no.right, path).toBeCloseTo(32, 0);
@@ -74,6 +75,9 @@ test('标题卡版式：桌面章节号挂在页边栏、和章名底边对齐�
       // 线横跨页边栏（96px）+ 间隔（32px）+ 正文栏
       expect(box.card.left, path).toBeCloseTo(box.h1.left - 128, 0);
       expect(box.card.right, path).toBeCloseTo(box.h1.right, 0);
+    } else if (width >= 720) {
+      expect(box.no.right, path).toBeLessThan(box.title.left);
+      expect(Math.abs(box.no.bottom - box.baseline), path).toBeLessThanOrEqual(2);
     } else {
       expect(box.no.bottom, path).toBeLessThanOrEqual(box.title.top + 1);
       expect(box.no.left, path).toBeCloseTo(box.title.left, 0);
@@ -107,11 +111,24 @@ test('标题卡的颜色：线 1px --text，章节号 --accent，一句话 --tex
   expect(style.intro).toEqual({ color: style.tokens.muted, maxWidth: 24 });
 });
 
-test.describe('768 宽（平板）', () => {
-  test.use({ viewport: { width: 768, height: 1024 } });
-  test('章节号和章名并排、底边对齐', async ({ page }) => {
-    const box = await measure(page, './choose-phone/');
-    expect(box.no.right).toBeLessThan(box.title.left);
-    expect(Math.abs(box.no.bottom - box.baseline)).toBeLessThanOrEqual(2);
-  });
+// 用紫规则（design §3.1、§4.1）：章首页的第一屏，大块的紫是章节号。手机上“下一步”吸底，致谢页正文短，平板和桌面上
+// “下一步”也在第一屏，所以章首页的“下一步”在所有宽度都用墨色；非章首页照常用紫。
+test('章首页的“下一步”是墨色，其余页面是紫色', async ({ page }) => {
+  // 致谢是“结尾”一章的第一页（同上面的 CHAPTER_STARTS）；选择页没选时没有“下一步”，不用来测
+  for (const [path, chapterStart] of [['./preface/', true], ['./thanks/', true], ['./disclaimer/', false]] as const) {
+    await page.goto(path);
+    const colors = await page.evaluate(() => {
+      const token = (name: string) => {
+        const probe = document.createElement('div');
+        probe.style.backgroundColor = `var(${name})`;
+        document.body.append(probe);
+        const color = getComputedStyle(probe).backgroundColor;
+        probe.remove();
+        return color;
+      };
+      const next = document.querySelector('nav[aria-label="上一步和下一步"] a[rel="next"]')!;
+      return { next: getComputedStyle(next).backgroundColor, text: token('--text'), accent: token('--accent') };
+    });
+    expect(colors.next, path).toBe(chapterStart ? colors.text : colors.accent);
+  }
 });

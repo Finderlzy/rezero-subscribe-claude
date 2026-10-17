@@ -16,9 +16,10 @@ test('打开不存在的页面显示“找不到这一页”和目录，“回�
   const refs = await numeral.locator('use').evaluateAll((uses) => uses.map((u) => u.getAttribute('href')));
   expect(refs).toEqual(['#numeral-4', '#numeral-0', '#numeral-4']);
   for (const id of new Set(refs)) await expect(page.locator(`symbol${id}`)).toHaveCount(1);
-  // 外层高 1em = 数字高度 = --fs-display：桌面 96px、手机 64px（0 和 4 等高由 scripts/build-logo.test.ts 核对）
+  // 外层高 1em = 数字高度 = --fs-display：桌面 96px、平板 80px、手机 64px（0 和 4 等高由 scripts/build-logo.test.ts 核对）
   const box = await numeral.boundingBox();
-  expect(box?.height).toBe(page.viewportSize()!.width >= 1100 ? 96 : 64);
+  const width = page.viewportSize()!.width;
+  expect(box?.height).toBe(width >= 1100 ? 96 : width >= 720 ? 80 : 64);
 
   const toc = page.getByRole('navigation', { name: '全站目录' });
   await expect(toc.getByRole('link', { name: '前言' })).toHaveAttribute('href', /\/preface\/$/);

@@ -109,19 +109,6 @@ test('没有常驻目录，“目录”打开抽屉；Esc、点遮罩、点“�
   }
 });
 
-// 768 宽（平板，架构 §11.4 W-8）：抽屉同样贴左边宽 400px
-test.describe('768 宽（平板）', () => {
-  test.use({ viewport: { width: 768, height: 1024 } });
-
-  test('抽屉宽 400px，贴左边', async ({ page }) => {
-    await page.goto('./overview/');
-    await openToc(page);
-    const dialog = page.getByRole('dialog', { name: '目录' });
-    await expect.poll(async () => (await dialog.boundingBox())?.x).toBe(0);
-    expect((await dialog.boundingBox())!.width).toBe(400);
-  });
-});
-
 test.describe('没有 JS', () => {
   test.use({ javaScriptEnabled: false });
 

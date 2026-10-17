@@ -153,6 +153,14 @@ const backLabel = returnTo ? '回到' : '上一步';
     color: var(--accent-contrast);
   }
 
+  /* 章首页的第一屏，大块的紫留给章节号（design §3.1 用紫规则、§4.1）：手机上吸底、短章首页在更宽时，“下一步”都在第一屏，
+     所以章首页的“下一步”在所有宽度都改用墨色，同视图切换按下的一段。data-chapter-start 由 PageLayout 写在 <main> 上 */
+  :global(main[data-chapter-start]) .step-nav-next {
+    background: var(--text);
+    border-color: var(--text);
+    color: var(--bg);
+  }
+
   /* 主按钮悬停：箭头（全局的 .button-arrow，base.css）右移 4px，不改颜色（design §5） */
   .step-nav-next .button-arrow {
     margin-left: var(--space-1);

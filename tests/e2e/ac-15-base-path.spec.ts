@@ -2,7 +2,7 @@ import { expect, test, type APIRequestContext } from '@playwright/test';
 import { builtPages } from './built-pages';
 
 // AC-15（FR-60）：构建产物放到静态文件服务器的根路径或子路径下 → 所有页面、图片、导航都正常。
-// playwright.config.ts 让这个文件跑两种 base：mobile-360、desktop-1280 测根路径（dist/，astro preview），
+// playwright.config.ts 让这个文件跑两种 base：根路径由 mobile-360、tablet-768、desktop-1280 测（dist/，astro preview），
 // sub-path 测 /sub/（dist-sub/，tests/e2e/static-server.mjs，子路径以外的请求一律 404）。
 // 页面清单取自该 project 的构建产物（metadata.dist）。
 
@@ -26,7 +26,7 @@ async function statusOf(request: APIRequestContext, url: URL) {
 
 test('每个页面引用的站内链接、图片、样式和脚本都在 base 下，而且都能打开', async ({ request, baseURL }) => {
   // 只发请求、和视口无关：根路径在 desktop-1280 里查一次就够
-  test.skip(test.info().project.name === 'mobile-360', '与 desktop-1280 的根路径检查相同');
+  test.skip(['mobile-360', 'tablet-768'].includes(test.info().project.name), '与 desktop-1280 的根路径检查相同');
   const base = new URL(baseURL!).pathname;
   const pages = builtPagesOfProject();
   const targets = new Map<string, string>(); // 去掉锚点的地址 → 第一次出现的页面

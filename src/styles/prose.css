@@ -139,6 +139,18 @@
   text-align: left;
 }
 
+/* 表头不折行，窄屏上列宽不会被挤成一字一行，整张表改在容器里横向滚动；第一列粘性固定（design §4.7） */
+.prose th {
+  white-space: nowrap;
+}
+
+.prose :is(th, td):first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--bg);
+}
+
 /* Callout（rehype-callouts 输出 .callout[data-callout]）：note 中性面板，caution 风险色。 */
 .prose .callout {
   padding: var(--space-3) var(--space-4);

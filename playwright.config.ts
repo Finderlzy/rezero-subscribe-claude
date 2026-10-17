@@ -25,6 +25,12 @@ export default defineConfig({
       metadata: { dist: 'dist' },
     },
     {
+      // 平板档（design §3.2、§3.3，三档断点 <720 / 720–1099 / ≥1100；架构 §11.4 W-8）
+      name: 'tablet-768',
+      use: { ...devices['Desktop Chrome'], viewport: { width: 768, height: 1024 } },
+      metadata: { dist: 'dist' },
+    },
+    {
       name: 'desktop-1280',
       use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } },
       metadata: { dist: 'dist' },
