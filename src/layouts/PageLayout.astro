@@ -7,7 +7,8 @@ import SiteHeader from '../components/SiteHeader.astro';
 import StepNav from '../components/StepNav.astro';
 import Toc from '../components/Toc.astro';
 import { hasZoomableImage } from '../lib/code-zoom/labels';
-import { chapterNoText, eyebrowSuffix, eyebrowTotal, isChapterStart, progressText, stepMark, stepMarkHtml } from '../lib/nav-text';
+import { fillFigureSteps } from '../lib/content/rehype-figures';
+import { chapterNoText, eyebrowSuffix, eyebrowTotal, figurePrefix, isChapterStart, progressText, stepMark, stepMarkHtml } from '../lib/nav-text';
 import { VIEW_BOOT_SCRIPT } from '../lib/reader-state/view-boot';
 import type { RouteData, RouteView } from '../lib/route/types';
 import type { TocReference } from '../lib/site';
@@ -48,14 +49,18 @@ interface Props {
 const { title, view, routeData, tocReferences, skipLabel, notice } = Astro.props;
 // 内嵌在 <script> 里的 JSON 不能出现 `</script>`，把 `<` 转义掉。
 const routeJson = JSON.stringify(routeData).replace(/</g, '\\u003c');
-const principle = await Astro.slots.render('principle');
+const mark = stepMark(view.progress, view.current);
+// 截图编号的步骤号（design §4.7）：构建时按操作视图写，没有 JS 时就是它；route-enhance 按当前视图和选择改写
+// （没传的 slot 渲染出 undefined，原样保留）
+const fill = (html: string | undefined) => html && fillFigureSteps(html, figurePrefix(mark));
+const principle = fill(await Astro.slots.render('principle'));
 // 不能用 Astro.slots.has 判断：页面里写成条件渲染的 slot 即使为空也算“有”
-const operation = notice === undefined ? await Astro.slots.render('operation') : undefined;
+const operation = notice === undefined ? fill(await Astro.slots.render('operation')) : undefined;
 const hasZoom = [principle, operation].some((html) => html !== undefined && hasZoomableImage(html));
 const chapterNo = chapterNoText(view.progress.chapterNo);
 const chapterStart = isChapterStart(routeData.chapters, view.progress, view.current);
 const chapterIntro = routeData.chapters.find((chapter) => chapter.id === view.progress.chapterId)?.intro;
-const markHtml = stepMarkHtml(stepMark(view.progress, view.current));
+const markHtml = stepMarkHtml(mark);
 ---
 
 <BaseLayout title={title}>
@@ -234,11 +239,12 @@ const markHtml = stepMarkHtml(stepMark(view.progress, view.current));
     margin-right: 1em;
   }
 
-  /* 构建时的编号按“操作视图 + 未选”算；有 JS 时（VIEW_BOOT_SCRIPT 总会设 data-view）先占位不显示，
+  /* 构建时的编号（含正文里截图编号的步骤号）按“操作视图 + 未选”算；有 JS 时（VIEW_BOOT_SCRIPT 总会设 data-view）先占位不显示，
      等 route-enhance 按本机视图和选择重算完（data-route-ready）再露出，原理视图的读者不会看到编号跳变（§4.3）。
      没有 JS 时没有 data-view，构建时的编号照常显示。 */
   :global(:root[data-view]) .step:not([data-route-ready]) .step-mark,
-  :global(:root[data-view]) .step:not([data-route-ready]) .eyebrow-total {
+  :global(:root[data-view]) .step:not([data-route-ready]) .eyebrow-total,
+  :global(:root[data-view]) .step:not([data-route-ready]) :global(.plate-no) {
     visibility: hidden;
   }
 

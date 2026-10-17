@@ -1,5 +1,6 @@
 import { experimental_AstroContainer as AstroContainer } from 'astro/container';
 import { describe, expect, it } from 'vitest';
+import { FIGURE_STEP_SLOT } from '../lib/content/rehype-figures';
 import type { RouteData, RouteView } from '../lib/route/types';
 import PageLayout from './PageLayout.astro';
 
@@ -36,6 +37,15 @@ describe('PageLayout', () => {
     expect(html).not.toContain('data-body');
     expect(html).not.toContain('不该出现');
     expect(html.indexOf('view-notice')).toBeLessThan(html.indexOf('原理正文'));
+  });
+
+  it('截图编号的步骤号：构建时按操作视图写进两版正文；数不清第几步时留空，只用序号（design §4.7）', async () => {
+    const figure = `<figure class="plate" data-figure="1"><figcaption class="plate-no">图 ${FIGURE_STEP_SLOT}1</figcaption></figure>`;
+    const counted = { ...view, progress: { ...view.progress, index: 3, total: 4 } };
+    const html = await render({ view: counted }, { principle: figure, operation: figure });
+    expect(html.match(/图 <span data-figure-step>03-<\/span>1/g)).toHaveLength(2);
+    const uncounted = await render({}, { principle: figure, operation: figure });
+    expect(uncounted.match(/图 <span data-figure-step=""><\/span>1/g)).toHaveLength(2);
   });
 
   it('内嵌 RouteData 供页面脚本重算导航，JSON 里的 < 被转义', async () => {

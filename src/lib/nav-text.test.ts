@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chapterNoText, eyebrowSuffix, eyebrowTotal, isChapterStart, progressText, stepMark, stepMarkHtml, stopTitle } from './nav-text';
+import { chapterNoText, eyebrowSuffix, eyebrowTotal, figurePrefix, isChapterStart, progressText, stepMark, stepMarkHtml, stopTitle } from './nav-text';
 
 describe('nav-text：导航文案，构建时和浏览器共用', () => {
   const chapter = { chapterId: 'register-and-subscribe', chapter: '注册和订阅', chapterNo: 2 };
@@ -53,6 +53,14 @@ describe('nav-text：导航文案，构建时和浏览器共用', () => {
     expect(dash).toContain('href="#numeral-dash"');
     expect(dash).not.toContain('step-total');
     expect(stepMarkHtml({ kind: 'label', text: '选择' })).toBe('<span class="step-label">选择</span>');
+  });
+
+  it('截图编号的前半：数得清时是“步骤号-”，数不清、选择页、旁支页、首页为空，只用序号（design §4.7，架构 §11.4 W-4）', () => {
+    expect(figurePrefix(stepMark({ ...chapter, index: 2, total: 5 }, step))).toBe('02-');
+    expect(figurePrefix(stepMark(chapter, step))).toBe('');
+    expect(figurePrefix(stepMark({ ...chapter, index: 1, total: 3 }, choose))).toBe('');
+    expect(figurePrefix(stepMark(chapter, side))).toBe('');
+    expect(figurePrefix(null)).toBe('');
   });
 
   it('导航目标写它的标题；首页在上一步写“首页”，在下一步写“回到首页”（FR-11、design §4.1）', () => {

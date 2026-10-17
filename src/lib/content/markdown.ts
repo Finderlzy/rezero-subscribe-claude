@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { createMarkdownProcessor, parseFrontmatter, type UnifiedProcessorOptions } from '@astrojs/markdown-remark';
 import rehypeCallouts from 'rehype-callouts';
 import { checkPages, resolveLinkIndex, type LinkIndex } from './link-index';
+import rehypeFigures from './rehype-figures';
 import rehypeOperationIds from './rehype-operation-ids';
 import rehypeScrollableTables from './rehype-scrollable-tables';
 import { ID_PATTERN } from './schemas';
@@ -32,6 +33,7 @@ export function markdownPipeline({ base, linkIndex, onProblems, onHints }: Markd
     rehypePlugins: [
       [rehypeOperationIds, { linkIndex }],
       rehypeScrollableTables,
+      rehypeFigures,
       [
         rehypeCallouts,
         {

@@ -73,6 +73,32 @@
   border-radius: var(--radius-image);
 }
 
+/*
+ * 截图图版（design v2.1 §4.7、D4）：rehype-figures 把独占一行的截图包成 figure.plate，编号 figcaption 在截图前面。
+ * 截图保持原文宽度（不超过正文栏），1px --border 边框、4px 圆角，上下各留 24px。
+ * 平板和手机：编号排到截图下方作图注。桌面见下方媒体查询。
+ */
+.prose .plate {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: var(--space-5) 0;
+}
+
+.prose .plate img {
+  display: block;
+  border: var(--border-width) solid var(--border);
+}
+
+.prose .plate-no {
+  order: 1;
+  color: var(--text-muted);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-meta);
+  font-weight: 500;
+}
+
 /* 表格在自己的容器里横向滚动（NFR-01）。 */
 .prose table {
   display: block;
@@ -111,6 +137,41 @@
 
 .prose .callout-content > :last-child {
   margin-bottom: 0;
+}
+
+/*
+ * 桌面（≥1100px）的页边注（design v2.1 §4.1、§4.7）：截图编号和 [!caution] 的“注意”写在正文栏左侧的页边栏里，
+ * 右对齐到页边栏右缘，和步骤编号、章节号在同一条竖线上。横向按 .prose 定位（截图在列表项里缩进时也不跟着挪），
+ * 竖向不写 top，取它在原位置的高度：编号在截图前面，所以和截图顶边齐平；“注意”是 callout 的第一个子元素，和正文第一行齐平。
+ * 选项块（.option-block）自己是定位容器，块里的截图编号会按选项块定位、对不上竖线；选择页现在没有截图，用到时再处理。
+ */
+@media (min-width: 1100px) {
+  .prose {
+    position: relative;
+  }
+
+  .prose .plate {
+    display: block;
+  }
+
+  .prose .plate-no,
+  .prose .callout[data-callout='caution']::before {
+    position: absolute;
+    left: calc(-1 * (var(--margin-width) + var(--space-6)));
+    width: var(--margin-width);
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  /* 正文里已有“注意”标题，页边这一个不再读给读屏（旧浏览器不认替代文字时退回第一条） */
+  .prose .callout[data-callout='caution']::before {
+    content: '注意';
+    content: '注意' / '';
+    color: var(--caution-rule);
+    font-size: var(--fs-caption);
+    line-height: var(--lh-meta);
+    font-weight: 500;
+  }
 }
 
 /*

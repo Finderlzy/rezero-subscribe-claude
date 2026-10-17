@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { expectScriptRan } from './route-helpers';
 
 // NFR-02（design §4.7）：命令和代码块一键复制，复制成功后在按钮上显示“已复制”并用 aria-live 播报，
 // 2 秒后复位；长行在代码块内部横向滚动、不折行。截图点击后用 <dialog> 看大图，Esc 或点背景关闭。
@@ -233,5 +234,115 @@ test.describe('截图看大图', () => {
   test('没有截图的步骤不输出空的 <dialog>', async ({ page }) => {
     await page.goto('./preface/');
     await expect(page.locator('dialog[data-image-zoom]')).toHaveCount(0);
+  });
+});
+
+// 截图图版（design v2.1 §4.7、D4）：统一边框，编号“图 02-1”（本页步骤号-序号）；桌面在页边栏、和截图顶边对齐，
+// 和步骤编号在同一条竖线上；平板和手机写在截图下方。参考页只用序号“图 1”（常见问题没有截图，用实测页）。
+test.describe('截图图版', () => {
+  /** 当前可见正文里第 n 个图版的编号文字和位置 */
+  async function plate(page: import('@playwright/test').Page, n = 0) {
+    const figure = page.locator('.prose').filter({ visible: true }).locator('figure.plate').nth(n);
+    await figure.locator('img').scrollIntoViewIfNeeded();
+    return figure.evaluate((el) => {
+      const rect = (node: Element | null) => {
+        const r = node!.getBoundingClientRect();
+        return { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+      };
+      const img = el.querySelector('img')!;
+      return {
+        text: el.querySelector('.plate-no')!.textContent,
+        caption: rect(el.querySelector('.plate-no')),
+        img: rect(img),
+        border: getComputedStyle(img).borderTopWidth,
+        mark: document.querySelector('[data-route-mark] .step-no svg') && rect(document.querySelector('[data-route-mark] .step-no svg')),
+        stepNo: document.querySelector<HTMLElement>('[data-route-mark] [data-step-no]')?.dataset.stepNo ?? null,
+      };
+    });
+  }
+
+  /** 步骤页的图版：编号是“步骤号-序号”，桌面在页边栏和截图顶边齐平，平板和手机在截图下方 */
+  async function expectStepPlates(page: import('@playwright/test').Page) {
+    // clean-up 的截图在列表项里（有缩进），iphone-apple-id 的在正文里（打开分支页会记下选项，能数清第几步）
+    for (const path of ['./clean-up/', './iphone-apple-id/']) {
+      await page.goto(path);
+      await expectScriptRan(page);
+      const box = await plate(page);
+      expect(box.stepNo, path).toMatch(/^\d\d$/);
+      expect(box.text, path).toBe(`图 ${box.stepNo}-1`);
+      expect(box.border, path).toBe('1px');
+      if ((page.viewportSize()?.width ?? 0) >= 1100) {
+        expect(box.caption.right, path).toBeLessThan(box.img.left);
+        expect(Math.abs(box.caption.top - box.img.top), path).toBeLessThanOrEqual(2);
+        // 和步骤编号在同一条竖线上：都右对齐到页边栏右缘
+        expect(Math.abs(box.caption.right - box.mark!.right), path).toBeLessThanOrEqual(2);
+      } else {
+        expect(box.caption.top, path).toBeGreaterThanOrEqual(box.img.bottom);
+        expect(box.caption.left, path).toBeCloseTo(box.img.left, 0);
+      }
+    }
+  }
+
+  test('步骤页：编号是“步骤号-序号”，桌面在页边栏和截图顶边齐平，手机在截图下方', async ({ page }) => {
+    await expectStepPlates(page);
+  });
+
+  // 平板档（720–1099px）同手机：没有页边栏，编号在截图下方（架构 §11.4 W-8）
+  test.describe('768 宽（平板）', () => {
+    test.use({ viewport: { width: 768, height: 1024 } });
+    test('编号在截图下方', async ({ page }) => {
+      await expectStepPlates(page);
+    });
+  });
+
+  test.describe('没有 JS', () => {
+    test.use({ javaScriptEnabled: false });
+    test('编号按构建时的操作视图写好步骤号', async ({ page }) => {
+      await page.goto('./clean-up/');
+      const caption = page.locator('[data-body="operation"] figure.plate .plate-no').first();
+      await expect(caption).toBeVisible();
+      const no = await page.locator('[data-route-mark] [data-step-no]').getAttribute('data-step-no');
+      expect(no).toMatch(/^\d\d$/);
+      await expect(caption).toHaveText(`图 ${no}-1`);
+    });
+  });
+
+  test('第二张截图是“-2”', async ({ page }) => {
+    await page.goto('./iphone-apple-id/');
+    await expectScriptRan(page);
+    expect((await plate(page, 1)).text).toBe(`图 ${(await plate(page)).stepNo}-2`);
+  });
+
+  test('数不清第几步（编号是短横）时只用序号（架构 §11.4 W-4）', async ({ page }) => {
+    // check-ip 前面有没选的分叉点
+    await page.goto('./check-ip/');
+    await expectScriptRan(page);
+    const first = await plate(page);
+    expect(first.stepNo).toBe('–');
+    expect(first.text).toBe('图 1');
+    expect((await plate(page, 1)).text).toBe('图 2');
+  });
+
+  test('切到原理视图后编号跟着原理视图的步骤号（清理旧账号前面多一个原理独有步骤）', async ({ page }) => {
+    await page.goto('./clean-up/');
+    await expectScriptRan(page);
+    const operation = await plate(page);
+    await page.getByRole('group', { name: '视图' }).getByRole('button', { name: '原理' }).click();
+    await expect.poll(async () => (await plate(page)).stepNo).not.toBe(operation.stepNo);
+    const principle = await plate(page);
+    expect(principle.text).toBe(`图 ${principle.stepNo}-1`);
+  });
+
+  test('参考页只用序号“图 1”', async ({ page }) => {
+    await page.goto('./ip-tests/voyracloud/');
+    expect((await plate(page)).text).toBe('图 1');
+    expect((await plate(page, 1)).text).toBe('图 2');
+  });
+
+  test('点步骤页的截图仍能看大图', async ({ page }) => {
+    await page.goto('./clean-up/');
+    await expectScriptRan(page);
+    await page.locator('.prose').filter({ visible: true }).locator('figure.plate [data-image-zoom-opener]').first().click();
+    await expect(page.locator('dialog[data-image-zoom]')).toBeVisible();
   });
 });

@@ -68,6 +68,14 @@ export function stepMarkHtml(mark: StepMark | null): string {
   return 'total' in mark ? `${no}<span class="step-total">${mark.total}</span>` : no;
 }
 
+/**
+ * 截图编号“图 02-1”的前半（design §4.7）：数得清第几步时是“步骤号-”，和页边栏编号同一个数；
+ * 数不清（短横）、选择页、旁支页为空，只用序号“图 1”（架构 §11.4 W-4）。
+ */
+export function figurePrefix(mark: StepMark | null): string {
+  return mark?.kind === 'numeral' && 'index' in mark ? `${mark.text}-` : '';
+}
+
 /** 导航按钮里写出的目标标题；`dir` 是按钮的方向（“回到”算上一步那一侧）。 */
 export function stopTitle(stop: Stop, dir: 'prev' | 'next'): string {
   return stop.kind === 'home' ? HOME_TITLE[dir] : stop.title;

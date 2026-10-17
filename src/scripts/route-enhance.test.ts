@@ -66,6 +66,19 @@ describe('renderProgress：改写编号、步数和读屏文字（FR-10，design
     expect(render('google-appeal', {}, 'operation')).toMatchObject({ mark: '<span class="step-label">旁支</span>', text: '注册和订阅 · 旁支' });
   });
 
+  it('截图编号的步骤号随视图和选择改写；数不清、选择页只用序号（design §4.7）', () => {
+    const figures = (at: string, choices: Record<string, string>, mode: 'operation' | 'principle') => {
+      const list = [{ textContent: '' as string | null }, { textContent: '' as string | null }];
+      renderProgress({ figures: list }, map.view(at, choices, mode));
+      return list.map((f) => f.textContent);
+    };
+    expect(figures('clean-up', {}, 'operation')).toEqual(['02-', '02-']);
+    expect(figures('clean-up', {}, 'principle')).toEqual(['03-', '03-']);
+    expect(figures('import-proxy', {}, 'operation')).toEqual(['', '']);
+    expect(figures('import-proxy', { 'node-plan': 'plan-3' }, 'operation')).toEqual(['02-', '02-']);
+    expect(figures('choose-plan', {}, 'operation')).toEqual(['', '']);
+  });
+
   it('挂载点缺了也不报错', () => {
     expect(() => renderProgress({}, map.view('preface', {}, 'operation'))).not.toThrow();
   });

@@ -152,6 +152,7 @@ side:                              # 旁支页：不在序列里
 - **标题 id**：同一 HTML 里有两版正文（ADR-0004），操作版正文的标题 id 加前缀 `op-`（`rehype-operation-ids.ts` 按文件路径判断，按 Astro 同样的 github-slugger 规则先写好 id），避免重复 id；`[[标题#小标题]]` 指向原理版的 id。
 - **只有一套规则**（#25 删除了 1.0.0 按标识解析的模式和 `[!why]`）：不属于三个集合的文件（只在单元测试里出现）照样按标题解析双链，只是不去标题和页脚、不记内容提示。
 - **表格可聚焦**（#25）：`rehype-scrollable-tables.ts` 给每张表加 `tabindex="0"`，窄屏上横向滚动的表格能用键盘滚动（axe 的 scrollable-region-focusable；同 Shiki 给 `<pre>` 的做法）。
+- **截图图版**（#37，§11.4 W-4，现状）：`rehype-figures.ts` 把独占一行的截图（`img[data-zoom]`）包成 `<figure class="plate" data-figure="n">`，编号 `<figcaption class="plate-no">图 <span data-figure-step></span>n</figcaption>` 放在截图前面；每篇正文单独编号，所以两版各自从 1 起。截图所在的段落从截图处拆开（前后的文字仍是段落，空段落丢掉），列表项里的截图留在这一项里；只在根和能放块级内容的容器（列表项、引用、表格单元格等）里包，标题、加粗、链接里的图片和与文字同一行的行内图片不是图版，不编号；先包完再按文档顺序编号。步骤号前缀（`02-`）由 `figurePrefix(stepMark(...))`（`src/lib/nav-text.ts`）算：数得清时是“步骤号-”，数不清、选择页、旁支页为空；`PageLayout` 构建时用 `fillFigureSteps()` 按操作视图写进两版正文（没有 JS 时就是它），`route-enhance` 的 `renderProgress` 按当前视图和选择改写所有 `[data-figure-step]`，算完前和页边栏编号一样先不显示。参考页不填，只有序号。样式在 `prose.css`：图片 1px `--border`、4px 圆角，图版上下 24px；<1100px 编号用 `order` 排到截图下方；≥1100px `.prose` 作定位容器，编号绝对定位到页边栏（横向按 `.prose`，列表缩进不影响；竖向不写 `top`，取原位置，所以和截图顶边齐平），`[!caution]` 用 `::before` 在同一位置写“注意”（`--caution-rule`，替代文字为空，不重复读）。参考页同样悬挂在正文左侧（design §4.7 把参考页列在编号规则里；§4.6 的“没有页边栏编号”指步骤编号）。已知限制：选项块自己是定位容器，块里的截图编号会对不上竖线，选择页现在没有截图。
 - **1.0.0 已有、继续生效**：管线配置的唯一来源 `markdownPipeline()`；`contentValidation` 集成在 `astro:build:start` 用同一条管线重新处理全部源文件并在失败时终止构建；集合 `deferRender: true`；关闭 SmartyPants；嵌入的宽度、文件名字符和 1x/2x `srcset` 规则；解析后残留 `**` 报错；Shiki 默认开启且不引用外部资源；内容文件名必须是以字母开头的英文 kebab-case。
 
 **导入脚本**（`scripts/import-rewrite.mjs`，#23 建立，[ADR-0005](adr/0005-import-rewrite-verbatim.md)；页面标识表和截图核对记录在 [migration-checklist.md](migration-checklist.md) 的 v2 节）：
@@ -319,7 +320,7 @@ function getNameHost(scope?): { name: string } | null;   // 浏览器里是 wind
 │   │   ├── logo/                    转曲后的 logo SVG（只由 Logo.astro 引用）
 │   │   └── numerals/                转曲后的编号字形和 CHAPTER 副标题（build-logo.mjs 生成）
 │   ├── lib/
-│   │   ├── content/                 M1：schemas、link-index、remark-obsidian、rehype-operation-ids、markdown、integration（+ *.test.ts）
+│   │   ├── content/                 M1：schemas、link-index、remark-obsidian、rehype-operation-ids、rehype-figures、markdown、integration（+ *.test.ts）
 │   │   ├── route/                   M2：route-map、types（+ 测试和测试用路线图）
 │   │   ├── reader-state/            M4：reader-store、view-boot（+ *.test.ts）
 │   │   ├── nav-text.ts              导航文案，构建时和页面脚本共用
@@ -429,7 +430,7 @@ v2.0 → v2.1 的代码差距（现状 → 目标）：
 | 目录 | ≥1100px 常驻左侧栏（`.step-shell` 两栏网格、`toc.ts` 在侧栏和抽屉间移动 `<nav>`）；没有 JS 时“目录”按钮隐藏 | 所有宽度都是抽屉；没有 JS 时“目录”链到首页目录（§4.5、§5、D5） | W03（#34 已完成，见 §3 M3“目录”） |
 | 步骤编号 | 只有眉题文字“<章> · 第 n 步，共 m 步” | 桌面悬挂页边栏的大号编号 + “共 m 步”；平板和手机编号在 h1 前；数不清时短横；选择/旁支二字（§4.1、§4.2、§4.6、D3） | W04（#35 已完成，见 §3 M3“步骤编号”） |
 | 章节过场 | `.chapter-intro`：章节号 + 章名 + `--border` 线 | 章节标题卡：CHAPTER 副标题、紫色章节号 + 章名底边对齐、一句话、`--text` 线（§4.1、D6） | W05（#36 已完成，见 §3 M3“章节标题卡”） |
-| 截图 | 普通 `<img>`，没有边框和编号 | 图版：边框、上下 24px、编号“图 02-1”（§4.7、D4） | W06 |
+| 截图 | 普通 `<img>`，没有边框和编号 | 图版：边框、上下 24px、编号“图 02-1”（§4.7、D4） | W06（#37 已完成，见 §3 M1“截图图版”） |
 | 首页 | logo + “开始” + 目录 | 说明书封面（眉题、logo、一句话、小字信息行、两个入口、桌面章级索引）+ 完整目录（§4.4、D2） | W07 |
 | 说明图 | 无 | 三页单色线稿（§4.7、§9） | W08（待细化） |
 

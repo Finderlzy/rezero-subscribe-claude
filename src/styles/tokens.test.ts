@@ -65,6 +65,7 @@ const PAIRS: [string, string, number, string][] = [
   ['--focus', '--caution-bg', 3, '键盘焦点环（风险提示里）'],
   ['--todo-rule', '--todo-bg', 3, '提示竖线'],
   ['--caution-rule', '--caution-bg', 3, '风险提示竖线'],
+  ['--caution-rule', '--bg', 4.5, '桌面页边栏的“注意”'],
 ];
 
 it('浅色、深色两块令牌都读到了', () => {
