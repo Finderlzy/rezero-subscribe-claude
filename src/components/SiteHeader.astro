@@ -4,12 +4,11 @@ import Logo from './Logo.astro';
 import ViewToggle from './ViewToggle.astro';
 
 /**
- * 页眉（design §4.0）：首页以外的所有页面都有，吸顶，高 56px，下边一条 3px 的视图色带。
- * 左边是“目录”（`toc`，所有宽度都有，design v2.1 §4.5、D5）和链到首页的 logo 标记 + 站名（<480px 时只留标记）；
- * “目录”构建时是指向首页完整目录 `/#home-chapters` 的链接，没有 JS 也能到达目录（design §5，FR-16），
+ * 页眉（design §4.0，v2.2）：首页以外的所有页面都有，吸顶，高 56px，白底，底边一条 1px --border 细线（不再有视图色带）。
+ * 左边是“目录”和链到首页的 logo 标记 + 站名（<480px 时只留标记）。
+ * “目录”（`toc`）构建时是指向首页完整目录 `/#home-chapters` 的链接，没有 JS 也能到达目录（design §5，FR-16），
  * 页面脚本 toc.ts 把它换成打开抽屉的按钮（换元素时保留这里的属性，样式照样选得中）。
- * 右边是“操作｜原理”切换（`views`）。色带：操作视图 `--text`、原理视图 `--accent`（跟 `<html data-view>` 走，
- * 没有 JS 时是操作视图）；没有视图的页面（参考页、找不到页）用 `--border`。
+ * 右边是“操作｜原理”切换（`views`），没有视图的页面（参考页、找不到页）不显示。
  */
 interface Props {
   /** 页面有两种视图：显示切换控件，色带跟视图换色 */
@@ -21,7 +20,7 @@ interface Props {
 const { views = false, toc = false } = Astro.props;
 ---
 
-<header class="site-header" data-views={views ? '' : undefined}>
+<header class="site-header">
   <div class="site-header-bar">
     {
       toc && (
@@ -43,21 +42,11 @@ const { views = false, toc = false } = Astro.props;
 
 <style>
   .site-header {
-    --band: var(--border);
     position: sticky;
     top: 0;
     z-index: 2;
     background: var(--bg);
-    border-bottom: var(--band-height) solid var(--band);
-  }
-
-  /* 视图色带：切换时直接换色，不做动画（design §4.0） */
-  .site-header[data-views] {
-    --band: var(--text);
-  }
-
-  :global(:root[data-view='principle']) .site-header[data-views] {
-    --band: var(--accent);
+    border-bottom: var(--border-width) solid var(--border);
   }
 
   .site-header-bar {

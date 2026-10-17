@@ -54,11 +54,17 @@ export function collectErrors(page: Page): string[] {
   return errors;
 }
 
-/** 页边栏（桌面）或 h1 前（平板和手机）的步骤编号原文，如 "01"、"–"；选择页、旁支页没有编号时为 null（design §4.1） */
-export const stepNo = (page: Page) => page.locator('[data-route-mark]').evaluate((el) => el.querySelector<HTMLElement>('[data-step-no]')?.dataset.stepNo ?? null);
+/**
+ * 页头色带里看得见的眉题原文（design §4.1，v2.2 D4、D10），例如
+ * “第 2 章 · 准备节点和住宅 IP · 第 2 步，共 9 步”；选择页“… · 选择”，章首页只有“第 1 步，共 10 步”。
+ */
+export const eyebrow = (page: Page) => page.locator('[data-route-eyebrow]').textContent();
 
-/** 编号下一行的“共 m 步”；没有时为 null */
-export const stepTotal = (page: Page) => page.locator('[data-route-mark]').evaluate((el) => el.querySelector('.step-total')?.textContent ?? null);
+/** 眉题里写出的第几步；数不清、选择页、旁支页为 null */
+export const stepNo = (page: Page) => eyebrow(page).then((text) => /第 (\d+) 步，共 \d+ 步/.exec(text ?? '')?.[1] ?? null);
 
-/** 选择页、旁支页在编号位置写的字（“选择”“旁支”）；没有时为 null */
-export const stepLabel = (page: Page) => page.locator('[data-route-mark]').evaluate((el) => el.querySelector('.step-label')?.textContent ?? null);
+/** 眉题里写出的“共 m 步”整句；没有时为 null */
+export const stepTotal = (page: Page) => eyebrow(page).then((text) => /共 \d+ 步/.exec(text ?? '')?.[0] ?? null);
+
+/** 眉题末尾的方向词：选择页“选择”、旁支页“旁支”；普通页为 null */
+export const stepLabel = (page: Page) => eyebrow(page).then((text) => /(?:^|· )(选择|旁支)$/.exec(text ?? '')?.[1] ?? null);

@@ -43,33 +43,41 @@ describe('forkOfChoosePage：选择页对应的分叉点（FR-12）', () => {
   });
 });
 
-describe('renderProgress：改写编号、步数和读屏文字（FR-10，design §4.1）', () => {
-  const render = (at: string, choices: Record<string, string>, mode: 'operation' | 'principle') => {
-    const slots = { mark: { innerHTML: '' }, total: { textContent: '' as string | null }, text: { textContent: '' as string | null } };
+describe('renderProgress：改写眉题、步数和读屏文字（FR-10，design §4.1，v2.2 D4、D10）', () => {
+  const render = (at: string, choices: Record<string, string>, mode: 'operation' | 'principle', chapterStart = false) => {
+    const slots = { eyebrow: { textContent: '' as string | null }, text: { textContent: '' as string | null }, chapterStart };
     renderProgress(slots, map.view(at, choices, mode));
-    return { no: /data-step-no="([^"]*)"/.exec(slots.mark.innerHTML)?.[1], mark: slots.mark.innerHTML, total: slots.total.textContent, text: slots.text.textContent };
+    return { eyebrow: slots.eyebrow.textContent, text: slots.text.textContent };
   };
 
-  it('切换视图后编号和步数重算：整体思路是原理独有步骤，清理旧账号在操作视图是第 2 步，原理视图是第 3 步', () => {
-    expect(render('clean-up', {}, 'operation')).toMatchObject({ no: '02', total: ' · 共 2 步', text: '开始，第 2 步，共 2 步' });
-    expect(render('clean-up', {}, 'principle')).toMatchObject({ no: '03', total: ' · 共 3 步', text: '开始，第 3 步，共 3 步' });
-    expect(render('clean-up', {}, 'principle').mark).toContain('<span class="step-total">共 3 步</span>');
+  it('眉题写“第 n 章 · 章名 · 第几步，共几步”；切换视图后重算：整体思路是原理独有步骤，清理旧账号在操作视图是第 2 步，原理视图是第 3 步', () => {
+    expect(render('make-node', {}, 'operation')).toEqual({ eyebrow: '第 2 章 · 准备节点和住宅 IP · 第 2 步，共 6 步', text: '准备节点和住宅 IP，第 2 步，共 6 步' });
+    expect(render('clean-up', {}, 'operation')).toEqual({ eyebrow: '第 1 章 · 开始 · 第 2 步，共 2 步', text: '开始，第 2 步，共 2 步' });
+    expect(render('clean-up', {}, 'principle')).toEqual({ eyebrow: '第 1 章 · 开始 · 第 3 步，共 3 步', text: '开始，第 3 步，共 3 步' });
   });
 
-  it('改选分叉点后重算：没选时汇合点是短横，选了之后有编号', () => {
-    expect(render('import-proxy', {}, 'operation')).toMatchObject({ no: '–', total: '', text: '准备节点和住宅 IP' });
-    expect(render('import-proxy', { 'node-plan': 'plan-3' }, 'operation')).toMatchObject({ no: '02', total: ' · 共 4 步' });
+  it('章首页省掉章的部分：色带上面已经写了副标题和章名，眉题只写步数', () => {
+    expect(render('preface', {}, 'operation', true)).toEqual({ eyebrow: '第 1 步，共 2 步', text: '开始，第 1 步，共 2 步' });
+    expect(render('choose-plan', {}, 'operation', true)).toEqual({ eyebrow: '选择', text: '准备节点和住宅 IP' });
   });
 
-  it('选择页和旁支页写文字，不写编号', () => {
-    expect(render('choose-plan', {}, 'operation')).toMatchObject({ no: undefined, mark: '<span class="step-label">选择</span>', total: '' });
-    expect(render('google-appeal', {}, 'operation')).toMatchObject({ mark: '<span class="step-label">旁支</span>', text: '注册和订阅 · 旁支' });
+  it('改选分叉点后重算：没选时汇合点数不清第几步，选了之后有步数', () => {
+    expect(render('import-proxy', {}, 'operation')).toEqual({ eyebrow: '第 2 章 · 准备节点和住宅 IP', text: '准备节点和住宅 IP' });
+    expect(render('import-proxy', { 'node-plan': 'plan-3' }, 'operation')).toEqual({
+      eyebrow: '第 2 章 · 准备节点和住宅 IP · 第 2 步，共 4 步',
+      text: '准备节点和住宅 IP，第 2 步，共 4 步',
+    });
+  });
+
+  it('选择页写“选择”，旁支页写“旁支”，都不写步数', () => {
+    expect(render('choose-plan', {}, 'operation')).toEqual({ eyebrow: '第 2 章 · 准备节点和住宅 IP · 选择', text: '准备节点和住宅 IP' });
+    expect(render('google-appeal', {}, 'operation')).toEqual({ eyebrow: '第 3 章 · 注册和订阅 · 旁支', text: '注册和订阅 · 旁支' });
   });
 
   it('截图编号的步骤号随视图和选择改写；数不清、选择页只用序号（design §4.7）', () => {
     const figures = (at: string, choices: Record<string, string>, mode: 'operation' | 'principle') => {
       const list = [{ textContent: '' as string | null }, { textContent: '' as string | null }];
-      renderProgress({ figures: list }, map.view(at, choices, mode));
+      renderProgress({ figures: list, chapterStart: false }, map.view(at, choices, mode));
       return list.map((f) => f.textContent);
     };
     expect(figures('clean-up', {}, 'operation')).toEqual(['02-', '02-']);
@@ -80,6 +88,6 @@ describe('renderProgress：改写编号、步数和读屏文字（FR-10，design
   });
 
   it('挂载点缺了也不报错', () => {
-    expect(() => renderProgress({}, map.view('preface', {}, 'operation'))).not.toThrow();
+    expect(() => renderProgress({ chapterStart: false }, map.view('preface', {}, 'operation'))).not.toThrow();
   });
 });

@@ -1,0 +1,22 @@
+<!--
+  Claude Code 的官方像素小形象（design v2.2 D6、D7）：按 docs/assets/mascot-reference.png 逐格描成，
+  以参考图为 1 格 = 1 单位，每格一个方块，标准姿态；不改画、不放大、不配台词。
+  颜色只用 --mascot（官方橙），眼睛是 --mascot-eye（深色下就是页面底色）。
+  由 src/components/Mascot.astro 引用，是唯一引用这个文件的地方。纯装饰，对读屏隐藏。
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 37 25" shape-rendering="crispEdges">
+  <g class="mascot-body" fill="var(--mascot, #c96442)">
+    <rect x="3" y="0" width="23" height="8"/>
+    <rect x="26" y="8" width="10" height="5"/>
+    <rect x="0" y="13" width="29" height="5"/>
+    <rect x="8" y="18" width="2" height="4"/>
+    <rect x="15" y="18" width="3" height="4"/>
+    <rect x="22" y="18" width="3" height="4"/>
+    <rect x="27" y="18" width="3" height="4"/>
+    <rect x="0" y="22" width="3" height="2"/>
+  </g>
+  <g class="mascot-eyes" fill="var(--mascot-eye, #121214)">
+    <rect x="5" y="5" width="2" height="2"/>
+    <rect x="18" y="5" width="2" height="2"/>
+  </g>
+</svg>

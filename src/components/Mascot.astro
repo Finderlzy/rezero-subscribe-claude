@@ -1,0 +1,32 @@
+---
+// Claude Code 的官方像素小形象（design v2.2 D6、D7）：纯装饰、不可点、没有动画，对读屏隐藏。
+// 是唯一引用 src/assets/mascot/ 的地方。每个像素 3px（手机 2px），整体约 33×22px（手机 22×15px）；
+// 颜色只用 --mascot，眼睛用 --mascot-eye（深色下就是底色）。
+// 位置由使用方决定：步骤页、附录页贴在页头色带的右下角，首页和找不到页放在 logo 右下方，都脚底贴着所在块的下沿。
+import mascot from '../assets/mascot/mascot.svg?raw';
+
+/** 参考图的一格画成几个像素：手机 2px，平板和桌面 3px（design v2.2 §3 W2 第 6 条） */
+const PX_PER_CELL = 3;
+const COLS = 37;
+const ROWS = 25;
+const svg = mascot
+  .replace('<!--', '<!--\n  由 Mascot.astro 引用。')
+  .replace('<svg ', `<svg class="mascot" aria-hidden="true" focusable="false" width="${COLS * PX_PER_CELL}" height="${ROWS * PX_PER_CELL}" `);
+---
+
+<Fragment set:html={svg} />
+
+<style>
+  .mascot {
+    display: block;
+    flex: none;
+  }
+
+  /* 手机上每格 2px（宽高属性按 3px 写的，这里按 2/3 缩） */
+  @media (max-width: 719px) {
+    :global(.mascot) {
+      width: calc(37 * 2px);
+      height: calc(25 * 2px);
+    }
+  }
+</style>

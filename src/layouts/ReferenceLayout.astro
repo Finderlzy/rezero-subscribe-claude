@@ -1,5 +1,6 @@
 ---
 import CodeCopy from '../components/CodeCopy.astro';
+import Mascot from '../components/Mascot.astro';
 import ImageZoom from '../components/ImageZoom.astro';
 import SiteHeader from '../components/SiteHeader.astro';
 import { hasZoomableImage } from '../lib/code-zoom/labels';
@@ -9,8 +10,8 @@ import BaseLayout from './BaseLayout.astro';
 import '../styles/prose.css';
 
 /**
- * 参考页（常见问题、IP 质量实测合集、各篇实测）的骨架（design §4.6，FR-20）：只有一版正文，
- * 没有上一步/下一步和视图切换（页眉没有切换控件，色带用 --border）。实测页多一个“回到：IP 质量实测合集”（`back`）。
+ * 参考页（常见问题和各条问题、IP 质量实测合集和各篇实测）的骨架（design §4.6，FR-20）：只有一版正文，
+ * 没有上一步/下一步和视图切换（页眉没有切换控件，色带用 --border）。各条问题和实测页多一个“回到：常见问题 / IP 质量实测合集”（`back`）。
  * 从步骤链接进来（`?from=<page-id>`）时，页面脚本在标题上方和正文末尾显示“← 返回刚才的步骤：<标题>”，
  * 并隐藏“打开目录”；直接打开（或没有 JS）时只有“打开目录”。“打开目录”链到首页的目录（参考页不内嵌路线数据，不放抽屉）。
  */
@@ -34,7 +35,10 @@ const pagesJson = JSON.stringify(pageTitles).replace(/</g, '\\u003c');
     <p class="reference-return" data-reference-return hidden>
       <a>← 返回刚才的步骤</a>
     </p>
-    <h1 class="page-title">{title}</h1>
+    <div class="page-head">
+      <h1 class="page-title">{title}</h1>
+      <Mascot />
+    </div>
     <div class="prose" set:html={body} />
     <p class="reference-return" data-reference-return hidden>
       <a>← 返回刚才的步骤</a>
@@ -58,6 +62,18 @@ const pagesJson = JSON.stringify(pageTitles).replace(/</g, '\\u003c');
 </script>
 
 <style>
+  /* 小形象（design v2.2 D6）在 h1 的右下方，脚底贴着标题这一块的下沿 */
+  .page-head {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--space-3);
+    margin: 0 0 var(--space-5);
+  }
+
+  .page-head .page-title {
+    margin: 0;
+  }
+
   .reference-return {
     margin: 0 0 var(--space-4);
     font-size: var(--fs-meta);

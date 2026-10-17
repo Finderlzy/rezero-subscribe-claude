@@ -2,13 +2,13 @@
 import ChapterSubtitle from '../components/ChapterSubtitle.astro';
 import CodeCopy from '../components/CodeCopy.astro';
 import ImageZoom from '../components/ImageZoom.astro';
-import Numeral from '../components/Numeral.astro';
+import Mascot from '../components/Mascot.astro';
 import SiteHeader from '../components/SiteHeader.astro';
 import StepNav from '../components/StepNav.astro';
 import Toc from '../components/Toc.astro';
 import { hasZoomableImage } from '../lib/code-zoom/labels';
 import { fillFigureSteps } from '../lib/content/rehype-figures';
-import { chapterNoText, eyebrowSuffix, eyebrowTotal, figurePrefix, isChapterStart, progressText, stepMark, stepMarkHtml } from '../lib/nav-text';
+import { eyebrowText, figurePrefix, isChapterStart, progressText } from '../lib/nav-text';
 import { VIEW_BOOT_SCRIPT } from '../lib/reader-state/view-boot';
 import type { RouteData, RouteView } from '../lib/route/types';
 import type { TocReference } from '../lib/site';
@@ -16,22 +16,23 @@ import BaseLayout from './BaseLayout.astro';
 import '../styles/prose.css';
 
 /**
- * 步骤页、选择页、旁支页的骨架（design §4.1、§4.2，架构 §3 M3）：顶部进度和标题，视频，正文，底部导航。
+ * 步骤页、选择页、旁支页的骨架（design §4.1、§4.2，架构 §3 M3）：页头色带（眉题和 h1），视频，正文，底部导航。
+ *
+ * 页头色带（v2.2 D4、D10）：<main> 顶部一块 --accent-soft 色的全宽色带，上下内边距 --band-pad-y，内容和正文栏左对齐。
+ * 一个页面处在哪一步只看这一行的文字：`第 1 章 · 准备节点和住宅 IP · 第 2 步，共 10 步`；选择页写“· 选择”，旁支页写“· 旁支”。
+ * 每章第一页（含选择页）的色带加高，眉题之前多一组：副标题 `− CHAPTER 0n −`、章名、route.yaml 里这一章的 intro
+ * （构建时已核对它原样摘自章首页的原理版正文），一条 1px --border 细线，再接眉题——这时眉题省掉章的部分。
+ * 小形象（D6）贴在色带右下角，脚底贴着色带下沿。
+ * 眉题看得见的部分不进无障碍树，读屏读它自己那一句（progressText）；步数和眉题由 route-enhance 按当前路线和视图改写。
  *
  * 两版正文（ADR-0004）：`principle`、`operation` 两个 slot 分别渲染进 `data-body="principle|operation"`，
  * 由 `<html data-view>` 决定显示哪一个（prose.css）；`<head>` 里的 VIEW_BOOT_SCRIPT 在首次绘制前设置它，
  * 没有 JS 时没有 data-view，固定显示操作版。只有原理版的页面传 `notice`：只输出原理版，
  * 操作视图下在正文上方显示这句说明（FR-21、FR-30）。
  *
- * 导航按“操作视图 + 未选”在构建时写好（`view`）；页面脚本 route-enhance 读内嵌的 RouteData（`#route-data`），
+ * 导航按“操作视图 + 未选”在构建时写好；页面脚本 route-enhance 读内嵌的 RouteData（`#route-data`），
  * 按本机选择和当前视图改写导航；view-toggle 处理页眉的“操作｜原理”切换（架构 §3 M3）。
  * 目录（design v2.1 §4.5、D5）：所有宽度都是抽屉，由页眉的“目录”打开（toc.ts）；没有 JS 时“目录”链到首页的完整目录。
- * 眉题（design §4.1）：章节号 + 章节名，两端的短横由 CSS 画；平板和手机多写“ · 共 m 步”，旁支页写“ · 旁支”（§4.6）。
- * 看得见的眉题和编号都不进无障碍树，读屏读眉题里单独的一句（“准备节点和住宅 IP，第 2 步，共 5 步”）。
- * 每章第一页（含选择页）在眉题上方多一块章节标题卡（design v2.1 §4.1、D6）：副标题对读屏隐藏，章名照读，
- * 章节号读“第 n 章”；一句话是 route.yaml 里这一章的 intro（构建时已核对它原样摘自章首页的原理版正文）。
- * 步骤编号（design §3.3、§4.1、§4.2、§4.6）：桌面挂在正文栏左侧的页边栏，底边和 h1 对齐；平板和手机放在 h1 前。
- * 编号、步数和读屏文字是本章进度（FR-10），由 route-enhance 按当前路线和视图改写（renderProgress）。
  */
 interface Props {
   title: string;
@@ -49,18 +50,15 @@ interface Props {
 const { title, view, routeData, tocReferences, skipLabel, notice } = Astro.props;
 // 内嵌在 <script> 里的 JSON 不能出现 `</script>`，把 `<` 转义掉。
 const routeJson = JSON.stringify(routeData).replace(/</g, '\\u003c');
-const mark = stepMark(view.progress, view.current);
+const chapterStart = isChapterStart(routeData.chapters, view.progress, view.current);
+const chapterIntro = routeData.chapters.find((chapter) => chapter.id === view.progress.chapterId)?.intro;
 // 截图编号的步骤号（design §4.7）：构建时按操作视图写，没有 JS 时就是它；route-enhance 按当前视图和选择改写
 // （没传的 slot 渲染出 undefined，原样保留）
-const fill = (html: string | undefined) => html && fillFigureSteps(html, figurePrefix(mark));
+const fill = (html: string | undefined) => html && fillFigureSteps(html, figurePrefix(view.progress, view.current));
 const principle = fill(await Astro.slots.render('principle'));
 // 不能用 Astro.slots.has 判断：页面里写成条件渲染的 slot 即使为空也算“有”
 const operation = notice === undefined ? fill(await Astro.slots.render('operation')) : undefined;
 const hasZoom = [principle, operation].some((html) => html !== undefined && hasZoomableImage(html));
-const chapterNo = chapterNoText(view.progress.chapterNo);
-const chapterStart = isChapterStart(routeData.chapters, view.progress, view.current);
-const chapterIntro = routeData.chapters.find((chapter) => chapter.id === view.progress.chapterId)?.intro;
-const markHtml = stepMarkHtml(mark);
 ---
 
 <BaseLayout title={title}>
@@ -73,48 +71,42 @@ const markHtml = stepMarkHtml(mark);
     data-route-at={view.current.kind === 'home' ? undefined : view.current.id}
     data-chapter-start={chapterStart ? '' : undefined}
   >
-    <header class="step-header">
-      {
-        chapterStart && (
-          <div class="chapter-card">
-            <ChapterSubtitle chapter={view.progress.chapterNo} />
-            <p class="chapter-card-heading">
-              <span class="chapter-card-no"><Numeral text={chapterNo} label={`第 ${view.progress.chapterNo} 章`} /></span>
-              <span class="chapter-card-title">{view.progress.chapter}</span>
-            </p>
-            {chapterIntro !== undefined && <p class="chapter-card-intro">{chapterIntro}</p>}
-          </div>
-        )
-      }
-      <p class="eyebrow">
-        <span aria-hidden="true"
-          ><span class="eyebrow-no">{chapterNo}</span>{view.progress.chapter}{eyebrowSuffix(view.current)}<span
-            class="eyebrow-total"
-            data-route-total>{eyebrowTotal(view.progress, view.current)}</span
-          ></span
-        >
-        <span class="visually-hidden" data-route-progress>{progressText(view.progress, view.current)}</span>
-      </p>
-      <div class="step-heading">
-        <div class="step-mark" data-route-mark aria-hidden="true" set:html={markHtml} />
+    <header class="band" data-band={chapterStart ? 'chapter' : undefined}>
+      <Mascot />
+      <div class="band-inner">
+        {
+          chapterStart && (
+            <div class="chapter-head">
+              <ChapterSubtitle chapter={view.progress.chapterNo} />
+              <p class="chapter-title">{view.progress.chapter}</p>
+              {chapterIntro !== undefined && <p class="chapter-intro">{chapterIntro}</p>}
+            </div>
+          )
+        }
+        <p class="eyebrow">
+          <span aria-hidden="true" data-route-eyebrow set:text={eyebrowText(view.progress, view.current, chapterStart)} />
+          <span class="visually-hidden" data-route-progress>{progressText(view.progress, view.current)}</span>
+        </p>
         <h1 class="step-title">{title}</h1>
       </div>
     </header>
-    <slot name="video" />
-    {
-      operation === undefined ? (
-        <>
-          <p class="view-notice">{notice}</p>
-          <div class="prose" set:html={principle} />
-        </>
-      ) : (
-        <>
-          <div class="prose" data-body="principle" set:html={principle} />
-          <div class="prose" data-body="operation" set:html={operation} />
-        </>
-      )
-    }
-    <StepNav prev={view.prev} next={view.next} returnTo={view.returnTo} skipTo={view.skipTo} skipLabel={skipLabel} />
+    <div class="step-body">
+      <slot name="video" />
+      {
+        operation === undefined ? (
+          <>
+            <p class="view-notice">{notice}</p>
+            <div class="prose" set:html={principle} />
+          </>
+        ) : (
+          <>
+            <div class="prose" data-body="principle" set:html={principle} />
+            <div class="prose" data-body="operation" set:html={operation} />
+          </>
+        )
+      }
+      <StepNav prev={view.prev} next={view.next} returnTo={view.returnTo} skipTo={view.skipTo} skipLabel={skipLabel} />
+    </div>
   </main>
   <CodeCopy />
   {hasZoom && <ImageZoom />}
