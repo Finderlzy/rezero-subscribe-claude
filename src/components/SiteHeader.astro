@@ -4,8 +4,8 @@ import Logo from './Logo.astro';
 import ViewToggle from './ViewToggle.astro';
 
 /**
- * 页眉（design §4.0，v2.2）：首页以外的所有页面都有，吸顶，高 56px，白底，底边一条 1px --border 细线（不再有视图色带）。
- * 左边是“目录”和链到首页的 logo 标记 + 站名（<480px 时只留标记）。
+ * 页眉（design §4.0，v2.2）：首页以外的所有页面都有，吸顶，高 56px，--bg 底，底边一条 1px --border 细线（没有视图色带）。
+ * 左边是“目录”（只在 <1100px 显示，≥1100px 由常驻侧边栏代替，v2.2 D8）和链到首页的 logo 标记 + 站名（<480px 时只留标记）。
  * “目录”（`toc`）构建时是指向首页完整目录 `/#home-chapters` 的链接，没有 JS 也能到达目录（design §5，FR-16），
  * 页面脚本 toc.ts 把它换成打开抽屉的按钮（换元素时保留这里的属性，样式照样选得中）。
  * 右边是“操作｜原理”切换（`views`），没有视图的页面（参考页、找不到页）不显示。
@@ -13,7 +13,7 @@ import ViewToggle from './ViewToggle.astro';
 interface Props {
   /** 页面有两种视图：显示切换控件，色带跟视图换色 */
   views?: boolean;
-  /** 页面内嵌了目录抽屉（Toc.astro）：显示“目录” */
+  /** 页面内嵌了目录抽屉（Toc.astro）：显示“目录”（≥1100px 由 CSS 隐藏） */
   toc?: boolean;
 }
 
@@ -32,7 +32,7 @@ const { views = false, toc = false } = Astro.props;
         </a>
       )
     }
-    <a class="site-home" href={withBase('/')} aria-label="Re:从零开始订阅 claude 首页">
+    <a class="site-home" href={withBase('/')} aria-label="Re:从零开始订阅 claude 首页" data-to-home>
       <span class="site-mark" aria-hidden="true"><Logo variant="mark" /></span>
       <span class="site-name" aria-hidden="true">从零开始订阅 claude</span>
     </a>
@@ -49,18 +49,13 @@ const { views = false, toc = false } = Astro.props;
     border-bottom: var(--border-width) solid var(--border);
   }
 
+  /* 页眉的两侧边距和正文栏一致：手机 --gutter（16px），平板起 32px（design §4.0、§3.3），目录按钮的图标和正文左缘对齐 */
   .site-header-bar {
     display: flex;
     align-items: center;
     gap: var(--space-2);
     height: var(--header-height);
-    padding: 0 var(--space-4);
-  }
-
-  @media (min-width: 720px) {
-    .site-header-bar {
-      padding: 0 var(--space-5);
-    }
+    padding: 0 var(--gutter);
   }
 
   .site-home {
@@ -68,9 +63,17 @@ const { views = false, toc = false } = Astro.props;
     align-items: center;
     gap: var(--space-2);
     min-height: 44px;
-    margin-right: auto;
+    /* 图标和站名离按钮 16px（--space-4），不是普通的 8px */
+    margin-left: var(--space-4);
     color: var(--text);
     text-decoration: none;
+  }
+
+  /* ≥1100px 没有“目录”按钮：站名顶到页眉左缘 */
+  @media (min-width: 1100px) {
+    .site-home {
+      margin-left: 0;
+    }
   }
 
   /* logo 的 SVG 自带按字号算出的宽高，这里按高度缩放（Logo.astro）；高 24px、站名 16px 都按 design §4.0 */
@@ -83,12 +86,20 @@ const { views = false, toc = false } = Astro.props;
   .site-name {
     font-size: 16px;
     line-height: 1;
-    font-weight: 700;
+    font-weight: var(--fw-heading);
     white-space: nowrap;
   }
 
   @media (max-width: 479px) {
     .site-name {
+      display: none;
+    }
+  }
+
+  /* ≥1100px：左侧常驻侧边栏就是目录，页眉不再放“目录”按钮（v2.2 D8 第 5 条）。
+     没有 JS 时它是链到首页目录的链接，也一起藏起来，侧边栏里的目录照样能点。 */
+  @media (min-width: 1100px) {
+    .toc-open {
       display: none;
     }
   }
@@ -108,7 +119,7 @@ const { views = false, toc = false } = Astro.props;
     color: var(--text);
     font: inherit;
     font-size: var(--fs-meta);
-    font-weight: 600;
+    font-weight: var(--fw-heading);
     text-decoration: none;
     cursor: pointer;
   }

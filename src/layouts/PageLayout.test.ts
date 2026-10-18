@@ -63,7 +63,7 @@ describe('PageLayout', () => {
     expect(html).toContain('data-view-option="principle"');
   });
 
-  it('目录：只有抽屉，没有常驻侧栏；“目录”是链到首页目录的链接，参考页列在最后一章（附录）里（design §4.5、§5，FR-16）', async () => {
+  it('目录（v2.2 D8）：≥1100px 一份常驻侧边栏 + <1100px 的抽屉，两份标记一样；“目录”按钮是链到首页目录的链接，参考页在附录一章里（design §4.5、§5，FR-16）', async () => {
     const tocReferences = [
       { id: 'faq', title: '常见问题' },
       { id: 'ip-tests', title: 'IP 质量实测合集' },
@@ -73,17 +73,16 @@ describe('PageLayout', () => {
       { id: 'appendix', title: '附录', items: [] },
     ];
     const html = await render({ tocReferences, view: { ...view, outline } }, { principle: '<p>原理正文</p>' });
-    expect(html).not.toContain('data-toc-sidebar');
-    expect(html).not.toContain('step-shell');
-    // 目录在抽屉里，页面上只有一份
-    expect(html).toMatch(/<dialog[^>]*data-toc-dialog[\s\S]*<nav[^>]*data-toc[\s\S]*<\/dialog>/);
-    expect(html.match(/<nav[^>]*data-toc[\s>]/g)).toHaveLength(1);
+    // 侧边栏是静态 HTML，在抽屉之前；抽屉里一份
+    expect(html).toMatch(/<aside class="toc-sidebar"[^>]*data-toc-sidebar[\s\S]*<nav[^>]*data-toc[\s\S]*<\/aside>\s*<dialog[^>]*data-toc-dialog/);
+    expect(html.match(/<nav[^>]*data-toc[\s>]/g)).toHaveLength(2);
+    expect(html).toMatch(/<nav[^>]*class="toc toc-sidebar"/);
     // 没有 JS 时就是指向首页完整目录的链接，不隐藏
     expect(html).toMatch(/<a[^>]*href="\/#home-chapters"[^>]*data-toc-open/);
     expect(html).not.toMatch(/data-toc-open[^>]*hidden/);
-    // 章节号用固定字形，读屏读“第 n 章”
-    expect(html).toMatch(/class="toc-chapter-no"[^>]*>\s*<svg class="numeral"[^>]*aria-label="第 0 章"/);
-    // 参考页列在最后一章的列表里，不单列
+    // 侧边栏里章标题写“第 1 章”，不再是补零的章节号字形
+    expect(html).toMatch(/<span class="toc-chapter-no"[^>]*>第 1 章<\/span>/);
+    expect(html).not.toMatch(/<span class="toc-chapter-no"[^>]*>\s*<svg class="numeral"[^>]*aria-label="第 0 章"/);
     expect(html).toMatch(/href="[^"]*\/faq\/"[^>]*>\s*<span class="toc-label"[^>]*>常见问题/);
     expect(html).toMatch(/href="[^"]*\/ip-tests\/"[^>]*>\s*<span class="toc-label"[^>]*>IP 质量实测合集/);
   });
@@ -102,11 +101,13 @@ describe('PageLayout', () => {
     expect(html).toMatch(/<span aria-hidden="true"[^>]*data-route-eyebrow[^>]*>第 3 章 · 注册和订阅 · 第 2 步，共 5 步<\/span>/);
     expect(html).toMatch(/class="visually-hidden"[^>]*data-route-progress[^>]*>注册和订阅，第 2 步，共 5 步</);
     expect(html.indexOf('data-route-eyebrow')).toBeLessThan(html.indexOf('<h1'));
-    // 正文区（色带和正文）里不再出现任何补零的编号字形（D10）；页面里的 <symbol> 字形留给首页索引和 404
+    // 正文区（色带和正文）里没有任何补零的编号字形（D10）：<symbol> 字形和 <use> 都留给首页索引和 404
     const main = /<main[\s\S]*<\/main>/.exec(html)?.[0] ?? '';
     expect(main).not.toContain('numeral');
     expect(main).not.toContain('data-route-mark');
     expect(html).not.toContain('data-route-total');
+    // 页眉里也没有编号；整页唯一一份 <symbol> 是 BaseLayout 的 NumeralSprite
+    expect(/<header class="site-header"[\s\S]*?<\/header>/.exec(html)?.[0]).not.toContain('numeral');
   });
 
   it('数不清第几步时眉题只有章和章名（FR-10）', async () => {

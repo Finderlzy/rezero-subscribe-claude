@@ -1,22 +1,23 @@
 <!--
-  Claude Code 的官方像素小形象（design v2.2 D6、D7）：按 docs/assets/mascot-reference.png 逐格描成，
-  以参考图为 1 格 = 1 单位，每格一个方块，标准姿态；不改画、不放大、不配台词。
-  颜色只用 --mascot（官方橙），眼睛是 --mascot-eye（深色下就是页面底色）。
+  Claude Code 的官方像素小形象（design v2.2 D6、D7）：按 docs/assets/mascot-reference.png 逐格描成。
+  参考图里它的每个像素是 2×2 个图像像素（34×23 图像像素、35px 宽，描出来是 17×12 格），
+  以参考图的 1 格为 1 单位，每格一个 <rect>；标准姿态，不改画、不放大、不配台词。
+  颜色只用 --mascot（官方橙），眼睛是 --mascot-eye（各主题的页面底色）。
   由 src/components/Mascot.astro 引用，是唯一引用这个文件的地方。纯装饰，对读屏隐藏。
 -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 37 25" shape-rendering="crispEdges">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 17 12" shape-rendering="crispEdges">
   <g class="mascot-body" fill="var(--mascot, #c96442)">
-    <rect x="3" y="0" width="23" height="8"/>
-    <rect x="26" y="8" width="10" height="5"/>
-    <rect x="0" y="13" width="29" height="5"/>
-    <rect x="8" y="18" width="2" height="4"/>
-    <rect x="15" y="18" width="3" height="4"/>
-    <rect x="22" y="18" width="3" height="4"/>
-    <rect x="27" y="18" width="3" height="4"/>
-    <rect x="0" y="22" width="3" height="2"/>
+    <rect x="2" y="0" width="12" height="4"/>
+    <rect x="13" y="4" width="4" height="3"/>
+    <rect x="0" y="7" width="15" height="2"/>
+    <rect x="2" y="9" width="2" height="3"/>
+    <rect x="6" y="9" width="2" height="3"/>
+    <rect x="11" y="9" width="2" height="3"/>
+    <rect x="14" y="9" width="1" height="3"/>
+    <rect x="0" y="10" width="1" height="2"/>
   </g>
-  <g class="mascot-eyes" fill="var(--mascot-eye, #121214)">
-    <rect x="5" y="5" width="2" height="2"/>
-    <rect x="18" y="5" width="2" height="2"/>
+  <g class="mascot-eyes" fill="var(--mascot-eye, #ffffff)">
+    <rect x="4" y="2" width="1" height="2"/>
+    <rect x="12" y="2" width="1" height="2"/>
   </g>
 </svg>

@@ -94,8 +94,9 @@ test.describe('没有 JS', () => {
   });
 });
 
-// design §4.3、D8：按下的一段用 --text 底、--bg 字（v2.0 是紫底），没按下的一段 --bg 底、--text 字；一屏只留主按钮一块紫。
-test('视图切换按下的一段是墨色底，切换后跟着换', async ({ page }) => {
+// design §4.3、§4.0（v2.2 W2 第 8 条）：分段控件改成 --surface-muted 轨道，选中的一段是 --surface 底、
+// 1px --border、--text 字，没选中的是 --text-muted；切换后跟着换。
+test('视图切换是分段控件：选中一段 --surface 底、--text 字，没选中的 --text-muted', async ({ page }) => {
   await page.goto('./leak-protection/');
   await expectScriptRan(page);
   const colors = (name: string) =>
@@ -103,16 +104,18 @@ test('视图切换按下的一段是墨色底，切换后跟着换', async ({ pa
       .getByRole('button', { name })
       .evaluate((el) => {
         const style = getComputedStyle(el);
-        return { background: style.backgroundColor, color: style.color };
+        return { background: style.backgroundColor, color: style.color, border: style.borderTopColor };
       });
-  const ink = { background: await token(page, '--text'), color: await token(page, '--bg') };
 
-  expect(await colors('操作')).toEqual(ink);
-  expect((await colors('原理')).color).toBe(await token(page, '--text'));
+  const selected = await colors('操作');
+  expect(selected).toEqual({ background: await token(page, '--surface'), color: await token(page, '--text'), border: await token(page, '--border') });
+  const idle = await colors('原理');
+  expect(idle.background).toBe('rgba(0, 0, 0, 0)');
+  expect(idle.color).toBe(await token(page, '--text-muted'));
 
   await toggle(page).getByRole('button', { name: '原理' }).click();
-  expect(await colors('原理')).toEqual(ink);
-  expect((await colors('操作')).color).toBe(await token(page, '--text'));
+  expect(await colors('原理')).toEqual(selected);
+  expect((await colors('操作')).color).toBe(await token(page, '--text-muted'));
 });
 
 // FR-10、design §4.1、§4.3：编号是本章进度，按当前视图计数，切换后重算。“整体思路”是原理独有步骤，
@@ -140,6 +143,7 @@ test('切换视图后步骤编号和“共 m 步”重算', async ({ page }) => 
 test('眉题写在页头色带里：普通页写章、章名和步数，章首页只写步数', async ({ page }) => {
   for (const { path, text } of [
     { path: './disclaimer/', text: /^第 1 章 · 开始 · 第 2 步，共 \d+ 步$/ },
+    // 章首页（v2.2 §3 W2 第 2 条）：色带上已经有副标题和章名，眉题省掉章的部分
     { path: './preface/', text: /^第 1 步，共 \d+ 步$/ },
     // clean-up 不是章首页（前言、整体思路在它前面）
     { path: './clean-up/', text: /^第 1 章 · 开始 · 第 \d+ 步，共 \d+ 步$/ },
@@ -164,7 +168,9 @@ test('眉题写在页头色带里：普通页写章、章名和步数，章首�
     expect(band.background, path).toBe(await token(page, '--accent-soft'));
     expect(band.color, path).toBe(await token(page, '--accent'));
     expect(band.fontSize, path).toBe('14px');
+    // 步骤页上没有补零的“0X”编号（v2.2 D10）：没有页边编号，也没有固定字形
     await expect(page.locator('[data-route-mark]')).toHaveCount(0);
+    await expect(page.locator('.step .numeral, .step [role="img"]')).toHaveCount(0);
   }
 });
 

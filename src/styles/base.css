@@ -1,8 +1,8 @@
 /* 全站基础：页面底色、正文字体、焦点环，以及几个跨页面共用的小样式。 */
 
-/* 吸顶的页眉不挡住锚点跳转的目标（常见问题的条目、“跳到正文”）。 */
+/* 吸顶的页眉不挡住锚点跳转的目标（“跳到正文”、常见问题条目）。 */
 :root:has(.site-header) {
-  scroll-padding-top: calc(var(--header-height) + var(--band-height) + var(--space-4));
+  scroll-padding-top: calc(var(--header-height) + var(--space-4));
 }
 
 body {
@@ -49,12 +49,12 @@ button:active,
   white-space: nowrap;
 }
 
-/* “跳到正文”：平时隐藏，键盘聚焦时出现（design §5）。 */
+/* “跳到正文”：平时隐藏，键盘聚焦时出现（design §5）；z-index 要高过页眉（2）和手机上的吸底底栏（1）。 */
 .skip-link {
   position: absolute;
   top: var(--space-2);
   left: var(--space-2);
-  z-index: 3;
+  z-index: 4;
   padding: var(--space-2) var(--space-3);
   background: var(--surface);
   border: var(--border-width) solid var(--control-border);
@@ -68,7 +68,7 @@ button:active,
 
 /* 首页以外的普通页面：参考页、找不到页。 */
 .page {
-  max-width: var(--measure);
+  max-width: calc(var(--measure) + 2 * var(--gutter));
   margin: 0 auto;
   padding: var(--space-7) var(--gutter);
 }
@@ -81,38 +81,16 @@ button:active,
 }
 
 /*
- * 眉题（design §4.1、§4.6）：14px 次要色，加宽字距，两端各一条短横（学番剧英文副标题的两端短横）。
- * 短横用伪元素画成线，不进文字内容，屏幕阅读器不读。眉题里的章节号用系统字体（固定字形只给大编号，§4.1）。
+ * 眉题（design §4.1、§4.6，v2.2 D4）：14px，加宽字距，不加两端短横（短横只留给章首页的英文副标题）。
+ * 页头色带里的眉题用 --accent（PageLayout），参考页的用 --text-muted（ReferenceLayout）。
  */
 .eyebrow {
   margin: 0 0 var(--space-2);
   color: var(--text-muted);
   font-size: var(--fs-meta);
   line-height: var(--lh-meta);
-  font-weight: 500;
+  font-weight: var(--fw-heading);
   letter-spacing: var(--tracking-meta);
-}
-
-.eyebrow::before,
-.eyebrow::after {
-  /* 内容是不可见的 U+2060 词连接符，短横是 1em 宽、1px 高的背景：手机上折行时短横不会单独掉到下一行 */
-  content: '\2060';
-  /* 显式给空的替代文本，不进无障碍树；不支持这种写法的浏览器退回上一行 */
-  content: '\2060' / '';
-  padding-left: 1em;
-  background: linear-gradient(currentColor, currentColor) no-repeat center / 1em 1px;
-}
-
-.eyebrow::before {
-  margin-right: 0.5em;
-}
-
-.eyebrow::after {
-  margin-left: 0.5em;
-}
-
-.eyebrow-no {
-  margin-right: 0.5em;
 }
 
 .page-actions {

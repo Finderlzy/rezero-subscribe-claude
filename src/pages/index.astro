@@ -121,7 +121,7 @@ if (!(overview.principle.body ?? '').replaceAll('**', '').includes(TAGLINE)) {
     }
   }
 
-  /* 眉题到 logo 24px。v2.2：眉题用 --accent、不加两端短横（短横只留给章节标题卡的英文副标题） */
+  /* 眉题到 logo 24px。v2.2：眉题用 --accent、不加两端短横（短横只留给章首页的英文副标题） */
   .home-eyebrow {
     margin: 0 0 var(--space-5);
     color: var(--accent);
@@ -131,7 +131,7 @@ if (!(overview.principle.body ?? '').replaceAll('**', '').includes(TAGLINE)) {
     letter-spacing: var(--tracking-meta);
   }
 
-  /* logo 和小形象：小形象在 logo 的右下方，脚底贴着这一块的下沿 */
+  /* logo 和小形象：小形象在 logo 的右下方，脚底贴着这一块的下沿（design v2.2 W2 第 6 条） */
   .home-logo {
     display: flex;
     align-items: flex-end;

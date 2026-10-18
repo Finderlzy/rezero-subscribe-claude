@@ -5,13 +5,16 @@ import type { Stop } from '../lib/route/types';
 import { withBase } from '../lib/with-base';
 
 /**
- * 上一步 / 下一步（design §4.1，FR-11）。按钮里写出目标标题，不只写“下一步”（design §6）。
+ * 上一步 / 下一步（design §4.1，v2.2 W4b，FR-11）。按钮里写出目标标题，不只写“下一步”（design §6）。
  * 链接在构建时按当前页的路线写好，不运行 JS 也能顺着走完；页面脚本 route-enhance 按本机选择和视图改写（data-route-* 挂载点）。
  * 前言的上一步、后记的下一步是首页；选择页未选时没有“下一步”（FR-12）：链接照样写出但带 `hidden`、没有地址，
  * 读者在本机选过之后由页面脚本显示出来。
  * 旁支页没有上一步，左边换成“回到：<挂靠的页面>”（FR-19）。
  * 可跳过步骤在“下一步”上方多一个文字按钮（design §4.1，FR-15）。它放在 nav 外面、正文流里：
  * 手机上底栏吸底，放进底栏会让底栏变高，正文末尾的留白就不够了。
+ *
+ * 样式（v2.2 W4b）：上方一条 1px --border 细线；左边是两行文字链接（13px 的“← 上一步”，下面 15px 的标题），
+ * 右边是一个墨色主按钮“下一步：<标题> →”。手机上两者吸底，左边是 44×44 的“←”图标按钮，右边撑满。
  */
 interface Props {
   prev: Stop | null;
@@ -45,36 +48,28 @@ const backLabel = returnTo ? '回到' : '上一步';
     <nav class="step-nav" aria-label="上一步和下一步">
       {back && (
         <a
-          class="step-nav-link step-nav-prev"
+          class="step-nav-prev"
           href={withBase(pathOf(back))}
           rel={returnTo ? undefined : 'prev'}
           data-return={returnTo ? '' : undefined}
           data-route-nav={returnTo ? 'return' : 'prev'}
+          aria-label={`${backLabel}：${stopTitle(back, 'prev')}`}
         >
           <span class="step-nav-dir">
-            <span aria-hidden="true">← </span>
+            <span class="step-nav-arrow" aria-hidden="true">←</span>
             <span class="step-nav-dir-label">{backLabel}</span>
           </span>
-          <span class="step-nav-title">
-            <span class="visually-hidden">：</span>
-            <span data-route-title>{stopTitle(back, 'prev')}</span>
+          <span class="step-nav-title" data-route-title>
+            {stopTitle(back, 'prev')}
           </span>
         </a>
       )}
-      <a
-        class="step-nav-link step-nav-next"
-        href={next ? withBase(pathOf(next)) : undefined}
-        hidden={!next}
-        rel="next"
-        data-route-nav="next"
-      >
-        <span class="step-nav-dir">
-          下一步<span class="button-arrow" aria-hidden="true">→</span>
+      <a class="step-nav-next" href={next ? withBase(pathOf(next)) : undefined} hidden={!next} rel="next" data-route-nav="next">
+        <span class="visually-hidden">下一步：</span>
+        <span class="step-nav-next-title" data-route-title>
+          {next ? stopTitle(next, 'next') : ''}
         </span>
-        <span class="step-nav-title">
-          <span class="visually-hidden">：</span>
-          <span data-route-title>{next ? stopTitle(next, 'next') : ''}</span>
-        </span>
+        <span class="button-arrow" aria-hidden="true"> →</span>
       </a>
     </nav>
   )
@@ -102,138 +97,163 @@ const backLabel = returnTo ? '回到' : '上一步';
 
   /* 页面脚本按本机选择隐藏或显示跳过和“下一步”；下面的 display 会盖过 hidden 属性，这里补回来。 */
   .step-skip[hidden],
-  .step-nav-link[hidden] {
+  .step-nav a[hidden] {
     display: none;
   }
 
-  .step-skip + .step-nav {
-    margin-top: var(--space-3);
-  }
-
-  /* 桌面：正文结尾两个大块链接，写出方向和目标标题；“下一步”是主按钮，“上一步”是次按钮（design §4.1）。 */
+  /*
+   * 平板和桌面（design §4.1，v2.2 W4b）：一条 1px --border 细线，上边距 --space-7；一行，左边上一步、右边下一步。
+   */
   .step-nav {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     gap: var(--space-4);
     margin-top: var(--space-7);
+    padding-top: var(--space-5);
+    border-top: var(--border-width) solid var(--border);
   }
 
-  .step-nav-link {
+  /* 上一步：两行文字链接，13px --text-faint 的“← 上一步”，下面是 15px --text 的标题；悬停时标题加下划线。 */
+  .step-nav-prev {
     display: flex;
     flex-direction: column;
     gap: var(--space-1);
-    min-height: var(--button-height);
-    padding: var(--space-4);
-    border: var(--border-width) solid var(--control-border);
-    border-radius: var(--radius-control);
-    background: var(--surface);
+    min-width: 0;
+    min-height: 44px;
+    justify-content: center;
+    padding: var(--space-1) 0;
     color: var(--text);
     text-decoration: none;
   }
 
-  /* 两个都是按钮：按下时下移 1px（design §5，减少动态效果时 --press-shift 归零） */
-  .step-nav-link:active {
+  .step-nav-dir {
+    color: var(--text-faint);
+    font-size: var(--fs-caption);
+    line-height: var(--lh-meta);
+    font-weight: var(--fw-heading);
+    white-space: pre;
+  }
+
+  .step-nav-title {
+    font-size: 15px;
+    line-height: var(--lh-meta);
+  }
+
+  .step-nav-prev:hover .step-nav-title {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  /* 下一步：墨色主按钮（--primary-bg / --primary-fg），高 48px、圆角 8px、左右内边距 20px，16px 600；
+     悬停时底色调亮一档（--primary-bg-hover），箭头右移 --nudge；按下下移 --press-shift（design §5）。 */
+  .step-nav-next {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: var(--space-1);
+    max-width: 60%;
+    min-height: var(--button-height);
+    padding: 0 20px;
+    box-sizing: border-box;
+    border-radius: var(--radius-control);
+    background: var(--primary-bg);
+    color: var(--primary-fg);
+    font-size: var(--fs-button);
+    font-weight: var(--fw-heading);
+    line-height: var(--lh-meta);
+    text-decoration: none;
+  }
+
+  .step-nav-next:hover {
+    background: var(--primary-bg-hover);
+  }
+
+  .step-nav-next:active {
     translate: 0 var(--press-shift);
   }
 
-  /* 次按钮：--bg 底，悬停时边框变成 --text（design §4.7、§5） */
-  .step-nav-prev {
-    background: var(--bg);
-  }
-
-  .step-nav-prev:hover {
-    border-color: var(--text);
-  }
-
-  .step-nav-next {
-    grid-column: 2;
-    text-align: right;
-    background: var(--primary-bg);
-    border-color: var(--primary-bg);
-    color: var(--primary-fg);
-  }
-
-  /* 章首页的第一屏，大块的紫留给章节号（design §3.1 用紫规则、§4.1）：手机上吸底、短章首页在更宽时，“下一步”都在第一屏，
-     所以章首页的“下一步”在所有宽度都改用墨色，同视图切换按下的一段。data-chapter-start 由 PageLayout 写在 <main> 上 */
-  :global(main[data-chapter-start]) .step-nav-next {
-    background: var(--text);
-    border-color: var(--text);
-    color: var(--bg);
-  }
-
-  /* 主按钮悬停：箭头（全局的 .button-arrow，base.css）右移 4px，不改颜色（design §5） */
-  .step-nav-next .button-arrow {
-    margin-left: var(--space-1);
+  .step-nav-next-title {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
   .step-nav-next:hover .button-arrow {
     translate: var(--nudge) 0;
   }
 
-  .step-nav-dir {
-    font-size: var(--fs-meta);
-    line-height: var(--lh-meta);
-    font-weight: 500;
-    letter-spacing: var(--tracking-meta);
-  }
-
-  .step-nav-prev .step-nav-dir {
-    color: var(--text-muted);
-  }
-
-  .step-nav-title {
-    font-weight: var(--fw-heading);
-  }
-
-  /* 手机：吸底的底栏，“下一步”约占 2/3 宽；“上一步”只留箭头（无障碍名称仍是“上一步：<标题>”）。正文末尾的留白见 PageLayout。 */
+  /* 手机（design §4.1、§4.5）：吸底的底栏，高度 --mobile-bar-height、--bg 底、上沿一条 1px --border 细线；
+     左边 44×44 的“←”图标按钮（无障碍名称是“上一步：<标题>”），右边撑满剩余宽度的主按钮。正文末尾的留白见 PageLayout。 */
   @media (max-width: 719px) {
     .step-nav {
       position: fixed;
       inset: auto 0 0;
       z-index: 1;
-      grid-template-columns: 1fr 2fr;
       gap: var(--space-2);
       margin: 0;
-      padding: var(--space-2) var(--space-4) calc(var(--space-2) + env(safe-area-inset-bottom));
+      padding: var(--space-2) var(--gutter) calc(var(--space-2) + env(safe-area-inset-bottom));
       background: var(--bg);
       border-top: var(--border-width) solid var(--border);
     }
 
-    .step-nav-link {
-      min-height: 56px;
-      justify-content: center;
-      padding: var(--space-2) var(--space-3);
-      border-radius: var(--radius-control);
-    }
-
-    .step-nav-next {
-      text-align: left;
-    }
-
-    .step-nav-title {
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
+    /* 没有上一步的选择页：主按钮占满 */
+    .step-nav-prev[hidden] + .step-nav-next {
+      flex: 1 1 auto;
+      max-width: none;
     }
 
     .step-nav-prev {
       align-items: center;
-    }
-
-    .step-nav-prev .step-nav-dir {
+      justify-content: center;
+      flex: none;
+      width: var(--bar-button-height);
+      height: var(--bar-button-height);
+      padding: 0;
+      border: var(--border-width) solid var(--control-border);
+      border-radius: var(--radius-control);
+      background: var(--bg);
       color: var(--text);
       font-size: var(--fs-body);
+      line-height: 1;
     }
 
-    /* 只在手机断点隐藏，所以不能直接套全局的 .visually-hidden。旁支页的“回到”保留文字，和“上一步”区分开。 */
-    .step-nav-prev .step-nav-title,
-    .step-nav-prev:not([data-return]) .step-nav-dir-label {
+    /* 手机上只留“←”：方向和目标标题都在无障碍名称里；旁支页的“回到”保留文字，和“上一步”区分开 */
+    .step-nav-dir-label,
+    .step-nav-title {
       position: absolute;
       width: 1px;
       height: 1px;
       overflow: hidden;
       clip-path: inset(50%);
       white-space: nowrap;
+    }
+
+    .step-nav-dir {
+      color: var(--text);
+      font-size: var(--fs-body);
+      line-height: 1;
+    }
+
+    .step-nav-prev[data-return] .step-nav-dir {
+      font-size: var(--fs-meta);
+    }
+
+    .step-nav-prev[data-return] .step-nav-dir-label {
+      position: static;
+      width: auto;
+      height: auto;
+      overflow: visible;
+      clip-path: none;
+      margin-left: var(--space-1);
+    }
+
+    .step-nav-next {
+      flex: 1 1 auto;
+      max-width: none;
+      min-height: var(--bar-button-height);
+      justify-content: center;
     }
   }
 </style>

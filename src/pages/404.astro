@@ -9,8 +9,9 @@ import { withBase } from '../lib/with-base';
 import '../styles/toc.css';
 
 /**
- * 找不到页（design §4.6，AC-18）：大号 `404`（固定字形，Numeral）、小形象（design v2.2 D6，在 404 的右下方）、
+ * 找不到页（design §4.6，AC-18）：大号 `404`（固定字形，Numeral）、小形象（design v2.2 D6，在 404 的右下角，脚底和数字底线齐平）、
  * “找不到这一页”、一句说明，“回到首页”（主）和“打开目录”（次），目录直接写在页面上，“打开目录”跳到它，不靠 JS。
+ * 不显示侧边栏：这一页本身就是目录（v2.2 D8）。
  */
 const site = await loadSite();
 ---
@@ -39,15 +40,20 @@ const site = await loadSite();
   .not-found-head {
     display: flex;
     align-items: flex-end;
-    gap: var(--space-3);
+    gap: var(--space-4);
     margin: 0 0 var(--space-5);
   }
 
+  /* 数字字形的高度是 1em，但下沿留了一点：小形象再往下贴一点，脚底和数字的底线齐平 */
   .not-found-no {
     margin: 0;
     color: var(--text);
     font-size: var(--fs-display);
     line-height: 1;
+  }
+
+  .not-found-head :global(.mascot) {
+    margin-bottom: -0.06em;
   }
 
   .not-found-toc {
