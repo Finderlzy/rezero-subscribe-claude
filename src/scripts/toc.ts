@@ -6,30 +6,37 @@ import { CHOICES_CHANGED_EVENT, VIEW_CHANGED_EVENT } from './reader-store';
 /**
  * 步骤页、选择页、旁支页的目录脚本（design §4.5，FR-14、FR-16）。标记由 `Toc.astro`/`TocNav.astro` 写出。
  *
+ * 页面上有两份目录：桌面常驻的侧边栏和抽屉（<1100px）。两份内容一样，这里一起改：
  * - 按本机选择和当前视图改写目录（M2 `outline()`）：哪个选项在当前路线上、“其他路线”标记、
  *   操作视图下弱化原理独有步骤、当前项；收到视图或选择变化时重画；
  * - “切换”：写入这个分叉点的选择，派发 CHOICES_CHANGED_EVENT，目录和上一步/下一步一起重算（FR-14）；
  * - 抽屉：页眉的 `[data-toc-open]` 构建时是链到首页目录的链接，这里换成打开 `<dialog>` 的按钮。
+ * - 打开页面时侧边栏滚到当前项可见（只在首次加载做一次）。
  *
  * 页面先运行 route-enhance（打开分支页时写入它的选项），再运行本脚本，目录才按这一页所在的路线画。
- * 跑完给 `<nav>` 加 `data-toc-ready`。
+ * 跑完给每份 `<nav>` 加 `data-toc-ready`。
  */
 export function initToc(doc: Document, data: RouteData, store: ReaderStore): void {
-  const nav = doc.querySelector<HTMLElement>('[data-toc]');
+  const navs = [...doc.querySelectorAll<HTMLElement>('[data-toc]')];
   const at = doc.querySelector<HTMLElement>('[data-route-at]')?.dataset.routeAt ?? null;
-  if (!nav || (at !== null && !Object.hasOwn(data.pages, at))) return;
+  if (navs.length === 0 || (at !== null && !Object.hasOwn(data.pages, at))) return;
 
   const map = routeMapFromData(data);
   const mode = (): ViewMode => (doc.documentElement.dataset.view === 'principle' ? 'principle' : 'operation');
-  const render = () => renderOutline(nav, map.outline(store.read().choices, at, mode()));
+  const render = () => {
+    const outline = map.outline(store.read().choices, at, mode());
+    for (const nav of navs) renderOutline(nav, outline);
+  };
 
-  for (const button of nav.querySelectorAll<HTMLButtonElement>('[data-toc-switch]')) {
-    button.addEventListener('click', () => {
-      store.write({ choices: { [button.dataset.tocSwitch!]: button.value } });
-      doc.dispatchEvent(new Event(CHOICES_CHANGED_EVENT));
-      // 按下的按钮随即隐藏，焦点交给新选项的第一步，键盘读者不会丢失位置。
-      button.closest('[data-toc-option]')?.querySelector<HTMLElement>('[data-toc-step] a')?.focus();
-    });
+  for (const nav of navs) {
+    for (const button of nav.querySelectorAll<HTMLButtonElement>('[data-toc-switch]')) {
+      button.addEventListener('click', () => {
+        store.write({ choices: { [button.dataset.tocSwitch!]: button.value } });
+        doc.dispatchEvent(new Event(CHOICES_CHANGED_EVENT));
+        // 按下的按钮随即隐藏，焦点交给新选项的第一步，键盘读者不会丢失位置。
+        button.closest('[data-toc-option]')?.querySelector<HTMLElement>('[data-toc-step] a')?.focus();
+      });
+    }
   }
   // 目录自己、选择页的选项块改了选择，或切换了视图，都在这里重画。
   doc.addEventListener(CHOICES_CHANGED_EVENT, render);
@@ -39,8 +46,11 @@ export function initToc(doc: Document, data: RouteData, store: ReaderStore): voi
   });
 
   render();
-  initDrawer(doc, nav);
-  nav.dataset.tocReady = '';
+  // 抽屉里的那份（aside 里的跟着侧边栏滚动，不需要换焦点位置）
+  initDrawer(doc, navs.find((nav) => !nav.closest('[data-toc-sidebar]')) ?? navs[0]!);
+  // 侧边栏：打开页面时滚到当前项可见（只做一次，之后读者自己滚，重画时不打断）
+  navs.find((nav) => nav.closest('[data-toc-sidebar]'))?.querySelector<HTMLElement>('[aria-current="page"]')?.scrollIntoView({ block: 'nearest' });
+  for (const nav of navs) nav.dataset.tocReady = '';
 }
 
 /**

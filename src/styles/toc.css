@@ -146,7 +146,7 @@
   letter-spacing: var(--tracking-meta);
 }
 
-/* 章节号从 00 开始，用固定字形（Numeral，1em = 数字高度）：目录里 20px（design §4.5），首页 28px（§4.4）。 */
+/* 章节号从 00 开始，用固定字形（Numeral，1em = 数字高度）：首页 28px（design §4.4）。 */
 .toc-chapter-no {
   flex: none;
   color: var(--accent);
@@ -159,16 +159,19 @@
   margin-left: var(--space-5);
 }
 
+/* 页面项：15px，行高 1.5，上下内边距 6px，左内边距 12px（design §4.5） */
 .toc-step a {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0 var(--space-2);
   min-height: 44px;
-  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-5);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
   box-sizing: border-box;
   border-radius: var(--radius-control);
   color: var(--text);
+  font-size: 15px;
+  line-height: var(--lh-meta);
   text-decoration: none;
   position: relative;
 }
@@ -198,7 +201,7 @@
   color: var(--text-muted);
 }
 
-/* “或”分组：各选项用左侧短竖线连起来。 */
+/* “或”分组：各选项用左侧短竖线连起来；选项名 13px --text-faint（design §4.5，v2.2） */
 .toc-option {
   margin-left: var(--space-2);
   padding-left: var(--space-2);
@@ -220,7 +223,8 @@
   gap: var(--space-2);
   min-height: 44px;
   padding-left: var(--space-2);
-  color: var(--text-muted);
+  color: var(--text-faint);
+  font-size: var(--fs-caption);
   font-weight: var(--fw-heading);
 }
 
@@ -240,6 +244,102 @@
   font: inherit;
   font-weight: var(--fw-heading);
   cursor: pointer;
+}
+
+/*
+ * 桌面常驻的侧边栏（design §4.5，v2.2 D8）：宽 --sidebar-width，吸在页眉下沿，占满视口剩余高度、独立滚动，
+ * 右边一条 1px --border 竖线。只排在 ≥1100px 的布局里（PageLayout 的 .step 是 grid）；<1100px 时不显示，目录只有抽屉。
+ */
+@media (max-width: 1099px) {
+  .toc-sidebar {
+    display: none;
+  }
+}
+
+.toc-sidebar {
+  position: sticky;
+  top: var(--header-height);
+  height: calc(100vh - var(--header-height));
+  overflow-y: auto;
+  border-right: var(--border-width) solid var(--border);
+  box-sizing: border-box;
+}
+
+.toc-sidebar-inner {
+  padding: var(--space-6) var(--space-4) var(--space-8) var(--space-5);
+}
+
+/* 侧边栏里的目录列表：章标题两行（13px --text-faint 的“第 1 章”，下面 15px 600 的章名） */
+.toc-sidebar {
+  font-size: 15px;
+  letter-spacing: normal;
+}
+
+.toc-sidebar .toc-chapter-head {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  margin-bottom: var(--space-2);
+}
+
+.toc-sidebar .toc-chapter-no {
+  color: var(--text-faint);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-meta);
+  font-weight: 400;
+}
+
+.toc-sidebar .toc-chapter-title {
+  color: var(--text);
+  font-size: 15px;
+  line-height: var(--lh-meta);
+  font-weight: var(--fw-heading);
+  letter-spacing: normal;
+}
+
+.toc-sidebar .toc-chapter + .toc-chapter {
+  margin-top: var(--space-5);
+}
+
+/* 页面项：15px，上下内边距 6px，左内边距 12px */
+.toc-sidebar .toc-step a {
+  padding: 6px 6px 6px var(--space-3);
+  font-size: 15px;
+}
+
+/* 当前页：--accent 字色 + --accent-soft 底 + 圆角 8px，不用左侧色条（v2.2 D8） */
+.toc-sidebar .toc-step a[aria-current='page'] {
+  color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: none;
+}
+
+/* 悬停：--surface-muted 底 */
+.toc-sidebar .toc-step a:hover {
+  background: var(--surface-muted);
+}
+
+.toc-sidebar .toc-step a[aria-current='page']:hover {
+  background: var(--accent-soft);
+}
+
+.toc-sidebar .toc-step a:hover .toc-label {
+  text-decoration: none;
+}
+
+/* “或”分组：保留下面的短竖线；272px 宽的侧边栏里选项名和“切换”按钮要能并排（按钮还没按过时是本机没选，见 toc.ts） */
+.toc-sidebar .toc-option-head {
+  min-height: var(--space-6);
+  padding-left: var(--space-2);
+  font-size: var(--fs-caption);
+}
+
+.toc-sidebar .toc-switch {
+  min-height: 28px;
+  padding: 0 var(--space-2);
+  border-color: var(--border);
+  color: var(--accent);
+  font-size: var(--fs-caption);
 }
 
 /*

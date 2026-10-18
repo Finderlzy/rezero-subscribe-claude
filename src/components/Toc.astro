@@ -5,10 +5,12 @@ import TocNav from './TocNav.astro';
 import '../styles/toc.css';
 
 /**
- * 步骤目录的抽屉（design v2.1 §4.5、D5，FR-16）：所有宽度都是抽屉，不常驻。
+ * 步骤目录（design §4.5，v2.2 D8、D9，FR-16）：≥1100px 是左侧常驻的侧边栏，<1100px 是抽屉。
  *
- * 构建时按 `outline` 把全部章节和页面写进 `<dialog>`。页眉的“目录”（`[data-toc-open]`，SiteHeader）
- * 没有 JS 时是指向首页完整目录的链接；页面脚本 toc.ts 把它换成打开这个抽屉的按钮。
+ * 构建时按 `outline` 把全部章节和页面写两遍：一份在 `aside[data-toc-sidebar]`（静态 HTML，没有 JS 也照样能点），
+ * 一份在 `<dialog>` 里。页眉的“目录”（`[data-toc-open]`，SiteHeader）只在 <1100px 显示（CSS），
+ * 没有 JS 时是指向首页完整目录的链接；页面脚本 toc.ts 把它换成打开抽屉的按钮。
+ * 两份用同一套标记契约（见下），toc.ts 对两份都按当前路线和视图重画。
  *
  * 标记契约（脚本按文档顺序把它们和 outline 一一对应）：
  *   [data-toc-step]：每个步骤（共享步骤在每个选项下各一个），内含 a、[data-toc-other]；
@@ -21,6 +23,12 @@ interface Props {
 
 const { outline, references } = Astro.props;
 ---
+
+<aside class="toc-sidebar" data-toc-sidebar aria-label="步骤目录">
+  <div class="toc-sidebar-inner">
+    <TocNav outline={outline} references={references} label="步骤目录（侧边栏）" sidebar />
+  </div>
+</aside>
 
 <dialog class="toc-dialog" data-toc-dialog aria-labelledby="toc-dialog-title">
   <div class="toc-dialog-head">
