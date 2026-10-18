@@ -76,6 +76,8 @@
   --lh-code: 1.6;
   --tracking-meta: 0.06em;
   --measure: 38em;
+  /* 正文的字距；界面上的小字（眉题、标签、页脚）另用 --tracking-meta */
+  --tracking-body: 0;
   --paragraph-gap: 0.9em;
   --list-item-gap: 0.4em;
 
@@ -100,6 +102,10 @@
   --button-height: 48px;
   /* §4.1 手机上吸底的翻页栏里按钮的高度；正文末尾按它预留空白 */
   --bar-button-height: 44px;
+  /* §4.2 选项行的编号圆圈直径（1px --control-border 描边，13px 的数字） */
+  --option-no-size: 24px;
+  /* §4.1 手机上吸底的翻页栏高度：按钮 44px + 上下内边距各 8px + 上边框 1px */
+  --mobile-bar-height: calc(var(--bar-button-height) + var(--space-2) * 2 + var(--border-width));
 
   /*
    * §5 动效：只有看大图（淡入 150ms，code-zoom.css）和目录抽屉（滑入/滑出，toc.css）两处过渡；
@@ -113,7 +119,10 @@
   --nudge: 4px;
   --press-shift: 1px;
 
-  /* §3.3 圆角、边框、浮层阴影（只有浮层可以加：目录抽屉、看大图） */
+  /*
+   * §3.3 圆角、边框、浮层阴影（只有浮层可以加：目录抽屉、看大图）。
+   * --radius-control 用于按钮、选项行、视图切换；--radius-panel 只给提示框和代码块；--radius-image 给截图（W1）。
+   */
   --radius-control: 8px;
   --radius-panel: 10px;
   --radius-image: 8px;

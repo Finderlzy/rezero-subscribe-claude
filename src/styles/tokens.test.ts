@@ -97,6 +97,14 @@ it('减少动态效果时，动效时长和位移令牌都归零', () => {
   }
 });
 
+// design v2.2 §2（W1）：按钮、行、视图切换 8px，提示框和代码块 10px，截图 8px。
+it('圆角按 v2.2 的三种用途分开：控件 8px、面板 10px、图片 8px', () => {
+  const radii = Object.fromEntries(
+    [...block(':root {').matchAll(/(--radius-[\w-]+):\s*([^;]+);/g)].map(([, name, value]) => [name, value!.trim()]),
+  );
+  expect(radii).toEqual({ '--radius-control': '8px', '--radius-panel': '10px', '--radius-image': '8px' });
+});
+
 describe.each([
   ['浅色', light],
   ['深色', dark],
