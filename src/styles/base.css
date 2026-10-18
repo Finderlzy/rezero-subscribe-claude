@@ -66,11 +66,54 @@ button:active,
   transform: none;
 }
 
-/* 首页以外的普通页面：参考页、找不到页。 */
+/* 首页以外的普通页面（参考页、找不到页）：内容和正文栏一样宽（--content-width），左对齐 */
 .page {
-  max-width: calc(var(--measure) + 2 * var(--gutter));
+  max-width: var(--content-width);
   margin: 0 auto;
   padding: var(--space-7) var(--gutter);
+}
+
+/*
+ * 桌面（≥1100px）左侧常驻的目录侧边栏（design §4.5，v2.2 D8）：目录是页面里的第一个元素，
+ * 右边一条竖线，正文区（.page-view / .page）排在剩余宽度里居中，最大宽度仍是正文栏。
+ * 侧边栏自己吸在页眉下沿、占满视口剩余高度、独立滚动（toc.css 的 .toc-sidebar）；页脚横跨整个宽度。
+ */
+@media (min-width: 1100px) {
+  :root:has(> body > aside.toc-sidebar) body {
+    display: grid;
+    grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'header header'
+      'sidebar view'
+      'sidebar footer';
+    min-height: 100vh;
+  }
+
+  :root:has(> body > aside.toc-sidebar) .site-header {
+    grid-area: header;
+  }
+
+  :root:has(> body > aside.toc-sidebar) aside.toc-sidebar {
+    grid-area: sidebar;
+  }
+
+  :root:has(> body > aside.toc-sidebar) .page-view,
+  :root:has(> body > aside.toc-sidebar) .page {
+    grid-area: view;
+  }
+
+  /*
+   * 页脚和竖线之间没有上边框：竖线一直画到页脚，页脚里那条 1px --border 只横跨正文区（SiteFooter）。
+   * <main> 在网格里会被行高拉伸，正文按内容高度排（页脚紧跟正文），不把正文区撑满。
+   */
+  :root:has(> body > aside.toc-sidebar) .site-footer {
+    grid-area: footer;
+  }
+
+  :root:has(> body > aside.toc-sidebar) .page-view {
+    align-self: start;
+  }
 }
 
 .page-title {

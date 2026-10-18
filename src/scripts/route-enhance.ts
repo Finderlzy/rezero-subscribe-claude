@@ -95,7 +95,7 @@ function recordChoice(doc: Document, fork: ForkId, store: ReaderStore): void {
   });
 }
 
-/** 本机保存的选项块标“当前选择”和 aria-current；没选时都不标，也不标默认（FR-12） */
+/** 本机保存的选项行：所在的一行加 data-selected，块标 aria-current 和“已选”；没选时都不标，也不标默认（FR-12） */
 function markChoice(doc: Document, chosen: string | undefined): void {
   for (const block of doc.querySelectorAll<HTMLElement>('.option-block[data-option]')) {
     const current = block.dataset.option === chosen;
@@ -103,12 +103,14 @@ function markChoice(doc: Document, chosen: string | undefined): void {
     if (current && !label) {
       label = doc.createElement('span');
       label.className = 'option-current';
-      label.textContent = '当前选择';
+      label.textContent = '已选';
       (block.querySelector('.option-title') ?? block).append(' ', label);
     }
     if (label) label.hidden = !current;
     if (current) block.setAttribute('aria-current', 'true');
     else block.removeAttribute('aria-current');
+    // 编号圆圈也在这一行里：整行一起标（v2.2 W4a）
+    block.closest('.option-row')?.toggleAttribute('data-selected', current);
   }
 }
 

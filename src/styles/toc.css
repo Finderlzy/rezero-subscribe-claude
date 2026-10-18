@@ -248,7 +248,8 @@
 
 /*
  * 桌面常驻的侧边栏（design §4.5，v2.2 D8）：宽 --sidebar-width，吸在页眉下沿，占满视口剩余高度、独立滚动，
- * 右边一条 1px --border 竖线。只排在 ≥1100px 的布局里（PageLayout 的 .step 是 grid）；<1100px 时不显示，目录只有抽屉。
+ * 右边一条 1px --sidebar-rule 竖线。≥1100px 由 base.css 的页面网格排在左侧，从页眉下沿一直画到页脚；
+ * <1100px 时不显示，目录只有抽屉。首页和找不到页不放侧边栏（那一页本身就是目录）。
  */
 @media (max-width: 1099px) {
   .toc-sidebar {
@@ -261,7 +262,7 @@
   top: var(--header-height);
   height: calc(100vh - var(--header-height));
   overflow-y: auto;
-  border-right: var(--border-width) solid var(--border);
+  border-right: var(--border-width) solid var(--sidebar-rule);
   box-sizing: border-box;
 }
 

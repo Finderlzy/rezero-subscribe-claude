@@ -32,7 +32,7 @@ const { views = false, toc = false } = Astro.props;
         </a>
       )
     }
-    <a class="site-home" href={withBase('/')} aria-label="Re:从零开始订阅 claude 首页" data-to-home>
+    <a class="site-home" href={withBase('/')} aria-label="Re:从零开始订阅 claude 首页">
       <span class="site-mark" aria-hidden="true"><Logo variant="mark" /></span>
       <span class="site-name" aria-hidden="true">从零开始订阅 claude</span>
     </a>
@@ -58,21 +58,22 @@ const { views = false, toc = false } = Astro.props;
     padding: 0 var(--gutter);
   }
 
+  /* 站名和切换控件分居页眉两端（右对齐：logo 和站名占满左侧剩余宽度，切换控件贴右缘） */
   .site-home {
     display: inline-flex;
     align-items: center;
     gap: var(--space-2);
     min-height: 44px;
     /* 图标和站名离按钮 16px（--space-4），不是普通的 8px */
-    margin-left: var(--space-4);
+    margin: 0 var(--space-4) 0 var(--space-4);
     color: var(--text);
     text-decoration: none;
   }
 
-  /* ≥1100px 没有“目录”按钮：站名顶到页眉左缘 */
   @media (min-width: 1100px) {
     .site-home {
       margin-left: 0;
+      flex: 1 1 auto;
     }
   }
 

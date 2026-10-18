@@ -66,44 +66,46 @@ const hasZoom = [principle, operation].some((html) => html !== undefined && hasZ
   <script is:inline slot="head" set:html={VIEW_BOOT_SCRIPT} />
   <SiteHeader views toc />
   <Toc outline={view.outline} references={tocReferences} />
-  <main id="main" class="step" data-route-at={view.current.kind === 'home' ? undefined : view.current.id}>
-    <header class="band" data-band={chapterStart ? 'chapter' : undefined}>
-      <div class="band-inner">
-        <Mascot />
+  <div class="page-view">
+    <main id="main" class="step" data-route-at={view.current.kind === 'home' ? undefined : view.current.id}>
+      <header class="band" data-band={chapterStart ? 'chapter' : undefined}>
+        <div class="band-inner">
+          <Mascot />
+          {
+            chapterStart && (
+              <div class="chapter-head">
+                <ChapterSubtitle chapter={view.progress.chapterNo} />
+                <p class="chapter-title">{view.progress.chapter}</p>
+                {chapterIntro !== undefined && <p class="chapter-intro">{chapterIntro}</p>}
+              </div>
+            )
+          }
+          <p class="eyebrow">
+            <span aria-hidden="true" data-route-eyebrow set:text={eyebrowText(view.progress, view.current, chapterStart)} />
+            <span class="visually-hidden" data-route-progress>{progressText(view.progress, view.current)}</span>
+          </p>
+          <h1 class="step-title">{title}</h1>
+        </div>
+      </header>
+      <div class="step-body">
+        <slot name="video" />
         {
-          chapterStart && (
-            <div class="chapter-head">
-              <ChapterSubtitle chapter={view.progress.chapterNo} />
-              <p class="chapter-title">{view.progress.chapter}</p>
-              {chapterIntro !== undefined && <p class="chapter-intro">{chapterIntro}</p>}
-            </div>
+          operation === undefined ? (
+            <>
+              <p class="view-notice">{notice}</p>
+              <div class="prose" set:html={principle} />
+            </>
+          ) : (
+            <>
+              <div class="prose" data-body="principle" set:html={principle} />
+              <div class="prose" data-body="operation" set:html={operation} />
+            </>
           )
         }
-        <p class="eyebrow">
-          <span aria-hidden="true" data-route-eyebrow set:text={eyebrowText(view.progress, view.current, chapterStart)} />
-          <span class="visually-hidden" data-route-progress>{progressText(view.progress, view.current)}</span>
-        </p>
-        <h1 class="step-title">{title}</h1>
+        <StepNav prev={view.prev} next={view.next} returnTo={view.returnTo} skipTo={view.skipTo} skipLabel={skipLabel} />
       </div>
-    </header>
-    <div class="step-body">
-      <slot name="video" />
-      {
-        operation === undefined ? (
-          <>
-            <p class="view-notice">{notice}</p>
-            <div class="prose" set:html={principle} />
-          </>
-        ) : (
-          <>
-            <div class="prose" data-body="principle" set:html={principle} />
-            <div class="prose" data-body="operation" set:html={operation} />
-          </>
-        )
-      }
-      <StepNav prev={view.prev} next={view.next} returnTo={view.returnTo} skipTo={view.skipTo} skipLabel={skipLabel} />
-    </div>
-  </main>
+    </main>
+  </div>
   <CodeCopy />
   {hasZoom && <ImageZoom />}
   <script type="application/json" id="route-data" set:html={routeJson} />
@@ -130,6 +132,14 @@ const hasZoom = [principle, operation].some((html) => html !== undefined && hasZ
 
 <style>
   /*
+   * 桌面（≥1100px）：目录侧边栏常驻在左边（Toc.astro 的 aside，base.css 的页面网格），正文区在剩余宽度里居中；
+   * 色带是正文区里的全宽块，不伸进侧边栏。
+   */
+  .page-view {
+    min-width: 0;
+  }
+
+  /*
    * 页头色带（design §4.1，v2.2 D4）：--accent-soft 底，上下内边距 --band-pad-y（手机 24px，平板起 32px），
    * 内容和正文栏左对齐（左右边距由 .band-inner 给）。色带占满正文区的全宽，右下角贴小形象（D6）。
    */
@@ -139,7 +149,7 @@ const hasZoom = [principle, operation].some((html) => html !== undefined && hasZ
   }
 
   .band-inner {
-    max-width: calc(var(--measure) + 2 * var(--gutter));
+    max-width: var(--content-width);
     margin: 0 auto;
     /* 右边给小形象留出位置：小形象贴在色带右下角（D6），脚底贴着色带下沿，和正文栏右缘往里 --space-5 对齐 */
     padding: var(--band-pad-y) calc(var(--gutter) + 51px + var(--space-3)) var(--band-pad-y) var(--gutter);
@@ -208,7 +218,7 @@ const hasZoom = [principle, operation].some((html) => html !== undefined && hasZ
 
   /* 正文栏：色带下留出上边距，左右边距和色带里的内容一致 */
   .step-body {
-    max-width: calc(var(--measure) + 2 * var(--gutter));
+    max-width: var(--content-width);
     margin: 0 auto;
     padding: var(--space-6) var(--gutter) var(--space-7);
   }

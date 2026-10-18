@@ -95,6 +95,10 @@
   --sidebar-width: 272px;
   /* §3.3 页面左右边距：手机 16px，平板起 32px */
   --gutter: var(--space-4);
+  /* §3.3 正文栏宽度 = 正文最大宽度（--measure）加上两侧的 --gutter：色带、正文、页脚共用这一个宽度 */
+  --content-width: calc(var(--measure) + 2 * var(--gutter));
+  /* §4.5 桌面常驻侧边栏右边那条 1px 竖线：正文区和侧边栏隔开（和别处的细线同色） */
+  --sidebar-rule: var(--border);
   /* §4.1 页头色带的上下内边距：手机 24px，平板以上 32px */
   --band-pad-y: var(--space-5);
 
