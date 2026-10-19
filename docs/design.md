@@ -399,7 +399,6 @@ v2.2 另看了 Josh Comeau 的个人站（joshwcomeau.com）：页头一条浅�
 2. 常见问题不在构建时按二级标题切分 `faq.md`，也没有 `appendix.yaml`（计划 W6 第 1、2 条作废）：作者把每条问题写成重写稿里的单独文件，导入成 `reference/faq/<id>.md`，标题和标识的对应就是这个文件（文件名是标识，第一行 `# 标题` 是重写稿文件名），构建时双向核对（架构 §3 M1）。
 3. 常见问题 7 条（多了“SSH 端口不是 22？”），标识按 requirements §5：`ssh-permission-denied`、`ssh-port-not-22`、`reinstall`、`panel-login`、`dedicated-ip-check`、`different-ips`、`split-routing`。
 4. 代码块不做语法高亮（§4.7）；`--text-faint`、`--control-border` 比计划深一档（§3.1）。
-5. 附录是章首页，眉题写“第 1 步，共 1 步”（路线图把它当作一章的一步），不是计划的“附录”。
 
 **否决的想法**（v2.2）：
 

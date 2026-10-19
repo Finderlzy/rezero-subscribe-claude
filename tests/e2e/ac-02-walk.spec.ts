@@ -4,7 +4,8 @@ import { chooseOption, collectErrors, expectScriptRan, nextUntil, pageId, stepLa
 // AC-02（FR-10、FR-11）：6 种选择组合（方案一/二/三 × iPhone/安卓）× 两种视图，从“前言”一直点“下一步”经“后记”走到“附录”，
 // 中途没有断链；操作视图下不经过整体思路、小结、为什么用美区 Apple ID，原理视图下经过。
 // 分叉点处在选择页点选项块（FR-12）。不运行 JS 的静态走法见 ac-02-static-walk.spec.ts。
-// 一路上的步骤编号是本章进度（FR-10）：眉题每章从第 1 步数到 m，“共 m 步”一致；选择页不计步数，写“选择”。
+// 一路上的步骤编号是本章进度（FR-10）：眉题每章从第 1 步数到 m，“共 m 步”一致；选择页不计步数，写“选择”；
+// 附录不计步数（v2.2 计划 W5 第 1 条，眉题只写“附录”，见 ac-22-appendix.spec.ts）。
 
 const PLANS = {
   方案一: ['plan1-free-isp', 'plan1-buy-server', 'plan1-buy-isp', 'plan1-make-node', 'plan1-panel'],
@@ -75,10 +76,14 @@ for (const view of ['operation', 'principle'] as const) {
 
         expect(seen).toEqual(expected(plan, phone, view));
         expect(marks.map(([id]) => id)).toEqual(seen);
-        // 选择页写“选择”；其余页按章从第 1 步起连续编号，一章的最后一步编号等于步数
+        // 选择页写“选择”，附录不写步数；其余页按章从第 1 步起连续编号，一章的最后一步编号等于步数
         let next = 1;
         let total: string | null = null;
         for (const [id, no, stepsTotal, label] of marks) {
+          if (id === 'appendix') {
+            expect([id, no, stepsTotal, label]).toEqual([id, null, null, null]);
+            continue;
+          }
           if (id!.startsWith('choose-')) {
             expect([id, label, no]).toEqual([id, '选择', null]);
             continue;
