@@ -71,6 +71,49 @@ describe('validateContent：三个集合', () => {
     expect(problems.map((p) => p.message)).toEqual([expect.stringContaining('文件名“ip-tests/Bad_Name”不是英文 kebab-case')]);
   });
 
+  it('常见问题一问一页：每条 reference/faq/<id>.md 都要在常见问题里有双链（FR-20）', async () => {
+    fx.write('reference/faq.md', '# 常见问题\n\n- [[装过了，想重装？]]\n');
+    fx.write('reference/faq/reinstall.md', '# 装过了，想重装？\n');
+    fx.write('reference/faq/split-routing.md', '# 分流规则具体怎么写？\n');
+    const problems = await validate();
+    expect(problems).toEqual([
+      expect.objectContaining({
+        file: expect.stringContaining('reference/faq/split-routing.md'),
+        line: 1,
+        message: expect.stringContaining('常见问题（reference/faq.md）里没有链到“分流规则具体怎么写？”'),
+      }),
+    ]);
+  });
+
+  it('常见问题双向核对：目录里列的标题要有条目文件，同一条不能列两次（FR-20）', async () => {
+    const faq = fx.write('reference/faq.md', '# 常见问题\n\n- [[装过了，想重装？]]\n- [[新问题？]]\n- [[装过了，想重装？]]\n');
+    fx.write('reference/faq/reinstall.md', '# 装过了，想重装？\n');
+    const problems = (await validate()).filter((p) => p.file === at(faq));
+    expect(problems.map((p) => [p.line, p.message])).toEqual(
+      expect.arrayContaining([
+        [4, expect.stringContaining('常见问题里列了“新问题？”，但 reference/faq/ 里没有标题是它的条目文件')],
+        [5, expect.stringContaining('“装过了，想重装？”在常见问题里列了两次（第 3 行已经列过）')],
+      ]),
+    );
+  });
+
+  it('常见问题条目：标识和已有页面相同、一个标题两个标识、条目缺标题都报错', async () => {
+    fx.write('principle/preface.md', '# 前言\n');
+    fx.write('reference/faq.md', '# 常见问题\n\n- [[装过了，想重装？]]\n- [[前言是什么？]]\n');
+    const clash = fx.write('reference/faq/preface.md', '# 前言是什么？\n');
+    fx.write('reference/faq/reinstall.md', '# 装过了，想重装？\n');
+    const twin = fx.write('reference/faq/reinstall-again.md', '# 装过了，想重装？\n');
+    const untitled = fx.write('reference/faq/no-title.md', '没有标题\n');
+    const problems = await validate();
+    expect(problems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ file: at(clash), message: expect.stringContaining('常见问题条目的标识“preface”和已有页面的标识相同') }),
+        expect.objectContaining({ file: at(twin), message: expect.stringContaining('标题“装过了，想重装？”与 reference/faq/reinstall.md 重复') }),
+        expect.objectContaining({ file: at(untitled), message: expect.stringContaining('缺少第一行标题') }),
+      ]),
+    );
+  });
+
   it('内容提示：操作版缺失（原理独有步骤和参考页除外）、作者待补、博客链接待填；不算问题', async () => {
     fx.write('principle/preface.md', '# 前言\n');
     fx.write('operation/preface.md', '# 前言\n');

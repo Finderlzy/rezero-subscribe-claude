@@ -234,8 +234,75 @@ export function checkPages(index: LinkIndex): ContentProblem[] {
       problems.push({ file, line: page.titleLine, message: `标题“${page.title}”与 ${relative(index.contentRoot, owner.file).split(sep).join('/')} 重复：双链按标题解析，全站标题不能重复` });
     }
   }
+  problems.push(...checkFaqItems(index));
   if (index.blogLinksError !== undefined) {
     problems.push({ file: display(join(index.contentRoot, 'blog-links.yaml')), message: index.blogLinksError });
   }
   return problems;
 }
+
+/** 双链的目标标题：去掉 `|显示文字` 和 `#小标题` */
+const WIKI_LINK = /(?<!!)\[\[([^[\]|#\n]+)(?:#[^[\]|\n]*)?(?:\|[^[\]\n]*)?\]\]/g;
+
+/**
+ * 常见问题一问一页（FR-20，ADR-0005）：重写稿里每条问题是一个文件，导入成 `reference/faq/<id>.md`，
+ * 文件名是标识（URL `/faq/<id>/`），第一行的 `# 标题` 对应重写稿的文件名——标题和标识的对应只写在这里。
+ * 常见问题首页（`reference/faq.md`，重写稿《常见问题》）是各条问题的目录。两个方向都核对：
+ * - 每个条目文件都要在常见问题里有一个双链，否则这一页在站内没有入口（导入了却没列出来，或者常见问题里删了却留着文件）；
+ * - 常见问题里链到的标题都要有对应的条目文件（标题没有标识：新问题要先建 `reference/faq/<英文标识>.md` 再导入）；
+ * - 同一条不能列两次；条目标识不能和已有页面的标识相同（标识全站一张表，见 migration-checklist，ADR-0002）。
+ * 同一个标题有两个条目文件（一个标题两个标识）由 checkPages 的“标题重复”报出；条目文件缺标题由“缺少第一行标题”报出。
+ */
+function checkFaqItems(index: LinkIndex): ContentProblem[] {
+  const items = index.pages.filter((page) => page.kind === 'reference' && page.id.startsWith(FAQ_PREFIX));
+  const faq = index.pages.find((page) => page.kind === 'reference' && page.id === 'faq');
+  if (faq === undefined) {
+    return items.map((page) => ({ file: display(page.file), message: '没有常见问题首页 reference/faq.md：各条问题要列在常见问题里' }));
+  }
+  const problems: ContentProblem[] = [];
+  const faqFile = display(faq.file);
+  const lines = readFileSync(faq.file, 'utf8').replace(/\r\n?/g, '\n').split('\n');
+  const listed = new Map<string, number>();
+  lines.forEach((line, i) => {
+    for (const match of line.matchAll(WIKI_LINK)) {
+      const title = match[1]!.trim();
+      const target = index.titles.get(title);
+      if (target === undefined) {
+        // 只管目录的列表项（`- [[问题]]`）；正文别处写错的双链由 remark-obsidian 报“找不到标题”
+        if (!LIST_ITEM_LINK.test(line)) continue;
+        problems.push({
+          file: faqFile,
+          line: i + 1,
+          message: `常见问题里列了“${title}”，但 reference/faq/ 里没有标题是它的条目文件：先手建 reference/faq/<英文标识>.md（第一行写 # ${title}），再运行 node scripts/import-rewrite.mjs`,
+        });
+        continue;
+      }
+      if (target.kind !== 'reference' || !target.id.startsWith(FAQ_PREFIX)) continue;
+      if (listed.has(title)) {
+        problems.push({ file: faqFile, line: i + 1, message: `“${title}”在常见问题里列了两次（第 ${listed.get(title)} 行已经列过）：每条问题只列一次` });
+        continue;
+      }
+      listed.set(title, i + 1);
+    }
+  });
+  const otherIds = new Set(index.pages.filter((page) => !(page.kind === 'reference' && page.id.startsWith(FAQ_PREFIX))).map((page) => page.id));
+  for (const page of items) {
+    const id = page.id.slice(FAQ_PREFIX.length);
+    if (otherIds.has(id)) {
+      problems.push({ file: display(page.file), message: `常见问题条目的标识“${id}”和已有页面的标识相同：标识全站不能重复（ADR-0002），换一个英文标识` });
+    }
+    if (page.title !== undefined && !listed.has(page.title)) {
+      problems.push({
+        file: display(page.file),
+        line: page.titleLine,
+        message: `常见问题（reference/faq.md）里没有链到“${page.title}”：每条问题都要在常见问题里列出来（重写稿《常见问题》里加上 [[${page.title}]] 再导入，或者删掉这个文件）`,
+      });
+    }
+  }
+  return problems;
+}
+
+/** 以双链开头的列表项：常见问题目录里的一条 */
+const LIST_ITEM_LINK = /^\s*(?:[-*+]|\d+[.)])\s+\[\[/;
+/** 常见问题条目在 reference 集合里的标识前缀 */
+const FAQ_PREFIX = 'faq/';

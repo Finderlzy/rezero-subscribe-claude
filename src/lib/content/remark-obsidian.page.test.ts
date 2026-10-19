@@ -104,7 +104,7 @@ describe('双链按中文标题解析', () => {
 });
 
 describe('锚点', () => {
-  it('三个真实锚点都能解析成 github-slugger 的 slug', async () => {
+  it('锚点解析成 github-slugger 的 slug；链到参考页时锚点在 ?from= 之后（引号、标点、中文都能对上）', async () => {
     const r = await render(
       'principle/plan3-residential-node.md',
       [
@@ -143,6 +143,28 @@ describe('参考页链接带 ?from=', () => {
     const op = await render('operation/subscribe.md', '# 订阅\n\n[[IP 质量实测合集]]、[[实测：QSU 住宅服务器|它的实测]]\n');
     expect(op.html).toContain('<a href="/ip-tests/?from=subscribe">IP 质量实测合集</a>');
     expect(op.html).toContain('<a href="/ip-tests/qsu-residential/?from=subscribe">它的实测</a>');
+  });
+
+  it('常见问题一问一页：[[问题标题]] 解析到 /faq/<id>/?from=<来源页>，不带锚点；[[常见问题]] 仍是目录页（FR-20、AC-11）', async () => {
+    fx.write('reference/faq/split-routing.md', '# 分流规则具体怎么写？\n');
+    fx.write('reference/faq/dedicated-ip-check.md', '# “1 人独享”怎么确认真的只有我在用？\n');
+    const r = await render(
+      'principle/plan3-residential-node.md',
+      '# 方案三：直接买住宅节点\n\n[[分流规则具体怎么写？]]、[[“1 人独享”怎么确认真的只有我在用？|怎么确认]]、[[常见问题]]\n',
+    );
+    expect(r.problems).toEqual([]);
+    expect(r.html).toContain('<a href="/faq/split-routing/?from=plan3-residential-node">分流规则具体怎么写？</a>');
+    expect(r.html).toContain('<a href="/faq/dedicated-ip-check/?from=plan3-residential-node">怎么确认</a>');
+    expect(r.html).toContain('<a href="/faq/?from=plan3-residential-node">常见问题</a>');
+    // 子路径部署时同样加 base（AC-15）
+    const sub = await render('principle/plan3-residential-node.md', '# 方案三：直接买住宅节点\n\n[[分流规则具体怎么写？]]\n', '/sub/');
+    expect(sub.html).toContain('<a href="/sub/faq/split-routing/?from=plan3-residential-node">分流规则具体怎么写？</a>');
+  });
+
+  it('常见问题的目录链到各条时不带 ?from=（参考页之间）', async () => {
+    fx.write('reference/faq/split-routing.md', '# 分流规则具体怎么写？\n');
+    const r = await render('reference/faq.md', '# 常见问题\n\n- [[分流规则具体怎么写？]]\n');
+    expect(r.html).toContain('<a href="/faq/split-routing/">分流规则具体怎么写？</a>');
   });
 
   it('参考页之间、步骤之间不带', async () => {

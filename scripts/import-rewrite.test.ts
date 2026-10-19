@@ -96,6 +96,18 @@ describe('importRewrite', () => {
     expect(existsSync(join(root, 'src/content/principle/新页面.md'))).toBe(false);
   });
 
+  it('常见问题一问一页：已有的条目按标题导入 reference/faq/<id>.md；《常见问题》链到的新条目单独报告', () => {
+    write('docs/rewrite/原理版/常见问题.md', '# 常见问题\n\n- [[装过了，想重装？]]\n- [[新问题？|看这里]]\n');
+    write('docs/rewrite/原理版/装过了，想重装？.md', '# 装过了，想重装？\n\n再跑一次。\n');
+    write('docs/rewrite/原理版/新问题？.md', '# 新问题？\n\n答案\n');
+    write('src/content/reference/faq/reinstall.md', '# 装过了，想重装？\n');
+    const report = run();
+    expect(read('src/content/reference/faq/reinstall.md')).toBe('# 装过了，想重装？\n\n再跑一次。\n');
+    expect(report.newFaqItems).toEqual(['docs/rewrite/原理版/新问题？.md']);
+    expect(report.newPages).toEqual([]);
+    expect(existsSync(join(root, 'src/content/reference/faq/新问题？.md'))).toBe(false);
+  });
+
   it('站内文件缺标题时无法匹配，报告出来', () => {
     write('src/content/principle/broken.md', '没有标题\n');
     expect(run().untitled).toEqual(['src/content/principle/broken.md']);

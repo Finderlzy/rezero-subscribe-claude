@@ -48,12 +48,12 @@ test('从方案三进入实测页：有“返回刚才的步骤”和“回到�
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('IP 质量实测合集');
 });
 
-test('带 ?from= 打开 IP 质量实测合集：有“返回刚才的步骤”，没有“回到：…”的页脚整行不显示，不留空行', async ({ page }) => {
+test('带 ?from= 打开 IP 质量实测合集：有“返回刚才的步骤”，页脚是“回到：附录”', async ({ page }) => {
   await page.goto('./ip-tests/?from=check-ip');
   await expectReady(page);
   await expect(returnLinks(page)).toHaveCount(2);
   await expect(returnLinks(page).first()).toHaveAttribute('href', /\/check-ip\/$/);
-  await expect(page.locator('.page-actions')).toBeHidden();
+  await expect(page.getByRole('link', { name: '回到：附录' })).toHaveAttribute('href', /\/appendix\/$/);
 });
 
 for (const path of ['./faq/', './faq/split-routing/', './ip-tests/', './ip-tests/ipequal/', './faq/?from=no-such-page', './faq/?from=faq']) {
@@ -65,17 +65,9 @@ for (const path of ['./faq/', './faq/split-routing/', './ip-tests/', './ip-tests
   });
 }
 
-test('常见问题是各条问题的目录：点进一条，“回到：常见问题”回来', async ({ page }) => {
+test('常见问题是各条问题的目录（一问一页见 ac-23）：点进一条，“回到：常见问题”回来', async ({ page }) => {
   await page.goto('./faq/');
   await expectReady(page);
-  await expect(page.locator('.prose').getByRole('link')).toHaveText([
-    'SSH 提示 Permission denied？',
-    '装过了，想重装？',
-    '面板的用户名、密码、端口，大家都一样，安全吗？',
-    '“1 人独享”怎么确认真的只有我在用？',
-    '测出来好几个不同的 IP？',
-    '分流规则具体怎么写？',
-  ]);
   await page.locator('.prose').getByRole('link', { name: '装过了，想重装？' }).click();
   await expect(page).toHaveURL(/\/faq\/reinstall\/$/);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('装过了，想重装？');
@@ -99,7 +91,9 @@ test.describe('关掉 JS', () => {
   test('带 ?from= 打开常见问题：保持构建时的样子（构建时返回链接是隐藏的）', async ({ page }) => {
     await page.goto('./faq/?from=plan3-residential-node');
     await expect(returnLinks(page)).toHaveCount(0);
-    // 没有 JS 时“目录”是链到首页完整目录的链接，同样能到目录（FR-16）
-    await expect(page.locator('[data-toc-open]')).toHaveAttribute('href', /\/#home-chapters$/);
+    // 没有 JS 时参考页也有目录：≥1100px 是常驻侧边栏，<1100px 是链到首页完整目录的“目录”（FR-16）
+    const sidebar = page.locator('aside[data-toc-sidebar]');
+    if ((page.viewportSize()?.width ?? 0) >= 1100) await expect(sidebar).toBeVisible();
+    else await expect(page.locator('[data-toc-open]')).toHaveAttribute('href', /\/#home-chapters$/);
   });
 });
