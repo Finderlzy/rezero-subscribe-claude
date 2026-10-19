@@ -42,8 +42,9 @@ const LAYOUTS = {
   'douyin-3x4': { w: 1080, h: 1440, pad: 96, logo: 640, eyebrow: 44, title: 128, sub: 46, url: 50, gap: [56, 56, 40, 64] },
   // 抖音横版封面 4:3
   'douyin-4x3': { w: 1440, h: 1080, pad: 90, logo: 520, eyebrow: 36, title: 92, sub: 34, url: 38, gap: [36, 40, 28, 44], phone: 400 },
-  // B 站封面 16:10
-  'bilibili-16x10': { w: 1920, h: 1200, pad: 130, logo: 600, eyebrow: 44, title: 116, sub: 42, url: 48, gap: [44, 48, 34, 56], phone: 470 },
+  // B 站封面 16:9。B 站把同一张图裁成 16:9（个人空间）和 4:3（首页推荐），4:3 会切掉左右各 240px，
+  // 所以内容都放在中间 1440 宽的安全区里（safe 是安全区到画布边的距离）
+  'bilibili-16x9': { w: 1920, h: 1080, safe: 240, pad: 70, logo: 480, eyebrow: 34, title: 86, sub: 32, url: 36, gap: [32, 36, 26, 40], phone: 380 },
 };
 const v = new URLSearchParams(location.search).get('v') || 'douyin-3x4';
 const stage = document.getElementById('stage');
@@ -58,8 +59,9 @@ if (v.startsWith('avatar')) {
   Object.assign(stage.style, { width: L.w + 'px', height: L.h + 'px' });
   // 有手机截图的横版：文字在左，手机在右，手机比画布高，下沿出画
   const phoneW = L.phone || 0;
-  const phoneLeft = L.w - L.pad - phoneW;
-  stage.innerHTML = `<div class="col" style="left:${L.pad}px;right:${phoneW ? L.w - phoneLeft + 60 : L.pad}px">
+  const edge = (L.safe || 0) + L.pad;
+  const phoneLeft = L.w - edge - phoneW;
+  stage.innerHTML = `<div class="col" style="left:${edge}px;right:${phoneW ? L.w - phoneLeft + 50 : edge}px">
     <div class="logo" style="margin-bottom:${L.gap[0]}px"><img src="${LOGO}" style="width:${L.logo}px;height:${L.logo * 250 / 784}px"></div>
     <div class="eyebrow" style="font-size:${L.eyebrow}px;margin-bottom:${L.gap[1] * 1.6}px">分步教程 · 一页只做一步</div>
     <div class="title" style="font-size:${L.title}px;margin-bottom:${L.gap[2]}px">第一次订阅 Claude<br><span class="accent">只想一次成功</span></div>
