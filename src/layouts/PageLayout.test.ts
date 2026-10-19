@@ -80,8 +80,8 @@ describe('PageLayout', () => {
     // 没有 JS 时就是指向首页完整目录的链接，不隐藏
     expect(html).toMatch(/<a[^>]*href="\/#home-chapters"[^>]*data-toc-open/);
     expect(html).not.toMatch(/data-toc-open[^>]*hidden/);
-    // 侧边栏里章标题写“第 1 章”，不再是补零的章节号字形
-    expect(html).toMatch(/<span class="toc-chapter-no"[^>]*>第 1 章<\/span>/);
+    // 侧边栏里章标题写“第 0 章”（和首页、目录的 00 一样从 0 起，不补零），不再是补零的章节号字形
+    expect(html).toMatch(/<span class="toc-chapter-no"[^>]*>第 0 章<\/span>/);
     expect(html).not.toMatch(/<span class="toc-chapter-no"[^>]*>\s*<svg class="numeral"[^>]*aria-label="第 0 章"/);
     expect(html).toMatch(/href="[^"]*\/faq\/"[^>]*>\s*<span class="toc-label"[^>]*>常见问题/);
     expect(html).toMatch(/href="[^"]*\/ip-tests\/"[^>]*>\s*<span class="toc-label"[^>]*>IP 质量实测合集/);
@@ -98,7 +98,7 @@ describe('PageLayout', () => {
     const progress = { ...view.progress, index: 2, total: 5 };
     const html = await render({ view: { ...view, progress } }, { principle: '<p>原理正文</p>' });
     expect(html).toMatch(/<header class="band"[^>]*>[\s\S]*?<div class="band-inner"/);
-    expect(html).toMatch(/<span aria-hidden="true"[^>]*data-route-eyebrow[^>]*>第 3 章 · 注册和订阅 · 第 2 步，共 5 步<\/span>/);
+    expect(html).toMatch(/<span aria-hidden="true"[^>]*data-route-eyebrow[^>]*>第 2 章 · 注册和订阅 · 第 2 步，共 5 步<\/span>/);
     expect(html).toMatch(/class="visually-hidden"[^>]*data-route-progress[^>]*>注册和订阅，第 2 步，共 5 步</);
     expect(html.indexOf('data-route-eyebrow')).toBeLessThan(html.indexOf('<h1'));
     // 正文区（色带和正文）里没有任何补零的编号字形（D10）：<symbol> 字形和 <use> 都留给首页索引和 404
@@ -112,17 +112,17 @@ describe('PageLayout', () => {
 
   it('数不清第几步时眉题只有章和章名（FR-10）', async () => {
     const html = await render({}, { principle: '<p>原理正文</p>' });
-    expect(html).toMatch(/data-route-eyebrow[^>]*>第 3 章 · 注册和订阅<\/span>/);
+    expect(html).toMatch(/data-route-eyebrow[^>]*>第 2 章 · 注册和订阅<\/span>/);
     expect(html).toMatch(/data-route-progress[^>]*>注册和订阅</);
   });
 
   it('选择页写“选择”，旁支页写“旁支”，都不计步数（design §4.2、§4.6）', async () => {
     const choose = { ...view, current: { kind: 'choose', id: 'choose-phone', title: '选择手机系统' } as const };
-    expect(await render({ view: choose }, { principle: '<p>原理正文</p>' })).toMatch(/data-route-eyebrow[^>]*>第 3 章 · 注册和订阅 · 选择</);
+    expect(await render({ view: choose }, { principle: '<p>原理正文</p>' })).toMatch(/data-route-eyebrow[^>]*>第 2 章 · 注册和订阅 · 选择</);
 
     const side = { ...view, current: { kind: 'side', id: 'google-appeal', title: '被封了：申诉解封' } as const };
     const html = await render({ view: side }, { principle: '<p>原理正文</p>' });
-    expect(html).toMatch(/data-route-eyebrow[^>]*>第 3 章 · 注册和订阅 · 旁支</);
+    expect(html).toMatch(/data-route-eyebrow[^>]*>第 2 章 · 注册和订阅 · 旁支</);
     expect(html).toMatch(/data-route-progress[^>]*>注册和订阅 · 旁支</);
   });
 
@@ -136,7 +136,7 @@ describe('PageLayout', () => {
 
   it('每页都有页脚的非官方声明（v2.2 D6）', async () => {
     const html = await render({}, { principle: '<p>原理正文</p>' });
-    expect(html).toMatch(/<footer class="site-footer"[^>]*>\s*<p[^>]*>本站是个人教程，与 Anthropic 无关。<\/p>/);
+    expect(html).toMatch(/<footer class="site-footer"[^>]*>\s*<p[^>]*>\s*<small[^>]*>本站是个人教程，与 Anthropic 无关。<\/small>\s*<\/p>/);
     expect(html.indexOf('site-footer')).toBeGreaterThan(html.indexOf('id="main"'));
   });
 

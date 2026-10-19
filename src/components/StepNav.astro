@@ -65,7 +65,7 @@ const backLabel = returnTo ? '回到' : '上一步';
         </a>
       )}
       <a class="step-nav-next" href={next ? withBase(pathOf(next)) : undefined} hidden={!next} rel="next" data-route-nav="next">
-        <span class="visually-hidden">下一步：</span>
+        <span class={next?.kind === 'home' ? 'visually-hidden' : 'step-nav-next-dir'}>下一步：</span>
         <span class="step-nav-next-title" data-route-title>
           {next ? stopTitle(next, 'next') : ''}
         </span>
@@ -173,6 +173,16 @@ const backLabel = returnTo ? '回到' : '上一步';
     translate: 0 var(--press-shift);
   }
 
+  /* 按钮文字“下一步：<标题> →”（v2.2 W4b）；去首页时只写“回到首页 →”，“下一步：”只给读屏 */
+  .step-nav-next-dir {
+    flex: none;
+  }
+
+  /* “← 上一步”：箭头和文字之间空一格 */
+  .step-nav-arrow {
+    margin-right: var(--space-1);
+  }
+
   .step-nav-next-title {
     min-width: 0;
     overflow: hidden;
@@ -247,6 +257,20 @@ const backLabel = returnTo ? '回到' : '上一步';
       overflow: visible;
       clip-path: none;
       margin-left: var(--space-1);
+    }
+
+    /* 手机底栏的主按钮窄，只写目标标题，“下一步：”只给读屏 */
+    .step-nav-next-dir {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    .step-nav-arrow {
+      margin-right: 0;
     }
 
     .step-nav-next {

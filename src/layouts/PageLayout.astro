@@ -67,7 +67,12 @@ const hasZoom = [principle, operation].some((html) => html !== undefined && hasZ
   <SiteHeader views toc />
   <Toc outline={view.outline} references={tocReferences} />
   <div class="page-view">
-    <main id="main" class="step" data-route-at={view.current.kind === 'home' ? undefined : view.current.id}>
+    <main
+      id="main"
+      class="step"
+      data-route-at={view.current.kind === 'home' ? undefined : view.current.id}
+      data-chapter-start={chapterStart ? '' : undefined}
+    >
       <header class="band" data-band={chapterStart ? 'chapter' : undefined}>
         <div class="band-inner">
           <Mascot />

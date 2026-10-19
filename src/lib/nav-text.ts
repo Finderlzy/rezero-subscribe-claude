@@ -16,9 +16,9 @@ function stepCount(progress: Progress, current?: Stop): { index: number; total: 
   return { index: progress.index, total: progress.total };
 }
 
-/** 眉题里“第 n 章”：章号用阿拉伯数字，不补零（v2.2 D10） */
+/** 眉题里“第 n 章”：章号和首页、目录的 00–04、章首页的 CHAPTER 00 一样从 0 起，用阿拉伯数字，不补零（v2.2 D10、计划 W2 第 1 条） */
 export function chapterText(progress: Progress): string {
-  return `第 ${progress.chapterNo + 1} 章`;
+  return `第 ${progress.chapterNo} 章`;
 }
 
 /**

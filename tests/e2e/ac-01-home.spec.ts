@@ -92,7 +92,7 @@ test('章级索引：桌面五行，点“02”跳到下方目录的第 02 章�
   await expect(chapter).toBeInViewport();
 });
 
-test('版式：桌面索引和主区顶部对齐；logo 手机满宽、更宽时不超过 560px；没有横向滚动', async ({ page }) => {
+test('版式：桌面索引和主区顶部对齐；logo 加右下方的小形象手机满宽、logo 更宽时不超过 560px；没有横向滚动', async ({ page }) => {
   await page.goto('./');
   const box = await page.evaluate(() => {
     const rect = (sel: string) => document.querySelector(sel)!.getBoundingClientRect().toJSON() as DOMRect;
@@ -100,6 +100,7 @@ test('版式：桌面索引和主区顶部对齐；logo 手机满宽、更宽时
       hero: rect('.home-hero'),
       index: rect('.home-index'),
       logo: rect('.home-title svg'),
+      mascot: rect('.home-logo .mascot'),
       main: rect('.home'),
       gutter: parseFloat(getComputedStyle(document.querySelector('.home')!).paddingLeft),
       scrollWidth: document.documentElement.scrollWidth,
@@ -113,20 +114,26 @@ test('版式：桌面索引和主区顶部对齐；logo 手机满宽、更宽时
     expect(box.index.left).toBeGreaterThan(box.hero.right);
   }
   if (width(page) < 720) {
-    // 手机满宽：logo 占满左右边距之间
-    expect(box.logo.width).toBeCloseTo(box.main.width - 2 * box.gutter, 0);
+    // 手机满宽：logo 和它右下方的小形象（v2.2 W2 第 6 条）一起占满左右边距之间，小形象在 logo 右边、底边对齐
+    expect(box.mascot.right).toBeCloseTo(box.main.right - box.gutter, 0);
+    expect(box.mascot.left).toBeGreaterThan(box.logo.right);
+    expect(box.mascot.bottom).toBeCloseTo(box.logo.bottom, 0);
   } else {
     expect(box.logo.width).toBeLessThanOrEqual(560.5);
   }
 });
 
-test('首屏只有主按钮和 logo 的“Re”是 --accent', async ({ page }) => {
+// v2.2 D2：紫色只用在链接、当前位置、眉题和“已选”上，不做大块底色；首屏唯一的实心块是黑色主按钮（--primary-bg）。
+// 所以首屏除 logo 的“Re”外，没有哪个元素的底色、边框或图形用 --accent（眉题、链接的文字可以是紫色）。
+test('首屏的主按钮是墨色，logo 的“Re”是 --accent，没有紫色的块', async ({ page }) => {
   await page.goto('./');
   const result = await page.evaluate(() => {
     const probe = document.createElement('div');
     probe.style.color = 'var(--accent)';
     document.body.append(probe);
     const accent = getComputedStyle(probe).color;
+    probe.style.color = 'var(--primary-bg)';
+    const primary = getComputedStyle(probe).color;
     probe.remove();
 
     const offenders: string[] = [];
@@ -137,24 +144,23 @@ test('首屏只有主按钮和 logo 的“Re”是 --accent', async ({ page }) =
       if (rect.width === 0 || rect.height === 0 || rect.bottom <= 0 || rect.top >= innerHeight) continue;
       const style = getComputedStyle(el);
       if (style.visibility === 'hidden' || style.display === 'none') continue;
-      if (el.closest('.home-start') || el.closest('.logo-re')) continue;
+      if (el.closest('.logo-re')) continue;
       const colors: string[] = [style.backgroundColor];
       for (const side of ['Top', 'Right', 'Bottom', 'Left'] as const) {
         if (parseFloat(style[`border${side}Width`]) > 0) colors.push(style[`border${side}Color`]);
       }
       if (el instanceof SVGElement) colors.push(style.fill, style.stroke);
-      // 文字颜色只看自己直接带文字的元素
-      else if ([...el.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && n.textContent!.trim() !== '')) colors.push(style.color);
       if (colors.includes(accent)) offenders.push(describe(el));
     }
     return {
       accent,
+      primary,
       offenders,
       start: getComputedStyle(document.querySelector('.home-start')!).backgroundColor,
       re: getComputedStyle(document.querySelector('.home-title .logo-re')!).fill,
     };
   });
-  expect(result.start).toBe(result.accent);
+  expect(result.start).toBe(result.primary);
   expect(result.re).toBe(result.accent);
   expect(result.offenders).toEqual([]);
 });

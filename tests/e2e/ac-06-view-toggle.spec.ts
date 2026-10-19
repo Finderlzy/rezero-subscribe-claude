@@ -142,11 +142,11 @@ test('切换视图后步骤编号和“共 m 步”重算', async ({ page }) => 
 // design §4.1（v2.2 D4、D10）：所有宽度都是页头色带里的一行眉题，不补零、不编号字形；章首页省掉章的部分。
 test('眉题写在页头色带里：普通页写章、章名和步数，章首页只写步数', async ({ page }) => {
   for (const { path, text } of [
-    { path: './disclaimer/', text: /^第 1 章 · 开始 · 第 2 步，共 \d+ 步$/ },
+    { path: './disclaimer/', text: /^第 0 章 · 开始 · 第 2 步，共 \d+ 步$/ },
     // 章首页（v2.2 §3 W2 第 2 条）：色带上已经有副标题和章名，眉题省掉章的部分
     { path: './preface/', text: /^第 1 步，共 \d+ 步$/ },
     // clean-up 不是章首页（前言、整体思路在它前面）
-    { path: './clean-up/', text: /^第 1 章 · 开始 · 第 \d+ 步，共 \d+ 步$/ },
+    { path: './clean-up/', text: /^第 0 章 · 开始 · 第 \d+ 步，共 \d+ 步$/ },
   ]) {
     await page.goto(path);
     await expectScriptRan(page);

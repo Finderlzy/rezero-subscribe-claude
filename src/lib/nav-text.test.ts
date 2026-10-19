@@ -10,11 +10,11 @@ describe('nav-text：导航文案，构建时和浏览器共用', () => {
 
   it('眉题一行写完章、章名和第几步（v2.2 D4、D10）：阿拉伯数字、不补零；读屏文字保持“章名，第 n 步，共 m 步”', () => {
     const progress = { ...chapter, index: 2, total: 10 };
-    expect(eyebrowText(progress, step)).toBe('第 2 章 · 准备节点和住宅 IP · 第 2 步，共 10 步');
+    expect(eyebrowText(progress, step)).toBe('第 1 章 · 准备节点和住宅 IP · 第 2 步，共 10 步');
     expect(progressText(progress, step)).toBe('准备节点和住宅 IP，第 2 步，共 10 步');
     expect(stepNumber(progress, step)).toEqual({ index: 2, total: 10 });
-    // 第 0 章写成“第 1 章”，不再是“00”
-    expect(eyebrowText({ chapterId: 'start', chapter: '开始', chapterNo: 0, index: 1, total: 4 }, step)).toBe('第 1 章 · 开始 · 第 1 步，共 4 步');
+    // 章号和首页、目录、章首页的 CHAPTER 00 一样从 0 起，只是不补零（v2.2 计划 W2 第 1 条：“第 1 章 · 准备节点和住宅 IP”）
+    expect(eyebrowText({ chapterId: 'start', chapter: '开始', chapterNo: 0, index: 1, total: 4 }, step)).toBe('第 0 章 · 开始 · 第 1 步，共 4 步');
   });
 
   it('章首页省掉章的部分（色带里已经写了副标题和章名），只写“第 n 步，共 m 步”', () => {
@@ -25,14 +25,14 @@ describe('nav-text：导航文案，构建时和浏览器共用', () => {
   });
 
   it('数不清第几步：眉题只有章和章名，读屏也只读章名（FR-10）', () => {
-    expect(eyebrowText(chapter, step)).toBe('第 2 章 · 准备节点和住宅 IP');
+    expect(eyebrowText(chapter, step)).toBe('第 1 章 · 准备节点和住宅 IP');
     expect(progressText(chapter, step)).toBe('准备节点和住宅 IP');
     expect(stepNumber(chapter, step)).toBeNull();
   });
 
   it('选择页写“· 选择”，旁支页写“· 旁支”，都不计步数（design §4.2、§4.6）', () => {
-    expect(eyebrowText(chapter, choose)).toBe('第 2 章 · 准备节点和住宅 IP · 选择');
-    expect(eyebrowText(chapter, side)).toBe('第 2 章 · 准备节点和住宅 IP · 旁支');
+    expect(eyebrowText(chapter, choose)).toBe('第 1 章 · 准备节点和住宅 IP · 选择');
+    expect(eyebrowText(chapter, side)).toBe('第 1 章 · 准备节点和住宅 IP · 旁支');
     expect(progressText(chapter, side)).toBe('准备节点和住宅 IP · 旁支');
     expect(eyebrowSuffix(side)).toBe(' · 旁支');
     expect(eyebrowSuffix(step)).toBe('');
@@ -62,8 +62,8 @@ describe('nav-text：导航文案，构建时和浏览器共用', () => {
   });
 
   it('页头色带的章号不补零；目录和首页索引的章节号仍从 00 起、补足两位（design §2）', () => {
-    expect(chapterText({ chapterId: 'a', chapter: '甲', chapterNo: 0 })).toBe('第 1 章');
-    expect(chapterText({ chapterId: 'b', chapter: '乙', chapterNo: 3 })).toBe('第 4 章');
+    expect(chapterText({ chapterId: 'a', chapter: '甲', chapterNo: 0 })).toBe('第 0 章');
+    expect(chapterText({ chapterId: 'b', chapter: '乙', chapterNo: 3 })).toBe('第 3 章');
     expect(chapterNoText(0)).toBe('00');
     expect(chapterNoText(3)).toBe('03');
     expect(chapterNoText(12)).toBe('12');

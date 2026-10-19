@@ -10,7 +10,7 @@ test('导入代理软件：上一步是“选择方案”，进度只有章节',
   await expect(stepNav(page).getByRole('link', { name: /上一步.*选择方案/ })).toHaveAttribute('href', /\/choose-plan\/$/);
   await expect(page.locator('[data-route-progress]')).toHaveText('准备节点和住宅 IP');
   // 数不清第几步：眉题只有章和章名，不写步数（FR-10、design §4.1）
-  await expect(page.locator('[data-route-eyebrow]')).toHaveText('第 2 章 · 准备节点和住宅 IP');
+  await expect(page.locator('[data-route-eyebrow]')).toHaveText('第 1 章 · 准备节点和住宅 IP');
   expect(await stepNo(page)).toBeNull();
   expect(await stepTotal(page)).toBeNull();
 });

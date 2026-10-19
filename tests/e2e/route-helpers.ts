@@ -56,7 +56,7 @@ export function collectErrors(page: Page): string[] {
 
 /**
  * 页头色带里看得见的眉题原文（design §4.1，v2.2 D4、D10），例如
- * “第 2 章 · 准备节点和住宅 IP · 第 2 步，共 9 步”；选择页“… · 选择”，章首页只有“第 1 步，共 10 步”。
+ * “第 1 章 · 准备节点和住宅 IP · 第 2 步，共 9 步”；选择页“… · 选择”，章首页只有“第 1 步，共 10 步”。
  */
 export const eyebrow = (page: Page) => page.locator('[data-route-eyebrow]').textContent();
 
