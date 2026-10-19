@@ -21,7 +21,7 @@
 - 还没有步骤视频；没有视频的页面不显示视频区域。
 - 后记还没写联系渠道（需求 Q-07）。
 - 浏览器兼容只在 Chromium 上自动测试过；Safari、Firefox 未做实测。
-- 部署位置和域名尚未决定（需求 Q-01）。
+- 部署到 GitHub Pages（`re0claude.us.ci`）的工作流已加上，首次上线还要在 GitHub 和 DNS 上配置，见“部署”。
 
 ## 先决条件
 
@@ -46,7 +46,15 @@ npm run preview
 
 ## 部署
 
-`dist/` 是一组静态文件，放到任意静态文件服务器（Nginx、GitHub Pages 等）即可。部署在子路径下时，构建时用 `BASE_PATH` 指定：
+正式站点部署在 GitHub Pages，域名 `re0claude.us.ci`。推送到 `main` 后由 [.github/workflows/deploy.yml](.github/workflows/deploy.yml) 构建并发布（也可以在 Actions 页手动运行）；内容有错时构建失败，不会部署。域名写在 `public/CNAME`。首次启用要做三件事：
+
+1. 仓库 Settings → Pages → Build and deployment 的 Source 选 **GitHub Actions**。
+2. 域名的 DNS 加 4 条 A 记录指向 `185.199.108.153`、`185.199.109.153`、`185.199.110.153`、`185.199.111.153`（可再加 AAAA：`2606:50c0:8000::153` 到 `2606:50c0:8003::153`）；用 Cloudflare 时先关掉代理（灰色云朵），等证书签发后再说。
+3. Settings → Pages 的 Custom domain 填 `re0claude.us.ci`，DNS 检查通过后勾选 **Enforce HTTPS**。
+
+私有仓库开 Pages 需要付费账户；改为公开前先扫一次提交历史（见 [docs/delivery.md](docs/delivery.md)）。
+
+`dist/` 是一组静态文件，也可以放到其他静态文件服务器（Nginx 等）。部署在子路径下时，构建时用 `BASE_PATH` 指定：
 
 ```bash
 BASE_PATH=/sub/ npm run build

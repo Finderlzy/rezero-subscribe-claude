@@ -1,0 +1,45 @@
+# 推送 main 后构建并部署到 GitHub Pages（自定义域名 re0claude.us.ci，见 README“部署”）。
+name: 部署到 GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一时间只跑一次部署，新的推送不打断正在进行的部署。
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # 自定义域名挂在根路径，BASE_PATH 用默认的 /；内容有错时构建失败，不会部署。
+      - run: npm run build
+        env:
+          SITE_URL: https://re0claude.us.ci
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
