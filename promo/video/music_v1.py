@@ -8,33 +8,10 @@ from pathlib import Path
 
 import numpy as np
 
-from synth import Track, bell, env, fft_filter, heartbeat, music_box, note, pad, rng, sparkle, t_arr
+from synth import Track, bell, heartbeat, music_box, note, pad, shaker, sparkle, swipe, thud, whoosh
 
 tr = Track(35.0)
 BEAT = 60 / 96  # 96 BPM
-
-
-def swipe(d=0.16):
-    """划线：一小段由低到高扫过的噪声"""
-    n = int(d * 44100)
-    x = fft_filter(rng.standard_normal(n), lo=1500, hi=9000)
-    return x * np.sin(np.linspace(0, np.pi, n)) ** 2
-
-
-def shaker():
-    n = int(0.05 * 44100)
-    return fft_filter(rng.standard_normal(n), lo=6000) * env(n, 0.003, 0.04, 5)
-
-
-def whoosh(d=0.4):
-    n = int(d * 44100)
-    x = fft_filter(rng.standard_normal(n), lo=400, hi=5000)
-    return x * np.linspace(0, 1, n) ** 2 * np.minimum(np.linspace(1, 0, n) * 6, 1)
-
-
-def thud():
-    t = t_arr(0.6)
-    return np.sin(2 * np.pi * np.cumsum(120 * np.exp(-t * 14) + 50) / 44100) * env(len(t), 0.002, 0.45)
 
 
 # 1. 0–3.6s 开场：八音盒动机，字出现时各一下

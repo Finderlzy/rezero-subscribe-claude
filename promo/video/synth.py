@@ -104,6 +104,29 @@ def sparkle(d=1.2, f0=1800, f1=6000):
     return x
 
 
+def swipe(d=0.16):
+    """划线：一小段由低到高扫过的噪声"""
+    n = int(d * SR)
+    x = fft_filter(rng.standard_normal(n), lo=1500, hi=9000)
+    return x * np.sin(np.linspace(0, np.pi, n)) ** 2
+
+
+def shaker():
+    n = int(0.05 * SR)
+    return fft_filter(rng.standard_normal(n), lo=6000) * env(n, 0.003, 0.04, 5)
+
+
+def whoosh(d=0.4):
+    n = int(d * SR)
+    x = fft_filter(rng.standard_normal(n), lo=400, hi=5000)
+    return x * np.linspace(0, 1, n) ** 2 * np.minimum(np.linspace(1, 0, n) * 6, 1)
+
+
+def thud():
+    t = t_arr(0.6)
+    return np.sin(2 * np.pi * np.cumsum(120 * np.exp(-t * 14) + 50) / SR) * env(len(t), 0.002, 0.45)
+
+
 class Track:
     """一条 dur 秒的立体声音轨"""
 

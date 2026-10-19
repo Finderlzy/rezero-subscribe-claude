@@ -23,4 +23,21 @@ const tablet = await browser.newPage({ viewport: { width: 768, height: 1024 }, d
 await tablet.goto(`${SITE}/appendix/`);
 await tablet.locator('.group-invite').screenshot({ path: `${out}appendix-group.png` });
 
+// B 站横版：1024 宽截图。<1100px 目录收在抽屉里，侧边栏里第 01 章的标题不会入镜
+const wide = await browser.newPage({ viewport: { width: 1024, height: 700 }, deviceScaleFactor: 2, colorScheme: 'light' });
+await wide.goto(`${SITE}/`);
+await wide.locator('.home-logo').screenshot({ path: `${out}wide-home-logo.png` });
+await wide.locator('.home-actions').screenshot({ path: `${out}wide-home-actions.png` });
+await wide.locator('.group-invite').screenshot({ path: `${out}wide-home-group.png` });
+await wide.goto(`${SITE}/register-claude/`);
+for (const [view, name] of [['操作', 'operation'], ['原理', 'principle']]) {
+  await wide.getByRole('button', { name: view, exact: true }).click();
+  await wide.screenshot({ path: `${out}wide-register-claude-${name}.png` });
+}
+// 章首页只截色带（章节标题卡）：正文和选项里有“走代理”“导入代理软件”，不能入镜
+await wide.goto(`${SITE}/choose-phone/`);
+await wide.locator('header.band').screenshot({ path: `${out}wide-chapter-card.png` });
+await wide.goto(`${SITE}/appendix/`);
+await wide.locator('.group-invite').screenshot({ path: `${out}wide-appendix-group.png` });
+
 await browser.close();
