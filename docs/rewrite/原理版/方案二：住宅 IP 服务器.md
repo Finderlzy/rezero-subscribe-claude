@@ -11,9 +11,9 @@ IP 不只是一个地址，它还能看出两件事：
 
 方案二的做法，就是直接买一台**住宅服务器**。它是一台放在海外、自带住宅 IP 的服务器，从它这里出去的请求，claude 看到的直接就是住宅 IP。所以你**只需要把这台服务器变成一个节点**就好了：请求先交给它，由它替你发给 claude，claude 看到的就是这台服务器的住宅 IP；claude 返回的数据，再由它转交给你。这台替你收发请求的服务器，就是常说的“**节点**”。
 
-不过要注意一点：**商家说是住宅服务器，分到你手上的不一定真是住宅 IP。** 我自己就买过一台 VoyraCloud 的美国住宅服务器（见 [[实测：VoyraCloud 住宅服务器|它的实测]]），测出来 ipinfo.io 显示 ASN 属于 Bunny Communications，类型是 **Hosting（机房）**，Privacy 为 true；Scamalytics 分数 16，属于低风险，但也识别出在用 VPN/代理。也就是说，我这一台风险分数不高，但分到的是机房 IP，不是住宅 IP。
+不过要注意一点：**商家说是住宅服务器，分到你手上的不一定真是住宅 IP。** 我第一次买的 VoyraCloud 美国住宅服务器（见 [[实测：VoyraCloud 住宅服务器|它的实测]]），测出来 ipinfo.io 显示 ASN 属于 Bunny Communications，类型是 **Hosting（机房）**，Privacy 为 true；Scamalytics 分数 16，属于低风险，但也识别出在用 VPN/代理。也就是说，我这一台风险分数不高，但分到的是机房 IP，不是住宅 IP。
 
-这只是我一次购买的结果，不代表每次都这样。所以买到之后一定要测，后面“测 IP 质量”那一步会讲怎么测；不是住宅 IP 的话，找商家退款或者换 IP。
+这只是我一次购买的结果，不代表每次都这样：我后来又在 VoyraCloud 买了一台住宅服务器，测出来是 ISP 类型，现在用的就是这一台。所以买到之后一定要测，后面“测 IP 质量”那一步会讲怎么测；不是住宅 IP 的话，找商家退款或者换 IP。
 
 实测截图（IP 已遮盖）：
 
@@ -25,7 +25,7 @@ IP 不只是一个地址，它还能看出两件事：
 
 推荐的购买地址：
 
-- [VoyraCloud](https://www.voyracloud.com/?ref_code=HYEWZ46M)（我用的是它家的云 VPS，也买过一台它家的住宅服务器，实测结果见上面。）
+- [VoyraCloud](https://www.voyracloud.com/?ref_code=HYEWZ46M)（我现在用的就是它家的住宅服务器：第一台测出来是机房 IP，后来买的一台是 ISP 类型，见 [[实测：VoyraCloud 住宅服务器|它的实测]]。）
 - [QSU](https://qsu.hk/aff/GAZUQBSL)（我用过它家子站 proxy.qsu.hk 的住宅代理，主站的住宅服务器**我没有使用过**，有朋友说质量不错，见 [[实测：QSU 住宅服务器|它的实测]]。）
 - [丽萨主机](https://lisahost.com/aff.php?aff=15037)（我买过一台它家的美国 9929 双 ISP 住宅 IP VPS，它的产品页面虽然很丑，但是质量还不错：测出来是 ISP 类型，Scamalytics 5 分，见 [[实测：丽萨住宅服务器|它的实测]]。）
 

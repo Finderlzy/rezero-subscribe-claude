@@ -1,8 +1,6 @@
 # 二、购买 ISP 代理
 
-推荐买 [Decodo](https://decodo.com/)（见 [[实测：Decodo ISP|它的实测]]），它在 Proxyway 2026 年的 ISP 代理测试里排第一，就是贵一些。不管在哪家买，都选 **SOCKS5** 协议，脚本只支持 SOCKS5。
-
-TODO：把 Decodo 的链接换成我的推广链接。
+推荐买 [Decodo](https://decodo.com/)。先说明：**我自己没有用过 Decodo**，推荐它只是因为它在 Proxyway 2026 年的 ISP 代理测试里排第一；它的价格很贵。不管在哪家买，都选 **SOCKS5** 协议，脚本只支持 SOCKS5。
 
 买完在商家后台记下**住宅 IP、端口、用户名、密码**，下一步运行脚本时要填。住宅 IP 可能是一串域名，比如 `r52u2gaa.isp201.iisp.asia`，照着记下来就行。
 

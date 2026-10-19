@@ -36,7 +36,7 @@ for (const { id, title } of ITEMS) {
 
 // 常见问题的 TODO 都补完了（2026-10-19），用同为参考页的实测页核对
 test('参考页正文里的 TODO 照常显示“作者待补”（FR-21）', async ({ page }) => {
-  await page.goto('./ip-tests/decodo/');
+  await page.goto('./ip-tests/qsu-residential/');
   await expect(page.locator('.prose .author-todo')).toBeVisible();
   await expect(page.locator('.prose .author-todo')).toContainText('作者待补');
 });

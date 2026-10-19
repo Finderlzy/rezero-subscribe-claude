@@ -3,7 +3,7 @@
 - 商家：[VoyraCloud](https://www.voyracloud.com/?ref_code=HYEWZ46M)，美国住宅服务器
 - 对应：[[方案二：住宅 IP 服务器]]
 
-## 我的
+## 我的第一台
 
 | 项目 | 结果 |
 | --- | --- |
@@ -19,6 +19,12 @@
 ![[VoyraCloud住宅服务器实测-ipinfo.png|600]]
 
 ![[VoyraCloud住宅服务器实测-scamalytics.png|600]]
+
+## 我的第二台（现在用的）
+
+后来我又在 VoyraCloud 买了一台住宅服务器，测出来是 **ISP 类型**，现在用的就是这一台。
+
+TODO：补上这一台的实测截图和分数。
 
 ---
 

@@ -12,7 +12,7 @@ IP 不只是一个地址，它还能看出你在哪个国家。claude 不对中�
 
 这台替我们收发请求的海外服务器，就是常说的“**节点**”。这就是这一节要买服务器的原因。
 
-1. 在 [VoyraCloud](https://www.voyracloud.com/?ref_code=HYEWZ46M) 买一台云 VPS（我用的就是它家的云 VPS。云 VPS 是机房 IP，访问 claude 时走的是 ISP，所以不用看它的 IP 质量），按下表选：
+1. 在 [VoyraCloud](https://www.voyracloud.com/?ref_code=HYEWZ46M) 买一台云 VPS（我之前用的就是它家的云 VPS。云 VPS 是机房 IP，访问 claude 时走的是 ISP，所以不用看它的 IP 质量），按下表选：
 
 | 选项   | 怎么选                                |
 | ---- | ---------------------------------- |

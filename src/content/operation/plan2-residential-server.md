@@ -4,7 +4,7 @@
 
 在下面任选一家买一台**住宅服务器**：
 
-- [VoyraCloud](https://www.voyracloud.com/?ref_code=HYEWZ46M)（我买过一台它家的美国住宅服务器，测出来是机房 IP，见 [[实测：VoyraCloud 住宅服务器|它的实测]]。）
+- [VoyraCloud](https://www.voyracloud.com/?ref_code=HYEWZ46M)（我现在用的就是它家的住宅服务器：第一台测出来是机房 IP，后来买的一台是 ISP 类型，见 [[实测：VoyraCloud 住宅服务器|它的实测]]。）
 - [QSU](https://qsu.hk/aff/GAZUQBSL)（主站的住宅服务器**我没有使用过**，有朋友说质量不错，见 [[实测：QSU 住宅服务器|它的实测]]。）
 - [丽萨主机](https://lisahost.com/aff.php?aff=15037)（我买过一台它家的美国 9929 双 ISP 住宅 IP VPS，测出来是 ISP 类型，Scamalytics 5 分，见 [[实测：丽萨住宅服务器|它的实测]]。）
 
