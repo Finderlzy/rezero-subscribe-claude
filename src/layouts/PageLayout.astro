@@ -107,6 +107,7 @@ const hasZoom = [principle, operation].some((html) => html !== undefined && hasZ
             </>
           )
         }
+        <slot name="after" />
         <StepNav prev={view.prev} next={view.next} returnTo={view.returnTo} skipTo={view.skipTo} skipLabel={skipLabel} />
       </div>
     </main>

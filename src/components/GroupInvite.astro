@@ -1,0 +1,116 @@
+---
+import qrcode from '../assets/qq-group/qrcode.svg?raw';
+import { GROUP_NUMBER, GROUP_URL } from '../lib/group';
+
+/**
+ * QQ 群入口（FR-22）：一句话介绍群里的大肥鱼，写出群号，再给一个加群链接；平板和桌面多一张二维码，用手机扫。
+ * 手机上不放二维码：扫不了自己的屏幕，点链接直接拉起 QQ。
+ * 二维码是加群链接 GROUP_URL（src/lib/group.ts）的素色版本（黑码白底，不用 QQ 自带的渐变样式，design §6），
+ * 存在 src/assets/qq-group/qrcode.svg：用 Python 的 segno 生成（`segno.make(GROUP_URL, error='m')`，border 4、黑码透明底，
+ * 再补上 viewBox），生成后用扫码工具核对过能解出 GROUP_URL。改链接要重新生成。
+ * 放在首页首屏、附录页和每个参考页的正文末尾。
+ */
+interface Props {
+  /** 首页首屏用紧凑版：只有一行文字和链接，不放二维码 */
+  compact?: boolean;
+}
+
+const { compact = false } = Astro.props;
+---
+
+<section class:list={['group-invite', { 'group-invite-compact': compact }]} aria-label="QQ 群">
+  <div class="group-invite-text">
+    <p class="group-invite-lead">有问题？进 QQ 群问大肥鱼</p>
+    {
+      !compact && (
+        <p class="group-invite-desc">大肥鱼是群里的 AI 嘉宾，24 小时在线。教程哪一步卡住了都可以问她，也可以随便聊。</p>
+      )
+    }
+    <p class="group-invite-meta">
+      群号 <span class="group-invite-number">{GROUP_NUMBER}</span>
+      <a class="group-invite-link" href={GROUP_URL} rel="noopener">加入群聊<span aria-hidden="true"> →</span></a>
+    </p>
+  </div>
+  {!compact && <div class="group-invite-qr" role="img" aria-label={`QQ 群二维码，群号 ${GROUP_NUMBER}`} set:html={qrcode} />}
+</section>
+
+<style>
+  .group-invite {
+    display: flex;
+    align-items: center;
+    gap: var(--space-5);
+    margin: var(--space-7) 0 0;
+    padding: var(--space-4) 0;
+    border-top: var(--border-width) solid var(--border);
+    border-bottom: var(--border-width) solid var(--border);
+  }
+
+  .group-invite-compact {
+    margin-top: var(--space-5);
+    padding: 0;
+    border: 0;
+  }
+
+  .group-invite p {
+    margin: 0;
+  }
+
+  .group-invite-lead {
+    font-weight: var(--fw-heading);
+  }
+
+  .group-invite-compact .group-invite-lead {
+    color: var(--text-muted);
+    font-size: var(--fs-meta);
+    line-height: var(--lh-meta);
+  }
+
+  .group-invite .group-invite-desc {
+    margin-top: var(--space-2);
+    color: var(--text-muted);
+  }
+
+  .group-invite .group-invite-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 var(--space-4);
+    margin-top: var(--space-2);
+    color: var(--text-muted);
+    font-size: var(--fs-meta);
+    line-height: var(--lh-meta);
+  }
+
+  .group-invite-number {
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    user-select: all;
+  }
+
+  /* 可点区域补足 44px 高（design §5） */
+  .group-invite-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  /* 二维码要黑码白底才扫得出，深色模式下也保留白底 */
+  .group-invite-qr {
+    display: none;
+    flex: none;
+    width: 112px;
+    line-height: 0;
+    background: #ffffff;
+  }
+
+  .group-invite-qr :global(svg) {
+    width: 100%;
+    height: auto;
+  }
+
+  @media (min-width: 720px) {
+    .group-invite-qr {
+      display: block;
+    }
+  }
+</style>

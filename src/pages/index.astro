@@ -1,4 +1,5 @@
 ---
+import GroupInvite from '../components/GroupInvite.astro';
 import Logo from '../components/Logo.astro';
 import Mascot from '../components/Mascot.astro';
 import Numeral from '../components/Numeral.astro';
@@ -15,6 +16,7 @@ import '../styles/toc.css';
  * 小字信息行、“从第 00 章开始”（进入前言）和“先看整体思路”；桌面右侧是四行章级索引，链到下方完整目录的对应章。
  * 首屏只有 logo 的“Re”和主按钮用 --accent。一条细线下是完整目录，按原理版目录页的样子画（TocNav 的 home 变体）。
  * 小形象（design v2.2 D6）放在 logo 的右下方，脚底贴着首屏主区的下沿。
+ * 按钮下面一行小字是 QQ 群入口的紧凑版（FR-22）：从宣传视频过来的人，第一屏就能找到群。
  * 没有“继续上次”和已读标记，没有脚本。
  */
 const site = await loadSite();
@@ -54,6 +56,7 @@ if (!(overview.principle.body ?? '').replaceAll('**', '').includes(TAGLINE)) {
           >
           <a class="home-overview" href={withBase(pathOf({ kind: 'step', id: overview.id, title: overview.title }))}>先看整体思路</a>
         </p>
+        <GroupInvite compact />
       </div>
 
       <nav class="home-index" aria-label="章级索引">

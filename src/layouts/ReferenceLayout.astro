@@ -1,5 +1,6 @@
 ---
 import CodeCopy from '../components/CodeCopy.astro';
+import GroupInvite from '../components/GroupInvite.astro';
 import Mascot from '../components/Mascot.astro';
 import ImageZoom from '../components/ImageZoom.astro';
 import SiteHeader from '../components/SiteHeader.astro';
@@ -18,6 +19,7 @@ import '../styles/prose.css';
  * 小形象贴在色带右下角（D6）。正文在色带下面的 --content-width 栏里。
  * 从步骤链接进来（`?from=<page-id>`）时，页面脚本在正文上方和正文末尾显示“← 返回刚才的步骤：<标题>”；
  * 页脚只有“回到：…”：各条问题回常见问题，各篇实测回 IP 质量实测合集，两个参考页首页回附录（FR-20）。
+ * 正文末尾、返回链接之后放 QQ 群入口（FR-22）：在常见问题里没找到答案，就进群问。
  * 参考页不进入上一步/下一步序列（requirements FR-20，取代 v2.2 计划 W5 第 2、3 条的“上一条 / 下一条”）。
  *
  * 目录（v2.2 D8、W3 第 7 条）：和步骤页一样内嵌 #route-data 和 Toc——≥1100px 左侧常驻，<1100px 是抽屉。
@@ -61,6 +63,7 @@ const routeJson = JSON.stringify(site.route.data).replace(/</g, '\\u003c');
         <p class="reference-return" data-reference-return hidden>
           <a>← 返回刚才的步骤</a>
         </p>
+        <GroupInvite />
         <p class="page-actions">
           {back && <a class="button button-secondary" href={withBase(back.href)}>回到：{back.title}</a>}
         </p>
