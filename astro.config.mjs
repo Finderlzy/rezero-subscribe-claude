@@ -24,8 +24,11 @@ export default defineConfig({
   // 路线图在页面调用 loadSite() 时校验（src/lib/site.ts）。构建结束时列出内容提示（FR-21）。
   integrations: [contentValidation({ base, linkIndex })],
   markdown: {
-    // 默认的 Sätteri 不兼容 remark/rehype 插件，所以用 unified 处理器；Shiki 高亮仍默认开启（reuse-research §4.1）。
+    // 默认的 Sätteri 不兼容 remark/rehype 插件，所以用 unified 处理器（reuse-research §4.1）。
     // 插件和 rehype-callouts 的配置见 src/lib/content/markdown.ts（M1 Obsidian 写法插件）。
     processor: unified(markdownPipeline({ base, linkIndex })),
+    // 不做语法高亮（v2.2 W4c，design §4.7）：代码块是 --surface-muted 底、正文色的单色块。Shiki 会写内联的深色底和
+    // 各段颜色，浅底上对比度不够（a11y.spec 的 axe 扫描），深浅两套主题又各要一份配色。
+    syntaxHighlight: false,
   },
 });

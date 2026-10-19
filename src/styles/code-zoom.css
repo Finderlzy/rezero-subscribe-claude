@@ -33,7 +33,9 @@
   border: 0;
   border-radius: var(--radius-control);
   background: transparent;
-  color: var(--text-muted);
+  /* 复制按钮下面压着 --surface-muted 的代码块：--text-muted 对 --surface-muted 只有 3.5:1，用 --text-faint
+     对 --surface-muted 才达到 4.5:1（tokens.test.ts 里有这条组合） */
+  color: var(--text-faint);
   font: inherit;
   font-size: var(--fs-caption);
   line-height: 1;

@@ -13,7 +13,8 @@
   --surface-muted: #f4f4f5;
   --text: #18181b;
   --text-muted: #52525b;
-  --text-faint: #71717a;
+  /* 比 v2.2 计划的 #71717a 深一档：代码块上的复制按钮要用它在 --surface-muted 底上达到 4.5:1 */
+  --text-faint: #6b6b74;
   --border: #e4e4e7;
   --control-border: #8a8a93;
   --accent: #5b4ba8;

@@ -53,6 +53,7 @@ for (const { path, name } of PAGES) {
         margin: [getComputedStyle(el).marginTop, getComputedStyle(el).marginBottom],
         captionTop: caption.top,
         svgTop: r.top,
+        svgBottom: r.bottom,
         captionRight: caption.right,
         svgLeft: r.left,
         overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -67,10 +68,8 @@ for (const { path, name } of PAGES) {
     expect(box.accent).not.toBe(box.color);
     expect(box.margin).toEqual(['32px', '32px']);
     expect(box.overflow).toBe(0);
-    if ((page.viewportSize()?.width ?? 0) >= 1100) {
-      expect(box.captionRight).toBeLessThan(box.svgLeft);
-      expect(Math.abs(box.captionTop - box.svgTop)).toBeLessThanOrEqual(2);
-    }
+    // v2.2 去掉了桌面页边栏（W2 第 3 条）：三种宽度的编号都在图下方
+    expect(box.captionTop).toBeGreaterThanOrEqual(box.svgBottom);
   });
 }
 

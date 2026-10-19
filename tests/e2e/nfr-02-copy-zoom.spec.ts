@@ -67,14 +67,16 @@ test.describe('代码块复制', () => {
   test('复制按钮的可点区域至少 44×44px（design §5）', async ({ page }) => {
     await page.goto('./plan1-make-node/');
     const box = (await page.locator('.code-copy').filter({ visible: true }).first().boundingBox())!;
+    // v2.2 W4c：看得见的按钮是 28px 高的幽灵按钮，::after 上下各扩 8px，可点区域仍是 44px 高
     expect(box.width).toBeGreaterThanOrEqual(44);
-    expect(box.height).toBeGreaterThanOrEqual(44);
-    // 按钮不能被代码块压住：点在按钮中心命中的应该是按钮自己（B3 的层叠疑问）。
-    const hit = await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.closest('.code-copy') !== null, [
-      box.x + box.width / 2,
-      box.y + box.height / 2,
-    ]);
-    expect(hit).toBe(true);
+    expect(box.height).toBeGreaterThanOrEqual(28);
+    // 按钮不能被代码块压住：点在按钮中心，以及按钮上下沿外 7px（扩出来的可点区域里）命中的都应该是按钮自己（B3 的层叠疑问）。
+    const hits = await page.evaluate(
+      ([x, top, bottom]) => [top! - 7, (top! + bottom!) / 2, bottom! + 7].map((y) => document.elementFromPoint(x!, y)?.closest('.code-copy') !== null),
+      [box.x + box.width / 2, box.y, box.y + box.height],
+    );
+    expect(hits).toEqual([true, true, true]);
+    expect(box.height + 16).toBeGreaterThanOrEqual(44);
   });
 
   test('复制按钮不随长行横向滚动移出视野', async ({ page }) => {
@@ -268,7 +270,7 @@ test.describe('截图图版', () => {
       await expectScriptRan(page);
       const box = await plate(page);
       expect(box.stepNo, path).toMatch(/^\d+$/);
-      expect(box.text, path).toBe(`图 ${box.stepNo}-1`);
+      expect(box.text, path).toBe(`图 ${box.stepNo!.padStart(2, '0')}-1`);
       expect(box.border, path).toBe('1px');
       // 三种宽度的编号都在截图下方（v2.2 去掉了桌面页边栏，见下一项工作 W3 的侧边栏）
       expect(box.caption.top, path).toBeGreaterThanOrEqual(box.img.bottom);
@@ -289,14 +291,14 @@ test.describe('截图图版', () => {
       // 构建时按操作视图写好的眉题里就有步骤号（补足两位进“图 02-1”）
       const no = /第 (\d+) 步，共 \d+ 步/.exec((await page.locator('[data-route-eyebrow]').textContent()) ?? '')?.[1];
       expect(no).toMatch(/^\d+$/);
-      await expect(caption).toHaveText(`图 ${no}-1`);
+      await expect(caption).toHaveText(`图 ${no!.padStart(2, '0')}-1`);
     });
   });
 
   test('第二张截图是“-2”', async ({ page }) => {
     await page.goto('./iphone-apple-id/');
     await expectScriptRan(page);
-    expect((await plate(page, 1)).text).toBe(`图 ${(await plate(page)).stepNo}-2`);
+    expect((await plate(page, 1)).text).toBe(`图 ${(await plate(page)).stepNo!.padStart(2, '0')}-2`);
   });
 
   test('数不清第几步时只用序号（架构 §11.4 W-4）', async ({ page }) => {
@@ -316,7 +318,7 @@ test.describe('截图图版', () => {
     await page.getByRole('group', { name: '视图' }).getByRole('button', { name: '原理' }).click();
     await expect.poll(async () => (await plate(page)).stepNo).not.toBe(operation.stepNo);
     const principle = await plate(page);
-    expect(principle.text).toBe(`图 ${principle.stepNo}-1`);
+    expect(principle.text).toBe(`图 ${principle.stepNo!.padStart(2, '0')}-1`);
   });
 
   test('参考页只用序号“图 1”', async ({ page }) => {

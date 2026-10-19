@@ -109,6 +109,8 @@ button:active,
    */
   :root:has(> body > aside.toc-sidebar) .site-footer {
     grid-area: footer;
+    /* 竖线（侧边栏的右边框）一直画到页脚底；页脚上边那条线只横跨正文区 */
+    margin-top: 0;
   }
 
   :root:has(> body > aside.toc-sidebar) .page-view {

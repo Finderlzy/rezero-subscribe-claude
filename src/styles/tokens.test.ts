@@ -49,6 +49,7 @@ const PAIRS: [string, string, number, string][] = [
   ['--text', '--accent-soft', 4.5, '页头色带里的标题'],
   ['--text-muted', '--accent-soft', 4.5, '页头色带里的次要文字和一句话'],
   ['--text-faint', '--bg', 4.5, '白底上的元信息（页脚、截图编号、目录章标题）'],
+  ['--text-faint', '--surface-muted', 4.5, '代码块上的复制按钮'],
   ['--accent', '--bg', 4.5, '链接、文字按钮'],
   ['--accent', '--surface', 4.5, '浮层里的链接'],
   ['--accent', '--accent-soft', 4.5, '页头色带上的眉题、“已选”标签'],
