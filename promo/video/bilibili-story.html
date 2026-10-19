@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>B 站经历版 1920×1080</title>
+<!--
+  B 站经历版（2026-10-19）：douyin-story.html 的横版，时间点完全一样，配乐共用 music_story.py。教程版在抖音、B 站都被判违规，这一版只讲做这个项目的经过，
+  不出现网址、群号、网站页面截图，也不讲任何步骤。时间点写在各元素的 data-in / data-out 上，music_story.py 按同样的秒数卡点。
+-->
+<style>
+  @font-face { font-family: 'Heavy'; src: url('../../.cache/fonts/SourceHanSansCN-Heavy.otf'); }
+  :root { --accent: #5b4ba8; --accent-soft: #f3f1fb; --text: #18181b; --muted: #52525b; --border: #e4e4e7; }
+  html, body { margin: 0; background: #fff; }
+  #stage {
+    position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #fff;
+    font-family: 'Noto Sans CJK SC', sans-serif; color: var(--text);
+  }
+  .el { position: absolute; left: 0; right: 0; text-align: center; opacity: 0; will-change: transform, opacity; }
+  .h1 { font-family: 'Heavy', sans-serif; font-size: 150px; line-height: 1.15; letter-spacing: 2px; }
+  .h2 { font-family: 'Heavy', sans-serif; font-size: 100px; line-height: 1.2; }
+  .cap { font-size: 56px; font-weight: 700; line-height: 1.4; padding: 0 90px; }
+  .small { font-size: 44px; color: var(--muted); }
+  .accent { color: var(--accent); }
+  .phone {
+    left: 1180px; width: 420px; height: 900px; top: 90px;
+    border: 16px solid var(--text); border-radius: 72px; background: #fff; overflow: hidden; box-sizing: border-box;
+  }
+  .phone img { display: block; width: 100%; }
+  .call { left: auto; right: 160px; width: 860px; border-radius: 32px; overflow: hidden; border: 3px solid var(--border); box-shadow: 0 30px 70px rgba(24, 24, 27, .22); }
+  .call img { display: block; width: 100%; }
+  .logo img { width: 880px; }
+  .quote { font-size: 64px; font-weight: 700; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <!-- 1. 0–5s 订阅成功的弹窗 -->
+  <div class="el h2" style="top:380px;left:160px;right:auto;text-align:left" data-in="0.2" data-out="5" data-fx="up">为了这一句</div>
+  <div class="el cap small" style="top:530px;left:160px;right:auto;text-align:left;padding:0" data-in="0.7" data-out="5" data-fx="fade">很多人折腾了好几天</div>
+  <div class="el phone" data-in="0.3" data-out="5" data-fx="phone"><img src="feedback/purchase-success.jpg" alt=""></div>
+  <!-- 弹窗区域放大：截图 922 宽，弹窗在 (132, 866) 起 662×322，见 feedback/list.json -->
+  <div class="el call" style="top:560px;height:419px" data-in="1.9" data-out="5" data-fx="pop">
+    <img src="feedback/purchase-success.jpg" alt="" style="width:1199px;margin:-1126px 0 0 -172px">
+  </div>
+
+  <!-- 2. 5–9.5s 私信 -->
+  <div class="el h2" style="top:400px" data-in="5.05" data-out="9.5" data-fx="up">好多朋友私信我</div>
+  <div class="el h2 accent" style="top:540px" data-in="5.8" data-out="9.5" data-fx="up">想让我远程帮忙装</div>
+
+  <!-- 3. 9.5–14.5s 可我是个学生 -->
+  <div class="el h2" style="top:280px" data-in="9.55" data-out="14.5" data-fx="up">可我是个学生</div>
+  <div class="el cap" style="top:450px" data-in="10.3" data-out="14.5" data-fx="fade">学习是主业</div>
+  <div class="el cap" style="top:540px" data-in="10.9" data-out="14.5" data-fx="fade">课余时间还想做点自己想做的事</div>
+  <div class="el h2 accent" style="top:700px" data-in="12.3" data-out="14.5" data-fx="pop">（其实是懒）</div>
+
+  <!-- 4. 14.5–18.5s 那就写一份 -->
+  <div class="el cap" style="top:320px" data-in="14.55" data-out="18.5" data-fx="fade">那就写一份</div>
+  <div class="el h2" style="top:420px" data-in="15.1" data-out="18.5" data-fx="up">从零开始</div>
+  <div class="el h2" style="top:550px" data-in="15.6" data-out="18.5" data-fx="up">手把手的吧</div>
+
+  <!-- 5. 18.5–21.5s 从零开始？ -->
+  <div class="el h1 accent" style="top:440px" data-in="18.55" data-out="21.5" data-fx="pop">从零开始？</div>
+
+  <!-- 6. 21.5–25.5s logo -->
+  <div class="el small" style="top:260px" data-in="21.55" data-out="25.5" data-fx="fade">我一下子想到了</div>
+  <div class="el logo" style="top:380px" data-in="22" data-out="25.5" data-fx="pop"><img src="../../src/assets/logo/logo-zh.svg" alt=""></div>
+
+  <!-- 7. 25.5–31s 夹带私货 -->
+  <div class="el cap" style="top:160px" data-in="25.55" data-out="99" data-fx="fade">当一件事可以夹带私货</div>
+  <div class="el h2" style="top:260px" data-in="26.3" data-out="99" data-fx="up">人的热情</div>
+  <div class="el h2 accent" style="top:390px" data-in="26.8" data-out="99" data-fx="up">就会十分高涨</div>
+  <div class="el logo" style="top:620px" data-in="28" data-out="99" data-fx="fade"><img src="../../src/assets/logo/logo-zh.svg" alt="" style="width:520px"></div>
+  <div class="el small" style="top:820px" data-in="28.5" data-out="99" data-fx="fade">一个学生的课余项目</div>
+</div>
+
+<script>
+  const ease = (x) => 1 - Math.pow(1 - Math.min(Math.max(x, 0), 1), 3);
+  const back = (x) => { x = Math.min(Math.max(x, 0), 1); const c = 1.7; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+  const IN = 0.45, OUT = 0.3;
+
+  window.DURATION = 31;
+  window.SIZE = [1920, 1080];
+  window.render = (t) => {
+    for (const el of document.querySelectorAll('[data-in]')) {
+      const tin = +el.dataset.in, tout = +el.dataset.out, fx = el.dataset.fx || 'fade';
+      const pin = (t - tin) / IN, pout = (tout - t) / OUT;
+      const visible = t >= tin && t < tout;
+      el.style.opacity = visible ? Math.min(ease(pin), ease(pout)) : 0;
+      const k = ease(pin);
+      let transform = '';
+      if (fx === 'up' || fx === 'phone') transform = `translateY(${(1 - k) * (fx === 'phone' ? 260 : 60)}px)`;
+      if (fx === 'pop') transform = `scale(${0.6 + 0.4 * back(pin)})`;
+      el.style.transform = transform;
+    }
+  };
+  render(0);
+</script>
+</body>
+</html>
