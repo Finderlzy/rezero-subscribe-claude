@@ -6,7 +6,7 @@
 
 - **基线**：`main` @ `2ee93a8`（与 `origin/main` 一致），验收分支 `delivery-v2.0.0`。#23–#40 都已关闭，提交都在 `main` 的历史里；没有开着的 Issue。
 - **环境**：Linux，Node v24.21.0，npm，Playwright Chromium。全部检查在临时目录的干净克隆里跑（`git clone` → `npm ci`），不依赖开发目录的缓存和忽略文件；只有需要 `.cache/fonts/` 和 `docs/rewrite/附件/`（都不入库）的两项在开发目录里补跑。
-- **版本**：`package.json`、`package-lock.json` 定为 2.0.0。未打标签、未部署（部署位置未定，Q-01）。
+- **版本**：`package.json`、`package-lock.json` 定为 2.0.0；已打附注标签 `v2.0.0`（指向 `fc559d0`）并推送。尚未创建 GitHub Release，未部署（部署位置未定，Q-01）。
 - **结论**：自动化检查、产物抓取和 AC-13 比对全部通过；内容上还有 9 页作者待补和后记联系渠道待补，不阻塞功能，但上线前要作者决定是否接受。
 
 ### 回归与构建
