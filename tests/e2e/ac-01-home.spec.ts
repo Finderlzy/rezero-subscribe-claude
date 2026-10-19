@@ -41,7 +41,7 @@ test('新浏览器打开首页：眉题、logo 和站名、一句话、小字信
   await expect(toc.locator('.toc-chapter-title')).toHaveText(['开始', '准备节点和住宅 IP', '注册和订阅', '结尾', '附录']);
   // 结构同原理版目录页：分叉点下列各选项的页面，原理独有步骤标“原理”；首页没有视图，不弱化，也不标“其他路线”
   await expect(toc.locator('.toc-option-title')).toContainText(['方案一', '或：方案二', '或：方案三', 'iPhone', '或：安卓']);
-  await expect(toc.getByRole('link', { name: /一、白嫖 ISP/ })).toBeVisible();
+  await expect(toc.getByRole('link', { name: /一、购买服务器/ })).toBeVisible();
   await expect(toc.getByRole('link', { name: /小结：从服务器到代理软件/ })).toContainText('原理');
   await expect(toc.locator('[data-off-route]')).toHaveCount(0);
   await expect(toc.getByText('其他路线').filter({ visible: true })).toHaveCount(0);

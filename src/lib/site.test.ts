@@ -178,7 +178,7 @@ describe('真实 route.yaml', () => {
     expect(nav('appendix')).toMatchObject({ prev: 'afterword', next: 'home' });
   });
 
-  it('五、打开面板可跳过，跳到导入代理软件；四、把服务器变成节点不可跳过（AC-05）', () => {
+  it('四、打开面板可跳过，跳到导入代理软件；三、把服务器变成节点不可跳过（AC-05）', () => {
     expect(nav('plan1-panel', 'operation', { 'node-plan': 'plan-1' }).skipTo).toBe('import-proxy');
     expect(nav('plan1-make-node', 'operation', { 'node-plan': 'plan-1' })).toMatchObject({ next: 'plan1-panel', skipTo: null });
   });

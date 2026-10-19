@@ -105,7 +105,6 @@ const PENDING = {
   // 作者待补的 TODO 段落（构建提示“作者待补”的页面），按两种视图合计，和构建提示的处数一致。
   // 重写稿里的 TODO 段数和这里对不上（多了、少了或已经补完）都报差异。
   todos: {
-    'leak-protection': 2,
     'plan1-buy-isp': 2,
     'iphone-proxy': 2,
     'iphone-app-store-austria': 2,
@@ -113,7 +112,6 @@ const PENDING = {
     'android-subscribe': 2,
     'reference/ip-tests/qsu-residential': 1,
     'reference/ip-tests/decodo': 1,
-    'reference/faq/panel-login': 1,
   },
 };
 

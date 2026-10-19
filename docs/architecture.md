@@ -81,7 +81,7 @@
 
 - **标题**：页面标题取正文第一行的 `# <标题>`（导入时原样保留），渲染时从正文里去掉，由布局输出 `<h1>`。两版的标题必须相同（FR-03）；全站标题（原理版和参考页）不能重复，因为双链按标题解析。缺少第一行标题、两版标题不同、标题重复都让构建失败。
 - **原理独有步骤**：`principleOnly: true` 且没有操作版文件。写了 `principleOnly: true` 却有操作版文件 → 构建失败；没写却缺操作版 → 按 FR-21 处理（操作视图显示原理版正文并提示“操作版还在写”），构建结束列进内容提示，不阻止构建。
-- **选择页的选项块**（FR-12）：`options` 的 `heading` 是正文里独占一段的加粗文字原文（如 `方案一：普通服务器 + 白嫖ISP（我用的）`、`iPhone`）。插件在两版正文里各找到这一段，把它到后面第一个列表（含）为止的内容包成 `<section data-option="<option-id>">`，加粗段落变成块标题；遇到“独占一段的加粗文字 / 分隔线 / 标题 / 正文结尾”时提前结束。“到第一个列表为止”是 #29 加的：选择手机系统末尾的“两条路走完，都接着注册 Gmail”是两个选项共用的话，不能进“安卓”块，否则点它会把选择记成安卓。块内第一个站内链接是这个选项的第一步，M3 用它做整块的点击区域。找不到 `heading`、块内没有站内链接、第一个链接不是该选项在路线图里的第一步（两种视图各核对一次）都让构建失败。`title`（如“方案一”）用于目录的“或”分组。
+- **选择页的选项块**（FR-12）：`options` 的 `heading` 是正文里独占一段的加粗文字原文（如 `方案一：普通服务器 + ISP 代理`、`iPhone`）。插件在两版正文里各找到这一段，把它到后面第一个列表（含）为止的内容包成 `<section data-option="<option-id>">`，加粗段落变成块标题；遇到“独占一段的加粗文字 / 分隔线 / 标题 / 正文结尾”时提前结束。“到第一个列表为止”是 #29 加的：选择手机系统末尾的“两条路走完，都接着注册 Gmail”是两个选项共用的话，不能进“安卓”块，否则点它会把选择记成安卓。块内第一个站内链接是这个选项的第一步，M3 用它做整块的点击区域。找不到 `heading`、块内没有站内链接、第一个链接不是该选项在路线图里的第一步（两种视图各核对一次）都让构建失败。`title`（如“方案一”）用于目录的“或”分组。
   - 现状（#29）：`src/lib/content/option-blocks.ts`，在 remark-obsidian 转完双链之后调用。依赖方向的例外：核对第一步要用 M2 的纯函数 `buildRouteMap`（只在这里，读 `route.yaml`；M2 不引用 M1，不成环），因为“第一步”的定义就在 M2。输出 `<section class="option-block" data-option>`，块标题是 `p.option-title`，块内第一个站内链接带 `data-option-start`。“该选项的第一步”取 M2 的 `view(选择页, {分叉点: 选项}, 视图).next`，和选择页的“下一步”是同一个定义；原理版按原理视图核对，操作版按操作视图核对，没有操作版时原理版两种视图都核对。路线图本身有错时只包块、不核对（错误由 `loadSite()` 报出）。
 
 **route.yaml 格式**（#25 建立）：章节、分叉点和旁支页的唯一来源。页面文件不重复写所属章节和选项。
@@ -99,7 +99,7 @@ chapters:
         page: choose-plan          # 选择页的标识，也是 URL /choose-plan/
       - branch: node-plan
         options:
-          plan-1: [plan1-free-isp, plan1-buy-server, plan1-make-node, plan1-buy-isp, plan1-panel]
+          plan-1: [plan1-buy-server, plan1-buy-isp, plan1-make-node, plan1-panel]
           plan-2: [plan2-residential-server]
           plan-3: [plan3-residential-node]
       - import-proxy               # F1 的汇合点
@@ -458,7 +458,7 @@ v2.0 → v2.1 的代码差距（现状 → 目标）：
 | 模块 | 改动 |
 | --- | --- |
 | M1 内容 | **常见问题一问一页**：每条问题是重写稿原理版里的单独文件，`import-rewrite.mjs` 按标题导入到 `reference/faq/<id>.md`（和别的参考页一样按第一行标题匹配；《常见问题》链到、站内还没有的条目单独报告，先手建只有 `# 标题` 的文件再重跑）。文件名是条目标识（URL `/faq/<id>/`，ADR-0002），第一行标题是问题原文，**标题和标识的对应只在这里**，没有另外的映射表，也不在构建时切分 `faq.md`（计划 W6 的 `appendix.yaml` 和切分作废）。`link-index.ts` 的 `checkFaqItems` 双向核对：条目没列进常见问题、常见问题的列表项链到没有条目文件的标题、同一条列两次、条目标识和已有页面相同；一个标题两个标识、条目缺标题由 `checkPages` 原有的“标题重复”“缺少第一行标题”报出。双链 `[[问题标题]]` 照常按标题解析到 `/faq/<id>/?from=<来源页>`。构建级坏内容用例：`tests/fixtures/faq-*`。代码块不做语法高亮，`<pre>` 的 `tabindex` 由 `rehype-scrollable-tables` 加 |
-| M2 路线 | 函数不变，数据变了：`route.yaml` 多一章 `appendix`（只有附录页），后记的下一步是附录，附录是路线的最后一项、下一步是首页；方案一的顺序按重写稿改成 `plan1-free-isp → plan1-buy-server → plan1-buy-isp → plan1-make-node → plan1-panel`，标识不变 |
+| M2 路线 | 函数不变，数据变了：`route.yaml` 多一章 `appendix`（只有附录页），后记的下一步是附录，附录是路线的最后一项、下一步是首页；方案一的顺序按重写稿改成 `plan1-free-isp → plan1-buy-server → plan1-buy-isp → plan1-make-node → plan1-panel`，标识不变；2026-10-19 删掉 `plan1-free-isp`，旧地址经 `REMOVED_PAGES` 跳到选择方案（ADR-0002 修订） |
 | M3 页面 | `PageLayout`：页头色带（眉题 + h1，章首页多 `ChapterSubtitle`、章名、`intro`），删除页边栏、`stepMark`/`stepMarkHtml` 和大号章节号；`Mascot.astro` 内联 `src/assets/mascot/mascot.svg`；`SiteFooter.astro` 每页一行非官方声明。目录：`Toc` 同时输出 `aside[data-toc-sidebar]`（≥1100px 常驻、独立滚动、静态 HTML 可用）和 `<dialog data-toc-dialog>`（<1100px），同一套 `TocNav` 标记；`toc.ts` 两份一起改写，首次加载时侧边栏滚到当前项。`ReferenceLayout`：和步骤页一样的页头色带（眉题“附录 · …”由页面传入），内嵌 `#route-data` 并初始化目录（不标当前项），页脚只有 `back`（“回到：附录 / 常见问题 / IP 质量实测合集”），没有上一步/下一步；`?from=` 的返回链接照旧。`src/pages/faq/[question].astro` 生成各条问题页。选项块：`option-blocks.ts` 在块前插编号圆圈、块内末尾插箭头，样式是选项行。`StepNav`：文字链接 + 黑色主按钮，手机吸底 |
 | M5 构建 | `astro.config.mjs` 设 `markdown.syntaxHighlight: false`；`build-logo.mjs` 多生成 `chapter-04.svg` |
 

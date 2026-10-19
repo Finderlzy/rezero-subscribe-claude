@@ -48,7 +48,7 @@ test('回到选择页：所选的块标“已选”和 aria-current，其他块�
 test('点块里的其他站内链接，同样先记下这个选项再跳转', async ({ page }) => {
   await page.goto('./choose-plan/');
   await expectScriptRan(page);
-  await optionBlock(page, '方案一').getByRole('link', { name: '三、购买 ISP 代理', exact: true }).click();
+  await optionBlock(page, '方案一').getByRole('link', { name: '二、购买 ISP 代理', exact: true }).click();
   await expect(page).toHaveURL(/\/plan1-buy-isp\/$/);
 
   await page.goto('./choose-plan/');

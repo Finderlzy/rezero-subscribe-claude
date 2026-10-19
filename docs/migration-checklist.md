@@ -28,12 +28,11 @@ v2.0 的素材换成作者的重写稿 `docs/rewrite/原理版/`、`docs/rewrite
 | 免责声明 | `disclaimer` | |
 | 整体思路 | `overview` | ★ |
 | 清理旧账号和配置 | `clean-up` | |
-| 选择方案 | `choose-plan` | ◇ `plan-1` 方案一（`方案一：普通服务器 + 白嫖ISP（我用的）`）、`plan-2` 方案二（`方案二：住宅 IP 服务器`）、`plan-3` 方案三（`方案三：直接买住宅节点`） |
-| 一、白嫖 ISP | `plan1-free-isp` | |
-| 二、购买服务器 | `plan1-buy-server` | |
-| 三、购买 ISP 代理 | `plan1-buy-isp` | |
-| 四、把服务器变成节点 | `plan1-make-node` | |
-| 五、打开面板 | `plan1-panel` | ⤳ |
+| 选择方案 | `choose-plan` | ◇ `plan-1` 方案一（`方案一：普通服务器 + ISP 代理`）、`plan-2` 方案二（`方案二：住宅 IP 服务器（我用的）`）、`plan-3` 方案三（`方案三：直接买住宅节点`） |
+| 一、购买服务器 | `plan1-buy-server` | |
+| 二、购买 ISP 代理 | `plan1-buy-isp` | |
+| 三、把服务器变成节点 | `plan1-make-node` | |
+| 四、打开面板 | `plan1-panel` | ⤳ |
 | 方案二：住宅 IP 服务器 | `plan2-residential-server` | |
 | 方案三：直接买住宅节点 | `plan3-residential-node` | |
 | 导入代理软件 | `import-proxy` | |
@@ -81,6 +80,13 @@ v2.0 的素材换成作者的重写稿 `docs/rewrite/原理版/`、`docs/rewrite
 | 实测：QSU 住宅服务器 | `ip-tests/qsu-residential` | 参考页 |
 | 实测：ipequal 住宅节点 | `ip-tests/ipequal` | 参考页 |
 | 实测：Decodo ISP | `ip-tests/decodo` | 参考页 |
+
+**已删除的页面**（ADR-0002：标识不复用，旧地址留跳转页，登记在 `src/lib/route/route-map.ts` 的 `REMOVED_PAGES`，由 `astro.config.mjs` 的 `redirects` 生成）：
+
+| 原重写稿文件名 | 标识 | 删除日期 | 旧地址跳到 |
+| --- | --- | --- | --- |
+| 一、白嫖 ISP | `plan1-free-isp` | 2026-10-19（作者改用方案二，方案一去掉白嫖 ISP；原页里“自己找 SOCKS5 的 ISP 代理、记下 IP/端口/用户名/密码”和“先测一下质量”并进了“二、购买 ISP 代理”） | `choose-plan` |
+
 
 博客文章的双链登记在 `src/content/blog-links.yaml`，三项地址沿用 1.0.0 已上线的博客链接（作者确认，Q-11）。
 
@@ -152,7 +158,7 @@ npm run build && node scripts/compare-migration.mjs [重写稿目录，默认 do
 | 页面 | 原理视图 | 操作视图 | 结论 |
 | --- | --- | --- | --- |
 | `preface`（前言） | 正文与 `原理版/前言.md` 一致；双链 `[[如何订阅claude]]` → 首页 | 正文与 `操作版/前言.md` 一致；双链 `[[如何订阅claude（纯操作版）\|目录]]` → 首页（1 条站内链接） | 两版内容各自对应，无差异 |
-| `plan1-free-isp`（一、白嫖 ISP） | 1 个 bash 代码块、14 处行内代码、2 条外链、7 条站内链接 | 同样 1 个代码块、14 处行内代码、2 条外链、5 条站内链接 | 命令逐字一致；外链地址和文字一致；无截图 |
+| `plan1-free-isp`（一、白嫖 ISP，2026-10-19 已删除） | 1 个 bash 代码块、14 处行内代码、2 条外链、7 条站内链接 | 同样 1 个代码块、14 处行内代码、2 条外链、5 条站内链接 | 命令逐字一致；外链地址和文字一致；无截图 |
 | `check-ip`（测 IP 质量） | 8 处行内代码、3 条外链、2 张截图（`width=600`）、4 条站内链接 | 同样 8 处行内代码、2 条外链、2 张截图、3 条站内链接 | 表格里的 `` `isp` `` 等行内代码在产物里是纯文本，已在脚本里按渲染结果比对；截图宽度一致 |
 | `iphone-gift-card`（iPhone：买礼品卡充值） | 9 张截图（`width=262`）、1 条外链（`shop.pockyt.io`） | 同样 9 张截图、1 条外链 | 两版截图数量和宽度一致，图片文件都在 `dist/_astro/` 里 |
 | `choose-plan`（选择方案） | 10 条站内链接 | 10 条站内链接 | 选择页两版正文相同，链接都指向存在的小标题 |

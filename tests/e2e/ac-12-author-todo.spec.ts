@@ -2,13 +2,13 @@ import { expect, test } from '@playwright/test';
 
 // AC-12（FR-21）：重写稿里的 TODO 段落显示成醒目的“作者待补”提示，原文不改；
 // 只有原理版的页面在操作视图下说明一句。构建输出里的内容提示由 `npm run build` 人工核对（README 的验收记录）。
-test('防泄漏：Clash Verge 部分的 TODO 显示为“作者待补”提示', async ({ page }) => {
-  await page.goto('./leak-protection/');
+test('二、购买 ISP 代理：推广链接的 TODO 显示为“作者待补”提示', async ({ page }) => {
+  await page.goto('./plan1-buy-isp/');
   const todo = page.locator('[data-body="operation"] aside.author-todo');
   await expect(todo).toHaveCount(1);
   await expect(todo).toBeVisible();
   await expect(todo).toContainText('作者待补');
-  await expect(todo).toContainText('Clash Verge 的菜单名称我没有在最新版上逐个核对过');
+  await expect(todo).toContainText('把 Decodo 的链接换成我的推广链接');
 });
 
 test('原理独有的整体思路：操作视图下显示原理版正文，并提示“这一页只有原理版”', async ({ page }) => {

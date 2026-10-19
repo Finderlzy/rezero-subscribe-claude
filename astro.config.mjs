@@ -5,6 +5,8 @@ import { unified } from '@astrojs/markdown-remark';
 import { contentValidation } from './src/lib/content/integration';
 import { createLinkIndex } from './src/lib/content/link-index';
 import { markdownPipeline } from './src/lib/content/markdown';
+import { REMOVED_PAGES } from './src/lib/route/route-map';
+import { joinBase } from './src/lib/with-base';
 
 const base = process.env.BASE_PATH ?? '/';
 const contentRoot = fileURLToPath(new URL('./src/content/', import.meta.url));
@@ -17,6 +19,10 @@ export default defineConfig({
   base,
   site: process.env.SITE_URL,
   trailingSlash: 'always',
+  // 已删除页面的旧地址（ADR-0002：已发布的 URL 不能失效）生成跳转页。Astro 不给跳转目标拼 base，所以这里自己拼。
+  redirects: Object.fromEntries(
+    Object.entries(REMOVED_PAGES).map(([from, to]) => [`/${from}/`, joinBase(base, `${to}/`)]),
+  ),
   build: {
     format: 'directory',
   },

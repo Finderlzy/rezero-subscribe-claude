@@ -3,7 +3,7 @@
  *
  * 对外的入口：`buildRouteMap`（构建时校验并编译）、`routeMapFromData`（浏览器用
  * 序列化的 RouteData 重建）、`pathOf`（Stop → 站内路径）、错误类型 `RouteValidationError`，
- * 以及类型和保留字清单 `RESERVED_PAGE_IDS`。
+ * 以及类型、保留字清单 `RESERVED_PAGE_IDS` 和已删除页面的跳转表 `REMOVED_PAGES`。
  * 纯函数，不碰文件系统和浏览器 API，构建时和浏览器里用同一份代码。
  */
 import type {
@@ -32,6 +32,15 @@ export type * from './types';
 
 /** 不能用作页面标识的保留路径（ADR-0002）：参考页和构建产物占用的路径。 */
 export const RESERVED_PAGE_IDS: readonly string[] = ['faq', 'ip-tests', '404', '_astro'];
+
+/**
+ * 已删除的页面：旧标识 → 旧地址跳到的页面（ADR-0002：已发布的 URL 不能失效）。
+ * 构建时由 astro.config.mjs 的 `redirects` 生成跳转页；旧标识不能再分给别的页面，否则旧链接会指向别的内容。
+ */
+export const REMOVED_PAGES: Readonly<Record<PageId, PageId>> = {
+  // 2026-10-19 作者改用方案二，删掉方案一的“一、白嫖 ISP”，旧地址跳到“选择方案”
+  'plan1-free-isp': 'choose-plan',
+};
 
 const VIEW_MODES: readonly ViewMode[] = ['operation', 'principle'];
 const HOME: Stop = { kind: 'home' };
@@ -186,6 +195,8 @@ function checkSemantics(spec: RouteSpec, pages: PageMeta[], errors: RouteError[]
     byId.set(page.id, page);
     if (RESERVED_PAGE_IDS.includes(page.id)) {
       errors.push({ file, message: `页面标识 ${page.id} 是保留路径（${RESERVED_PAGE_IDS.join('、')}），请换一个` });
+    } else if (Object.hasOwn(REMOVED_PAGES, page.id)) {
+      errors.push({ file, message: `页面标识 ${page.id} 属于已删除的页面，旧地址跳到 ${REMOVED_PAGES[page.id]}，不能再用，请换一个` });
     } else if (!KEBAB.test(page.id)) {
       errors.push({ file, message: `页面标识 ${page.id} 必须是英文 kebab-case` });
     }

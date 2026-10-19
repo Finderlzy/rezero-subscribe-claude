@@ -34,8 +34,9 @@ for (const { id, title } of ITEMS) {
   });
 }
 
-test('正文里的 TODO 照常显示“作者待补”（FR-21）', async ({ page }) => {
-  await page.goto('./faq/panel-login/');
+// 常见问题的 TODO 都补完了（2026-10-19），用同为参考页的实测页核对
+test('参考页正文里的 TODO 照常显示“作者待补”（FR-21）', async ({ page }) => {
+  await page.goto('./ip-tests/decodo/');
   await expect(page.locator('.prose .author-todo')).toBeVisible();
   await expect(page.locator('.prose .author-todo')).toContainText('作者待补');
 });
@@ -52,7 +53,7 @@ test('步骤里的常见问题链接直达对应的那一问，“返回刚才�
   await expect(page).toHaveURL(/\/check-ip\/$/);
 });
 
-test('“四、把服务器变成节点”链到 SSH 的两条问题', async ({ page }) => {
+test('“三、把服务器变成节点”链到 SSH 的两条问题', async ({ page }) => {
   await page.goto('./plan1-make-node/');
   await expectScriptRan(page);
   const prose = page.locator('.prose').filter({ visible: true });

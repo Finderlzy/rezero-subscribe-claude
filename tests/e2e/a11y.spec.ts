@@ -46,7 +46,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
 // 操作视图下从前言沿“下一步”到第一个选择页（没选时选择页没有下一步），再从选项块进入方案一的第一步：共五页
 const FIRST_STEPS = ['/preface/', '/disclaimer/', '/clean-up/', '/choose-plan/'];
-const AFTER_CHOICE = '/plan1-free-isp/';
+const AFTER_CHOICE = '/plan1-buy-server/';
 
 /** 按 Tab 直到 `target` 拿到焦点，途中每个拿到焦点的元素都要有可见的焦点环（design §5：2px，不能去掉）。 */
 async function tabUntil(page: Page, target: Locator, label: string) {

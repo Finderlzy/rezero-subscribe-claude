@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext } from '@playwright/test';
+import { REMOVED_PAGES } from '../../src/lib/route/route-map';
 import { builtPages } from './built-pages';
 
 // AC-15（FR-60）：构建产物放到静态文件服务器的根路径或子路径下 → 所有页面、图片、导航都正常。
@@ -106,4 +107,16 @@ test('不存在的页面显示“找不到这一页”，“回到首页”回�
   await page.getByRole('link', { name: '回到首页' }).click();
   await expect(page).toHaveURL(new URL('./', baseURL).href);
   await expect(page.getByRole('heading', { level: 1 })).toHaveAccessibleName('Re:从零开始订阅 claude');
+});
+
+// ADR-0002：已经发布的地址不能失效。删掉的页面留一个跳转页，在 base 下跳到 REMOVED_PAGES 登记的页面。
+test('已删除页面的旧地址跳到登记的页面，地址一直在 base 下', async ({ page, baseURL }) => {
+  const entries = Object.entries(REMOVED_PAGES);
+  expect(entries.length).toBeGreaterThan(0);
+  for (const [from, to] of entries) {
+    const response = await page.goto(`./${from}/`);
+    expect(response?.status(), `/${from}/`).toBe(200);
+    await expect(page).toHaveURL(new URL(`./${to}/`, baseURL).href);
+    await expect(page.locator('main[data-route-ready]')).toHaveCount(1);
+  }
 });

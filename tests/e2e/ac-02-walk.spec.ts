@@ -8,7 +8,7 @@ import { chooseOption, collectErrors, expectScriptRan, nextUntil, pageId, stepLa
 // 附录不计步数（v2.2 计划 W5 第 1 条，眉题只写“附录”，见 ac-22-appendix.spec.ts）。
 
 const PLANS = {
-  方案一: ['plan1-free-isp', 'plan1-buy-server', 'plan1-buy-isp', 'plan1-make-node', 'plan1-panel'],
+  方案一: ['plan1-buy-server', 'plan1-buy-isp', 'plan1-make-node', 'plan1-panel'],
   方案二: ['plan2-residential-server'],
   方案三: ['plan3-residential-node'],
 };

@@ -4,6 +4,7 @@ import {
   buildRouteMap,
   pathOf,
   RESERVED_PAGE_IDS,
+  REMOVED_PAGES,
   RouteValidationError,
   routeMapFromData,
   type Choices,
@@ -448,6 +449,13 @@ describe('校验错误（FR-61、AC-14 逻辑层）', () => {
     expectError(errors, 'principle/faq.md', /保留路径/);
     expectError(errors, 'principle/ip-tests.md', /保留路径/);
     expectError(errors, 'principle/Bad_Id.md', /kebab-case/);
+  });
+
+  it('已删除页面的标识不能再用（旧地址是跳转页）', () => {
+    const pages = samplePages();
+    for (const id of Object.keys(REMOVED_PAGES)) pages.push({ id, title: id, principleOnly: false, skippable: false });
+    const errors = errorsOf(sampleSpec(), pages);
+    expectError(errors, 'principle/plan1-free-isp.md', /已删除的页面，旧地址跳到 choose-plan/);
   });
 
   it('选择页的文件要写 options；写了 options 的页面必须是选择页', () => {

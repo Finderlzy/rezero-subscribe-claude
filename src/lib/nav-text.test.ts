@@ -4,7 +4,7 @@ import { chapterNoText, chapterText, eyebrowSuffix, eyebrowText, figurePrefix, i
 describe('nav-text：导航文案，构建时和浏览器共用', () => {
   const chapter = { chapterId: 'node-and-ip', chapter: '准备节点和住宅 IP', chapterNo: 1 };
 
-  const step = { kind: 'step', id: 'plan1-buy-server', title: '二、购买服务器' } as const;
+  const step = { kind: 'step', id: 'plan1-buy-server', title: '一、购买服务器' } as const;
   const choose = { kind: 'choose', id: 'choose-plan', title: '选择方案' } as const;
   const side = { kind: 'side', id: 'google-appeal', title: '被封了：申诉解封' } as const;
 

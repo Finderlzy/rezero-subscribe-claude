@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { chooseOption, expectScriptRan, stepNav } from './route-helpers';
 import { hasSidebar, openToc, sidebar } from './toc-helpers';
 
-// AC-04（FR-14、FR-16）：已选方案三时，在目录把节点方案改为方案一 → 在“导入代理软件”点“上一步”，回到“五、打开面板”。
+// AC-04（FR-14、FR-16）：已选方案三时，在目录把节点方案改为方案一 → 在“导入代理软件”点“上一步”，回到“四、打开面板”。
 test('在目录里把方案三改成方案一，汇合点的“上一步”走方案一', async ({ page }) => {
   await page.goto('./choose-plan/');
   await expectScriptRan(page);
@@ -18,7 +18,7 @@ test('在目录里把方案三改成方案一，汇合点的“上一步”走�
   await expect(current).toHaveAccessibleName(/方案三：直接买住宅节点.*其他路线/);
   await expect(toc.getByRole('button', { name: '切换到方案一' })).toBeHidden();
   await expect(toc.getByRole('button', { name: '切换到方案三' })).toBeVisible();
-  await expect(toc.getByRole('link', { name: /一、白嫖 ISP/ })).not.toHaveAccessibleName(/其他路线/);
+  await expect(toc.getByRole('link', { name: /一、购买服务器/ })).not.toHaveAccessibleName(/其他路线/);
   // 本页的上一步/下一步立即按新路线重算：下一步仍是汇合点（FR-14）
   await expect(stepNav(page).getByRole('link', { name: /下一步/ })).toHaveAttribute('href', /\/import-proxy\/$/);
 
@@ -27,7 +27,7 @@ test('在目录里把方案三改成方案一，汇合点的“上一步”走�
   await expectScriptRan(page);
   await stepNav(page).getByRole('link', { name: /上一步/ }).click();
   await expect(page).toHaveURL(/\/plan1-panel\/$/);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('五、打开面板');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('四、打开面板');
 });
 
 // FR-16：按章列出全部页面；“或”分组；当前路线正常、其他路线弱化并写“其他路线”；当前页高亮；
@@ -45,9 +45,9 @@ test('目录区分当前路线、其他路线、当前页和原理独有步骤�
   await expect(current).toHaveCount(1);
   await expect(current).toHaveAccessibleName(/^测 IP 质量/);
 
-  const plan1 = toc.getByRole('link', { name: /一、白嫖 ISP/ });
+  const plan1 = toc.getByRole('link', { name: /一、购买服务器/ });
   await expect(plan1).toHaveAccessibleName(/其他路线/);
-  await expect(toc.locator('[data-toc-step="plan1-free-isp"]')).toHaveAttribute('data-off-route', '');
+  await expect(toc.locator('[data-toc-step="plan1-buy-server"]')).toHaveAttribute('data-off-route', '');
   await expect(toc.getByRole('link', { name: /方案二：住宅 IP 服务器/ })).not.toHaveAccessibleName(/其他路线/);
   // 还没选手机系统：两个选项都在路线上，都不标“其他路线”
   await expect(toc.locator('[data-toc-option="android"] [data-toc-step]').first()).not.toHaveAttribute('data-off-route');
@@ -58,7 +58,7 @@ test('目录区分当前路线、其他路线、当前页和原理独有步骤�
   await expect(recap).toContainText('原理');
   await expect(recap).not.toContainText('其他路线');
   await expect(recap).toHaveAttribute('data-off-route', '');
-  await expect(toc.getByRole('link', { name: /五、打开面板/ })).toContainText('可跳过');
+  await expect(toc.getByRole('link', { name: /四、打开面板/ })).toContainText('可跳过');
   await expect(toc.locator('.toc-reference').getByRole('link')).toHaveText(['常见问题', 'IP 质量实测合集']);
   await expect(toc.locator('[data-toc-step="appendix"]')).toBeVisible();
 
@@ -70,7 +70,7 @@ test('目录区分当前路线、其他路线、当前页和原理独有步骤�
 
   // 点其他路线的步骤就进入那条路线
   await plan1.click();
-  await expect(page).toHaveURL(/\/plan1-free-isp\/$/);
+  await expect(page).toHaveURL(/\/plan1-buy-server\/$/);
   await expect(stepNav(page).getByRole('link', { name: /上一步/ })).toHaveAttribute('href', /\/choose-plan\/$/);
 });
 
