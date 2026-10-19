@@ -24,7 +24,20 @@
 
 后来我又在 VoyraCloud 买了一台住宅服务器，测出来是 **ISP 类型**，现在用的就是这一台。
 
-TODO：补上这一台的实测截图和分数。
+| 项目 | 结果 |
+| --- | --- |
+| ipinfo：ASN | AS174 Cogent Communications |
+| ipinfo：AS Type | **ISP** |
+| ipinfo：Privacy | false |
+| Scamalytics | 3 分，低风险 |
+
+ipinfo 这一关算过了，Privacy 也是 false，没被识别成代理。不过 Scamalytics 的说明里写了它不是普通家庭网络，而是一台商用服务器。Cogent 是美国的骨干网运营商，主要做企业和机房线路，所以严格说它不是家庭宽带，一般叫“ISP IP”或“静态住宅”。
+
+截图（IP 已遮盖）：
+
+![[VoyraCloud住宅服务器实测2-ipinfo.png|600]]
+
+![[VoyraCloud住宅服务器实测2-scamalytics.png|600]]
 
 ---
 

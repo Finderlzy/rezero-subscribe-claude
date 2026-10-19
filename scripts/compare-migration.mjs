@@ -110,7 +110,6 @@ const PENDING = {
     'google-appeal': 2,
     'android-subscribe': 2,
     'reference/ip-tests/qsu-residential': 1,
-    'reference/ip-tests/voyracloud': 1,
   },
 };
 
