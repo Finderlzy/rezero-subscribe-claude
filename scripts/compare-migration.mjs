@@ -23,6 +23,7 @@
 //   Markdown 链接还要连同链接文字前后各 LINK_CONTEXT 个字一起对上。
 // - 截图：重写稿的 `![[文件名|宽度]]` 在该视图的产物里要有同名的图片（比 `alt`，Astro 会把图片转成带哈希的
 //   webp，`src` 不是重写稿里的名字）、宽度一致（重写稿写了宽度才比），且图片文件确实在 dist/ 里。
+//   说明图（`说明图-….svg`）是内联的 `<svg data-diagram>`，按 `<title>` 和 `附件/` 里的原稿比，张数也要一致。
 // - 双链：重写稿的每条双链都要能解析出来（按标题找页面、带 `#小标题` 的核对锚点、`[[04技术/…]]` 查
 //   blog-links.yaml、目录页指向首页）；产物里的每个站内链接都要能追溯到重写稿的双链或页面生成。
 // 允许的差异只有 ADR-0005 和 import-rewrite.mjs 规定的转换，逐条登记在 CONVERSIONS 里，运行时逐条打印。
@@ -59,6 +60,9 @@ const LINK_CONTEXT = 4;
 // - footer-drop：手写页脚（`---` + “上一步：… ｜ 下一步：…”）由路线图生成，不进产物（FR-04）。
 // - frontmatter：frontmatter 是页面元数据，不是正文，导入时保留在站内文件里，不进正文（ADR-0005）。
 // - todo-label：`TODO：` 段落前面加“作者待补”标签，原文原样保留（FR-21）。
+// - code-lang：不做语法高亮，语言标记在 `<code class="language-…">` 上，没写语言的按 plaintext 比。
+// - autolink：正文里的裸地址按 GFM 渲染成链接，链接文字就是地址。
+// - diagram-inline：说明图内联成 `<svg data-diagram>`，按 `<title>` 对回附件里的原稿。
 const CONVERSIONS = [
   {
     kind: 'footer-drop',
@@ -72,8 +76,18 @@ const CONVERSIONS = [
   },
   {
     kind: 'code-lang',
-    what: '没写语言的围栏代码块，Shiki 渲染时语言标记写成 `plaintext`，代码本身逐字不变',
-    check: '只把重写稿里空的语言标记当成 `plaintext` 比较，写了语言的照原样比',
+    what: '围栏代码块不做语法高亮（v2.2 W4c），语言标记写在 `<code class="language-…">` 上；没写语言的代码块没有这个类，代码本身逐字不变',
+    check: '重写稿里空的语言标记和产物里没有语言类都当成 `plaintext` 比较，写了语言的照原样比',
+  },
+  {
+    kind: 'autolink',
+    what: '正文里的裸地址按 GFM 渲染成链接，链接文字就是地址本身',
+    check: '产物里链接文字等于地址的外链，要在重写稿的裸地址里找得到（裸地址本身另按“外链”核对）',
+  },
+  {
+    kind: 'diagram-inline',
+    what: '说明图 `![[说明图-….svg]]` 由 diagram.ts 内联成 `<svg data-diagram>`（design §4.7），不是 `<img>`',
+    check: '该视图的产物里要有一张 `<title>` 和重写稿 `附件/` 里原稿相同的内联说明图',
   },
   {
     kind: 'todo-label',
@@ -92,15 +106,14 @@ const PENDING = {
   // 重写稿里的 TODO 段数和这里对不上（多了、少了或已经补完）都报差异。
   todos: {
     'leak-protection': 2,
-    'plan1-buy-isp': 4,
-    'plan1-make-node': 2,
-    'plan1-panel': 2,
+    'plan1-buy-isp': 2,
     'iphone-proxy': 2,
     'iphone-app-store-austria': 2,
     'google-appeal': 2,
     'android-subscribe': 2,
     'reference/ip-tests/qsu-residential': 1,
     'reference/ip-tests/decodo': 1,
+    'reference/faq/panel-login': 1,
   },
 };
 
@@ -141,7 +154,7 @@ function splitCode(text) {
     while (j < lines.length && !close.test(lines[j])) body.push(lines[j++]);
     const indent = Math.min(...body.filter((l) => l.trim()).map((l) => /^\s*/.exec(l)[0].length));
     const code = body.map((l) => l.slice(indent).trimEnd()).join('\n');
-    // 没写语言的代码块，Shiki 渲染成 data-language="plaintext"（登记在 CONVERSIONS 的 code-lang）
+    // 没写语言的代码块按 plaintext 比（登记在 CONVERSIONS 的 code-lang）
     blocks.push({ line: i + 1, startLine: i + 1, endLine: j + 1, code: `${open[2].trim() || 'plaintext'}\n${code}` });
     i = j;
   }
@@ -273,8 +286,8 @@ const INLINE_CODE = /<code(?:\s[^>]*)?>([\s\S]*?)<\/code>/g;
 function extractCode(html) {
   const blocks = [];
   for (const m of html.matchAll(CODE_BLOCK)) {
-    // 语言标记由 Shiki 写在 <pre data-language="…"> 上
-    const lang = /\bdata-language="([\w-]+)"/.exec(m[0])?.[1] ?? '';
+    // 不做语法高亮（v2.2 W4c）：语言标记是 <code class="language-…">，没写语言时没有这个类，按 plaintext 比
+    const lang = /\bclass="language-([\w-]+)"/.exec(m[0])?.[1] ?? 'plaintext';
     const text = decode(m[1].replace(/<[^>]*>/g, '')).replace(/\n+$/, '');
     blocks.push({ code: `${lang}\n${text}` });
   }
@@ -305,6 +318,14 @@ function extractImages(html) {
     });
   }
   return images;
+}
+
+const isDiagram = (name) => /^说明图-.*\.svg$/.test(name);
+const svgTitle = (svg) => /<title>([\s\S]*?)<\/title>/.exec(svg)?.[1].trim();
+
+/** 正文里内联的说明图（diagram.ts）：取每张 `<svg … data-diagram>` 的 `<title>` */
+function extractDiagrams(html) {
+  return [...html.matchAll(/<svg\b[^>]*\bdata-diagram\b[^>]*>([\s\S]*?)<\/svg>/g)].map((m) => decode(svgTitle(m[1]) ?? ''));
 }
 
 /**
@@ -557,6 +578,7 @@ function compareView(page, view) {
   const bodyHtml = bodies[view.view].html;
   const code = extractCode(bodyHtml);
   const images = extractImages(bodyHtml);
+  const diagrams = extractDiagrams(bodyHtml);
   const links = extractLinks(bodyHtml);
 
   // ---- 登记过的转换：逐条核对两边都对得上 ----
@@ -610,8 +632,11 @@ function compareView(page, view) {
   // 两边都把块开头的列表记号去掉，取链接文字前后各 LINK_CONTEXT 个字。
   const sourceKeys = new Set(rewrite.mdLinks.map((l) => l.key));
   const distKeys = new Set();
+  // 裸地址按 GFM 渲染成的链接（登记在 CONVERSIONS 的 autolink）：链接文字就是地址，裸地址已在上面核对过
+  const autolinked = (l) => l.label === l.url && rewrite.urls.some((u) => u.url === l.url);
   for (const l of links.external) {
     if (convertedUrls.has(l.url)) continue; // 双链转换出来的外链，链接文字由重写稿的双链决定
+    if (autolinked(l)) continue;
     const key = distLinkKey(body, l);
     if (key === undefined) {
       differences.链接.push(`产物的链接文字没在正文里找到（${where}:${l.line}）：[${l.label}](${l.url})`);
@@ -626,7 +651,7 @@ function compareView(page, view) {
     if (!sourceKeys.has(key)) differences.链接.push(`产物的链接上下文和重写稿不一致（${where}）：${key}`);
   }
   for (const l of links.external) {
-    if (convertedUrls.has(l.url)) continue;
+    if (convertedUrls.has(l.url) || autolinked(l)) continue;
     if (!rewrite.mdLinks.some((s) => s.url === l.url && s.label === l.label)) {
       differences.链接.push(`产物的链接在重写稿里找不到出处（${where}:${l.line}）：[${l.label}](${l.url})`);
     }
@@ -638,6 +663,16 @@ function compareView(page, view) {
   const distImages = new Map();
   for (const img of images) if (!distImages.has(img.file)) distImages.set(img.file, img);
   for (const e of rewrite.embeds) {
+    if (isDiagram(e.name)) {
+      // 说明图内联成 <svg data-diagram>（登记在 CONVERSIONS 的 diagram-inline），按 <title> 对回附件里的原稿；
+      // 附件/ 不入库（.gitignore），没有时用导入后的副本 src/assets/diagrams/（导入脚本让它跟着原稿更新）
+      const source = [join(rewriteDir, '附件', e.name), join(repoRoot, 'src', 'assets', 'diagrams', e.name)].find((f) => existsSync(f));
+      const title = source ? svgTitle(readFileSync(source, 'utf8')) : undefined;
+      if (title === undefined || !diagrams.includes(title)) {
+        differences.截图.push(`产物缺少说明图（${where}:${e.line}）：![[${e.raw}]]`);
+      }
+      continue;
+    }
     const img = distImages.get(stem(e.name));
     if (img === undefined) {
       differences.截图.push(`产物缺少截图（${where}:${e.line}）：![[${e.raw}]]`);
@@ -650,6 +685,10 @@ function compareView(page, view) {
     if (!existsSync(join(distDir, decodeURIComponent(img.src.split('?')[0])))) {
       differences.截图.push(`产物的图片文件不在 dist 里（${where}:${e.line}）：${img.src}`);
     }
+  }
+  const diagramEmbeds = rewrite.embeds.filter((e) => isDiagram(e.name)).length;
+  if (diagrams.length !== diagramEmbeds) {
+    differences.截图.push(`说明图数量不一致（${where}）：重写稿 ${diagramEmbeds} 张、产物 ${diagrams.length} 张`);
   }
   const sourceNames = new Set(rewrite.embeds.map((e) => stem(e.name)));
   for (const img of images) {

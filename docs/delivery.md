@@ -1,5 +1,79 @@
 # 交付记录
 
+## 2026-10-19 2.0.0 上线前整体验收
+
+需求 v0.4 的 v2 全部范围（[实施计划](implementation-plan.md) 的 v2.0、v2.1 任务 #23–#40 和 [v2.2 改版](v2.2-plan.md)），准备以 **2.0.0** 上线。
+
+- **基线**：`main` @ `2ee93a8`（与 `origin/main` 一致），验收分支 `delivery-v2.0.0`。#23–#40 都已关闭，提交都在 `main` 的历史里；没有开着的 Issue。
+- **环境**：Linux，Node v24.21.0，npm，Playwright Chromium。全部检查在临时目录的干净克隆里跑（`git clone` → `npm ci`），不依赖开发目录的缓存和忽略文件；只有需要 `.cache/fonts/` 和 `docs/rewrite/附件/`（都不入库）的两项在开发目录里补跑。
+- **版本**：`package.json`、`package-lock.json` 定为 2.0.0。未打标签、未部署（部署位置未定，Q-01）。
+- **结论**：自动化检查、产物抓取和 AC-13 比对全部通过；内容上还有 9 页作者待补和后记联系渠道待补，不阻塞功能，但上线前要作者决定是否接受。
+
+### 回归与构建
+
+| 检查 | 命令 | 结果 |
+| --- | --- | --- |
+| 类型、单元、构建级、构建 | `npm run check` | 通过：astro check 0 错误 0 警告；单元测试 464 通过、2 跳过（`build-logo.test.ts` 需要不入库的字体，在开发目录补跑 2 个通过）；构建级用例 16 个；构建 59 页 |
+| e2e | `playwright test`（4321 端口被本机的 `astro dev` 占着，用只改端口为 4331/4332 的临时配置，跑完删除） | 1163 通过，2 跳过（`ac-15` 根路径检查只在 `desktop-1280` 跑），约 2.6 分钟 |
+| 内容未改 | `node scripts/import-rewrite.mjs` | 写入 0 个文件，96 个没有变化 |
+| AC-13 比对 | `npm run build` 后 `node scripts/compare-migration.mjs` | 退出码 2：命令、链接、截图差异都是 0，只剩登记的作者待补 9 页。干净克隆和开发目录各跑一次，结果相同 |
+
+AC-13 比对脚本这次先报了 37 条差异，逐条查过都是脚本落后于后来的改动，内容本身没有差异。已修脚本，并在克隆的产物里篡改一个代码块的语言、一张说明图的标题和一个裸地址链接，确认三处都会报出来：
+
+| 报出的差异 | 原因 | 修正 |
+| --- | --- | --- |
+| 30 条命令差异：代码块文字一致，语言标记对不上 | v2.2 关掉了 Shiki（`02da21c`），语言标记从 `<pre data-language>` 变成 `<code class="language-…">` | 按新写法读语言，没写语言的按 `plaintext`；登记 `code-lang` 的说明改成现状 |
+| 4 条 TODO 登记数对不上 | 方案一改版后 `plan1-make-node`、`plan1-panel` 的 TODO 已补完，`plan1-buy-isp` 剩 2 段，`faq/panel-login` 新增 1 段 | `PENDING.todos` 按重写稿现状登记（和构建提示的 9 页一致） |
+| 4 条链接差异：`proxy.qsu.hk` 裸地址 | 正文里的裸地址按 GFM 渲染成链接（`2ee93a8` 同步进来的客服原话） | 新登记 `autolink`：链接文字等于地址、且重写稿里有这个裸地址时，按裸地址核对 |
+| 3 条截图差异：说明图 | #39 起说明图内联成 `<svg data-diagram>`，不是 `<img>` | 新登记 `diagram-inline`：按 `<title>` 对回 `附件/` 的原稿（附件不入库，没有时用 `src/assets/diagrams/` 的导入副本），张数也要一致 |
+
+### 产物验证
+
+- 干净克隆里构建的 `dist/`（59 页，5.4 MB）用 `python3 -m http.server`、`dist-sub/` 用 `tests/e2e/static-server.mjs` 挂在 `/sub/`，从首页广度抓取全部站内 `href`、`src`、`srcset` 和 CSS `url()`：两份各 149 个地址，失败 0，子路径产物没有跳出 `/sub/` 的链接；`/sub/` 下不存在的地址返回 404。
+- 产物里没有外部的脚本、样式表、图片或 iframe，没有统计脚本和网页字体。
+- 扫描全部提交历史：出现的 IP 只有示例和公共 DNS（`8.8.8.8`、`1.1.1.1`、`127.0.0.1`，截图核对记录里的 Google、Cloudflare DNS 出口），没有 `vless://` 节点链接、密码或密钥。
+
+### 验收矩阵（需求 §8）
+
+| 编号 | 场景 | 方式 | 结果 |
+| --- | --- | --- | --- |
+| AC-01 | 首页：logo、五章目录、“从第 00 章开始” | `ac-01-home.spec.ts` | 通过 |
+| AC-02 | 6 种组合 × 两种视图走到后记 | `ac-02-walk.spec.ts`、`ac-02-static-walk.spec.ts`（关 JS）、`ac-02-chapter-card.spec.ts` | 通过 |
+| AC-03 | 选方案三、汇合、上一步回方案三 | `ac-03-choice-blocks.spec.ts` | 通过 |
+| AC-04 | 目录里改方案后导航按新路线 | `ac-04-change-route.spec.ts` | 通过 |
+| AC-05 | 五、打开面板的跳过 | `ac-05-skip.spec.ts` | 通过 |
+| AC-06 | 原理/操作整页切换，跨页保持 | `ac-06-view-toggle.spec.ts` | 通过 |
+| AC-07 | 视频区域 | `ac-07-video.spec.ts`（没有视频时没有视频区域、不请求视频平台）；有视频时的门面由 `VideoFacade.test.ts` 覆盖 | 部分：现有内容没有带视频的步骤，真实播放不适用 |
+| AC-08、AC-09 | 无痕窗口直接打开、没选时指向选择页 | `ac-08-direct-url.spec.ts`、`ac-09-unchosen.spec.ts` | 通过 |
+| AC-10 | 没有“默认”、已读标记和进度 | `ac-10-no-default.spec.ts`、`ac-10-no-progress.spec.ts` | 通过 |
+| AC-11 | 参考页“返回刚才的步骤” | `ac-11-reference-return.spec.ts` | 通过 |
+| AC-12 | TODO 显示“作者待补”，构建列出 | `ac-12-author-todo.spec.ts` + 构建输出 | 通过 |
+| AC-13 | 比对脚本对照重写稿 | `compare-migration.mjs` | 通过：差异 0，只剩登记的作者待补 |
+| AC-14 | 坏内容让构建失败并报文件 | `tests/build/ac-14-build-fail.test.ts`（16 个用例） | 通过 |
+| AC-15 | 根路径、子路径 | `ac-15-base-path.spec.ts` + 本次产物抓取 | 通过 |
+| AC-16 | 360/768/1280 无页面级横向滚动 | `ac-16-responsive.spec.ts` | 通过 |
+| AC-17 | 屏蔽 Google、YouTube | `ac-17-blocked-domains.spec.ts` | 通过 |
+| AC-18 | 找不到页；禁用存储走完一条路线 | `ac-18-not-found.spec.ts`、`ac-18-storage-disabled.spec.ts` | 通过 |
+| AC-19 | 旁支页“回到”，主路线不经过 | `ac-19-side-page.spec.ts` | 通过 |
+| AC-20 | logo 风格作者确认 | 沿用 #24 的作者确认；favicon、深浅配色由 e2e 和 v2.1 视觉验收覆盖 | 通过（沿用） |
+| AC-21 | 对比度、axe、键盘 | `a11y.spec.ts`、`src/styles/tokens.test.ts` | 通过 |
+| AC-22、AC-23 | 附录；常见问题一问一页 | `ac-22-appendix.spec.ts`、`ac-23-faq-pages.spec.ts` | 通过 |
+| NFR-05 | Safari、Firefox、真机 | — | **未执行**：自动化只覆盖 Chromium |
+
+视觉部分沿用今天的 [v2.2 改版验收](#2026-10-19-v22-改版验收)（54 张截图人工核对），这次没有新的页面改动，没有重截。
+
+### 未解决项
+
+| 项 | 影响 | 去向 |
+| --- | --- | --- |
+| 9 页作者待补：防泄漏、三、购买 ISP 代理、iPhone：导入代理软件、iPhone：把 App Store 改到奥地利、被封了：申诉解封、安卓：订阅、面板的用户名密码安全吗、实测：QSU 住宅服务器、实测：Decodo ISP | 这些地方显示“作者待补” | 作者改重写稿再导入；不阻塞上线，作者决定是否接受 |
+| 后记没有联系渠道 | 后记写了“可以来找我”，没写去哪找 | 需求 Q-07，作者提供 |
+| 部署位置和域名 | 未部署 | 需求 Q-01；仓库公开前，本次的历史扫描可作参考，之后的提交再扫一次 |
+| Safari、Firefox、真机；编号字形跨设备对比 | NFR-05、design §7 无证据 | 上线前由作者在真机抽查首页、一条分支路线、目录和看大图 |
+| 没有步骤视频 | 不显示视频区域 | 作者有视频后写进 frontmatter |
+
+上一节 v2.2 验收列的“原理版《测 IP 质量》第 13 行”已由 `de81d57` 改为指向“四、把服务器变成节点”，已解决。
+
 ## 2026-10-19 v2.2 改版验收
 
 [v2.2 改版计划](v2.2-plan.md) §8 的全量验证（需求 v0.4：FR-16 常驻侧边栏、附录、常见问题一问一页；AC-22、AC-23）。
