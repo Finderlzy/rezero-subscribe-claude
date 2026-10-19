@@ -21,11 +21,14 @@ test('后记 → 附录 → 回到首页；附录的上一步是后记', async (
   await expect(page.getByRole('link', { name: '从第 00 章开始' })).toBeVisible();
 });
 
-test('附录在两种视图下都链到常见问题和 IP 质量实测合集', async ({ page }) => {
+test('附录在两种视图下都链到常见问题和 IP 质量实测合集；眉题只写“附录”，不显示步数', async ({ page }) => {
   await page.goto('./appendix/');
   await expectScriptRan(page);
   for (const view of ['原理', '操作']) {
     await page.getByRole('button', { name: view, exact: true }).click();
+    // W5 第 1 条：附录不计入“共 m 步”，看得见的眉题和读屏文字都只写“附录”
+    await expect(page.locator('.band [data-route-eyebrow]')).toHaveText('附录');
+    await expect(page.locator('.band [data-route-progress]')).toHaveText('附录');
     const prose = page.locator('.prose').filter({ visible: true });
     await expect(prose.getByRole('link', { name: '常见问题' })).toHaveAttribute('href', /\/faq\/\?from=appendix$/);
     await expect(prose.getByRole('link', { name: 'IP 质量实测合集' })).toHaveAttribute('href', /\/ip-tests\/\?from=appendix$/);

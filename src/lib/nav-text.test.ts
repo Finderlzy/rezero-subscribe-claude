@@ -41,6 +41,16 @@ describe('nav-text：导航文案，构建时和浏览器共用', () => {
     expect(progressText({ ...chapter, index: 1, total: 3 }, choose)).toBe('准备节点和住宅 IP');
   });
 
+  it('附录页：眉题只写“附录”，读屏也只读“附录”，不计步数，截图编号不带步骤号（v2.2 计划 W5 第 1、6 条）', () => {
+    const appendix = { chapterId: 'appendix', chapter: '附录', chapterNo: 4, index: 1, total: 1 };
+    const page = { kind: 'step', id: 'appendix', title: '附录' } as const;
+    expect(eyebrowText(appendix, page, true)).toBe('附录');
+    expect(eyebrowText(appendix, page)).toBe('附录');
+    expect(progressText(appendix, page)).toBe('附录');
+    expect(stepNumber(appendix, page)).toBeNull();
+    expect(figurePrefix(appendix, page)).toBe('');
+  });
+
   it('首页没有眉题', () => {
     expect(eyebrowText(chapter, { kind: 'home' })).toBe('');
     expect(progressText(chapter, { kind: 'home' })).toBe('准备节点和住宅 IP');

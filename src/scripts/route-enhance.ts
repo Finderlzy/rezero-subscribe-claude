@@ -128,7 +128,7 @@ export interface ProgressSlots {
 
 /**
  * 改写进度（FR-10，design §4.1、§4.5）：眉题写清章和第几步，按当前路线和视图计数，切换视图、改选分叉点后跟着变；
- * 截图编号“图 02-1”的步骤号跟着同一个数（design §4.7），两版正文都写当前视图的号。
+ * 截图编号“图 02-1”的步骤号跟着同一个数（design §4.7），两版正文都写当前视图的号；附录页不计步数，眉题只写“附录”（W5）。
  * 和 PageLayout 构建时写出的是同一组函数，两边一致。
  */
 export function renderProgress(slots: ProgressSlots, view: RouteView): void {
