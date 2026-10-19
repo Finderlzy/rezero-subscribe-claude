@@ -31,9 +31,9 @@ v2.0 的素材换成作者的重写稿 `docs/rewrite/原理版/`、`docs/rewrite
 | 选择方案 | `choose-plan` | ◇ `plan-1` 方案一（`方案一：普通服务器 + 白嫖ISP（我用的）`）、`plan-2` 方案二（`方案二：住宅 IP 服务器`）、`plan-3` 方案三（`方案三：直接买住宅节点`） |
 | 一、白嫖 ISP | `plan1-free-isp` | |
 | 二、购买服务器 | `plan1-buy-server` | |
-| 三、把服务器变成节点 | `plan1-make-node` | |
-| 四、购买 ISP 代理 | `plan1-buy-isp` | |
-| 五、安装面板 | `plan1-panel` | ⤳ |
+| 三、购买 ISP 代理 | `plan1-buy-isp` | |
+| 四、把服务器变成节点 | `plan1-make-node` | |
+| 五、打开面板 | `plan1-panel` | ⤳ |
 | 方案二：住宅 IP 服务器 | `plan2-residential-server` | |
 | 方案三：直接买住宅节点 | `plan3-residential-node` | |
 | 导入代理软件 | `import-proxy` | |
@@ -65,7 +65,15 @@ v2.0 的素材换成作者的重写稿 `docs/rewrite/原理版/`、`docs/rewrite
 | 订阅之后 | `after-subscribe` | |
 | 致谢 | `thanks` | |
 | 后记 | `afterword` | |
-| 常见问题 | `reference/faq` → `/faq/` | 参考页 |
+| 附录 | `appendix` | 2026-10-17 加入，后记的下一步 |
+| 常见问题 | `reference/faq` → `/faq/` | 参考页，各条问题的目录 |
+| SSH 提示 Permission denied？ | `faq/ssh-permission-denied` | 参考页 |
+| SSH 端口不是 22？ | `faq/ssh-port-not-22` | 参考页，2026-10-18 加入 |
+| 装过了，想重装？ | `faq/reinstall` | 参考页，沿用 1.0.0 标识 |
+| 面板的用户名、密码、端口，大家都一样，安全吗？ | `faq/panel-login` | 参考页 |
+| “1 人独享”怎么确认真的只有我在用？ | `faq/dedicated-ip-check` | 参考页，沿用 1.0.0 标识 |
+| 测出来好几个不同的 IP？ | `faq/different-ips` | 参考页 |
+| 分流规则具体怎么写？ | `faq/split-routing` | 参考页，沿用 1.0.0 标识 |
 | IP 质量实测合集 | `reference/ip-tests` → `/ip-tests/` | 参考页 |
 | 实测：proxy.qsu.hk 白嫖 ISP | `ip-tests/qsu-free-isp` | 参考页 |
 | 实测：VoyraCloud 住宅服务器 | `ip-tests/voyracloud` | 参考页 |

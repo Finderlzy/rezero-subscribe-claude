@@ -5,6 +5,7 @@
 - 决策记录：[ADR-0001 Astro 静态站 + 自建路线图](adr/0001-astro-static-site-with-own-route-map.md)、[ADR-0002 URL 规则](adr/0002-url-scheme.md)（v2.0 修订）、[ADR-0003 原理块](adr/0003-principle-content-as-why-callouts.md)（已被取代）、[ADR-0004 整页视图切换](adr/0004-whole-page-view-switch.md)、[ADR-0005 重写稿原样导入、双链按标题解析](adr/0005-import-rewrite-verbatim.md)
 - 现状：v2 骨架已建立（#23 内容集合，#25 路线图和静态页面，2026-10-15），#26 接上了导航改写、整页视图切换和 M4 v2（2026-10-16），1.0.0 的内容、页面和依赖旧路线的脚本已删除。本文 §3–§8 描述 v2.0 的目标结构；没有实现的部分标“计划”，由 [实施计划](implementation-plan.md) 的 v2.0 任务建立，建立后改成现状。
 - v2.1（2026-10-16）：页面按 design v2.1 改造，模块和依赖方向不变，差距和任务见 [§11.4](#114-v21-实施前评审2026-10-16)；对应条目在任务完成后改成现状。
+- v2.2（2026-10-19，现状）：按 [v2.2 改版计划](v2.2-plan.md) 和需求 v0.4 改了 M1（常见问题一问一页的导入和核对）、M2 的数据（附录一章）和 M3（页头色带、常驻侧边栏、参考页内嵌路线数据、选项行、翻页），依赖方向不变，见 [§12](#12-v22-改版2026-10-19现状)。§3 里写 v2.1 抽屉、页边栏、章节标题卡的条目是历史，以 §12 为准。
 
 ## 0. v2.0 增量影响分析
 
@@ -14,7 +15,7 @@
 | --- | --- | --- | --- |
 | M1 内容 | 改动（大） | 内容目录改成 `principle/`、`operation/`、`reference/` 三个集合，两版同名文件合成一个页面（§3 M1）；正文从重写稿**原样导入**，双链按中文标题解析（[ADR-0005](adr/0005-import-rewrite-verbatim.md)）；新增：去掉手写页脚、`TODO：` 段落转成“作者待补”、锚点校验、博客外链映射、选择页的选项块、操作版正文的标题 id 加前缀；去掉 `[!why]`、`placeholder`、`choices/`、`faq/`、`pages/` | Markdown 管线（unified + 自研 remark 插件）、嵌入图片进 Astro 图片处理、`contentValidation` 在 `astro:build:start` 失败的机制、SmartyPants 关闭、`deferRender`、星号检查 |
 | M2 路线 | 改动 | 去掉默认路线：未选的分叉点让相邻页指向选择页；导航按视图计算，操作视图绕过原理独有步骤；选择页、旁支页和步骤共用 `/<id>/` 标识空间；旁支页（`returnTo`）；最后一页的下一步是首页；路线枚举 6 种选择 × 2 种视图 | 纯函数、构建和浏览器共用一份代码、`RouteData` 序列化、`branch` 段与共享步骤、汇合校验、无环校验、目录 outline |
-| M3 页面 | 重做 | 全部页面按新 [design.md](design.md) 重做；两版正文同页输出，CSS 整页切换（[ADR-0004](adr/0004-whole-page-view-switch.md)）；新增 logo 组件、页眉、参考页（常见问题一页 + 实测）；去掉完成页、“继续上次”、已读 ✓、清除进度 | 渐进增强（构建时写好导航、脚本按本机选择改写）、视频门面、代码复制与看大图、目录抽屉外壳、参考页的 `?from=` 返回 |
+| M3 页面 | 重做 | 全部页面按新 [design.md](design.md) 重做；两版正文同页输出，CSS 整页切换（[ADR-0004](adr/0004-whole-page-view-switch.md)）；新增 logo 组件、页眉、参考页（常见问题目录 + 一问一页、实测）；去掉完成页、“继续上次”、已读 ✓、清除进度 | 渐进增强（构建时写好导航、脚本按本机选择改写）、视频门面、代码复制与看大图、目录抽屉外壳、参考页的 `?from=` 返回 |
 | M4 本机状态 | 改动（缩减） | 只存 `choices` 和 `view`；去掉 `lastStep`、`visited`、`clear()`；存储键升到 `:v2` | 适配器接缝（localStorage / 内存）、失效项过滤、合并写入、视图内联脚本 |
 | M5 构建 | 改动 | 校验规则随 M1、M2 调整（FR-61）；构建结束列出“内容提示”：操作版缺失的页面、TODO 段落、未填地址的博客外链（FR-21、Q-11） | `astro build` 内三层校验、`BASE_PATH`、静态产物 |
 | 开发脚本 | 新增 | `scripts/import-rewrite.mjs`（从重写稿导入）、`scripts/build-logo.mjs`（logo 转曲），改写 `scripts/compare-migration.mjs`（AC-13 改为对照重写稿） | — |
@@ -73,7 +74,7 @@
 | `src/content/route.yaml` | **路线图**：章节、分叉点、各选项的页面顺序、旁支页（见下文） | 由 M2 校验 |
 | `src/content/principle/<id>.md` | 一个页面的原理版：步骤、选择页、旁支页各一份。正文第一行是 `# <标题>`，与重写稿文件名相同 | frontmatter（Zod `strictObject`，都可省）：`principleOnly`（默认 false，原理独有步骤）、`skippable`（默认 false）、`skipLabel`（可选，默认“跳过”）、`video: { bilibili?, youtube? }`（可选）；选择页另有必填的 `options: { <option-id>: { title, heading } }` |
 | `src/content/operation/<id>.md` | 同一页面的操作版，文件名与原理版相同 | 不写 frontmatter |
-| `src/content/reference/faq.md`、`ip-tests.md`、`ip-tests/<id>.md` | 参考页：常见问题（一页，条目是二级标题）、IP 质量实测合集、各篇实测；只有原理版 | 不写 frontmatter |
+| `src/content/reference/faq.md`、`faq/<id>.md`、`ip-tests.md`、`ip-tests/<id>.md` | 参考页：常见问题（各条问题的目录）、各条问题（一问一页）、IP 质量实测合集、各篇实测；只有原理版 | 不写 frontmatter |
 | `src/content/blog-links.yaml` | 指向博客其他文章的双链目标（如 `04技术/自建梯子：VPS + 3x-ui + VLESS Reality`）→ 博客 URL；地址待作者提供时写 `null`（Q-11） | 由 M1 校验 |
 | `src/assets/screenshots/` | 截图（从重写稿的 `附件/` 导入，只导入被引用的） | — |
 | `src/assets/diagrams/` | 说明图 SVG（从重写稿的 `附件/` 导入，附件里的是原稿，变了就覆盖；#39） | — |
@@ -140,7 +141,7 @@ side:                              # 旁支页：不在序列里
 | --- | --- | --- |
 | `[[标题]]`、`[[标题\|文字]]` | 按标题找到页面，链接到 `/<id>/`；不写文字时用标题。**v2.0 改动**：1.0.0 按标识解析 | 构建失败，报出文件和行号 |
 | `[[标题#小标题]]` | 链接到 `/<id>/#<slug>`，slug 用 `github-slugger`；**v2.0 新增**：校验目标页有这个小标题 | 同上 |
-| 指向参考页的双链（`[[常见问题#…]]`、`[[IP 质量实测合集]]`、`[[实测：…]]`） | 从步骤页链出时自动加 `?from=<当前页标识>`（FR-20），锚点放在查询串之后 | 同上 |
+| 指向参考页的双链（`[[常见问题]]`、`[[分流规则具体怎么写？]]`、`[[IP 质量实测合集]]`、`[[实测：…]]`） | 从步骤页链出时自动加 `?from=<当前页标识>`（FR-20），锚点放在查询串之后 | 同上 |
 | `[[如何订阅claude]]`、`[[如何订阅claude（纯操作版）]]`（重写稿的目录页） | 首页 `/` | — |
 | `[[04技术/…]]` | 查 `blog-links.yaml`：有地址时是外链；`null` 时只输出链接文字，构建结束列进内容提示（Q-11） | 表里没有这一项 → 构建失败 |
 | `![[文件名\|宽度]]`、`![[文件名]]` | 图片，可以点开看大图（1.0.0 已有） | 构建失败 |
@@ -152,10 +153,10 @@ side:                              # 旁支页：不在序列里
 - **内容提示的接口**：插件通过 `onHints` 交出 `ContentHint`（`author-todo`、`blog-link`，带所在页面）；`validateContent()` 返回 `{ problems, hints }`，另外补上 `missing-operation`；`contentValidation` 在 `astro:build:done` 用 `formatHints()` 打印（M5）。
 - **标题 id**：同一 HTML 里有两版正文（ADR-0004），操作版正文的标题 id 加前缀 `op-`（`rehype-operation-ids.ts` 按文件路径判断，按 Astro 同样的 github-slugger 规则先写好 id），避免重复 id；`[[标题#小标题]]` 指向原理版的 id。
 - **只有一套规则**（#25 删除了 1.0.0 按标识解析的模式和 `[!why]`）：不属于三个集合的文件（只在单元测试里出现）照样按标题解析双链，只是不去标题和页脚、不记内容提示。
-- **表格可聚焦**（#25）：`rehype-scrollable-tables.ts` 给每张表加 `tabindex="0"`，窄屏上横向滚动的表格能用键盘滚动（axe 的 scrollable-region-focusable；同 Shiki 给 `<pre>` 的做法）。
+- **表格可聚焦**（#25）：`rehype-scrollable-tables.ts` 给每张表加 `tabindex="0"`，窄屏上横向滚动的表格能用键盘滚动（axe 的 scrollable-region-focusable）。v2.2 关掉语法高亮后，代码块 `<pre>` 的 `tabindex` 也由它加（以前由 Shiki 加）。
 - **截图图版**（#37，§11.4 W-4，现状）：`rehype-figures.ts` 把独占一行的截图（`img[data-zoom]`）包成 `<figure class="plate" data-figure="n">`，编号 `<figcaption class="plate-no">图 <span data-figure-step></span>n</figcaption>` 放在截图前面；每篇正文单独编号，所以两版各自从 1 起。截图所在的段落从截图处拆开（前后的文字仍是段落，空段落丢掉），列表项里的截图留在这一项里；只在根和能放块级内容的容器（列表项、引用、表格单元格等）里包，标题、加粗、链接里的图片和与文字同一行的行内图片不是图版，不编号；先包完再按文档顺序编号。步骤号前缀（`02-`）由 `figurePrefix(stepMark(...))`（`src/lib/nav-text.ts`）算：数得清时是“步骤号-”，数不清、选择页、旁支页为空；`PageLayout` 构建时用 `fillFigureSteps()` 按操作视图写进两版正文（没有 JS 时就是它），`route-enhance` 的 `renderProgress` 按当前视图和选择改写所有 `[data-figure-step]`，算完前和页边栏编号一样先不显示。参考页不填，只有序号。样式在 `prose.css`：图片 1px `--border`、4px 圆角，图版上下 24px；<1100px 编号用 `order` 排到截图下方；≥1100px `.prose` 作定位容器，编号绝对定位到页边栏（横向按 `.prose`，列表缩进不影响；竖向不写 `top`，取原位置，所以和截图顶边齐平），`[!caution]` 用 `::before` 在同一位置写“注意”（`--caution-rule`，替代文字为空，不重复读）。参考页同样悬挂在正文左侧（design §4.7 把参考页列在编号规则里；§4.6 的“没有页边栏编号”指步骤编号）。已知限制：选项块自己是定位容器，块里的截图编号会对不上竖线，选择页现在没有截图。
 - **说明图**（#39，§11.4 W-7，现状）：design §4.7 的单色线稿。作者在重写稿原理版里写 `![[说明图-页面标题.svg]]`，SVG 放在 `附件/`，导入脚本复制到 `src/assets/diagrams/`（链接索引的 `diagrams`/`diagramsDir`）；不另加 frontmatter 字段，也不用新 ADR（ADR-0005 的“原样导入”不变）。`remark-obsidian` 遇到 `.svg` 嵌入就读文件、用 `parseDiagram()`（`src/lib/content/diagram.ts`）检查后原样内联：输出 mdast `html` 节点并带 `hName: 'svg'`，hast 里就是一个 `svg[data-diagram]` 元素（`role="img"`、`aria-label` 取 `<title>`，宽高写成 viewBox 的宽高），`rehype-figures` 把它和截图一样包成图版（多一个 `diagram` 类），一起编号。检查是白名单：只放行 `title`、`desc`、`g`、基本形状、`text`/`tspan` 和画线稿用得到的属性，颜色只能是 `currentColor`/`none`，没有脚本、样式、外部资源、渐变滤镜、`transform` 和 id（内联后和页面共用样式和 id）；属性必须写成 `名字="值"`（没加引号、没有值的写法报错，不能绕过白名单），标签以外不能有 `<`；画法按 §4.7 固定：只有文字和包文字的 `<g>` 能 `fill="currentColor"`，`stroke-width` 只能 1.5，`font-size` 只能 14，`class` 只能 `accent`；根元素只写 `xmlns`、`viewBox`，viewBox 宽度不超过 328（手机正文栏）；必须有 `<title>`。不合格、找不到、写了宽度都按 FR-61 报错让构建失败。样式在 `prose.css`：图按 1:1 显示、`max-width: 100%`，`color: var(--text)`，`.accent` 里的用 `--accent`，`text` 用 `--font-sans`、`--fs-meta`（14px），图版上下 32px、没有边框；不进看大图（不是 `img[data-zoom]`）。
-- **1.0.0 已有、继续生效**：管线配置的唯一来源 `markdownPipeline()`；`contentValidation` 集成在 `astro:build:start` 用同一条管线重新处理全部源文件并在失败时终止构建；集合 `deferRender: true`；关闭 SmartyPants；嵌入的宽度、文件名字符和 1x/2x `srcset` 规则；解析后残留 `**` 报错；Shiki 默认开启且不引用外部资源；内容文件名必须是以字母开头的英文 kebab-case。
+- **1.0.0 已有、继续生效**：管线配置的唯一来源 `markdownPipeline()`；`contentValidation` 集成在 `astro:build:start` 用同一条管线重新处理全部源文件并在失败时终止构建；集合 `deferRender: true`；关闭 SmartyPants；嵌入的宽度、文件名字符和 1x/2x `srcset` 规则；解析后残留 `**` 报错；不做语法高亮（v2.2 起 `markdown.syntaxHighlight: false`，代码块单色，design §4.7）；内容文件名必须是以字母开头的英文 kebab-case。
 
 **导入脚本**（`scripts/import-rewrite.mjs`，#23 建立，[ADR-0005](adr/0005-import-rewrite-verbatim.md)；页面标识表和截图核对记录在 [migration-checklist.md](migration-checklist.md) 的 v2 节）：
 
@@ -233,7 +234,7 @@ function pathOf(stop: Stop): string;        // '/<id>/' 或 '/'；再由 withBas
 | --- | --- | --- |
 | 首页：首屏（logo、站名、英文副标题、“从第 00 章开始”、桌面章级索引）、按章目录 | `/` | `src/pages/index.astro` |
 | 步骤页、选择页、旁支页 | `/<id>/` | `src/pages/[page].astro` + `PageLayout` |
-| 常见问题 | `/faq/` | `src/pages/faq/index.astro` + `ReferenceLayout` |
+| 常见问题 / 各条问题 | `/faq/`、`/faq/<id>/` | `src/pages/faq/index.astro`、`[question].astro` + `ReferenceLayout` |
 | IP 质量实测合集 / 各篇实测 | `/ip-tests/`、`/ip-tests/<id>/` | `src/pages/ip-tests/index.astro`、`[test].astro` |
 | 找不到 | `404.html` | `src/pages/404.astro` |
 
@@ -246,8 +247,8 @@ function pathOf(stop: Stop): string;        // '/<id>/' 或 '/'；再由 withBas
 - **两版正文**（[ADR-0004](adr/0004-whole-page-view-switch.md)）：`PageLayout` 把原理版和操作版的正文都渲染进 HTML，分别包在 `<div data-body="principle">`、`<div data-body="operation">` 里；`<html data-view>` 决定显示哪一个，另一个 `display: none`（屏幕阅读器和页内查找都跳过它，`loading="lazy"` 的图片也不加载）。原理独有步骤和缺操作版的页面只输出原理版，操作视图下在正文上方显示提示（FR-21、FR-30）。参考页只有一份正文，没有视图切换。
 - **视图**（1.0.0 已有机制，改为整页）：`<head>` 里的内联脚本 `VIEW_BOOT_SCRIPT` 在首次绘制前设置 `data-view`，取不到时用 `operation`。切换控件 `ViewToggle` 在页眉；`src/scripts/view-toggle.ts` 改 `data-view`、写 M4、滚回页面顶部（FR-30），派发 `reader-view-changed`。没有 JS 时切换控件隐藏，固定操作视图。删除 1.0.0 的“为什么：… · 在原理视图中查看”提示行和“这一步没有额外原理”。
 - **导航改写**（1.0.0 已有 `route-enhance.ts`，改动）：读 M4 的 `choices` 和 `view`，调用 `routeMapFromData(data).view(at, stored, view)`，改写上一步/下一步/跳过/回到的链接与目标标题和进度；收到 `reader-view-changed` 或 `reader-choices-changed` 时重算。打开只属于一个分支的页面时，把它所属的选项写进 `choices`（FR-17，纯函数 `openPatch()` 只剩这一项）。选择页：本机保存的选项块标“当前选择”和 `aria-current`，点块内任何站内链接都先写 `choices` 再跳转；**不标默认**。
-- **目录**（1.0.0 已有 `Toc`/`TocNav`/`toc.ts`，改动）：去掉已读 ✓ 和“清除进度”；原理独有步骤标“原理”，在操作视图下弱化；参考页在末尾单列“卡住了再看”。首页的目录用同一个 `TocNav`（首页变体：不吸顶、不折叠，每章带锚点 `#chapter-<章节标识>`）。
-  实现（#30，现状）：`TocNav` 章名前写 `00`–`03` 章节号，末尾单列 `site.tocReferences`（`loadSite()` 按常见问题、IP 质量实测合集的顺序给出标题，由页面经 `PageLayout`/`Toc` 的参数传入，`TocNav` 自己不读内容），当前项是 `aria-current="page"`。`Toc` 输出侧栏和空的抽屉 `<dialog data-toc-dialog>`（#34 起取消侧栏，见下）。页面脚本 `src/scripts/toc.ts` 在 `route-enhance` 之后运行（它先记下当前页所属选项），按本机选择和当前视图调用 `outline(stored, at, mode)` 改写标记：`data-off-route`（其他选项的步骤、操作视图下的原理独有步骤）、“其他路线”（只按分支判断，原理独有步骤只弱化不标）、`data-selected`、“切换”按钮和当前项；“切换”写入 `choices` 并派发 `reader-choices-changed`，收到选择或视图变化时重画；跑完给 `<nav>` 加 `data-toc-ready`。
+- **目录**（1.0.0 已有 `Toc`/`TocNav`/`toc.ts`，改动）：去掉已读 ✓ 和“清除进度”；原理独有步骤标“原理”，在操作视图下弱化；参考页列在最后一章“附录”的附录页下面（2026-10-17 起，原先末尾单列“卡住了再看”）。首页的目录用同一个 `TocNav`（首页变体：不吸顶、不折叠，每章带锚点 `#chapter-<章节标识>`）。
+  实现（#30，现状）：`TocNav` 章名前写 `00`–`04` 章节号，`site.tocReferences` 列在最后一章（附录）的列表末尾、缩进一级（`ol.toc-reference`）（`loadSite()` 按常见问题、IP 质量实测合集的顺序给出标题，由页面经 `PageLayout`/`Toc` 的参数传入，`TocNav` 自己不读内容），当前项是 `aria-current="page"`。`Toc` 输出侧栏和空的抽屉 `<dialog data-toc-dialog>`（#34 起取消侧栏，见下）。页面脚本 `src/scripts/toc.ts` 在 `route-enhance` 之后运行（它先记下当前页所属选项），按本机选择和当前视图调用 `outline(stored, at, mode)` 改写标记：`data-off-route`（其他选项的步骤、操作视图下的原理独有步骤）、“其他路线”（只按分支判断，原理独有步骤只弱化不标）、`data-selected`、“切换”按钮和当前项；“切换”写入 `choices` 并派发 `reader-choices-changed`，收到选择或视图变化时重画；跑完给 `<nav>` 加 `data-toc-ready`。
   v2.1（#34，现状）：所有宽度都是抽屉，不常驻（design §4.5、D5）。`Toc` 只输出 `<dialog data-toc-dialog>`，`<nav>` 构建时就写在里面，不再在侧栏和抽屉之间移动；`PageLayout` 去掉 `.step-shell` 两栏网格。手机全屏，≥720px 贴左边宽 400px。页眉的“目录”构建时是 `<a href="…/#home-chapters" data-toc-open>`，没有 JS 也能到首页的完整目录（FR-16，§11.4 W-5）；`toc.ts` 把它换成同样属性（去掉 href）的 `<button aria-haspopup="dialog">`，Esc、点遮罩、点“关闭”都关，关闭后 `<dialog>` 把焦点还给按钮。过渡（design §5）选 CSS 方案：`toc.css` 用 `@starting-style` 做滑入 200ms 和遮罩淡入，关闭时 `display`/`overlay` 加 `transition-behavior: allow-discrete` 推迟移出顶层，做 150ms 滑出，脚本照常 `close()`，Esc 也有过渡；不支持的浏览器直接开关。看大图同样用 `@starting-style` 淡入 150ms，关闭直接消失。时长取 `tokens.css` 的令牌，减少动态效果时归零。章节号换成固定字形 `Numeral`（读屏“第 n 章”）：目录 20px，首页 28px。首页和找不到页的目录是静态的，按 `outline({}, null, 'principle')` 画（没有视图，全部正常显示，不弱化），不跑脚本。参考页不放抽屉，“打开目录”仍链到首页目录。
 - **首页（#38，现状）**：`src/pages/index.astro`，按 design §4.4（D2）。首屏没有页眉：眉题、中文 logo（h1）、一句话、小字信息行（章节数取 `route.data.chapters.length`）、“从第 00 章开始”（`site.start`）和“先看整体思路”；一句话写在页面里，构建时核对它（去掉加粗后）原样出现在 `principle/overview.md` 正文里，不出现就构建失败。≥1100px 是 12 栏网格，右侧四行章级索引（`Numeral` 32px）链到 `TocNav` 首页变体的 `#chapter-<章节标识>`，平板和手机不显示。首屏只有 logo 的“Re”和主按钮用 `--accent`：“先看整体思路”、索引和首页目录的章节号都用 `--text`。
 - **页眉（#31，现状）**：`src/components/SiteHeader.astro`，首页以外的页面都有（design §4.0）。参数 `views`（显示 `ViewToggle`，视图色带跟 `<html data-view>` 走：操作 `--text`、原理 `--accent`）和 `toc`（显示“目录”：构建时是链到首页目录的 `[data-toc-open]` 链接，所有宽度都有，`toc.ts` 换成打开抽屉的按钮，#34）；`PageLayout` 传两者，`ReferenceLayout` 和找不到页都不传（色带 `--border`）。眉题的章节号、章节标题卡由 `PageLayout` 按 `view.progress.chapterNo` 和 `routeData.chapters` 的第一项算出，`[data-route-progress]` 仍只放进度文字，页面脚本照旧改写它（#35 起改为读屏文字，见下面的“步骤编号”）。章节号的文字统一由 `lib/nav-text.ts` 的 `chapterNoText()` 给出。
@@ -255,8 +256,8 @@ function pathOf(stop: Stop): string;        // '/<id>/' 或 '/'；再由 withBas
 - **logo**：`src/assets/logo/` 放转曲后的 SVG（中文版、英文版、“Re:”标记），**只由 `src/components/Logo.astro` 引用**（`?raw` 内联，颜色用 `currentColor` 和设计令牌，深浅主题自动适配）；换 logo 只改这一处（需求 Q-15）。favicon 是 `public/favicon.svg`（SVG 内用 `prefers-color-scheme` 切换配色），由 `BaseLayout` 的 `<link rel="icon">` 引用。“Re”的颜色取 `--logo-re`（SVG 里的回退值是浅色的 `#5B3FA0`），`tokens.css` 在 `:root` 设 `--logo-re: var(--accent)`，深色模式下换成浅紫（#31 接入）。四个 SVG 都由 `scripts/build-logo.mjs` 生成，版式参数（字号、错落、间距）写在脚本里。
 - **章节标题卡（#36，现状）**：design §4.1、§5、D6，替换 v2.0 的 `.chapter-intro`。只在 `isChapterStart()` 为真的页面（每章第一页，含选择页），放在眉题上方：`ChapterSubtitle`（`--text-muted`，对读屏隐藏）、`.chapter-card-heading`（`Numeral` 章节号，`--fs-display`、`--accent`，读屏“第 n 章”；章名 `--fs-chapter-title` 800）、`.chapter-card-intro`（`routeData.chapters` 里这一章的 `intro`，`--text-muted`、最宽 24em，没写就不输出）、一条 1px `--text` 下边线。<720px 章节号在章名上方；≥720px 并排，`align-items: last baseline` 底边对齐；≥1100px 卡片用负外边距把线延伸到页边栏，`.chapter-card-heading` 和 `.step-heading` 一样是两栏网格，章节号 `justify-self: end` 右缘对齐页边栏右缘（比页边栏宽时向左伸出）。留白按 §4.1（上方 96/48px 扣掉 `.step` 的 32px 顶部内边距）。没有入场动画。v2.0 的 `--font-numeral`、`--fs-numeral` 随之删除。
 - **编号字形（#32，现状）**：design §3.2 D7 的固定字形编号。`scripts/build-logo.mjs` 按字形名取 Cormorant Garamond 500 的等高数字 `zero.lf`…`nine.lf` 和 `endash`（§11.4 W-1），输出 `src/assets/numerals/symbols.svg`（`<symbol id="numeral-0">`…`numeral-9`、`numeral-dash`，字体单位 1000/em，共用一个竖向范围）和 `metrics.json`（`top`、`height`、各字宽）；另输出四条章节副标题 `chapter-00.svg`…`chapter-03.svg`（Roboto Condensed 700，13px 原大，字距 0.3em，两端 24px 短横）。接口（§11.4 W-2）：`BaseLayout` 每页内联一份 `NumeralSprite`（隐藏、`aria-hidden`）；纯函数 `numeralSvg(text, label, className?)`（`src/lib/numeral.ts`）用 `<use>` 按字宽拼出数字串，外层 `role="img"` + `aria-label`，`fill="currentColor"`，高 `1em` = 数字高度（用 `font-size` 控制大小，例如找不到页的 `--fs-display` 64/80/96px），只接受 0–9 和 `–`；`Numeral.astro` 在构建时调用它，页面脚本改写编号时调用同一个函数，不重新转曲。`ChapterSubtitle.astro` 内联对应章节的副标题，`aria-hidden`，颜色由使用方给。已用在找不到页的大号 `404`、步骤编号（#35）、章节标题卡（#36）和首页章级索引（#38）。
-- **参考页的返回**（1.0.0 已有 `faq-return`，泛化为 `reference-return`）：根据 `?from=<page-id>` 查到页面标题，显示“返回刚才的步骤：<标题>”；实测页另有“回到：IP 质量实测合集”；直接打开时显示“打开目录”。
-  实现（#27，现状）：纯函数 `referenceReturn(search, pages)`（`src/lib/reference-return.ts`）只认 `RouteData.pages` 里的标识（步骤、选择页、旁支页），其他值当作直接打开；`ReferenceLayout` 内嵌“页面标识 → 标题”（`#reference-pages`），在标题上方和正文末尾写出隐藏的 `[data-reference-return]`，页面脚本 `src/scripts/reference-return.ts` 填好地址和标题后显示，并隐藏“打开目录”（`[data-reference-toc]`，页脚因此空了就整行隐藏），跑完给 `<main>` 加 `data-reference-ready`。“打开目录”是指向首页目录的链接 `/#home-chapters`，没有 JS 也能用；参考页不内嵌路线数据，不放目录抽屉（#30 保持链接）。
+- **参考页的返回**（1.0.0 已有 `faq-return`，泛化为 `reference-return`）：根据 `?from=<page-id>` 查到页面标题，显示“返回刚才的步骤：<标题>”；各条问题另有“回到：常见问题”，实测页另有“回到：IP 质量实测合集”；直接打开时显示“打开目录”。
+  实现（#27，现状）：纯函数 `referenceReturn(search, pages)`（`src/lib/reference-return.ts`）只认 `RouteData.pages` 里的标识（步骤、选择页、旁支页），其他值当作直接打开；`ReferenceLayout` 内嵌“页面标识 → 标题”（`#reference-pages`），在标题上方和正文末尾写出隐藏的 `[data-reference-return]`，页面脚本 `src/scripts/reference-return.ts` 填好地址和标题后显示，并隐藏“打开目录”（`[data-reference-toc]`，页脚因此空了就整行隐藏），跑完给 `<main>` 加 `data-reference-ready`。“打开目录”是指向首页目录的链接 `/#home-chapters`，没有 JS 也能用；参考页不内嵌路线数据，不放目录抽屉（#30 保持链接）。v2.2 起这条作废：参考页和步骤页一样内嵌 `#route-data`、有侧边栏和抽屉，“打开目录”按钮删掉（§12）。
 - **视频门面、代码复制、看大图**：1.0.0 已有，沿用；只改 FR-41：没有视频信息时不输出视频区域（删掉“视频制作中”）。
 
 ### M4 本机状态（`src/lib/reader-state/`）
@@ -292,11 +293,11 @@ function getNameHost(scope?): { name: string } | null;   // 浏览器里是 wind
 | --- | --- |
 | 首页 | `/` |
 | 步骤、选择页、旁支页 | `/<id>/` |
-| 常见问题（条目用锚点） | `/faq/`、`/faq/#<slug>` |
+| 常见问题 / 各条问题 | `/faq/`、`/faq/<id>/` |
 | IP 质量实测合集 / 实测 | `/ip-tests/`、`/ip-tests/<id>/` |
 | 找不到 | `404.html` |
 
-从步骤链到参考页时带 `?from=<page-id>`，例如 `/faq/?from=plan3-residential-node#分流规则具体怎么写`。参数里只有公开的页面标识。
+从步骤链到参考页时带 `?from=<page-id>`，例如 `/faq/split-routing/?from=plan3-residential-node`。参数里只有公开的页面标识。
 
 ## 5. 数据流（以 AC-08、AC-09 为例）
 
@@ -317,11 +318,13 @@ function getNameHost(scope?): { name: string } | null;   // 浏览器里是 wind
 ├── package.json / package-lock.json 依赖与脚本；version 字段是版本来源
 ├── src/
 │   ├── content.config.ts            M1 集合：principle、operation、reference（#25 删除 steps/choices/faq/pages）
-│   ├── content/                     route.yaml、principle/、operation/、reference/、blog-links.yaml
+│   ├── content/                     route.yaml、principle/、operation/、reference/（faq.md、faq/<id>.md、ip-tests.md、ip-tests/<id>.md）、blog-links.yaml
 │   ├── assets/
 │   │   ├── screenshots/             截图（经 Astro 图片处理）
 │   │   ├── logo/                    转曲后的 logo SVG（只由 Logo.astro 引用）
-│   │   └── numerals/                转曲后的编号字形和 CHAPTER 副标题（build-logo.mjs 生成）
+│   │   ├── mascot/                  Claude Code 像素小形象 mascot.svg（只由 Mascot.astro 引用，design D6）
+│   │   ├── diagrams/                说明图（import-rewrite.mjs 从重写稿附件复制）
+│   │   └── numerals/                转曲后的编号字形和 CHAPTER 00–04 副标题（build-logo.mjs 生成）
 │   ├── lib/
 │   │   ├── content/                 M1：schemas、link-index、remark-obsidian、rehype-operation-ids、rehype-figures、markdown、integration（+ *.test.ts）
 │   │   ├── route/                   M2：route-map、types（+ 测试和测试用路线图）
@@ -331,8 +334,8 @@ function getNameHost(scope?): { name: string } | null;   // 浏览器里是 wind
 │   │   └── site.ts                  构建时装配 loadSite()、assembleRoute()
 │   ├── scripts/                     页面脚本：route-enhance、view-toggle、toc、reference-return、code-zoom、video-facade
 │   ├── layouts/                     BaseLayout、PageLayout（替换 StepLayout）、ReferenceLayout
-│   ├── components/                  Logo、SiteHeader、ViewToggle、StepNav、Toc、TocNav、CodeCopy、ImageZoom、VideoFacade
-│   ├── pages/                       index、[page]、faq/index、ip-tests/index、ip-tests/[test]、404
+│   ├── components/                  Logo、Mascot、SiteHeader、SiteFooter、ViewToggle、StepNav、Toc、TocNav、Numeral、NumeralSprite、ChapterSubtitle、CodeCopy、ImageZoom、VideoFacade
+│   ├── pages/                       index、[page]、faq/index、faq/[question]、ip-tests/index、ip-tests/[test]、404
 │   └── styles/                      tokens.css、base.css、prose.css、toc.css、code-zoom.css
 ├── public/                          favicon.svg
 ├── scripts/                         一次性开发脚本：import-rewrite.mjs（+ 测试）、build-logo.mjs、compare-migration.mjs（v2.0 改写）
@@ -447,3 +450,17 @@ v2.0 → v2.1 的代码差距（现状 → 目标）：
 | W-6 | FR-18、AC-01 写主按钮“开始”，design §4.4 改成“从第 00 章开始 →”（§8 一致性检查第 1 条） | `ac-01-home.spec.ts` 按旧文字找按钮 | W07 同步改 FR-18、AC-01 的按钮文字和用例；行为（进入前言）不变 | 否 |
 | W-7 | 说明图（§4.7、§9）要放进三页原理版，但重写稿里没有这些图，正文按 ADR-0005 原样导入 | 没有放进页面的合法途径 | 作者 2026-10-17 定：加进重写稿再导入（`![[说明图-….svg]]`），不用 frontmatter、不补 ADR；#39 实现，见 §3 M1“说明图” | 否（只影响 W08） |
 | W-8 | design §7 要求 768×1024 截图，`playwright.config.ts` 只有 360 和 1280 两个项目 | 平板档没有自动检查 | W02 起在用例里单独设 768 宽检查；W09 加平板项目。已实现（#40）：`tablet-768` 项目跑全套 e2e，用例里单独设 768 宽的块已并入 | 否 |
+
+## 12. v2.2 改版（2026-10-19，现状）
+
+按 [v2.2 改版计划](v2.2-plan.md) 和需求 v0.4。依赖方向不变（M1 ← M2 ← M3，M4 独立），没有新模块。
+
+| 模块 | 改动 |
+| --- | --- |
+| M1 内容 | **常见问题一问一页**：每条问题是重写稿原理版里的单独文件，`import-rewrite.mjs` 按标题导入到 `reference/faq/<id>.md`（和别的参考页一样按第一行标题匹配；《常见问题》链到、站内还没有的条目单独报告，先手建只有 `# 标题` 的文件再重跑）。文件名是条目标识（URL `/faq/<id>/`，ADR-0002），第一行标题是问题原文，**标题和标识的对应只在这里**，没有另外的映射表，也不在构建时切分 `faq.md`（计划 W6 的 `appendix.yaml` 和切分作废）。`link-index.ts` 的 `checkFaqItems` 双向核对：条目没列进常见问题、常见问题的列表项链到没有条目文件的标题、同一条列两次、条目标识和已有页面相同；一个标题两个标识、条目缺标题由 `checkPages` 原有的“标题重复”“缺少第一行标题”报出。双链 `[[问题标题]]` 照常按标题解析到 `/faq/<id>/?from=<来源页>`。构建级坏内容用例：`tests/fixtures/faq-*`。代码块不做语法高亮，`<pre>` 的 `tabindex` 由 `rehype-scrollable-tables` 加 |
+| M2 路线 | 函数不变，数据变了：`route.yaml` 多一章 `appendix`（只有附录页），后记的下一步是附录，附录是路线的最后一项、下一步是首页；方案一的顺序按重写稿改成 `plan1-free-isp → plan1-buy-server → plan1-buy-isp → plan1-make-node → plan1-panel`，标识不变 |
+| M3 页面 | `PageLayout`：页头色带（眉题 + h1，章首页多 `ChapterSubtitle`、章名、`intro`），删除页边栏、`stepMark`/`stepMarkHtml` 和大号章节号；`Mascot.astro` 内联 `src/assets/mascot/mascot.svg`；`SiteFooter.astro` 每页一行非官方声明。目录：`Toc` 同时输出 `aside[data-toc-sidebar]`（≥1100px 常驻、独立滚动、静态 HTML 可用）和 `<dialog data-toc-dialog>`（<1100px），同一套 `TocNav` 标记；`toc.ts` 两份一起改写，首次加载时侧边栏滚到当前项。`ReferenceLayout`：和步骤页一样的页头色带（眉题“附录 · …”由页面传入），内嵌 `#route-data` 并初始化目录（不标当前项），页脚只有 `back`（“回到：附录 / 常见问题 / IP 质量实测合集”），没有上一步/下一步；`?from=` 的返回链接照旧。`src/pages/faq/[question].astro` 生成各条问题页。选项块：`option-blocks.ts` 在块前插编号圆圈、块内末尾插箭头，样式是选项行。`StepNav`：文字链接 + 黑色主按钮，手机吸底 |
+| M5 构建 | `astro.config.mjs` 设 `markdown.syntaxHighlight: false`；`build-logo.mjs` 多生成 `chapter-04.svg` |
+
+计划和实现的出入（作者 2026-10-19 定，以 requirements 为准）：附录没有“上一条 / 下一条”和 `src/lib/appendix.ts` 阅读顺序（计划 W5 第 2、3 条）；常见问题 7 条，标识见 requirements §5 和 migration-checklist v2 节。
+
