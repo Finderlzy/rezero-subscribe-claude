@@ -56,6 +56,8 @@ export function sampleSpec(): RouteSpec {
         ],
       },
       { id: 'ending', title: '结尾', items: ['thanks', 'afterword'] },
+      // 附录（v2.2 W5）：后记的下一步是附录页，附录是路线的终点
+      { id: 'appendix', title: '附录', items: ['appendix'] },
     ],
     side: { 'google-appeal': { returnTo: 'use-two-days' } },
   };
@@ -78,7 +80,7 @@ const PAGES: [string, string, Partial<PageMeta>?][] = [
   ],
   ['plan1-buy-server', '购买服务器'],
   ['make-node', '把服务器变成节点'],
-  ['plan1-panel', '安装面板', { skippable: true }],
+  ['plan1-panel', '打开面板', { skippable: true }],
   ['plan2-server', '方案二：住宅 IP 服务器'],
   ['plan3-node', '方案三：直接买住宅节点'],
   ['import-proxy', '导入代理软件'],
@@ -111,6 +113,7 @@ const PAGES: [string, string, Partial<PageMeta>?][] = [
   ['after-subscribe', '订阅之后'],
   ['thanks', '致谢'],
   ['afterword', '后记'],
+  ['appendix', '附录'],
 ];
 
 export function samplePages(): PageMeta[] {

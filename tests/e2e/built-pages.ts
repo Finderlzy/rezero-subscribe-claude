@@ -16,7 +16,7 @@ export function builtPages(dist = 'dist'): string[] {
     });
   const pages = walk(dist).sort();
   // 防止拿到空的或残缺的产物，逐页用例悄悄变少
-  for (const must of ['', '404.html', 'preface/', 'choose-plan/', 'google-appeal/', 'afterword/', 'faq/', 'ip-tests/', 'ip-tests/decodo/']) {
+  for (const must of ['', '404.html', 'preface/', 'choose-plan/', 'google-appeal/', 'afterword/', 'appendix/', 'faq/', 'faq/split-routing/', 'ip-tests/', 'ip-tests/decodo/']) {
     if (!pages.includes(must)) throw new Error(`${dist}/ 里缺少 /${must}，产物不完整`);
   }
   return pages;

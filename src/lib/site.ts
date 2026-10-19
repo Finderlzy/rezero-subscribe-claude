@@ -32,9 +32,9 @@ export interface Site {
   start: Stop;
   /** 按标识查找 */
   pages: ReadonlyMap<string, SitePage>;
-  /** 按标识查找：`faq`、`ip-tests`、`ip-tests/<id>` */
+  /** 按标识查找：`faq`、`faq/<id>`、`ip-tests`、`ip-tests/<id>` */
   references: ReadonlyMap<string, SiteReference>;
-  /** 目录末尾“卡住了再看”单列的参考页：常见问题、IP 质量实测合集（design §4.5） */
+  /** 目录里列在附录页下面的参考页：常见问题、IP 质量实测合集（design §4.5） */
   tocReferences: TocReference[];
 }
 
@@ -43,7 +43,7 @@ export interface TocReference {
   title: string;
 }
 
-/** 目录末尾单列的参考页，按这个顺序 */
+/** 目录里附录页下面的参考页，按这个顺序 */
 const TOC_REFERENCES = ['faq', 'ip-tests'];
 
 /** 只取映射需要的字段，单元测试可以直接传普通对象。 */

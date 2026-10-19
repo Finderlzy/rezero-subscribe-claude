@@ -19,19 +19,19 @@
   margin: var(--space-6) 0 var(--space-3);
   font-size: var(--fs-h2);
   line-height: var(--lh-heading);
-  font-weight: 700;
+  font-weight: var(--fw-heading);
 }
 
 .prose h3 {
   margin: var(--space-5) 0 var(--space-2);
   font-size: var(--fs-h3);
   line-height: var(--lh-heading);
-  font-weight: 700;
+  font-weight: var(--fw-heading);
 }
 
 /* 原文的加粗是“照做的关键点”：只加字重，不改颜色。 */
 .prose strong {
-  font-weight: 700;
+  font-weight: var(--fw-heading);
 }
 
 /* 列表编号和正文左对齐，不缩进太深。 */
@@ -49,22 +49,19 @@
   font-size: var(--fs-code);
 }
 
-/* 代码块：长行在块内横向滚动，不折行，命令必须原样复制（NFR-02）。 */
+/* 代码块：长行在块内横向滚动，不折行，命令必须原样复制（NFR-02）。
+   v2.2：--surface-muted 底、无边框、圆角 10px（design §4.7）。 */
 .prose pre {
   overflow-x: auto;
   padding: var(--space-3) var(--space-4);
-  border: var(--border-width) solid var(--border);
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-panel);
+  background: var(--surface-muted);
   line-height: var(--lh-code);
   white-space: pre;
 }
 
 .prose pre code {
   font-size: inherit;
-}
-
-.prose pre:not(.astro-code) {
-  background: var(--surface);
 }
 
 .prose img {
@@ -76,7 +73,7 @@
 /*
  * 截图图版（design v2.1 §4.7、D4）：rehype-figures 把独占一行的截图包成 figure.plate，编号 figcaption 在截图前面。
  * 截图保持原文宽度（不超过正文栏），1px --border 边框、4px 圆角，上下各留 24px。
- * 平板和手机：编号排到截图下方作图注。桌面见下方媒体查询。
+ * 编号在所有宽度下都排到截图下方作图注（v2.2 去掉了桌面的页边栏，W2 第 3 条）。
  */
 .prose .plate {
   display: flex;
@@ -125,7 +122,8 @@
   color: var(--accent);
 }
 
-/* 表格在自己的容器里横向滚动（NFR-01）。 */
+/* 表格在自己的容器里横向滚动（NFR-01）。v2.2：没有竖线，只在行与行之间留一条横向细线；
+   表头 13px、--text-muted（design §4.7）。 */
 .prose table {
   display: block;
   overflow-x: auto;
@@ -135,8 +133,15 @@
 .prose th,
 .prose td {
   padding: var(--space-2) var(--space-3);
-  border: var(--border-width) solid var(--border);
+  border: 0;
+  border-bottom: var(--border-width) solid var(--border);
   text-align: left;
+}
+
+.prose th {
+  color: var(--text-muted);
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-heading);
 }
 
 /* 表头不折行，窄屏上列宽不会被挤成一字一行，整张表改在容器里横向滚动；第一列粘性固定（design §4.7） */
@@ -151,65 +156,39 @@
   background: var(--bg);
 }
 
-/* Callout（rehype-callouts 输出 .callout[data-callout]）：note 中性面板，caution 风险色。 */
+/*
+ * 提示框（rehype-callouts 输出 .callout[data-callout]，design §4.7 v2.2）：没有边框和左侧色条，整块浅底、圆角 10px；
+ * 第一行是 13px 600 的小标签，颜色用对应的 rule 色。note 用 --accent-soft，caution 用 --caution-bg。
+ */
 .prose .callout {
-  padding: var(--space-3) var(--space-4);
-  background: var(--surface);
-  border: var(--border-width) solid var(--border);
-  border-left-width: 4px;
+  padding: 14px 16px;
+  background: var(--accent-soft);
   border-radius: var(--radius-panel);
 }
 
 .prose .callout[data-callout='caution'] {
   background: var(--caution-bg);
-  border-color: var(--caution-rule);
 }
 
 .prose .callout-title {
-  font-weight: 700;
+  color: var(--accent);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-meta);
+  font-weight: var(--fw-heading);
 }
 
+.prose .callout[data-callout='caution'] .callout-title {
+  color: var(--caution-rule);
+}
+
+/* 有标题时正文紧跟标签，不再多出段间距；没有标题（showIndicator + 无 title）时正文顶格 */
+.prose .callout-title + .callout-content > :first-child,
 .prose .callout-content > :first-child {
   margin-top: var(--space-2);
 }
 
 .prose .callout-content > :last-child {
   margin-bottom: 0;
-}
-
-/*
- * 桌面（≥1100px）的页边注（design v2.1 §4.1、§4.7）：截图编号和 [!caution] 的“注意”写在正文栏左侧的页边栏里，
- * 右对齐到页边栏右缘，和步骤编号、章节号在同一条竖线上。横向按 .prose 定位（截图在列表项里缩进时也不跟着挪），
- * 竖向不写 top，取它在原位置的高度：编号在截图前面，所以和截图顶边齐平；“注意”是 callout 的第一个子元素，和正文第一行齐平。
- * 选项块（.option-block）自己是定位容器，块里的截图编号会按选项块定位、对不上竖线；选择页现在没有截图，用到时再处理。
- */
-@media (min-width: 1100px) {
-  .prose {
-    position: relative;
-  }
-
-  .prose .plate {
-    display: block;
-  }
-
-  .prose .plate-no,
-  .prose .callout[data-callout='caution']::before {
-    position: absolute;
-    left: calc(-1 * (var(--margin-width) + var(--space-6)));
-    width: var(--margin-width);
-    text-align: right;
-    white-space: nowrap;
-  }
-
-  /* 正文里已有“注意”标题，页边这一个不再读给读屏（旧浏览器不认替代文字时退回第一条） */
-  .prose .callout[data-callout='caution']::before {
-    content: '注意';
-    content: '注意' / '';
-    color: var(--caution-rule);
-    font-size: var(--fs-caption);
-    line-height: var(--lh-meta);
-    font-weight: 500;
-  }
 }
 
 /*
@@ -223,72 +202,106 @@
   display: none;
 }
 
-/* 正文里的“作者待补”（design §5 组件表，FR-21）：两种视图都显示。 */
+/* 正文里的“作者待补”（design §4.7，FR-21）：两种视图都显示。v2.2：浅底、圆角，第一行是 13px 标签。 */
 .prose .author-todo {
   display: block;
-  padding: var(--space-3) var(--space-4);
+  padding: 14px 16px;
   background: var(--todo-bg);
-  border-left: 4px solid var(--todo-rule);
   border-radius: var(--radius-panel);
 }
 
 .prose .author-todo-label {
-  margin-right: var(--space-1);
-  font-weight: 700;
+  display: block;
+  color: var(--todo-rule);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-meta);
+  font-weight: var(--fw-heading);
 }
 
-/* 只有原理版时的提示条（design §4.1，FR-21、FR-30），在标题下、正文上。 */
+/* 只有原理版时的提示条（design §4.1，FR-21、FR-30），在正文上、页头色带下方。 */
 .view-notice {
   margin: 0 0 var(--space-5);
-  padding: var(--space-3) var(--space-4);
-  background: var(--surface);
-  border: var(--border-width) solid var(--border);
+  padding: 14px 16px;
+  background: var(--accent-soft);
   border-radius: var(--radius-panel);
 }
 
 /*
- * 选择页的选项块（design §4.2，FR-12）：M1 插件把正文里每个选项的小节包成 section.option-block。
- * 整块可点：块内第一个链接（这个选项的第一步，data-option-start）用伪元素撑满整块；
- * 块内其他链接（以及代码块、图片等可操作的内容）浮在上面，仍可单独点、选中；块里的普通文字被伪元素盖住，
- * 点它就是进入第一步。本机选过的块由页面脚本标 aria-current 和“当前选择”，不标默认。
+ * 选择页的选项（design §4.2，FR-12；v2.2 W4a）：每个选项是一行，不是大框。
+ * 左边是构建时插进来的编号圆圈（.option-no，24px，1px --control-border，13px 数字），中间是内容，右边是箭头（.option-go）。
+ * 行是 1px --border、8px 圆角、16px 20px 内边距，行与行间距 12px；整行可点：块内第一个链接（这个选项的第一步，
+ * data-option-start）用伪元素撑满整行；块内其他链接（以及代码块、图片等可操作的内容）浮在上面，仍可单独点、选中。
+ * 悬停：--surface-muted 底、--control-border 边框（这一行有底色了，边框不用再加粗），箭头右移 --nudge。
+ * 本机选过的选项由页面脚本标 aria-current 和“已选”，边框和底色用 --accent / --accent-soft，不标默认。
+ * 手机上同样是竖排的行，内边距 14px 16px。
  */
+.prose .option-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin: var(--space-3) 0;
+}
+
+.prose .option-row:first-child {
+  margin-top: 0;
+}
+
+.prose .option-no {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--option-no-size);
+  height: var(--option-no-size);
+  box-sizing: border-box;
+  border: var(--border-width) solid var(--control-border);
+  border-radius: 50%;
+  color: var(--text-muted);
+  font-size: var(--fs-caption);
+  line-height: 1;
+  font-weight: var(--fw-heading);
+}
+
 .prose .option-block {
   position: relative;
-  margin: var(--space-4) 0;
-  padding: var(--space-4);
-  background: var(--surface);
-  border: var(--border-width) solid var(--control-border);
-  border-radius: var(--radius-panel);
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 14px var(--space-4);
+  background: var(--bg);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-control);
 }
 
 @media (min-width: 720px) {
   .prose .option-block {
-    padding: var(--space-5);
+    padding: var(--space-4) 20px;
   }
 }
 
-.prose .option-block:hover,
+.prose .option-row:hover .option-block,
 .prose .option-block:focus-within {
-  border-color: var(--accent);
+  background: var(--surface-muted);
+  border-color: var(--control-border);
 }
 
-/* 左边框加粗 3px，内边距减 3px，正文不跟着挪动 */
+.prose .option-row:hover .option-go {
+  translate: var(--nudge) 0;
+}
+
 .prose .option-block[aria-current='true'] {
+  background: var(--accent-soft);
   border-color: var(--accent);
-  border-left-width: 4px;
-  padding-left: calc(var(--space-4) - 3px);
-}
-
-@media (min-width: 720px) {
-  .prose .option-block[aria-current='true'] {
-    padding-left: calc(var(--space-5) - 3px);
-  }
 }
 
 .prose .option-block > :last-child {
   margin-bottom: 0;
 }
 
+/* 标题右边给箭头留出位置，标题折行时不压到箭头 */
+.prose .option-title {
+  padding-right: var(--space-6);
+}
+
+/* 选项标题（原来独占一段的加粗文字）：17px 600 */
 .prose .option-title {
   margin: 0 0 var(--space-2);
   font-size: var(--fs-option);
@@ -296,20 +309,55 @@
 }
 
 .prose .option-title strong {
-  font-weight: 700;
+  font-weight: var(--fw-heading);
 }
 
-/* “当前选择”标签：--accent-soft 底、--accent 字（design §4.2） */
+/* 说明段落：15px --text-muted */
+.prose .option-block > p:not(.option-title) {
+  margin: var(--space-2) 0;
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: var(--lh-meta);
+}
+
+/* 块里的步骤列表收成紧凑样式：15px、--text-muted、列表项间距 2px，保留编号或圆点，链接色仍是 --accent */
+.prose .option-block ol,
+.prose .option-block ul {
+  margin: var(--space-2) 0 0;
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: var(--lh-meta);
+}
+
+.prose .option-block li + li {
+  margin-top: 2px;
+}
+
+/* 箭头：靠右，和标题这一行对齐；装饰，对读屏隐藏 */
+.prose .option-go {
+  position: absolute;
+  top: 14px;
+  right: var(--space-4);
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: var(--lh-heading);
+}
+
+@media (min-width: 720px) {
+  .prose .option-go {
+    top: var(--space-4);
+    right: 20px;
+  }
+}
+
+/* “已选”标签（design v2.2 W4a）：--accent 字、12px，跟在选项标题后面 */
 .prose .option-current {
   display: inline-block;
   margin-left: var(--space-2);
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-control);
-  background: var(--accent-soft);
   color: var(--accent);
-  font-size: var(--fs-meta);
+  font-size: 12px;
   line-height: var(--lh-meta);
-  font-weight: 600;
+  font-weight: var(--fw-heading);
   letter-spacing: var(--tracking-meta);
   vertical-align: middle;
 }

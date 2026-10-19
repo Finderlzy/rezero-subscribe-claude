@@ -11,7 +11,7 @@ chapters:
       - { choose: node-plan, page: choose-plan }
       - branch: node-plan
         options:
-          plan-1: [plan1-free-isp, plan1-buy-server, plan1-make-node, plan1-buy-isp, plan1-panel]
+          plan-1: [plan1-free-isp, plan1-buy-server, plan1-buy-isp, plan1-make-node, plan1-panel]
           plan-2: [plan2-residential-server]
           plan-3: [plan3-residential-node]
       # F1 的汇合点
@@ -38,6 +38,10 @@ chapters:
       - subscribe
       - after-subscribe
   # 坏内容（AC-14）：F2 的订阅段挪到路线最后，后面没有汇合点
+  # 附录放在结尾之前，让结尾的分支段仍是路线的最后一项（后面没有汇合点）
+  - id: appendix
+    title: 附录
+    items: [appendix]
   - id: ending
     title: 结尾
     items:

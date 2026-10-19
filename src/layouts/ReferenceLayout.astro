@@ -1,7 +1,9 @@
 ---
 import CodeCopy from '../components/CodeCopy.astro';
+import Mascot from '../components/Mascot.astro';
 import ImageZoom from '../components/ImageZoom.astro';
 import SiteHeader from '../components/SiteHeader.astro';
+import Toc from '../components/Toc.astro';
 import { hasZoomableImage } from '../lib/code-zoom/labels';
 import { loadSite } from '../lib/site';
 import { withBase } from '../lib/with-base';
@@ -9,55 +11,140 @@ import BaseLayout from './BaseLayout.astro';
 import '../styles/prose.css';
 
 /**
- * 参考页（常见问题、IP 质量实测合集、各篇实测）的骨架（design §4.6，FR-20）：只有一版正文，
- * 没有上一步/下一步和视图切换（页眉没有切换控件，色带用 --border）。实测页多一个“回到：IP 质量实测合集”（`back`）。
- * 从步骤链接进来（`?from=<page-id>`）时，页面脚本在标题上方和正文末尾显示“← 返回刚才的步骤：<标题>”，
- * 并隐藏“打开目录”；直接打开（或没有 JS）时只有“打开目录”。“打开目录”链到首页的目录（参考页不内嵌路线数据，不放抽屉）。
+ * 参考页（常见问题和各条问题、IP 质量实测合集和各篇实测）的骨架（design §4.6，FR-20）：只有一版正文，
+ * 没有上一步/下一步和视图切换（页眉没有切换控件）。
+ *
+ * 页头色带（v2.2 W5 第 7 条）：和步骤页一样一块 --accent-soft 色带，眉题写“附录 · <标题>”，下面接 h1；
+ * 小形象贴在色带右下角（D6）。正文在色带下面的 --content-width 栏里。
+ * 从步骤链接进来（`?from=<page-id>`）时，页面脚本在正文上方和正文末尾显示“← 返回刚才的步骤：<标题>”；
+ * 页脚只有“回到：…”：各条问题回常见问题，各篇实测回 IP 质量实测合集，两个参考页首页回附录（FR-20）。
+ * 参考页不进入上一步/下一步序列（requirements FR-20，取代 v2.2 计划 W5 第 2、3 条的“上一条 / 下一条”）。
+ *
+ * 目录（v2.2 D8、W3 第 7 条）：和步骤页一样内嵌 #route-data 和 Toc——≥1100px 左侧常驻，<1100px 是抽屉。
+ * 参考页不上路线图，只按本机选择画目录、不标当前项。
  */
 interface Props {
   title: string;
+  /** 页头色带上的眉题，例如“附录 · 常见问题”；不传时只写“附录” */
+  eyebrow?: string | undefined;
   back?: { href: string; title: string } | undefined;
 }
 
-const { title, back } = Astro.props;
+const { title, eyebrow = '附录', back } = Astro.props;
 const body = await Astro.slots.render('default');
 const hasZoom = hasZoomableImage(body);
 const site = await loadSite();
 // 页面脚本只需要“页面标识 → 标题”来写返回链接；内嵌 JSON 里的 `<` 转义掉（同 PageLayout）。
 const pageTitles = Object.fromEntries(Object.entries(site.route.data.pages).map(([id, page]) => [id, page.title]));
 const pagesJson = JSON.stringify(pageTitles).replace(/</g, '\\u003c');
+// 目录按同一条路线数据画（只用来判断“其他路线”，参考页本身不上路线图）
+const routeJson = JSON.stringify(site.route.data).replace(/</g, '\\u003c');
 ---
 
 <BaseLayout title={title}>
-  <SiteHeader />
-  <main id="main" class="page">
-    <p class="reference-return" data-reference-return hidden>
-      <a>← 返回刚才的步骤</a>
-    </p>
-    <h1 class="page-title">{title}</h1>
-    <div class="prose" set:html={body} />
-    <p class="reference-return" data-reference-return hidden>
-      <a>← 返回刚才的步骤</a>
-    </p>
-    <p class="page-actions">
-      {back && <a class="button button-secondary" href={withBase(back.href)}>回到：{back.title}</a>}
-      <a class="button" href={withBase('/#home-chapters')} data-reference-toc>打开目录</a>
-    </p>
-  </main>
+  <SiteHeader toc />
+  <Toc outline={site.route.outline({}, null, 'principle')} references={site.tocReferences} />
+  <div class="page-view">
+    <main id="main" class="reference-page">
+      <header class="band">
+        <div class="band-inner">
+          <Mascot />
+          <p class="eyebrow">{eyebrow}</p>
+          <h1 class="step-title">{title}</h1>
+        </div>
+      </header>
+      <div class="page-body">
+        <p class="reference-return" data-reference-return hidden>
+          <a>← 返回刚才的步骤</a>
+        </p>
+        <div class="prose" set:html={body} />
+        <p class="reference-return" data-reference-return hidden>
+          <a>← 返回刚才的步骤</a>
+        </p>
+        <p class="page-actions">
+          {back && <a class="button button-secondary" href={withBase(back.href)}>回到：{back.title}</a>}
+        </p>
+      </div>
+    </main>
+  </div>
   <CodeCopy />
   {hasZoom && <ImageZoom />}
   <script type="application/json" id="reference-pages" set:html={pagesJson} />
+  <script type="application/json" id="route-data" set:html={routeJson} />
 </BaseLayout>
 
 <script>
   import { initCodeZoom } from '../scripts/code-zoom';
+  import { pageReaderStore, readRouteData } from '../scripts/reader-store';
   import { initReferenceReturn } from '../scripts/reference-return';
+  import { initToc } from '../scripts/toc';
 
   initReferenceReturn(document);
+  // 参考页也放目录（v2.2 D8、W3 第 7 条）：目录按本机选择画，当前项是 null（参考页不在路线上）
+  const data = readRouteData(document);
+  if (data) initToc(document, data, pageReaderStore(data));
   initCodeZoom(document);
 </script>
 
 <style>
+  /* 页头色带：和 PageLayout 一样的 --accent-soft 底、--band-pad-y 内边距、正文栏左对齐；小形象贴右下角 */
+  .band {
+    position: relative;
+    background: var(--accent-soft);
+  }
+
+  .band-inner {
+    --mascot-right: calc(var(--gutter) + var(--space-5));
+    position: relative;
+    /* 宽度连同左右边距一共 --content-width（和正文栏一样），左缘才和正文对齐；右边多留的小形象位置算在里面 */
+    box-sizing: border-box;
+    max-width: var(--content-width);
+    margin: 0 auto;
+    padding: var(--band-pad-y) calc(var(--mascot-right) + var(--mascot-width) + var(--space-3)) var(--band-pad-y) var(--gutter);
+  }
+
+  .band-inner > :global(.mascot) {
+    position: absolute;
+    right: var(--mascot-right);
+    bottom: 0;
+  }
+
+  @media (max-width: 719px) {
+    .band-inner {
+      --mascot-right: var(--gutter);
+    }
+  }
+
+  /* 色带里的眉题：14px --accent、加宽字距，一行（design v2.2 W5 第 7 条） */
+  .eyebrow {
+    margin: 0 0 var(--space-2);
+    color: var(--accent);
+    font-size: var(--fs-meta);
+    line-height: var(--lh-meta);
+    font-weight: var(--fw-heading);
+    letter-spacing: var(--tracking-meta);
+  }
+
+  .step-title {
+    margin: 0;
+    font-size: var(--fs-title);
+    line-height: var(--lh-title);
+    font-weight: var(--fw-heading);
+  }
+
+  /* 正文在色带下面：和步骤页正文一样的边距 */
+  .page-body {
+    box-sizing: border-box;
+    max-width: var(--content-width);
+    margin: 0 auto;
+    padding: var(--space-6) var(--gutter) var(--space-7);
+  }
+
+  /* 桌面：正文区在侧边栏右边居中（base.css 的页面网格）；这里只保证不会被撑宽 */
+  .page-view {
+    min-width: 0;
+  }
+
   .reference-return {
     margin: 0 0 var(--space-4);
     font-size: var(--fs-meta);

@@ -1,0 +1,25 @@
+---
+// Claude Code 的官方像素小形象（design v2.2 D6、D7）：纯装饰、不可点、没有动画，对读屏隐藏。
+// 是唯一引用 src/assets/mascot/ 的地方。SVG 由 scripts/trace-mascot.py 按参考图逐格取样生成（24×16 格）。
+// 参考图的 1 个大像素是 2 格；大像素画成 3px（手机 2px），即每格 1.5px（手机 1px），整体 36×24px（手机 24×16px），
+// 尺寸令牌是 --mascot-width / --mascot-height。身体只用 --mascot，眼睛用 --mascot-eye。
+// 位置由使用方决定：步骤页、选择页、旁支页、附录页贴在页头色带的右下角，首页在 logo 右下方，找不到页在 404 右边。
+import mascot from '../assets/mascot/mascot.svg?raw';
+
+const svg = mascot
+  .replace('<!--', '<!--\n  由 Mascot.astro 引用。')
+  .replace('<svg ', '<svg class="mascot" aria-hidden="true" focusable="false" ');
+---
+
+<Fragment set:html={svg} />
+
+<style>
+  /* 宽高只由令牌给（tokens.css 按断点改），SVG 本身不写 width/height，不会被容器裁掉或拉伸 */
+  :global(svg.mascot) {
+    display: block;
+    flex: none;
+    width: var(--mascot-width);
+    height: var(--mascot-height);
+    overflow: visible;
+  }
+</style>

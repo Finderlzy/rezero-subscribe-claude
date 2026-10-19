@@ -5,9 +5,9 @@ import { withBase } from '../lib/with-base';
  * 参考页（常见问题、IP 质量实测合集、各篇实测）的页面脚本（design §4.6，FR-20）。
  *
  * 从步骤链接进来（`?from=<page-id>`）时，填好标题上方和正文末尾的“← 返回刚才的步骤：<标题>”并显示出来
- * （构建时没有地址，隐藏着），同时隐藏直接打开时用的“打开目录”。
- * 实测页的页脚还有“回到：IP 质量实测合集”；其他参考页的页脚只剩“打开目录”，它隐藏后整行一起隐藏，不留空白。
- * 没有 JS 或参数无效时什么都不改：页面保持构建时的样子，只有“打开目录”。
+ * （构建时没有地址，隐藏着）。直接打开时这两处不显示；目录由常驻侧边栏或页眉的“目录”提供
+ * （v2.2 W4c 删掉了“打开目录”实心按钮）。
+ * 没有 JS 或参数无效时什么都不改。
  * 脚本跑完给 `<main>` 加 `data-reference-ready`，e2e 据此确认“没有返回链接”不是因为脚本还没跑。
  */
 export function initReferenceReturn(doc: Document): void {
@@ -28,9 +28,7 @@ function showReturn(doc: Document, target: ReferenceReturn): void {
     link.textContent = `← 返回刚才的步骤：${target.title}`;
     block.hidden = false;
   }
-  for (const toc of doc.querySelectorAll<HTMLElement>('[data-reference-toc]')) {
-    toc.hidden = true;
-    const actions = toc.parentElement;
-    if (actions && [...actions.children].every((child) => (child as HTMLElement).hidden)) actions.hidden = true;
-  }
+  // 页脚里只剩“回到：…”时整行显示；没有“回到…”的页面（常见问题首页、实测合集首页）整行不显示，不留空白
+  const actions = doc.querySelector<HTMLElement>('.page-actions');
+  if (actions && [...actions.children].every((child) => (child as HTMLElement).hidden)) actions.hidden = true;
 }

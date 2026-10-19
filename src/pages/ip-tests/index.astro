@@ -3,12 +3,13 @@ import { render } from 'astro:content';
 import ReferenceLayout from '../../layouts/ReferenceLayout.astro';
 import { loadSite } from '../../lib/site';
 
-/** IP 质量实测合集：/ip-tests/（FR-20）。 */
+/** IP 质量实测合集：/ip-tests/（FR-20）。眉题“附录 · IP 质量实测合集”，页脚回附录。 */
 const site = await loadSite();
 const collection = site.references.get('ip-tests')!;
+const appendix = site.route.data.pages.appendix;
 const { Content } = await render(collection.entry);
 ---
 
-<ReferenceLayout title={collection.title}>
+<ReferenceLayout title={collection.title} eyebrow={`附录 · ${collection.title}`} back={appendix && { href: '/appendix/', title: appendix.title }}>
   <Content />
 </ReferenceLayout>

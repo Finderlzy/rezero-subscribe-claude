@@ -40,6 +40,7 @@ describe.skipIf(!hasFonts)('build-logo.mjs（需要 .cache/fonts/ 里的字体�
       'src/assets/numerals/chapter-01.svg',
       'src/assets/numerals/chapter-02.svg',
       'src/assets/numerals/chapter-03.svg',
+      'src/assets/numerals/chapter-04.svg',
       'src/assets/numerals/metrics.json',
       'src/assets/numerals/symbols.svg',
     ]);

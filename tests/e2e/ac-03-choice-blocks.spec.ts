@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { chooseOption, expectScriptRan, optionBlock, stepNav } from './route-helpers';
 
 // AC-03（FR-12、FR-13）和选择页的选项块（design §4.2）：每个选项是一整块可点区域，点空白处进入它的第一步并记住选择；
-// 回到选择页时该块标“当前选择”和 aria-current，“下一步”指向所选选项的第一步。
+// 回到选择页时该块标“已选”和 aria-current，“下一步”指向所选选项的第一步（v2.2 W4a：选项是编号行，不是大框）。
 
 test('AC-03：选方案三 → 进入方案三；下一步到“导入代理软件”；点“上一步” → 回到方案三', async ({ page }) => {
   await page.goto('./choose-plan/');
@@ -19,11 +19,12 @@ test('AC-03：选方案三 → 进入方案三；下一步到“导入代理软�
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('方案三：直接买住宅节点');
 });
 
-test('回到选择页：所选的块标“当前选择”和 aria-current，其他块不标；“下一步”出现', async ({ page }) => {
+test('回到选择页：所选的块标“已选”和 aria-current，其他块不标；“下一步”出现', async ({ page }) => {
   await page.goto('./choose-plan/');
   await expectScriptRan(page);
-  await expect(page.getByRole('main').getByText('当前选择')).toHaveCount(0);
+  await expect(page.getByRole('main').getByText('已选')).toHaveCount(0);
   await expect(page.locator('.option-block[aria-current]')).toHaveCount(0);
+  await expect(page.locator('.option-row[data-selected]')).toHaveCount(0);
 
   await chooseOption(page, '方案二');
   await expect(page).toHaveURL(/\/plan2-residential-server\/$/);
@@ -32,9 +33,11 @@ test('回到选择页：所选的块标“当前选择”和 aria-current，其�
 
   const chosen = optionBlock(page, '方案二');
   await expect(chosen).toHaveAttribute('aria-current', 'true');
-  await expect(chosen.getByText('当前选择')).toBeVisible();
+  await expect(chosen.getByText('已选')).toBeVisible();
+  // 编号圆圈和块在同一行，整行标 data-selected（可见的那一版正文里只有一个）
+  await expect(page.locator('.option-row[data-selected]').filter({ visible: true })).toHaveCount(1);
   await expect(page.locator('.prose').filter({ visible: true }).locator('.option-block[aria-current]')).toHaveCount(1);
-  await expect(page.getByRole('main').getByText('当前选择').filter({ visible: true })).toHaveCount(1);
+  await expect(page.getByRole('main').getByText('已选').filter({ visible: true })).toHaveCount(1);
   await expect(stepNav(page).getByRole('link', { name: /下一步.*方案二：住宅 IP 服务器/ })).toHaveAttribute('href', /\/plan2-residential-server\/$/);
 
   // 切到原理视图，原理版正文里的同一块也标着
@@ -45,7 +48,7 @@ test('回到选择页：所选的块标“当前选择”和 aria-current，其�
 test('点块里的其他站内链接，同样先记下这个选项再跳转', async ({ page }) => {
   await page.goto('./choose-plan/');
   await expectScriptRan(page);
-  await optionBlock(page, '方案一').getByRole('link', { name: '四、购买 ISP 代理', exact: true }).click();
+  await optionBlock(page, '方案一').getByRole('link', { name: '三、购买 ISP 代理', exact: true }).click();
   await expect(page).toHaveURL(/\/plan1-buy-isp\/$/);
 
   await page.goto('./choose-plan/');
@@ -83,6 +86,24 @@ test('点选项块时先写下选择：跳转被取消也已经记下', async ({
   await expect(optionBlock(page, '方案二')).toHaveAttribute('aria-current', 'true');
   // 同一页里导航立即按新选择重算
   await expect(stepNav(page).getByRole('link', { name: /下一步.*方案二：住宅 IP 服务器/ })).toBeVisible();
+});
+
+// v2.2 W4a：每个选项前面有编号圆圈（按页面上显示的顺序 1、2），块内最后是箭头；圆圈和箭头不读给读屏
+test('选项是编号行：圆圈 1、2 在块前面，箭头在块的最后，都不进无障碍树', async ({ page }) => {
+  await page.goto('./choose-phone/');
+  await expectScriptRan(page);
+  const prose = page.locator('.prose').filter({ visible: true });
+  const numbers = await prose.locator('.option-no').evaluateAll((els) => els.map((el) => ({ text: el.textContent, hidden: el.getAttribute('aria-hidden') })));
+  expect(numbers).toEqual([
+    { text: '1', hidden: 'true' },
+    { text: '2', hidden: 'true' },
+  ]);
+  const rows = prose.locator('.option-row');
+  await expect(rows).toHaveCount(2);
+  for (const row of await rows.all()) {
+    expect(await row.evaluate((el) => el.lastElementChild?.className)).toBe('option-block');
+    expect(await row.locator('.option-block > :last-child').evaluate((el) => el.className)).toBe('option-go');
+  }
 });
 
 test('两个选项共用的结尾（“两条路走完，都接着注册 Gmail”）不在任何选项块里', async ({ page }) => {

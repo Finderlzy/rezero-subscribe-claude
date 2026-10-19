@@ -67,14 +67,16 @@ test.describe('代码块复制', () => {
   test('复制按钮的可点区域至少 44×44px（design §5）', async ({ page }) => {
     await page.goto('./plan1-make-node/');
     const box = (await page.locator('.code-copy').filter({ visible: true }).first().boundingBox())!;
+    // v2.2 W4c：看得见的按钮是 28px 高的幽灵按钮，::after 上下各扩 8px，可点区域仍是 44px 高
     expect(box.width).toBeGreaterThanOrEqual(44);
-    expect(box.height).toBeGreaterThanOrEqual(44);
-    // 按钮不能被代码块压住：点在按钮中心命中的应该是按钮自己（B3 的层叠疑问）。
-    const hit = await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.closest('.code-copy') !== null, [
-      box.x + box.width / 2,
-      box.y + box.height / 2,
-    ]);
-    expect(hit).toBe(true);
+    expect(box.height).toBeGreaterThanOrEqual(28);
+    // 按钮不能被代码块压住：点在按钮中心，以及按钮上下沿外 7px（扩出来的可点区域里）命中的都应该是按钮自己（B3 的层叠疑问）。
+    const hits = await page.evaluate(
+      ([x, top, bottom]) => [top! - 7, (top! + bottom!) / 2, bottom! + 7].map((y) => document.elementFromPoint(x!, y)?.closest('.code-copy') !== null),
+      [box.x + box.width / 2, box.y, box.y + box.height],
+    );
+    expect(hits).toEqual([true, true, true]);
+    expect(box.height + 16).toBeGreaterThanOrEqual(44);
   });
 
   test('复制按钮不随长行横向滚动移出视野', async ({ page }) => {
@@ -237,8 +239,8 @@ test.describe('截图看大图', () => {
   });
 });
 
-// 截图图版（design v2.1 §4.7、D4）：统一边框，编号“图 02-1”（本页步骤号-序号）；桌面在页边栏、和截图顶边对齐，
-// 和步骤编号在同一条竖线上；平板和手机写在截图下方。参考页只用序号“图 1”（常见问题没有截图，用实测页）。
+// 截图图版（design §4.7）：统一边框，编号“图 02-1”（本页步骤号-序号）；三种宽度都写在截图下方
+// （v2.2 去掉了桌面页边栏）。参考页只用序号“图 1”（常见问题没有截图，用实测页）。
 test.describe('截图图版', () => {
   /** 当前可见正文里第 n 个图版的编号文字和位置 */
   async function plate(page: import('@playwright/test').Page, n = 0) {
@@ -255,36 +257,28 @@ test.describe('截图图版', () => {
         caption: rect(el.querySelector('.plate-no')),
         img: rect(img),
         border: getComputedStyle(img).borderTopWidth,
-        mark: document.querySelector('[data-route-mark] .step-no svg') && rect(document.querySelector('[data-route-mark] .step-no svg')),
-        stepNo: document.querySelector<HTMLElement>('[data-route-mark] [data-step-no]')?.dataset.stepNo ?? null,
+        stepNo: /第 (\d+) 步，共 \d+ 步/.exec(document.querySelector('[data-route-eyebrow]')?.textContent ?? '')?.[1] ?? null,
       };
     });
   }
 
-  /** 步骤页的图版：编号是“步骤号-序号”，桌面在页边栏和截图顶边齐平，平板和手机在截图下方 */
+  /** 步骤页的图版：编号是“步骤号-序号”，写在截图下方 */
   async function expectStepPlates(page: import('@playwright/test').Page) {
     // clean-up 的截图在列表项里（有缩进），iphone-apple-id 的在正文里（打开分支页会记下选项，能数清第几步）
     for (const path of ['./clean-up/', './iphone-apple-id/']) {
       await page.goto(path);
       await expectScriptRan(page);
       const box = await plate(page);
-      expect(box.stepNo, path).toMatch(/^\d\d$/);
-      expect(box.text, path).toBe(`图 ${box.stepNo}-1`);
+      expect(box.stepNo, path).toMatch(/^\d+$/);
+      expect(box.text, path).toBe(`图 ${box.stepNo!.padStart(2, '0')}-1`);
       expect(box.border, path).toBe('1px');
-      if ((page.viewportSize()?.width ?? 0) >= 1100) {
-        expect(box.caption.right, path).toBeLessThan(box.img.left);
-        expect(Math.abs(box.caption.top - box.img.top), path).toBeLessThanOrEqual(2);
-        // 和步骤编号在同一条竖线上：都右对齐到页边栏右缘
-        expect(Math.abs(box.caption.right - box.mark!.right), path).toBeLessThanOrEqual(2);
-      } else {
-        expect(box.caption.top, path).toBeGreaterThanOrEqual(box.img.bottom);
-        expect(box.caption.left, path).toBeCloseTo(box.img.left, 0);
-      }
+      // 三种宽度的编号都在截图下方（v2.2 去掉了桌面页边栏，见下一项工作 W3 的侧边栏）
+      expect(box.caption.top, path).toBeGreaterThanOrEqual(box.img.bottom);
+      expect(box.caption.left, path).toBeCloseTo(box.img.left, 0);
     }
   }
 
-  // 平板档（720–1099px，tablet-768 项目）同手机：没有页边栏，编号在截图下方
-  test('步骤页：编号是“步骤号-序号”，桌面在页边栏和截图顶边齐平，平板和手机在截图下方', async ({ page }) => {
+  test('步骤页：编号是“步骤号-序号”，写在截图下方', async ({ page }) => {
     await expectStepPlates(page);
   });
 
@@ -294,24 +288,25 @@ test.describe('截图图版', () => {
       await page.goto('./clean-up/');
       const caption = page.locator('[data-body="operation"] figure.plate .plate-no').first();
       await expect(caption).toBeVisible();
-      const no = await page.locator('[data-route-mark] [data-step-no]').getAttribute('data-step-no');
-      expect(no).toMatch(/^\d\d$/);
-      await expect(caption).toHaveText(`图 ${no}-1`);
+      // 构建时按操作视图写好的眉题里就有步骤号（补足两位进“图 02-1”）
+      const no = /第 (\d+) 步，共 \d+ 步/.exec((await page.locator('[data-route-eyebrow]').textContent()) ?? '')?.[1];
+      expect(no).toMatch(/^\d+$/);
+      await expect(caption).toHaveText(`图 ${no!.padStart(2, '0')}-1`);
     });
   });
 
   test('第二张截图是“-2”', async ({ page }) => {
     await page.goto('./iphone-apple-id/');
     await expectScriptRan(page);
-    expect((await plate(page, 1)).text).toBe(`图 ${(await plate(page)).stepNo}-2`);
+    expect((await plate(page, 1)).text).toBe(`图 ${(await plate(page)).stepNo!.padStart(2, '0')}-2`);
   });
 
-  test('数不清第几步（编号是短横）时只用序号（架构 §11.4 W-4）', async ({ page }) => {
+  test('数不清第几步时只用序号（架构 §11.4 W-4）', async ({ page }) => {
     // check-ip 前面有没选的分叉点
     await page.goto('./check-ip/');
     await expectScriptRan(page);
     const first = await plate(page);
-    expect(first.stepNo).toBe('–');
+    expect(first.stepNo).toBeNull();
     expect(first.text).toBe('图 1');
     expect((await plate(page, 1)).text).toBe('图 2');
   });
@@ -323,7 +318,7 @@ test.describe('截图图版', () => {
     await page.getByRole('group', { name: '视图' }).getByRole('button', { name: '原理' }).click();
     await expect.poll(async () => (await plate(page)).stepNo).not.toBe(operation.stepNo);
     const principle = await plate(page);
-    expect(principle.text).toBe(`图 ${principle.stepNo}-1`);
+    expect(principle.text).toBe(`图 ${principle.stepNo!.padStart(2, '0')}-1`);
   });
 
   test('参考页只用序号“图 1”', async ({ page }) => {

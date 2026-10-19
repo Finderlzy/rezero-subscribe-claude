@@ -1,4 +1,4 @@
-import { eyebrowTotal, figurePrefix, progressText, stepMark, stepMarkHtml, stopTitle } from '../lib/nav-text';
+import { eyebrowText, figurePrefix, progressText, stopTitle } from '../lib/nav-text';
 import type { ReaderState, ReaderStore } from '../lib/reader-state/reader-store';
 import { pathOf, routeMapFromData } from '../lib/route/route-map';
 import type { ForkId, PageId, RouteData, RouteView, Stop, ViewMode } from '../lib/route/types';
@@ -40,7 +40,7 @@ export function forkOfChoosePage(data: RouteData, at: PageId): ForkId | null {
 /**
  * 页面里的挂载点（由 PageLayout、StepNav 写出）：
  * - `[data-route-at]`：当前页的标识（RouteData 由调用方用 readRouteData 读出后传入）；
- * - 进度（renderProgress）：`[data-route-mark]` 是页边栏或 h1 前的编号，`[data-route-total]` 是眉题里平板和手机才显示的步数，
+ * - 进度（renderProgress）：`[data-route-eyebrow]` 是色带里看得见的眉题（“第 1 章 · … · 第 2 步，共 10 步”），
  *   `[data-route-progress]` 是眉题的读屏文字，`[data-figure-step]` 是正文里截图编号的步骤号；
  * - `[data-route-nav="prev|return|next|skip"]`：导航链接，其中的 `[data-route-title]` 是目标标题；
  *   跳过链接只改地址（文案是页面自己的），外层是 `[data-route-skip]`。没有目标时链接隐藏：
@@ -95,7 +95,7 @@ function recordChoice(doc: Document, fork: ForkId, store: ReaderStore): void {
   });
 }
 
-/** 本机保存的选项块标“当前选择”和 aria-current；没选时都不标，也不标默认（FR-12） */
+/** 本机保存的选项行：所在的一行加 data-selected，块标 aria-current 和“已选”；没选时都不标，也不标默认（FR-12） */
 function markChoice(doc: Document, chosen: string | undefined): void {
   for (const block of doc.querySelectorAll<HTMLElement>('.option-block[data-option]')) {
     const current = block.dataset.option === chosen;
@@ -103,45 +103,48 @@ function markChoice(doc: Document, chosen: string | undefined): void {
     if (current && !label) {
       label = doc.createElement('span');
       label.className = 'option-current';
-      label.textContent = '当前选择';
+      label.textContent = '已选';
       (block.querySelector('.option-title') ?? block).append(' ', label);
     }
     if (label) label.hidden = !current;
     if (current) block.setAttribute('aria-current', 'true');
     else block.removeAttribute('aria-current');
+    // 编号圆圈也在这一行里：整行一起标（v2.2 W4a）
+    block.closest('.option-row')?.toggleAttribute('data-selected', current);
   }
 }
 
-/** 进度的三个挂载点；只用到这几个属性，测试可以传普通对象 */
+/** 进度挂载点；只用到这几个属性，测试可以传普通对象 */
 export interface ProgressSlots {
-  mark?: { innerHTML: string } | null;
-  total?: { textContent: string | null } | null;
+  /** 色带里看得见的眉题 */
+  eyebrow?: { textContent: string | null } | null;
+  /** 眉题的读屏文字 */
   text?: { textContent: string | null } | null;
   /** 两版正文里每个截图编号的步骤号（rehype-figures 的 `[data-figure-step]`） */
   figures?: Iterable<{ textContent: string | null }>;
+  /** 这一页是不是本章第一页（色带里有副标题和章名，眉题省掉章的部分） */
+  chapterStart: boolean;
 }
 
 /**
- * 改写进度（FR-10，design §4.1）：编号是本章第几步，按当前路线和视图计数，切换视图、改选分叉点后跟着变；
+ * 改写进度（FR-10，design §4.1、§4.5）：眉题写清章和第几步，按当前路线和视图计数，切换视图、改选分叉点后跟着变；
  * 截图编号“图 02-1”的步骤号跟着同一个数（design §4.7），两版正文都写当前视图的号。
  * 和 PageLayout 构建时写出的是同一组函数，两边一致。
  */
 export function renderProgress(slots: ProgressSlots, view: RouteView): void {
   const { progress, current } = view;
-  const mark = stepMark(progress, current);
-  if (slots.mark) slots.mark.innerHTML = stepMarkHtml(mark);
-  for (const figure of slots.figures ?? []) figure.textContent = figurePrefix(mark);
-  if (slots.total) slots.total.textContent = eyebrowTotal(progress, current);
+  if (slots.eyebrow) slots.eyebrow.textContent = eyebrowText(progress, current, slots.chapterStart);
+  for (const figure of slots.figures ?? []) figure.textContent = figurePrefix(progress, current);
   if (slots.text) slots.text.textContent = progressText(progress, current);
 }
 
 function renderNav(doc: Document, view: RouteView): void {
   renderProgress(
     {
-      mark: doc.querySelector('[data-route-mark]'),
-      total: doc.querySelector('[data-route-total]'),
+      eyebrow: doc.querySelector('[data-route-eyebrow]'),
       text: doc.querySelector('[data-route-progress]'),
       figures: doc.querySelectorAll('[data-figure-step]'),
+      chapterStart: doc.querySelector<HTMLElement>('[data-route-at]')?.dataset.chapterStart !== undefined,
     },
     view,
   );
@@ -164,5 +167,7 @@ function renderNav(doc: Document, view: RouteView): void {
     link.href = withBase(pathOf(stop));
     const title = link.querySelector('[data-route-title]');
     if (title) title.textContent = stopTitle(stop, dir);
+    // 上一步 / 回到 的读屏名字写在 aria-label 里（手机吸底栏只露出箭头），目标变了要跟着改，不然读出的是构建时的标题
+    if (nav === 'prev' || nav === 'return') link.setAttribute('aria-label', `${nav === 'prev' ? '上一步' : '回到'}：${stopTitle(stop, dir)}`);
   }
 }

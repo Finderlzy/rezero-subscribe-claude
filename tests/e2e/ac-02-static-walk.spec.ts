@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-// AC-02 的静态部分（Issue #25 的验收）：不运行 JS，从首页点“开始”，在选择页选方案三、iPhone，一路点到“后记”再回到首页，
+// AC-02 的静态部分（Issue #25 的验收）：不运行 JS，从首页点“开始”，在选择页选方案三、iPhone，一路点到“后记”“附录”再回到首页，
 // 中途没有断链。没有 JS 时导航是“操作视图 + 未选”：选择页没有“下一步”，要点正文里的链接进入分支；
 // “订阅”的下一步指向“选择手机系统”（再点会回到手机的第一段），所以那里点正文里的订阅分支链接（架构 §3 M3 的降级体验）。
 // 每次换页都检查新页面是 200、标题对得上，并记下走过的页面。
@@ -24,7 +24,7 @@ async function bodyLink(page: Page, name: string, seen: string[]): Promise<void>
   seen.push(new URL(page.url()).pathname.split('/').at(-2)!);
 }
 
-test('关掉 JS：首页 → 方案三 → iPhone → 后记 → 首页，没有断链', async ({ page }) => {
+test('关掉 JS：首页 → 方案三 → iPhone → 后记 → 附录 → 首页，没有断链', async ({ page }) => {
   const seen: string[] = [];
   const responses: string[] = [];
   page.on('response', (r) => {
@@ -47,8 +47,9 @@ test('关掉 JS：首页 → 方案三 → iPhone → 后记 → 首页，没有
   await bodyLink(page, 'iPhone：把 App Store 改到奥地利', seen);
   await nextUntil(page, 'subscribe', seen);
   await bodyLink(page, 'iPhone：注册美区 Apple ID', seen);
-  await nextUntil(page, 'afterword', seen);
+  await nextUntil(page, 'appendix', seen);
 
+  // 附录是路线的最后一页（v2.2 D11、FR-11）：下一步是“回到首页”
   await page.getByRole('navigation', { name: '上一步和下一步' }).getByRole('link', { name: /下一步.*回到首页/ }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveAccessibleName('Re:从零开始订阅 claude');
 
@@ -59,7 +60,7 @@ test('关掉 JS：首页 → 方案三 → iPhone → 后记 → 首页，没有
     'iphone-app-store-austria', 'iphone-proxy', 'iphone-gmail',
     'register-gmail', 'chrome-sign-in', 'use-two-days', 'google-region', 'register-claude', 'subscribe',
     'iphone-apple-id', 'iphone-app-store-login', 'iphone-gift-card', 'iphone-subscribe', 'iphone-purchase-failed',
-    'after-subscribe', 'thanks', 'afterword',
+    'after-subscribe', 'thanks', 'afterword', 'appendix',
   ]);
 });
 
@@ -72,10 +73,12 @@ test('关掉 JS：旁支页“被封了：申诉解封”的页脚是“回到�
   await expect(page.locator('[data-route-progress]')).toHaveText('注册和订阅 · 旁支');
 });
 
-test('关掉 JS：前言的上一步写“首页”，后记的下一步写“回到首页”（FR-11、design §4.1）', async ({ page }) => {
+test('关掉 JS：前言的上一步写“首页”，后记的下一步是“附录”，附录的下一步写“回到首页”（FR-11、design §4.1）', async ({ page }) => {
   const nav = page.getByRole('navigation', { name: '上一步和下一步' });
   await page.goto('./preface/');
   await expect(nav.locator('a[rel="prev"] [data-route-title]')).toHaveText('首页');
   await page.goto('./afterword/');
+  await expect(nav.locator('a[rel="next"] [data-route-title]')).toHaveText('附录');
+  await page.goto('./appendix/');
   await expect(nav.locator('a[rel="next"] [data-route-title]')).toHaveText('回到首页');
 });

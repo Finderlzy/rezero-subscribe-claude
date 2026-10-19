@@ -1,4 +1,5 @@
 ---
+import Mascot from '../components/Mascot.astro';
 import Numeral from '../components/Numeral.astro';
 import SiteHeader from '../components/SiteHeader.astro';
 import TocNav from '../components/TocNav.astro';
@@ -8,8 +9,9 @@ import { withBase } from '../lib/with-base';
 import '../styles/toc.css';
 
 /**
- * 找不到页（design §4.6，AC-18）：大号 `404`（固定字形，Numeral）、“找不到这一页”、一句说明，“回到首页”（主）和“打开目录”（次），
- * 目录直接写在页面上，“打开目录”跳到它，不靠 JS。
+ * 找不到页（design §4.6，AC-18）：大号 `404`（固定字形，Numeral）、小形象（design v2.2 D6，在 404 的右下角，脚底和数字底线齐平）、
+ * “找不到这一页”、一句说明，“回到首页”（主）和“打开目录”（次），目录直接写在页面上，“打开目录”跳到它，不靠 JS。
+ * 不显示侧边栏：这一页本身就是目录（v2.2 D8）。
  */
 const site = await loadSite();
 ---
@@ -17,7 +19,10 @@ const site = await loadSite();
 <BaseLayout title="找不到这一页">
   <SiteHeader />
   <main id="main" class="page">
-    <p class="not-found-no"><Numeral text="404" label="404" /></p>
+    <div class="not-found-head">
+      <p class="not-found-no"><Numeral text="404" label="404" /></p>
+      <Mascot />
+    </div>
     <h1 class="page-title">找不到这一页</h1>
     <p>这个地址没有对应的页面，可能是链接写错了。可以回到首页，或者从下面的目录找。</p>
     <p class="page-actions">
@@ -32,11 +37,23 @@ const site = await loadSite();
 </BaseLayout>
 
 <style>
-  .not-found-no {
+  .not-found-head {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--space-4);
     margin: 0 0 var(--space-5);
+  }
+
+  /* 数字字形的高度是 1em，但下沿留了一点：小形象再往下贴一点，脚底和数字的底线齐平 */
+  .not-found-no {
+    margin: 0;
     color: var(--text);
     font-size: var(--fs-display);
     line-height: 1;
+  }
+
+  .not-found-head :global(.mascot) {
+    margin-bottom: -0.06em;
   }
 
   .not-found-toc {
@@ -49,6 +66,6 @@ const site = await loadSite();
     margin: 0 0 var(--space-3);
     font-size: var(--fs-h3);
     line-height: var(--lh-heading);
-    font-weight: 700;
+    font-weight: var(--fw-heading);
   }
 </style>

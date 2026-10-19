@@ -36,36 +36,44 @@ function contrast(a: string, b: string): number {
   return (hi! + 0.05) / (lo! + 0.05);
 }
 
-/** [前景令牌, 背景令牌, 最低对比度, 用在哪里] */
+/**
+ * [前景令牌, 背景令牌, 最低对比度, 用在哪里]（design §3.1，v2.2 的白底令牌）。
+ * 橙色（--mascot）只画小形象、不上文字，这里只核对它和页头色带底色的区分度。
+ */
 const PAIRS: [string, string, number, string][] = [
   ['--text', '--bg', 4.5, '正文'],
-  ['--text', '--surface', 4.5, '代码块、面板里的文字'],
+  ['--text', '--surface', 4.5, '抽屉、浮层里的文字'],
   ['--text-muted', '--bg', 4.5, '次要文字、弱化的其他路线'],
-  ['--text-muted', '--surface', 4.5, '面板里的次要文字'],
+  ['--text-muted', '--surface', 4.5, '浮层里的次要文字'],
+  ['--text', '--surface-muted', 4.5, '行悬停、代码块里的文字'],
+  ['--text', '--accent-soft', 4.5, '页头色带里的标题'],
+  ['--text-muted', '--accent-soft', 4.5, '页头色带里的次要文字和一句话'],
+  ['--text-faint', '--bg', 4.5, '白底上的元信息（页脚、截图编号、目录章标题）'],
+  ['--text-faint', '--surface-muted', 4.5, '代码块上的复制按钮'],
   ['--accent', '--bg', 4.5, '链接、文字按钮'],
-  ['--accent', '--surface', 4.5, '面板里的链接'],
-  ['--accent-contrast', '--accent', 4.5, '主按钮上的文字'],
-  ['--bg', '--text', 4.5, '视图切换按下的一段（design §4.3，D8）'],
-  ['--text', '--accent-soft', 4.5, '目录当前项的文字'],
-  ['--text-muted', '--accent-soft', 4.5, '目录当前项里的标签'],
-  ['--accent', '--accent-soft', 4.5, '“当前选择”标签'],
+  ['--accent', '--surface', 4.5, '浮层里的链接'],
+  ['--accent', '--accent-soft', 4.5, '页头色带上的眉题、“已选”标签'],
+  ['--primary-fg', '--primary-bg', 4.5, '主按钮上的文字'],
+  ['--primary-fg', '--primary-bg-hover', 4.5, '主按钮悬停时的文字'],
+  ['--todo-rule', '--todo-bg', 4.5, '“作者待补”标签（13px）'],
   ['--text', '--todo-bg', 4.5, '作者待补提示正文'],
   ['--text-muted', '--todo-bg', 4.5, '提示里的次要文字'],
   ['--accent', '--todo-bg', 4.5, '提示里的链接'],
+  ['--caution-rule', '--caution-bg', 4.5, '“注意”标签（13px）'],
   ['--text', '--caution-bg', 4.5, '风险提示正文'],
   ['--text-muted', '--caution-bg', 4.5, '风险提示里的次要文字'],
   ['--accent', '--caution-bg', 4.5, '风险提示里的链接'],
   ['--video-fg', '--video-bg', 4.5, '视频门面上的文字'],
   ['--control-border', '--bg', 3, '控件边界'],
-  ['--control-border', '--surface', 3, '控件边界（面板上）'],
+  ['--control-border', '--surface', 3, '控件边界（浮层上）'],
+  ['--control-border', '--accent-soft', 3, '编号圆圈'],
   ['--focus', '--bg', 3, '键盘焦点环'],
-  ['--focus', '--surface', 3, '键盘焦点环（面板上）'],
-  ['--focus', '--accent-soft', 3, '键盘焦点环（目录当前项）'],
+  ['--focus', '--surface', 3, '键盘焦点环（浮层上）'],
+  ['--focus', '--accent-soft', 3, '键盘焦点环（页头色带、已选的选项行）'],
+  ['--focus', '--surface-muted', 3, '键盘焦点环（代码块、视图切换）'],
   ['--focus', '--todo-bg', 3, '键盘焦点环（提示里）'],
   ['--focus', '--caution-bg', 3, '键盘焦点环（风险提示里）'],
-  ['--todo-rule', '--todo-bg', 3, '提示竖线'],
-  ['--caution-rule', '--caution-bg', 3, '风险提示竖线'],
-  ['--caution-rule', '--bg', 4.5, '桌面页边栏的“注意”'],
+  ['--mascot', '--accent-soft', 3, '小形象趴在页头色带下沿'],
 ];
 
 it('浅色、深色两块令牌都读到了', () => {
@@ -88,6 +96,14 @@ it('减少动态效果时，动效时长和位移令牌都归零', () => {
   for (const name of Object.keys(motion)) {
     expect(reduced, `${name} 没有在 reduced-motion 里归零`).toMatch(new RegExp(`${name}:\\s*0(ms|px)?\\s*;`));
   }
+});
+
+// design v2.2 §2（W1）：按钮、行、视图切换 8px，提示框和代码块 10px，截图 8px。
+it('圆角按 v2.2 的三种用途分开：控件 8px、面板 10px、图片 8px', () => {
+  const radii = Object.fromEntries(
+    [...block(':root {').matchAll(/(--radius-[\w-]+):\s*([^;]+);/g)].map(([, name, value]) => [name, value!.trim()]),
+  );
+  expect(radii).toEqual({ '--radius-control': '8px', '--radius-panel': '10px', '--radius-image': '8px' });
 });
 
 describe.each([

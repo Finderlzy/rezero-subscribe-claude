@@ -15,6 +15,10 @@
   position: relative;
 }
 
+/*
+ * 幽灵按钮（design §4.7，v2.2）：透明底、无边框，28px 高；悬停时 --border 底、--text 字色。
+ * 点得到的高度仍是 44px（上下用伪元素补），只让看得见的面变小。
+ */
 .code-copy {
   position: absolute;
   top: var(--space-2);
@@ -23,21 +27,29 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-1);
-  /* 可点区域在手机上 ≥ 44×44px（design §5）。桌面也照此，免得两种尺寸下热区不一致。 */
   min-width: 44px;
-  min-height: 44px;
+  height: 28px;
   padding: 0 var(--space-2);
-  border: var(--border-width) solid var(--control-border);
+  border: 0;
   border-radius: var(--radius-control);
-  background: var(--surface);
-  color: var(--text-muted);
+  background: transparent;
+  /* 复制按钮下面压着 --surface-muted 的代码块：--text-muted 对 --surface-muted 只有 3.5:1，用 --text-faint
+     对 --surface-muted 才达到 4.5:1（tokens.test.ts 里有这条组合） */
+  color: var(--text-faint);
   font: inherit;
-  font-size: var(--fs-meta);
-  line-height: var(--lh-meta);
+  font-size: var(--fs-caption);
+  line-height: 1;
   cursor: pointer;
 }
 
+.code-copy::after {
+  content: '';
+  position: absolute;
+  inset: -8px 0;
+}
+
 .code-copy:hover {
+  background: var(--border);
   color: var(--text);
 }
 
@@ -50,7 +62,6 @@
 
 /* 复制成功：换成“已复制”和勾。颜色不是唯一的状态标识，文案和图标同时变（design §6）。 */
 .code-copy[data-state='copied'] {
-  border-color: var(--accent);
   color: var(--accent);
 }
 

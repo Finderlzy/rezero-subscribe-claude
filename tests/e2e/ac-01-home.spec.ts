@@ -7,9 +7,9 @@ const TAGLINE = '下面每一步，其实都在做同一件事：让每一项信
 const width = (page: Page) => page.viewportSize()?.width ?? 0;
 const isDesktop = (page: Page) => width(page) >= 1100;
 
-// AC-01（FR-18，design v2.1 §4.4）：在新浏览器打开首页 → 看到 logo、站名、四章目录和“从第 00 章开始”，没有“继续上次”；
+// AC-01（FR-18，design v2.1 §4.4）：在新浏览器打开首页 → 看到 logo、站名、五章目录和“从第 00 章开始”，没有“继续上次”；
 // 点“从第 00 章开始” → 进入“前言”。
-test('新浏览器打开首页：眉题、logo 和站名、一句话、小字信息行、“从第 00 章开始”、四章目录，没有“继续上次”', async ({ page }) => {
+test('新浏览器打开首页：眉题、logo 和站名、一句话、小字信息行、“从第 00 章开始”、五章目录，没有“继续上次”', async ({ page }) => {
   await page.goto('./');
 
   await expect(page.locator('.home-eyebrow')).toHaveText('一份照着做的说明书');
@@ -19,8 +19,8 @@ test('新浏览器打开首页：眉题、logo 和站名、一句话、小字信
   // design §4.4：英文副标题画在中文 logo 的中间一行里，页面上不再单独写一行文字
   await expect(heading.locator('svg')).toBeVisible();
   await expect(page.locator('.home-tagline')).toHaveText(TAGLINE);
-  // 章节数从路线图取，现在是 4 章
-  await expect(page.locator('.home-meta')).toHaveText('4 章 · 需要一台电脑和一部手机');
+  // 章节数从路线图取，现在是 5 章（含附录）
+  await expect(page.locator('.home-meta')).toHaveText('5 章 · 需要一台电脑和一部手机');
   await expect(page.getByRole('link', { name: START })).toBeVisible();
   await expect(page.getByRole('link', { name: '先看整体思路' })).toBeVisible();
   await expect(page.getByText('继续上次')).toHaveCount(0);
@@ -30,24 +30,25 @@ test('新浏览器打开首页：眉题、logo 和站名、一句话、小字信
   const toc = page.getByRole('navigation', { name: '全站目录' });
   // 章节号是固定字形（Numeral），读屏读“第 n 章”
   const chapterNos = toc.locator('.toc-chapter-no [role="img"]');
-  await expect(chapterNos).toHaveCount(4);
+  await expect(chapterNos).toHaveCount(5);
   expect(await chapterNos.evaluateAll((els) => els.map((el) => el.getAttribute('aria-label')))).toEqual([
     '第 0 章',
     '第 1 章',
     '第 2 章',
     '第 3 章',
+    '第 4 章',
   ]);
-  await expect(toc.locator('.toc-chapter-title')).toHaveText(['开始', '准备节点和住宅 IP', '注册和订阅', '结尾']);
+  await expect(toc.locator('.toc-chapter-title')).toHaveText(['开始', '准备节点和住宅 IP', '注册和订阅', '结尾', '附录']);
   // 结构同原理版目录页：分叉点下列各选项的页面，原理独有步骤标“原理”；首页没有视图，不弱化，也不标“其他路线”
   await expect(toc.locator('.toc-option-title')).toContainText(['方案一', '或：方案二', '或：方案三', 'iPhone', '或：安卓']);
   await expect(toc.getByRole('link', { name: /一、白嫖 ISP/ })).toBeVisible();
   await expect(toc.getByRole('link', { name: /小结：从服务器到代理软件/ })).toContainText('原理');
   await expect(toc.locator('[data-off-route]')).toHaveCount(0);
   await expect(toc.getByText('其他路线').filter({ visible: true })).toHaveCount(0);
-  // 参考页在末尾单列
-  const reference = toc.locator('.toc-reference');
-  await expect(reference).toContainText('卡住了再看');
-  await expect(reference.getByRole('link')).toHaveText(['常见问题', 'IP 质量实测合集']);
+  // 参考页列在附录一章里，附录页下面
+  const appendix = toc.locator('#chapter-appendix');
+  await expect(appendix.getByRole('link')).toHaveText(['附录', '常见问题', 'IP 质量实测合集']);
+  await expect(toc.getByText('卡住了再看')).toHaveCount(0);
 });
 
 test('点“从第 00 章开始”进入前言', async ({ page }) => {
@@ -68,19 +69,20 @@ test('点“先看整体思路”进入整体思路，一句话原样出现在�
   await expect(page.locator('main')).toContainText(TAGLINE);
 });
 
-test('章级索引：桌面四行，点“02”跳到下方目录的第 02 章；平板和手机没有', async ({ page }) => {
+test('章级索引：桌面五行，点“02”跳到下方目录的第 02 章；平板和手机没有', async ({ page }) => {
   await page.goto('./');
   const index = page.getByRole('navigation', { name: '章级索引' });
   if (!isDesktop(page)) {
     await expect(index).toBeHidden();
     return;
   }
-  await expect(index.locator('.home-index-title')).toHaveText(['开始', '准备节点和住宅 IP', '注册和订阅', '结尾']);
+  await expect(index.locator('.home-index-title')).toHaveText(['开始', '准备节点和住宅 IP', '注册和订阅', '结尾', '附录']);
   expect(await index.locator('[role="img"]').evaluateAll((els) => els.map((el) => el.getAttribute('aria-label')))).toEqual([
     '第 0 章',
     '第 1 章',
     '第 2 章',
     '第 3 章',
+    '第 4 章',
   ]);
 
   await index.getByRole('link', { name: /第 2 章/ }).click();
@@ -90,7 +92,7 @@ test('章级索引：桌面四行，点“02”跳到下方目录的第 02 章�
   await expect(chapter).toBeInViewport();
 });
 
-test('版式：桌面索引和主区顶部对齐；logo 手机满宽、更宽时不超过 560px；没有横向滚动', async ({ page }) => {
+test('版式：桌面索引和主区顶部对齐；logo 加右下方的小形象手机满宽、logo 更宽时不超过 560px；没有横向滚动', async ({ page }) => {
   await page.goto('./');
   const box = await page.evaluate(() => {
     const rect = (sel: string) => document.querySelector(sel)!.getBoundingClientRect().toJSON() as DOMRect;
@@ -98,6 +100,7 @@ test('版式：桌面索引和主区顶部对齐；logo 手机满宽、更宽时
       hero: rect('.home-hero'),
       index: rect('.home-index'),
       logo: rect('.home-title svg'),
+      mascot: rect('.home-logo .mascot'),
       main: rect('.home'),
       gutter: parseFloat(getComputedStyle(document.querySelector('.home')!).paddingLeft),
       scrollWidth: document.documentElement.scrollWidth,
@@ -111,20 +114,26 @@ test('版式：桌面索引和主区顶部对齐；logo 手机满宽、更宽时
     expect(box.index.left).toBeGreaterThan(box.hero.right);
   }
   if (width(page) < 720) {
-    // 手机满宽：logo 占满左右边距之间
-    expect(box.logo.width).toBeCloseTo(box.main.width - 2 * box.gutter, 0);
+    // 手机满宽：logo 和它右下方的小形象（v2.2 W2 第 6 条）一起占满左右边距之间，小形象在 logo 右边、底边对齐
+    expect(box.mascot.right).toBeCloseTo(box.main.right - box.gutter, 0);
+    expect(box.mascot.left).toBeGreaterThan(box.logo.right);
+    expect(box.mascot.bottom).toBeCloseTo(box.logo.bottom, 0);
   } else {
     expect(box.logo.width).toBeLessThanOrEqual(560.5);
   }
 });
 
-test('首屏只有主按钮和 logo 的“Re”是 --accent', async ({ page }) => {
+// v2.2 D2：紫色只用在链接、当前位置、眉题和“已选”上，不做大块底色；首屏唯一的实心块是黑色主按钮（--primary-bg）。
+// 所以首屏除 logo 的“Re”外，没有哪个元素的底色、边框或图形用 --accent（眉题、链接的文字可以是紫色）。
+test('首屏的主按钮是墨色，logo 的“Re”是 --accent，没有紫色的块', async ({ page }) => {
   await page.goto('./');
   const result = await page.evaluate(() => {
     const probe = document.createElement('div');
     probe.style.color = 'var(--accent)';
     document.body.append(probe);
     const accent = getComputedStyle(probe).color;
+    probe.style.color = 'var(--primary-bg)';
+    const primary = getComputedStyle(probe).color;
     probe.remove();
 
     const offenders: string[] = [];
@@ -135,24 +144,23 @@ test('首屏只有主按钮和 logo 的“Re”是 --accent', async ({ page }) =
       if (rect.width === 0 || rect.height === 0 || rect.bottom <= 0 || rect.top >= innerHeight) continue;
       const style = getComputedStyle(el);
       if (style.visibility === 'hidden' || style.display === 'none') continue;
-      if (el.closest('.home-start') || el.closest('.logo-re')) continue;
+      if (el.closest('.logo-re')) continue;
       const colors: string[] = [style.backgroundColor];
       for (const side of ['Top', 'Right', 'Bottom', 'Left'] as const) {
         if (parseFloat(style[`border${side}Width`]) > 0) colors.push(style[`border${side}Color`]);
       }
       if (el instanceof SVGElement) colors.push(style.fill, style.stroke);
-      // 文字颜色只看自己直接带文字的元素
-      else if ([...el.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && n.textContent!.trim() !== '')) colors.push(style.color);
       if (colors.includes(accent)) offenders.push(describe(el));
     }
     return {
       accent,
+      primary,
       offenders,
       start: getComputedStyle(document.querySelector('.home-start')!).backgroundColor,
       re: getComputedStyle(document.querySelector('.home-title .logo-re')!).fill,
     };
   });
-  expect(result.start).toBe(result.accent);
+  expect(result.start).toBe(result.primary);
   expect(result.re).toBe(result.accent);
   expect(result.offenders).toEqual([]);
 });

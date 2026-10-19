@@ -18,6 +18,6 @@ const collection = site.references.get('ip-tests')!;
 const { Content } = await render(report.entry);
 ---
 
-<ReferenceLayout title={report.title} back={{ href: '/ip-tests/', title: collection.title }}>
+<ReferenceLayout title={report.title} eyebrow={`附录 · ${collection.title}`} back={{ href: '/ip-tests/', title: collection.title }}>
   <Content />
 </ReferenceLayout>

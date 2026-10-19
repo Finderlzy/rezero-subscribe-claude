@@ -170,6 +170,11 @@ describe('嵌入', () => {
     expect(hProps(r.images[0])).toMatchObject({ width: 100 });
   });
 
+  it('代码块也能用键盘聚焦（长命令在块内横向滚动，NFR-02；不再靠 Shiki 加 tabindex）', async () => {
+    const r = await renderStep('```\nbash <(curl -Ls https://example.com/install.sh)\n```');
+    expect(r.html).toContain('<pre tabindex="0">');
+  });
+
   it('其他路径、非法宽度报错', async () => {
     const r = await renderStep('![[img/plain.png]]\n\n![[plain.png|262x100]]\n\n![[plain.png|0]]');
     expect(r.problems.map((p) => p.message)).toEqual([

@@ -1,8 +1,8 @@
 /* 全站基础：页面底色、正文字体、焦点环，以及几个跨页面共用的小样式。 */
 
-/* 吸顶的页眉不挡住锚点跳转的目标（常见问题的条目、“跳到正文”）。 */
+/* 吸顶的页眉不挡住锚点跳转的目标（“跳到正文”、常见问题条目）。 */
 :root:has(.site-header) {
-  scroll-padding-top: calc(var(--header-height) + var(--band-height) + var(--space-4));
+  scroll-padding-top: calc(var(--header-height) + var(--space-4));
 }
 
 body {
@@ -49,12 +49,12 @@ button:active,
   white-space: nowrap;
 }
 
-/* “跳到正文”：平时隐藏，键盘聚焦时出现（design §5）。 */
+/* “跳到正文”：平时隐藏，键盘聚焦时出现（design §5）；z-index 要高过页眉（2）和手机上的吸底底栏（1）。 */
 .skip-link {
   position: absolute;
   top: var(--space-2);
   left: var(--space-2);
-  z-index: 3;
+  z-index: 4;
   padding: var(--space-2) var(--space-3);
   background: var(--surface);
   border: var(--border-width) solid var(--control-border);
@@ -66,53 +66,76 @@ button:active,
   transform: none;
 }
 
-/* 首页以外的普通页面：参考页、找不到页。 */
+/* 首页以外的普通页面（参考页、找不到页）：内容和正文栏一样宽（--content-width），左对齐 */
 .page {
-  max-width: var(--measure);
+  max-width: var(--content-width);
   margin: 0 auto;
   padding: var(--space-7) var(--gutter);
+}
+
+/*
+ * 桌面（≥1100px）左侧常驻的目录侧边栏（design §4.5，v2.2 D8）：目录是页面里的第一个元素，
+ * 右边一条竖线，正文区（.page-view / .page）排在剩余宽度里居中，最大宽度仍是正文栏。
+ * 侧边栏自己吸在页眉下沿、占满视口剩余高度、独立滚动（toc.css 的 .toc-sidebar）；页脚横跨整个宽度。
+ */
+@media (min-width: 1100px) {
+  :root:has(> body > aside.toc-sidebar) body {
+    display: grid;
+    grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'header header'
+      'sidebar view'
+      'sidebar footer';
+    min-height: 100vh;
+  }
+
+  :root:has(> body > aside.toc-sidebar) .site-header {
+    grid-area: header;
+  }
+
+  :root:has(> body > aside.toc-sidebar) aside.toc-sidebar {
+    grid-area: sidebar;
+  }
+
+  :root:has(> body > aside.toc-sidebar) .page-view,
+  :root:has(> body > aside.toc-sidebar) .page {
+    grid-area: view;
+  }
+
+  /*
+   * 页脚和竖线之间没有上边框：竖线一直画到页脚，页脚里那条 1px --border 只横跨正文区（SiteFooter）。
+   * <main> 在网格里会被行高拉伸，正文按内容高度排（页脚紧跟正文），不把正文区撑满。
+   */
+  :root:has(> body > aside.toc-sidebar) .site-footer {
+    grid-area: footer;
+    /* 竖线（侧边栏的右边框）一直画到页脚底；页脚上边那条线只横跨正文区 */
+    margin-top: 0;
+  }
+
+  :root:has(> body > aside.toc-sidebar) .page-view {
+    align-self: start;
+  }
 }
 
 .page-title {
   margin: 0 0 var(--space-5);
   font-size: var(--fs-title);
   line-height: var(--lh-title);
-  font-weight: 800;
+  font-weight: var(--fw-heading);
 }
 
 /*
- * 眉题（design §4.1、§4.6）：14px 次要色，加宽字距，两端各一条短横（学番剧英文副标题的两端短横）。
- * 短横用伪元素画成线，不进文字内容，屏幕阅读器不读。眉题里的章节号用系统字体（固定字形只给大编号，§4.1）。
+ * 眉题（design §4.1、§4.6，v2.2 D4）：14px，加宽字距，不加两端短横（短横只留给章首页的英文副标题）。
+ * 页头色带里的眉题用 --accent（PageLayout），参考页的用 --text-muted（ReferenceLayout）。
  */
 .eyebrow {
   margin: 0 0 var(--space-2);
   color: var(--text-muted);
   font-size: var(--fs-meta);
   line-height: var(--lh-meta);
-  font-weight: 500;
+  font-weight: var(--fw-heading);
   letter-spacing: var(--tracking-meta);
-}
-
-.eyebrow::before,
-.eyebrow::after {
-  /* 内容是不可见的 U+2060 词连接符，短横是 1em 宽、1px 高的背景：手机上折行时短横不会单独掉到下一行 */
-  content: '\2060';
-  /* 显式给空的替代文本，不进无障碍树；不支持这种写法的浏览器退回上一行 */
-  content: '\2060' / '';
-  padding-left: 1em;
-  background: linear-gradient(currentColor, currentColor) no-repeat center / 1em 1px;
-}
-
-.eyebrow::before {
-  margin-right: 0.5em;
-}
-
-.eyebrow::after {
-  margin-left: 0.5em;
-}
-
-.eyebrow-no {
-  margin-right: 0.5em;
 }
 
 .page-actions {
@@ -123,24 +146,30 @@ button:active,
 }
 
 /*
- * 主按钮（design §4.7）：页面里唯一的大块紫色（§3.1 用紫规则）。高 ≥ 48px、16px 700。
- * 悬停时只把箭头（.button-arrow）右移 4px，不改颜色（§5），免得再多一块紫。
+ * 主按钮（design §4.7，v2.2 D1）：墨色实心，一屏只有它是实心的。高 48px、16px 600、圆角 8px。
+ * 悬停时表面提亮一档（--primary-bg-hover），并把箭头（.button-arrow）右移 --nudge（§5）。
  */
 .button {
   display: inline-flex;
   align-items: center;
+  gap: var(--space-2);
   min-height: var(--button-height);
   padding: 0 var(--space-5);
   box-sizing: border-box;
-  background: var(--accent);
-  color: var(--accent-contrast);
-  border: var(--border-width) solid var(--accent);
+  background: var(--primary-bg);
+  color: var(--primary-fg);
+  border: var(--border-width) solid var(--primary-bg);
   border-radius: var(--radius-control);
   font: inherit;
   font-size: var(--fs-button);
-  font-weight: 700;
+  font-weight: var(--fw-heading);
   text-decoration: none;
   cursor: pointer;
+}
+
+.button:hover {
+  background: var(--primary-bg-hover);
+  border-color: var(--primary-bg-hover);
 }
 
 /* 主按钮里的箭头；StepNav 的“下一步”也用它 */
@@ -157,6 +186,11 @@ button:active,
   background: var(--bg);
   color: var(--text);
   border-color: var(--control-border);
+}
+
+.button-secondary:hover {
+  background: var(--bg);
+  border-color: var(--text);
 }
 
 .button-secondary:hover {

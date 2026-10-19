@@ -40,6 +40,8 @@ describe('NumeralSprite', () => {
     const ids = [...html.matchAll(/<symbol id="([^"]+)"/g)].map((m) => m[1]);
     expect(ids).toEqual([...'0123456789'].map((d) => `numeral-${d}`).concat('numeral-dash'));
     expect(html).toMatch(/<svg\b[^>]*\baria-hidden="true"/);
+    // 还要 role="presentation"：<svg> 的默认 role 是 img，只加 aria-hidden 会被 axe 判为 simple-img（图片缺替代文字）
+    expect(html).toMatch(/<svg\b[^>]*\brole="presentation"/);
     expect(html).toMatch(/<svg\b[^>]*\bwidth="0" height="0"/);
     expect(html).not.toMatch(/<text\b|@font-face|url\(/);
   });

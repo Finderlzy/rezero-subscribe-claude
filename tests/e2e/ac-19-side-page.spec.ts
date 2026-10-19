@@ -12,7 +12,7 @@ test('从“先用两天”进入旁支页，页脚是“回到：先用两天�
   await expect(nav.getByRole('link', { name: /回到.*先用两天/ })).toHaveAttribute('href', /\/use-two-days\/$/);
   await expect(nav.getByRole('link', { name: /下一步.*修改 Google 账号地区/ })).toHaveAttribute('href', /\/google-region\/$/);
   await expect(nav.getByRole('link', { name: /上一步/ })).toHaveCount(0);
-  // 旁支页不计步数：编号位置写“旁支”，眉题“<章节名> · 旁支”（design §4.6）
+  // 旁支页不计步数：眉题写“第 n 章 · <章名> · 旁支”（design §4.6、v2.2 W2 第 1 条）
   expect(await stepLabel(page)).toBe('旁支');
   expect(await stepNo(page)).toBeNull();
   await expect(page.locator('[data-route-progress]')).toHaveText('注册和订阅 · 旁支');

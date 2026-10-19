@@ -172,17 +172,18 @@ describe('真实 route.yaml', () => {
     expect(nav('google-appeal')).toEqual({ prev: null, next: 'google-region', skipTo: null, returnTo: 'use-two-days' });
   });
 
-  it('前言的上一步和后记的下一步是首页', () => {
+  it('前言的上一步是首页；后记的下一步是附录，附录的下一步是首页（按钮写“回到首页”，v2.2 D11）', () => {
     expect(nav('preface').prev).toBe('home');
-    expect(nav('afterword').next).toBe('home');
+    expect(nav('afterword').next).toBe('appendix');
+    expect(nav('appendix')).toMatchObject({ prev: 'afterword', next: 'home' });
   });
 
-  it('五、安装面板可跳过，跳到导入代理软件；四、购买 ISP 代理不可跳过（AC-05）', () => {
+  it('五、打开面板可跳过，跳到导入代理软件；四、把服务器变成节点不可跳过（AC-05）', () => {
     expect(nav('plan1-panel', 'operation', { 'node-plan': 'plan-1' }).skipTo).toBe('import-proxy');
-    expect(nav('plan1-buy-isp', 'operation', { 'node-plan': 'plan-1' })).toMatchObject({ next: 'plan1-panel', skipTo: null });
+    expect(nav('plan1-make-node', 'operation', { 'node-plan': 'plan-1' })).toMatchObject({ next: 'plan1-panel', skipTo: null });
   });
 
-  it('12 条序列都从前言走到后记、没有环；操作视图不经过三个原理独有步骤，原理视图经过（AC-02 逻辑层）', () => {
+  it('12 条序列都从前言经后记走到附录、没有环；操作视图不经过三个原理独有步骤，原理视图经过（AC-02 逻辑层）', () => {
     const principleOnly = ['overview', 'recap', 'iphone-why-us-apple-id'];
     for (const mode of ['operation', 'principle'] as const) {
       for (const plan of ['plan-1', 'plan-2', 'plan-3']) {
@@ -194,7 +195,7 @@ describe('真实 route.yaml', () => {
             at = next === null || next.kind === 'home' ? null : next.id;
             if (seen.length > 60) throw new Error('走不完');
           }
-          expect(seen.at(-1)).toBe('afterword');
+          expect(seen.slice(-2)).toEqual(['afterword', 'appendix']);
           expect(new Set(seen).size).toBe(seen.length);
           const visited = principleOnly.filter((p) => seen.includes(p));
           expect(visited).toEqual(mode === 'operation' ? [] : phone === 'iphone' ? principleOnly : ['overview', 'recap']);
@@ -203,12 +204,13 @@ describe('真实 route.yaml', () => {
     }
   });
 
-  it('四章都有标题卡的一句话（作者 2026-10-16 确认，实施计划 v2.1 §6）', () => {
+  it('五章都有标题卡的一句话（作者 2026-10-16 确认，实施计划 v2.1 §6；附录 2026-10-17 加入）', () => {
     expect(route.data.chapters.map((c) => c.intro)).toEqual([
       '每一步我都会努力去讲清楚为什么要这么做，这样就算哪天某个细节失效了，你也知道该往哪个方向去调，请多包涵。',
       '三个方案的目的都一样：让 claude 看到一个静态住宅 IP，而且只有你自己在用。',
       '所以手机也是 claude 会看到的一台设备。',
       '也感谢所有我没能记住名字、但确实帮到我的人。',
+      '卡住了再来查，不看也能照着正文做完。',
     ]);
   });
 

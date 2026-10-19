@@ -94,13 +94,14 @@ const facadeData = JSON.stringify({
     color: var(--text-muted);
     font: inherit;
     font-size: var(--fs-meta);
-    font-weight: 600;
+    font-weight: var(--fw-heading);
     cursor: pointer;
   }
 
+  /* 按下的一段用 --text 底、--bg 字（design §4.7）：视频门面里不再出现大块紫色。 */
   .video-tab[aria-pressed='true'] {
-    background: var(--accent);
-    color: var(--accent-contrast);
+    background: var(--text);
+    color: var(--bg);
   }
 
   /* 不用 overflow: hidden，免得裁掉播放按钮外侧的焦点环；圆角由 iframe 自己继承。 */
@@ -144,7 +145,7 @@ const facadeData = JSON.stringify({
   }
 
   .video-play-label {
-    font-weight: 600;
+    font-weight: var(--fw-heading);
   }
 
   .video-play-platform {
