@@ -87,3 +87,7 @@ location /sub/ {
 | `node scripts/import-rewrite.mjs` | 从 `docs/rewrite/` 的重写稿导入正文和截图（v2 内容，规则见 [ADR-0005](docs/adr/0005-import-rewrite-verbatim.md)）；新复制的截图要逐张核对打码 |
 
 开发约定见 [AGENTS.md](AGENTS.md)，需求、架构和设计在 [docs/](docs/)。
+
+## 许可
+
+代码用 [MIT](LICENSE)；教程正文、截图、说明图和宣传片用 [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/deed.zh-hans)：可以转载和改编，要署名、不能商用。Claude Code 小形象、logo 里致敬番剧的 “Re:” 字样等不在授权范围内。详见 [LICENSE-CONTENT.md](LICENSE-CONTENT.md)。
