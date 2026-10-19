@@ -106,7 +106,6 @@ const PENDING = {
   // 重写稿里的 TODO 段数和这里对不上（多了、少了或已经补完）都报差异。
   todos: {
     'iphone-proxy': 2,
-    'iphone-app-store-austria': 2,
     'google-appeal': 2,
     'android-subscribe': 2,
     'reference/ip-tests/qsu-residential': 1,
