@@ -3,12 +3,16 @@
 //   node promo/video/render.mjs bilibili.html 60         B 站横版
 //   node promo/video/render.mjs bilibili.html --stills 2,8.5,20   只截几帧检查，存到 stills/
 // 页面要提供 window.render(t)、window.DURATION，可选 window.SIZE = [宽, 高]（默认 1080×1920）。
+// 读者反馈：页面提供 window.setFeedback(items) 时，把 feedback/list.json 登记的截图交给它（见 feedback.js）；
+// 一张都没有就拒绝渲染整片（只截帧时画占位框）。FEEDBACK_DIR 可以换成别的目录（检查用），STILLS_DIR 改截帧的存放目录。
 //
 // 加速（作者 2026-10-19 要求把显卡用上）：Chromium 走 Vulkan 用独显渲染（默认是 SwiftShader 软件渲染），
 // 帧按时间切成 WORKERS 段，每段一个浏览器并行截图、各自用 NVENC 编码，最后无损拼接。
 // 没有 NVIDIA 显卡时设 ENCODER=libx264。
 import { spawn } from 'node:child_process';
-import { readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { chromium } from '@playwright/test';
 
 const dir = new URL('./', import.meta.url).pathname;
@@ -17,6 +21,23 @@ const stillsArg = process.argv.indexOf('--stills');
 const fps = Number(process.argv[3]) || 60;
 const WORKERS = Number(process.env.WORKERS) || 6;
 const ENCODER = process.env.ENCODER ?? 'h264_nvenc';
+const FEEDBACK_DIR = resolve(process.env.FEEDBACK_DIR ?? `${dir}feedback`);
+const STILLS_DIR = resolve(process.env.STILLS_DIR ?? `${dir}stills`);
+// feedback/list.json 的 items：[{ file, kind: 'phone' | 'card', focus? }]，文件必须存在
+const feedback = (() => {
+  let list;
+  try {
+    list = JSON.parse(readFileSync(join(FEEDBACK_DIR, 'list.json'), 'utf8')).items ?? [];
+  } catch (e) {
+    if (e.code === 'ENOENT') return [];
+    throw new Error(`读不了 ${FEEDBACK_DIR}/list.json：${e.message}`);
+  }
+  return list.map(({ file, kind = 'card', focus }) => {
+    const path = join(FEEDBACK_DIR, file);
+    if (!existsSync(path)) throw new Error(`list.json 登记的 ${file} 不在 ${FEEDBACK_DIR} 里`);
+    return { src: pathToFileURL(path).href, kind, focus };
+  });
+})();
 const GPU_ARGS = ['--enable-gpu', '--ignore-gpu-blocklist', '--use-angle=vulkan', '--enable-features=Vulkan'];
 
 async function openPage(browser) {
@@ -27,6 +48,8 @@ async function openPage(browser) {
   await page.evaluate(() => document.fonts.ready);
   const logo = readFileSync(`${dir}../../src/assets/logo/logo-zh.svg`, 'utf8');
   await page.evaluate((svg) => window.setLogo?.(svg), logo);
+  const used = await page.evaluate(async (items) => (window.setFeedback ? await window.setFeedback(items) : null), feedback);
+  if (used && used.phone + used.cards === 0 && stillsArg < 0) throw new Error(`${FEEDBACK_DIR}/list.json 没有登记反馈截图，不能渲染整片；先放好打码后的截图并登记，见 feedback/README.md`);
   await page.waitForLoadState('networkidle');
   const [w, h] = await page.evaluate(() => window.SIZE ?? [1080, 1920]);
   await page.setViewportSize({ width: w, height: h });
@@ -56,9 +79,13 @@ async function renderRange(from, to, out) {
 if (stillsArg > 0) {
   const browser = await chromium.launch({ args: GPU_ARGS });
   const { page, stage } = await openPage(browser);
+  mkdirSync(STILLS_DIR, { recursive: true });
+  console.log(`反馈截图：登记 ${feedback.length} 张（${FEEDBACK_DIR}/list.json）`);
   for (const t of process.argv[stillsArg + 1].split(',').map(Number)) {
     await page.evaluate((t) => window.render(t), t);
-    await stage.screenshot({ path: `${dir}stills/check-t${String(t).padStart(4, '0')}.png` });
+    const out = join(STILLS_DIR, `check-t${String(t).padStart(4, '0')}.png`);
+    await stage.screenshot({ path: out });
+    console.log(out);
   }
   await browser.close();
 } else {

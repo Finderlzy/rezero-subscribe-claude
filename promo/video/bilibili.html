@@ -55,6 +55,15 @@
   .domain { font-family: 'Heavy', sans-serif; font-size: 120px; letter-spacing: 1px; }
   .chip { display: inline-block; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 14px 44px; font-size: 44px; font-weight: 700; }
   .rule { left: 140px; width: 120px; height: 6px; background: var(--accent); transform-origin: left; }
+  /* 读者反馈卡片：位置和大小由 setFeedback() 按截图尺寸算 */
+  .fb-card { box-sizing: border-box; border: 2px solid var(--border); border-radius: 20px; background: #fff; box-shadow: 0 20px 50px rgba(24, 24, 27, .10); }
+  .fb-card img { display: block; }
+  .fb-phone { box-sizing: border-box; border: 14px solid #18181b; border-radius: 60px; background: #fff; overflow: hidden; }
+  .fb-phone img { display: block; }
+  .fb-focus { box-sizing: border-box; border: 5px solid var(--accent); border-radius: 28px; }
+  .fb-call { border-radius: 26px; overflow: hidden; background: #fff; border: 2px solid var(--border); box-shadow: 0 30px 70px rgba(24, 24, 27, .22); }
+  .fb-call img { display: block; }
+  .fb-card.placeholder { border: 4px dashed var(--red); box-shadow: none; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 700; color: var(--red); }
 </style>
 </head>
 <body>
@@ -63,31 +72,38 @@
     B 站横版（作者 2026-10-19：用抖音选定的白底版风格）。时间点写在 data-in / data-out，render(t) 逐帧画。
     网站画面是 1024 宽的截图（目录收在抽屉里，侧边栏里第 01 章的标题不入镜）；章首页只用色带，正文和选项里有不能入镜的词。
     首页那句“不露出‘我在国内’”不拍（作者 2026-10-19）。
+    0–8s 是读者反馈段，之后的时间点在 2026-10-19 加反馈段时整体后移了 8 秒。
   -->
 
-  <!-- 1. 0–5s 开场 -->
-  <div class="el center h1" style="top:300px" data-in="0.3" data-out="5" data-fx="up">第一次订阅</div>
-  <div class="el center claude" style="top:450px" data-in="0.9" data-out="5" data-fx="pop">Claude</div>
-  <div class="el center cap" style="top:720px; color:var(--muted)" data-in="2.2" data-out="5" data-fx="fade">只想一次成功</div>
+  <!-- 0. 0–8s 读者反馈：真实读者发来的截图，登记在 feedback/list.json，render.mjs 读进来交给 setFeedback（摆法见 feedback.js）。
+       左边一句话；右边先是订阅成功的手机截图，弹窗放大，再是几条评论一张张浮上来。没有截图时画红色虚线占位框，render.mjs 也会拒绝渲染整片。 -->
+  <div class="el side eyebrow" style="top:370px" data-in="0.3" data-out="8" data-fx="fade">读者反馈</div>
+  <div class="el side h2" style="top:420px" data-in="0.5" data-out="8" data-fx="left">已经有人<br><span class="accent">订阅成功了</span></div>
+  <div id="feedback"></div>
 
-  <!-- 2. 5–13.5s 三个坑 -->
-  <div class="el side eyebrow" style="top:180px" data-in="5.1" data-out="13.5" data-fx="fade">新手常见的三种结局</div>
-  <div class="el side pit" style="top:250px" data-in="5.3" data-out="13.5" data-fx="left" data-strike="6.6"><span>注册不了</span></div>
-  <div class="el side pit" style="top:400px" data-in="6.2" data-out="13.5" data-fx="left" data-strike="7.5"><span>付不了款</span></div>
-  <div class="el side pit" style="top:550px; width:900px" data-in="7.1" data-out="13.5" data-fx="left" data-strike="8.4"><span>用两天被封</span></div>
-  <div class="el stamp" style="left:1120px; top:360px" data-in="9.2" data-out="13.5" data-fx="stamp">回到起点<br>重来</div>
-  <div class="el side small" style="top:780px; width:1200px" data-in="10.6" data-out="13.5" data-fx="fade">每卡一次，就像来了一次死亡回归。</div>
+  <!-- 1. 8–13s 开场 -->
+  <div class="el center h1" style="top:300px" data-in="8.3" data-out="13" data-fx="up">第一次订阅</div>
+  <div class="el center claude" style="top:450px" data-in="8.9" data-out="13" data-fx="pop">Claude</div>
+  <div class="el center cap" style="top:720px; color:var(--muted)" data-in="10.2" data-out="13" data-fx="fade">只想一次成功</div>
 
-  <!-- 3. 13.5–19s 转折 -->
-  <div class="el center h2" style="top:280px" data-in="13.6" data-out="19" data-fx="up">别人已经替你</div>
-  <div class="el center h1 accent" style="top:400px" data-in="14.4" data-out="19" data-fx="pop">死亡回归过了</div>
-  <div class="el center cap" style="top:660px" data-in="16.2" data-out="19" data-fx="up">我把他们踩过的坑，写成了一份<span class="accent">照着做的说明书</span></div>
+  <!-- 2. 13–21.5s 三个坑 -->
+  <div class="el side eyebrow" style="top:180px" data-in="13.1" data-out="21.5" data-fx="fade">新手常见的三种结局</div>
+  <div class="el side pit" style="top:250px" data-in="13.3" data-out="21.5" data-fx="left" data-strike="14.6"><span>注册不了</span></div>
+  <div class="el side pit" style="top:400px" data-in="14.2" data-out="21.5" data-fx="left" data-strike="15.5"><span>付不了款</span></div>
+  <div class="el side pit" style="top:550px; width:900px" data-in="15.1" data-out="21.5" data-fx="left" data-strike="16.4"><span>用两天被封</span></div>
+  <div class="el stamp" style="left:1120px; top:360px" data-in="17.2" data-out="21.5" data-fx="stamp">回到起点<br>重来</div>
+  <div class="el side small" style="top:780px; width:1200px" data-in="18.6" data-out="21.5" data-fx="fade">每卡一次，就像来了一次死亡回归。</div>
 
-  <!-- 4–5. 19–39s 网站：首页 → 步骤页（操作版 → 点“原理” → 原理版） -->
-  <div class="el win" data-in="19.1" data-out="39" data-fx="win">
-    <div class="win-bar"><i></i><i></i><i></i><div class="url"><span data-url="19:27">https://<b>re0claude.us.ci</b>/</span><span data-url="27:39">https://<b>re0claude.us.ci</b>/register-claude/</span></div></div>
+  <!-- 3. 21.5–27s 转折 -->
+  <div class="el center h2" style="top:280px" data-in="21.6" data-out="27" data-fx="up">别人已经替你</div>
+  <div class="el center h1 accent" style="top:400px" data-in="22.4" data-out="27" data-fx="pop">死亡回归过了</div>
+  <div class="el center cap" style="top:660px" data-in="24.2" data-out="27" data-fx="up">我把他们踩过的坑，写成了一份<span class="accent">照着做的说明书</span></div>
+
+  <!-- 4–5. 27–47s 网站：首页 → 步骤页（操作版 → 点“原理” → 原理版） -->
+  <div class="el win" data-in="27.1" data-out="47" data-fx="win">
+    <div class="win-bar"><i></i><i></i><i></i><div class="url"><span data-url="27:35">https://<b>re0claude.us.ci</b>/</span><span data-url="35:47">https://<b>re0claude.us.ci</b>/register-claude/</span></div></div>
     <div class="win-body">
-      <div class="shot" data-in="19.1" data-out="27.1" data-swap>
+      <div class="shot" data-in="27.1" data-out="35.1" data-swap>
         <div class="home-mock">
           <img src="shots/wide-home-logo.png" alt="">
           <div style="height:40px"></div>
@@ -96,45 +112,46 @@
           <img src="shots/wide-home-group.png" alt="">
         </div>
       </div>
-      <div class="shot" data-in="27.1" data-out="32.1" data-swap><img src="shots/wide-register-claude-operation.png" alt=""></div>
-      <div class="shot" data-in="32.1" data-out="39.1" data-swap><img src="shots/wide-register-claude-principle.png" alt=""></div>
+      <div class="shot" data-in="35.1" data-out="40.1" data-swap><img src="shots/wide-register-claude-operation.png" alt=""></div>
+      <div class="shot" data-in="40.1" data-out="47.1" data-swap><img src="shots/wide-register-claude-principle.png" alt=""></div>
     </div>
   </div>
   <!-- 光标：移到“原理”按钮上点一下（按钮在截图的 451, 27 css px → 窗口里 484, 29 + 地址栏） -->
-  <svg class="el cursor" data-in="30.4" data-out="33.4" data-fx="fade" data-path="30.4:31.6:1500:820:1184:228" viewBox="0 0 24 24"><path d="M4 2l16 9-7 2-3 7z" fill="#18181b" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg>
-  <div class="el ripple" style="left:1158px; top:198px" data-in="31.75" data-out="32.35" data-fx="ripple"></div>
+  <svg class="el cursor" data-in="38.4" data-out="41.4" data-fx="fade" data-path="38.4:39.6:1500:820:1184:228" viewBox="0 0 24 24"><path d="M4 2l16 9-7 2-3 7z" fill="#18181b" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg>
+  <div class="el ripple" style="left:1158px; top:198px" data-in="39.75" data-out="40.35" data-fx="ripple"></div>
 
-  <div class="el side eyebrow" style="top:250px" data-in="19.4" data-out="27" data-fx="fade">re0claude.us.ci</div>
-  <div class="el side h3" style="top:310px" data-in="19.7" data-out="27" data-fx="left">一份照着做的<br><span class="accent">说明书</span></div>
-  <div class="el side small" style="top:530px" data-in="21" data-out="27" data-fx="fade">5 章，一台电脑加一部手机。<br>从第 00 章开始，一页一页往下点。</div>
+  <div class="el side eyebrow" style="top:250px" data-in="27.4" data-out="35" data-fx="fade">https://re0claude.us.ci/</div>
+  <div class="el side h3" style="top:310px" data-in="27.7" data-out="35" data-fx="left">一份照着做的<br><span class="accent">说明书</span></div>
+  <div class="el side small" style="top:530px" data-in="29" data-out="35" data-fx="fade">5 章，一台电脑加一部手机。<br>从第 00 章开始，一页一页往下点。</div>
 
-  <div class="el side eyebrow" style="top:250px" data-in="27.3" data-out="39" data-fx="fade">一页只做一步</div>
-  <div class="el side h3" style="top:310px" data-in="27.6" data-out="32" data-fx="left"><span class="accent">操作版</span><br>照着点就行</div>
-  <div class="el side small" style="top:530px" data-in="28.4" data-out="32" data-fx="fade">每一步要做什么，<br>列成一条一条。</div>
-  <div class="el side h3" style="top:310px" data-in="32.2" data-out="39" data-fx="left"><span class="accent">原理版</span><br>讲清楚为什么</div>
-  <div class="el side small" style="top:530px" data-in="33" data-out="39" data-fx="fade">想知道它为什么这么要求，<br>页面顶上一键切过去。</div>
+  <div class="el side eyebrow" style="top:250px" data-in="35.3" data-out="47" data-fx="fade">一页只做一步</div>
+  <div class="el side h3" style="top:310px" data-in="35.6" data-out="40" data-fx="left"><span class="accent">操作版</span><br>照着点就行</div>
+  <div class="el side small" style="top:530px" data-in="36.4" data-out="40" data-fx="fade">每一步要做什么，<br>列成一条一条。</div>
+  <div class="el side h3" style="top:310px" data-in="40.2" data-out="47" data-fx="left"><span class="accent">原理版</span><br>讲清楚为什么</div>
+  <div class="el side small" style="top:530px" data-in="41" data-out="47" data-fx="fade">想知道它为什么这么要求，<br>页面顶上一键切过去。</div>
 
-  <!-- 6. 39–46s 章节标题卡 -->
-  <div class="el center eyebrow" style="top:170px" data-in="39.2" data-out="46" data-fx="fade">每一章开头</div>
-  <div class="el center h3" style="top:230px" data-in="39.5" data-out="46" data-fx="up">一句话告诉你，这一章在干什么</div>
-  <div class="el card" style="left:360px; width:1200px; top:420px" data-in="40.2" data-out="46" data-fx="up"><img src="shots/wide-chapter-card.png" alt=""></div>
-  <div class="el center small" style="top:880px" data-in="42" data-out="46" data-fx="fade">5 章就是 5 个存档点：卡在哪一章，就从哪一章读档。</div>
+  <!-- 6. 47–54s 章节标题卡 -->
+  <div class="el center eyebrow" style="top:170px" data-in="47.2" data-out="54" data-fx="fade">每一章开头</div>
+  <div class="el center h3" style="top:230px" data-in="47.5" data-out="54" data-fx="up">一句话告诉你，这一章在干什么</div>
+  <div class="el card" style="left:360px; width:1200px; top:420px" data-in="48.2" data-out="54" data-fx="up"><img src="shots/wide-chapter-card.png" alt=""></div>
+  <div class="el center small" style="top:880px" data-in="50" data-out="54" data-fx="fade">5 章就是 5 个存档点：卡在哪一章，就从哪一章读档。</div>
 
-  <!-- 7. 46–55s 大肥鱼 -->
-  <div class="el center eyebrow" style="top:170px" data-in="46.2" data-out="55" data-fx="fade">卡住了？</div>
-  <div class="el center h2" style="top:220px" data-in="46.5" data-out="55" data-fx="up">进 QQ 群问<span class="accent">大肥鱼</span></div>
-  <div class="el center small" style="top:350px" data-in="47.2" data-out="55" data-fx="fade">群里的 AI 嘉宾，24 小时在线。教程哪一步卡住了都可以问她，也可以随便聊。</div>
-  <div class="el card" style="left:410px; width:1100px; top:480px" data-in="47.8" data-out="55" data-fx="up"><img src="shots/wide-appendix-group.png" alt=""></div>
+  <!-- 7. 54–63s 大肥鱼 -->
+  <div class="el center eyebrow" style="top:170px" data-in="54.2" data-out="63" data-fx="fade">卡住了？</div>
+  <div class="el center h2" style="top:220px" data-in="54.5" data-out="63" data-fx="up">进 QQ 群问<span class="accent">大肥鱼</span></div>
+  <div class="el center small" style="top:350px" data-in="55.2" data-out="63" data-fx="fade">群里的 AI 嘉宾，24 小时在线。教程哪一步卡住了都可以问她，也可以随便聊。</div>
+  <div class="el card" style="left:410px; width:1100px; top:480px" data-in="55.8" data-out="63" data-fx="up"><img src="shots/wide-appendix-group.png" alt=""></div>
 
-  <!-- 8. 55–68s 结尾 -->
-  <div class="el center logo" id="logo" style="top:110px" data-in="55.2" data-out="99" data-fx="fade"></div>
-  <div class="el center small" style="top:460px" data-in="55.9" data-out="99" data-fx="fade">网址</div>
-  <div class="el center domain" style="top:510px" data-in="56.1" data-out="99" data-fx="pop">re0claude.us.ci</div>
-  <div class="el center" style="top:720px" data-in="57" data-out="99" data-fx="up"><span class="chip">QQ 群 150585832</span></div>
-  <div class="el center small" style="top:850px" data-in="57.8" data-out="99" data-fx="fade">网址和群号都在简介和置顶评论</div>
-  <div class="el center" style="top:980px; font-size:22px; color:var(--faint)" data-in="58.4" data-out="99" data-fx="fade">本站是个人教程，与 Anthropic 无关。</div>
+  <!-- 8. 63–76s 结尾 -->
+  <div class="el center logo" id="logo" style="top:110px" data-in="63.2" data-out="99" data-fx="fade"></div>
+  <div class="el center small" style="top:460px" data-in="63.9" data-out="99" data-fx="fade">网址</div>
+  <div class="el center domain" style="top:510px" data-in="64.1" data-out="99" data-fx="pop">https://re0claude.us.ci/</div>
+  <div class="el center" style="top:720px" data-in="65" data-out="99" data-fx="up"><span class="chip">QQ 群 150585832</span></div>
+  <div class="el center small" style="top:850px" data-in="65.8" data-out="99" data-fx="fade">网址和群号都在简介和置顶评论</div>
+  <div class="el center" style="top:980px; font-size:22px; color:var(--faint)" data-in="66.4" data-out="99" data-fx="fade">本站是个人教程，与 Anthropic 无关。</div>
 </div>
 
+<script src="feedback.js"></script>
 <script>
   const clamp = (x) => Math.min(Math.max(x, 0), 1);
   const ease = (x) => 1 - Math.pow(1 - clamp(x), 3);
@@ -143,7 +160,7 @@
   const IN = 0.5, OUT = 0.35;
 
   window.SIZE = [1920, 1080];
-  window.DURATION = 68;
+  window.DURATION = 76;
   window.render = (t) => {
     for (const el of document.querySelectorAll('[data-in]')) {
       const tin = +el.dataset.in, tout = +el.dataset.out, fx = el.dataset.fx || 'fade';
@@ -160,7 +177,7 @@
       if (el.dataset.path) {
         const [a, b, x0, y0, x1, y1] = el.dataset.path.split(':').map(Number);
         const p = inout((t - a) / (b - a));
-        const press = Math.max(0, 1 - Math.abs(t - 31.85) / 0.12);
+        const press = Math.max(0, 1 - Math.abs(t - 39.85) / 0.12);
         transform = `translate(${x0 + (x1 - x0) * p}px, ${y0 + (y1 - y0) * p}px) scale(${1 - 0.15 * press})`;
       }
       el.style.opacity = opacity;
@@ -171,8 +188,11 @@
       const [a, b] = u.dataset.url.split(':').map(Number);
       u.style.display = t >= a && t < b ? '' : 'none';
     }
+    window.feedbackFrame?.(t);
   };
   window.setLogo = (svg) => { document.getElementById('logo').innerHTML = svg; };
+  // 读者反馈段的摆法和时间（见 feedback.js）。music_bilibili.py 按同样的 phoneIn、callIn、t0、t0Solo、step 卡点，改这里要一起改。
+  setupFeedback({ area: [760, 120, 1020, 840], max: 4, gap: 28, pad: 20, scale: 2.4, sway: 36, bezel: 14, phoneAlign: 0.5, callW: 820, callAlign: 0.5, phoneIn: 1.0, callIn: 2.0, phoneOut: 4.2, t0: 4.3, t0Solo: 1.1, step: 0.55, out: 8 });
   render(0);
 </script>
 </body>

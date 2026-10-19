@@ -42,10 +42,19 @@
   .home-mock .eyebrow { color: var(--accent); font-weight: 700; font-size: 26px; margin: 0 0 22px; }
   .card { left: 90px; right: 90px; border-radius: 24px; overflow: hidden; border: 3px solid var(--border); background: #fff; }
   .card img { display: block; width: 100%; }
-  .domain { font-family: 'Heavy', sans-serif; font-size: 112px; letter-spacing: 1px; }
+  .domain { font-family: 'Heavy', sans-serif; font-size: 70px; letter-spacing: 0; } /* 完整网址 https://re0claude.us.ci/ 一行放下（x 90–990） */
   .chip { display: inline-block; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 14px 40px; font-size: 48px; font-weight: 700; }
   .logo img { width: 820px; }
   .num { font-family: 'Display', serif; font-size: 300px; line-height: 1; color: var(--text); }
+  /* 读者反馈卡片：位置和大小由 setFeedback() 按截图尺寸算 */
+  .fb-card { right: auto; box-sizing: border-box; border: 3px solid var(--border); border-radius: 24px; background: #fff; box-shadow: 0 16px 40px rgba(24, 24, 27, .08); }
+  .fb-card img { display: block; }
+  .fb-phone { right: auto; box-sizing: border-box; border: 14px solid #18181b; border-radius: 64px; background: #fff; overflow: hidden; }
+  .fb-phone img { display: block; }
+  .fb-focus { right: auto; box-sizing: border-box; border: 6px solid var(--accent); border-radius: 30px; }
+  .fb-call { right: auto; border-radius: 28px; overflow: hidden; background: #fff; border: 3px solid var(--border); box-shadow: 0 30px 70px rgba(24, 24, 27, .22); text-align: left; }
+  .fb-call img { display: block; }
+  .fb-card.placeholder { border: 4px dashed #d4302b; box-shadow: none; display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 700; color: #d4302b; line-height: 1.4; }
 </style>
 </head>
 <body>
@@ -54,29 +63,36 @@
     每个 .el 的 data-in / data-out 是出现和消失的秒数，data-fx 是入场方式（up 上浮、pop 弹出、fade 淡入、down 下落）。
     render(t) 按时间算出每一帧的样子，录制脚本逐帧调用它，所以动画是确定的、可以重录。
     画面要点都放在 y 250–1500、x 90–990 之间，避开抖音底部文案区和右侧按钮。
+    0–6s 是读者反馈段，之后的时间点在 2026-10-19 加反馈段时整体后移了 6 秒。
   -->
 
-  <!-- 1. 0–3.6s 钩子 -->
-  <div class="el h1" style="top:520px" data-in="0.2" data-out="3.6" data-fx="up">第一次订阅</div>
-  <div class="el claude" style="top:700px" data-in="0.7" data-out="3.6" data-fx="pop">Claude</div>
-  <div class="el h2 accent" style="top:1010px" data-in="1.7" data-out="3.6" data-fx="up">最怕什么？</div>
+  <!-- 0. 0–6s 读者反馈：真实读者发来的截图，登记在 feedback/list.json，render.mjs 读进来交给 setFeedback（摆法见 feedback.js）。
+       先是订阅成功的手机截图，弹窗放大；再是几条评论一张张浮上来。没有截图时画红色虚线占位框，render.mjs 也会拒绝渲染整片。 -->
+  <div class="el small accent" style="top:290px; font-weight:700" data-in="0.2" data-out="6" data-fx="fade">读者反馈</div>
+  <div class="el h2" style="top:350px" data-in="0.35" data-out="6" data-fx="up">已经有人订阅成功了</div>
+  <div id="feedback"></div>
 
-  <!-- 2. 3.6–9s 三个坑，一个个划掉，再盖章 -->
-  <div class="el pit" style="top:440px" data-in="3.65" data-out="9" data-fx="up" data-strike="4.5"><span>注册不了</span></div>
-  <div class="el pit" style="top:640px" data-in="4.6" data-out="9" data-fx="up" data-strike="5.3"><span>付不了款</span></div>
-  <div class="el pit" style="top:840px" data-in="5.4" data-out="9" data-fx="up" data-strike="6.1"><span>用两天被封</span></div>
-  <div class="el stamp" style="top:1120px" data-in="6.6" data-out="9" data-fx="stamp">回到起点，重来</div>
+  <!-- 1. 6–9.6s 钩子 -->
+  <div class="el h1" style="top:520px" data-in="6.2" data-out="9.6" data-fx="up">第一次订阅</div>
+  <div class="el claude" style="top:700px" data-in="6.7" data-out="9.6" data-fx="pop">Claude</div>
+  <div class="el h2 accent" style="top:1010px" data-in="7.7" data-out="9.6" data-fx="up">最怕什么？</div>
 
-  <!-- 3. 9–12.4s 转折 -->
-  <div class="el h2" style="top:640px" data-in="9.05" data-out="12.4" data-fx="up">别人已经</div>
-  <div class="el h2" style="top:780px" data-in="9.6" data-out="12.4" data-fx="up">替你</div>
-  <div class="el h1 accent" style="top:920px" data-in="10.1" data-out="12.4" data-fx="pop">死亡回归过了</div>
+  <!-- 2. 9.6–15s 三个坑，一个个划掉，再盖章 -->
+  <div class="el pit" style="top:440px" data-in="9.65" data-out="15" data-fx="up" data-strike="10.5"><span>注册不了</span></div>
+  <div class="el pit" style="top:640px" data-in="10.6" data-out="15" data-fx="up" data-strike="11.3"><span>付不了款</span></div>
+  <div class="el pit" style="top:840px" data-in="11.4" data-out="15" data-fx="up" data-strike="12.1"><span>用两天被封</span></div>
+  <div class="el stamp" style="top:1120px" data-in="12.6" data-out="15" data-fx="stamp">回到起点，重来</div>
 
-  <!-- 4. 12.4–21s 网站：首页 → 步骤页 -->
-  <div class="el cap" style="top:200px" data-in="12.45" data-out="16.6" data-fx="fade">我把每一步写成了<br>一份<span class="accent">照着做的说明书</span></div>
-  <div class="el cap" style="top:200px" data-in="16.8" data-out="21" data-fx="fade">一页一步<br><span class="accent">操作版</span>照着点，<span class="accent">原理版</span>讲为什么</div>
-  <div class="el phone" data-in="12.45" data-out="21" data-fx="phone">
-    <div class="screen" data-in="12.45" data-out="16.8">
+  <!-- 3. 15–18.4s 转折 -->
+  <div class="el h2" style="top:640px" data-in="15.05" data-out="18.4" data-fx="up">别人已经</div>
+  <div class="el h2" style="top:780px" data-in="15.6" data-out="18.4" data-fx="up">替你</div>
+  <div class="el h1 accent" style="top:920px" data-in="16.1" data-out="18.4" data-fx="pop">死亡回归过了</div>
+
+  <!-- 4. 18.4–27s 网站：首页 → 步骤页 -->
+  <div class="el cap" style="top:200px" data-in="18.45" data-out="22.6" data-fx="fade">我把每一步写成了<br>一份<span class="accent">照着做的说明书</span></div>
+  <div class="el cap" style="top:200px" data-in="22.8" data-out="27" data-fx="fade">一页一步<br><span class="accent">操作版</span>照着点，<span class="accent">原理版</span>讲为什么</div>
+  <div class="el phone" data-in="18.45" data-out="27" data-fx="phone">
+    <div class="screen" data-in="18.45" data-out="22.8">
       <div class="home-mock">
         <p class="eyebrow">一份照着做的说明书</p>
         <img src="shots/home-logo.png" alt="">
@@ -86,37 +102,38 @@
         <img src="shots/home-group.png" alt="">
       </div>
     </div>
-    <div class="screen" data-in="16.8" data-out="21">
+    <div class="screen" data-in="22.8" data-out="27">
       <img src="shots/step-register-claude.png" alt="">
     </div>
   </div>
 
-  <!-- 5. 21–25s 规模 -->
-  <div class="el num" style="top:420px" data-in="21.05" data-out="25" data-fx="pop">5<span style="font-family:'Heavy';font-size:120px"> 章</span></div>
-  <div class="el h2" style="top:830px" data-in="21.8" data-out="25" data-fx="up">一台电脑</div>
-  <div class="el h2" style="top:960px" data-in="22.3" data-out="25" data-fx="up">一部手机</div>
-  <div class="el cap small" style="top:1150px" data-in="22.9" data-out="25" data-fx="fade">从零开始，一次做对</div>
+  <!-- 5. 27–31s 规模 -->
+  <div class="el num" style="top:420px" data-in="27.05" data-out="31" data-fx="pop">5<span style="font-family:'Heavy';font-size:120px"> 章</span></div>
+  <div class="el h2" style="top:830px" data-in="27.8" data-out="31" data-fx="up">一台电脑</div>
+  <div class="el h2" style="top:960px" data-in="28.3" data-out="31" data-fx="up">一部手机</div>
+  <div class="el cap small" style="top:1150px" data-in="28.9" data-out="31" data-fx="fade">从零开始，一次做对</div>
 
-  <!-- 6. 25–30s 大肥鱼 -->
-  <div class="el cap" style="top:300px" data-in="25.05" data-out="30" data-fx="fade">卡住了？</div>
-  <div class="el h2" style="top:400px" data-in="25.5" data-out="30" data-fx="up">进群问<span class="accent">大肥鱼</span></div>
-  <div class="el cap small" style="top:560px" data-in="26" data-out="30" data-fx="fade">群里的 AI 嘉宾 · 24 小时在线</div>
-  <div class="el card" style="top:760px" data-in="26.4" data-out="30" data-fx="up"><img src="shots/appendix-group.png" alt=""></div>
+  <!-- 6. 31–36s 大肥鱼 -->
+  <div class="el cap" style="top:300px" data-in="31.05" data-out="36" data-fx="fade">卡住了？</div>
+  <div class="el h2" style="top:400px" data-in="31.5" data-out="36" data-fx="up">进群问<span class="accent">大肥鱼</span></div>
+  <div class="el cap small" style="top:560px" data-in="32" data-out="36" data-fx="fade">群里的 AI 嘉宾 · 24 小时在线</div>
+  <div class="el card" style="top:760px" data-in="32.4" data-out="36" data-fx="up"><img src="shots/appendix-group.png" alt=""></div>
 
-  <!-- 7. 30–35s 结尾：域名大字 -->
-  <div class="el logo" style="top:330px" data-in="30.05" data-out="99" data-fx="fade"><img src="../../src/assets/logo/logo-zh.svg" alt=""></div>
-  <div class="el small" style="top:690px" data-in="30.6" data-out="99" data-fx="fade">网址</div>
-  <div class="el domain" style="top:760px" data-in="30.8" data-out="99" data-fx="pop">re0claude.us.ci</div>
-  <div class="el" style="top:1000px" data-in="31.6" data-out="99" data-fx="up"><span class="chip">QQ 群 150585832</span></div>
-  <div class="el small" style="top:1150px" data-in="32.2" data-out="99" data-fx="fade">网址和群号都在主页、置顶评论</div>
+  <!-- 7. 36–41s 结尾：域名大字 -->
+  <div class="el logo" style="top:330px" data-in="36.05" data-out="99" data-fx="fade"><img src="../../src/assets/logo/logo-zh.svg" alt=""></div>
+  <div class="el small" style="top:690px" data-in="36.6" data-out="99" data-fx="fade">网址</div>
+  <div class="el domain" style="top:760px" data-in="36.8" data-out="99" data-fx="pop">https://re0claude.us.ci/</div>
+  <div class="el" style="top:1000px" data-in="37.6" data-out="99" data-fx="up"><span class="chip">QQ 群 150585832</span></div>
+  <div class="el small" style="top:1150px" data-in="38.2" data-out="99" data-fx="fade">网址和群号都在主页、置顶评论</div>
 </div>
 
+<script src="feedback.js"></script>
 <script>
   const ease = (x) => 1 - Math.pow(1 - Math.min(Math.max(x, 0), 1), 3);
   const back = (x) => { x = Math.min(Math.max(x, 0), 1); const c = 1.7; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
   const IN = 0.45, OUT = 0.3;
 
-  window.DURATION = 35;
+  window.DURATION = 41;
   window.render = (t) => {
     for (const el of document.querySelectorAll('[data-in]')) {
       const tin = +el.dataset.in, tout = +el.dataset.out, fx = el.dataset.fx || 'fade';
@@ -138,7 +155,10 @@
         el.firstElementChild.style.transform = `translateY(${y0 + (y1 - y0) * p}px)`;
       }
     }
+    window.feedbackFrame?.(t);
   };
+  // 读者反馈段的摆法和时间（见 feedback.js）。music_v1.py 按同样的 phoneIn、callIn、t0、t0Solo、step 卡点，改这里要一起改。
+  setupFeedback({ area: [90, 530, 900, 940], max: 4, gap: 36, pad: 24, scale: 2.4, sway: 28, bezel: 14, phoneAlign: 0.5, callW: 860, callAlign: 0.5, phoneIn: 0.8, callIn: 1.7, phoneOut: 3.3, t0: 3.4, t0Solo: 0.9, step: 0.45, out: 6 });
   render(0);
 </script>
 </body>

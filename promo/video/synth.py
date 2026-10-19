@@ -1,5 +1,8 @@
 """宣传视频配乐用的合成器：正弦、噪声做成的音色和一条立体声音轨。全部原创合成，不用任何现成音乐。"""
+import json
+import os
 import wave
+from pathlib import Path
 
 import numpy as np
 
@@ -34,6 +37,19 @@ def note(name):
     n = names[name[0]] + (1 if '#' in name else 0)
     octave = int(name[-1])
     return 440.0 * 2 ** ((n + (octave - 4) * 12) / 12)
+
+
+def feedback(max_cards):
+    """feedback/list.json 登记的反馈截图（和 render.mjs、feedback.js 同一个规则）：返回 (有没有竖图, 横条张数)。
+    FEEDBACK_DIR 可以换成别的目录（检查用）。"""
+    d = Path(os.environ.get('FEEDBACK_DIR', Path(__file__).with_name('feedback')))
+    try:
+        items = json.loads((d / 'list.json').read_text(encoding='utf-8')).get('items', [])
+    except FileNotFoundError:
+        items = []
+    phone = any(it.get('kind') == 'phone' for it in items)
+    cards = sum(1 for it in items if it.get('kind', 'card') != 'phone')
+    return phone, min(cards, max_cards)
 
 
 # ---------- 音色 ----------

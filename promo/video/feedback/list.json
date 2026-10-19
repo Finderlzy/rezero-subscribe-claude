@@ -1,0 +1,12 @@
+{
+  "说明": "宣传片读者反馈段用的截图，按 items 的顺序出场；摆法见 ../feedback.js，格式见 README.md。unused 里的不上片，只是记下来。",
+  "items": [
+    { "file": "purchase-success.jpg", "kind": "phone", "focus": [132, 866, 662, 322], "note": "读者在 iPhone 的 Claude app 里订阅 Pro 后弹出“操作完成 你已成功地完成购买。”（作者 2026-10-19 提供）" },
+    { "file": "comment-thanks.png", "kind": "card", "note": "评论：感谢大佬的教程（2026-10-12）" },
+    { "file": "comment-great.png", "kind": "card", "note": "评论：牛逼啊兄弟，伟大！无需多言（2026-10-14）" },
+    { "file": "comment-in-use.png", "kind": "card", "note": "评论：感谢up开源，已经用上了（2026-10-15）" }
+  ],
+  "unused": [
+    { "file": "comment-question.png", "note": "评论：问千宿是不是首月免费（2026-10-14）。是提问不是反馈，还提到商家名，先不放（2026-10-19）" }
+  ]
+}
