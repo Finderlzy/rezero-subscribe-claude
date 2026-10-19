@@ -17,7 +17,7 @@
   .logo, .eyebrow, .title, .sub, .url { position: relative; }
   /* 横版右侧：网站的手机截图 */
   .phone { position: absolute; box-sizing: border-box; border: 16px solid var(--text); border-radius: 64px; background: #fff; overflow: hidden; box-shadow: 0 30px 80px rgba(24, 24, 27, .16); }
-  .phone img { display: block; width: 100%; }
+  .phone img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
   .logo img { display: block; }
   .eyebrow { color: var(--accent); font-weight: 700; }
   .title { font-family: 'Heavy', sans-serif; line-height: 1.18; letter-spacing: 2px; }
@@ -44,6 +44,8 @@ const LAYOUTS = {
   'douyin-4x3': { w: 1440, h: 1080, pad: 90, logo: 520, eyebrow: 36, title: 92, sub: 34, url: 38, gap: [36, 40, 28, 44], phone: 400 },
   // B 站封面 16:9。B 站把同一张图裁成 16:9（个人空间）和 4:3（首页推荐），4:3 会切掉左右各 240px，
   // 所以内容都放在中间 1440 宽的安全区里（safe 是安全区到画布边的距离）
+  // 经历版封面：不带网址、不说教程（教程版在 B 站以“宣介违规 AI 服务及引流”被退回）
+  'bilibili-16x9-story': { w: 1920, h: 1080, safe: 240, pad: 70, logo: 480, eyebrow: 34, title: 86, sub: 32, url: 0, gap: [32, 36, 26, 40], phone: 380, story: true },
   'bilibili-16x9': { w: 1920, h: 1080, safe: 240, pad: 70, logo: 480, eyebrow: 34, title: 86, sub: 32, url: 36, gap: [32, 36, 26, 40], phone: 380 },
 };
 const v = new URLSearchParams(location.search).get('v') || 'douyin-3x4';
@@ -63,11 +65,11 @@ if (v.startsWith('avatar')) {
   const phoneLeft = L.w - edge - phoneW;
   stage.innerHTML = `<div class="col" style="left:${edge}px;right:${phoneW ? L.w - phoneLeft + 50 : edge}px">
     <div class="logo" style="margin-bottom:${L.gap[0]}px"><img src="${LOGO}" style="width:${L.logo}px;height:${L.logo * 250 / 784}px"></div>
-    <div class="eyebrow" style="font-size:${L.eyebrow}px;margin-bottom:${L.gap[1] * 1.6}px">分步教程 · 一页只做一步</div>
+    <div class="eyebrow" style="font-size:${L.eyebrow}px;margin-bottom:${L.gap[1] * 1.6}px">${L.story ? '一个学生的课余项目' : '分步教程 · 一页只做一步'}</div>
     <div class="title" style="font-size:${L.title}px;margin-bottom:${L.gap[2]}px">第一次订阅 Claude<br><span class="accent">只想一次成功</span></div>
-    <div class="sub" style="font-size:${L.sub}px;margin-bottom:${L.gap[3]}px">别人踩过的坑，写成了一份照着做的教程</div>
-    <div class="url" style="font-size:${L.url}px;padding:${L.url * 0.36}px ${L.url * 0.8}px">https://re0claude.us.ci/</div></div>`
-    + (phoneW ? `<div class="phone" style="left:${phoneLeft}px;top:${L.h * 0.14}px;width:${phoneW}px;height:${phoneW * 2.3}px"><img src="../video/shots/step-register-claude.png"></div>` : '');
+    <div class="sub" style="font-size:${L.sub}px;margin-bottom:${L.gap[3]}px">${L.story ? '好多朋友私信想让我远程帮装，可我是个学生（其实是懒）' : '别人踩过的坑，写成了一份照着做的教程'}</div>
+    ${L.story ? '' : `<div class="url" style="font-size:${L.url}px;padding:${L.url * 0.36}px ${L.url * 0.8}px">https://re0claude.us.ci/</div>`}</div>`
+    + (phoneW ? `<div class="phone" style="left:${phoneLeft}px;top:${L.h * 0.14}px;width:${phoneW}px;height:${phoneW * 2.3}px"><img src="${L.story ? '../video/feedback/purchase-success.jpg' : '../video/shots/step-register-claude.png'}"></div>` : '');
   // 浅紫色带：从顶上铺到眉题下方
   const eb = stage.querySelector('.eyebrow');
   stage.style.setProperty('--band', eb.offsetTop + eb.offsetHeight + L.gap[1] * 0.8 + 'px');

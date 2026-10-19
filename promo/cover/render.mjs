@@ -2,7 +2,7 @@
 import { chromium } from '@playwright/test';
 
 const dir = new URL('./', import.meta.url);
-const VARIANTS = ['douyin-3x4', 'douyin-4x3', 'bilibili-16x9', 'avatar-light', 'avatar-dark'];
+const VARIANTS = ['douyin-3x4', 'douyin-4x3', 'bilibili-16x9', 'bilibili-16x9-story', 'avatar-light', 'avatar-dark'];
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 2000, height: 1400 } });
