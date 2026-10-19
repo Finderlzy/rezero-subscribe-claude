@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>抖音竖版 v2：番剧风</title>
+<style>
+  @font-face { font-family: 'Heavy'; src: url('../../.cache/fonts/SourceHanSansCN-Heavy.otf'); }
+  @font-face { font-family: 'Display'; src: url('../../.cache/fonts/CormorantGaramond.ttf'); }
+  @font-face { font-family: 'Cinzel'; src: url('../../.cache/fonts/Cinzel.ttf'); }
+  :root { --violet: #a68bff; --violet-deep: #5b3fa0; --blood: #ff2d55; --ink: #0b0714; --gold: #e9c46a; }
+  html, body { margin: 0; background: #000; }
+  #stage {
+    position: relative; width: 1080px; height: 1920px; overflow: hidden; background: var(--ink);
+    font-family: 'Noto Sans CJK SC', sans-serif; color: #fff;
+  }
+  #fx, #fx-top { position: absolute; inset: 0; }
+  #fx-top { pointer-events: none; }
+  .el { position: absolute; left: 0; right: 0; text-align: center; opacity: 0; will-change: transform, opacity, filter; }
+  .glow { text-shadow: 0 0 18px rgba(166, 139, 255, .45); }
+  .h1 { font-family: 'Heavy', sans-serif; font-size: 136px; line-height: 1.15; letter-spacing: 4px; }
+  .h2 { font-family: 'Heavy', sans-serif; font-size: 100px; line-height: 1.2; letter-spacing: 2px; }
+  .cap { font-size: 54px; font-weight: 700; line-height: 1.45; padding: 0 90px; }
+  .small { font-size: 40px; color: rgba(255, 255, 255, .72); letter-spacing: 2px; }
+  .violet { color: var(--violet); }
+  .claude { font-family: 'Display', serif; font-weight: 600; font-size: 210px; color: var(--violet); letter-spacing: 8px; }
+  .loop { font-family: 'Cinzel', serif; font-size: 52px; letter-spacing: 18px; color: var(--blood); text-shadow: 0 0 30px rgba(255, 45, 85, .9); }
+  .pit { font-family: 'Heavy', sans-serif; font-size: 128px; }
+  .ep-no { font-family: 'Cinzel', serif; font-size: 46px; letter-spacing: 22px; color: var(--gold); }
+  .ep-title { font-family: 'Heavy', sans-serif; font-size: 94px; letter-spacing: 6px; }
+  .rule { left: 50%; width: 760px; margin-left: -380px; height: 3px; background: linear-gradient(90deg, transparent, var(--gold), transparent); transform-origin: center; }
+  .bars::before, .bars::after { content: ''; position: absolute; left: 0; right: 0; height: 220px; background: #000; }
+  .bars::before { top: 0; } .bars::after { bottom: 0; }
+  .bars { top: 0; bottom: 0; background: rgba(0, 0, 0, .82); }
+  .phone {
+    left: 50%; width: 640px; height: 1300px; margin-left: -320px; top: 470px; box-sizing: border-box;
+    border: 16px solid #1b1430; border-radius: 76px; background: #fff; overflow: hidden; text-align: left;
+    box-shadow: 0 0 0 2px rgba(166, 139, 255, .6), 0 0 50px rgba(91, 63, 160, .5);
+  }
+  .screen { position: absolute; inset: 0; opacity: 0; }
+  .screen img { display: block; width: 100%; }
+  .home-mock { padding: 90px 36px 0; }
+  .home-mock .eyebrow { color: #5b4ba8; font-weight: 700; font-size: 26px; margin: 0 0 22px; }
+  .card {
+    left: 70px; right: 70px; border-radius: 28px; overflow: hidden; background: #fff;
+    box-shadow: 0 0 0 2px rgba(166, 139, 255, .6), 0 0 50px rgba(91, 63, 160, .5);
+  }
+  .card img { display: block; width: 100%; }
+  .num { font-family: 'Display', serif; font-size: 340px; line-height: 1; }
+  .saves { display: flex; justify-content: center; gap: 46px; }
+  .save { width: 120px; text-align: center; font-family: 'Cinzel', serif; font-size: 40px; color: rgba(255,255,255,.35); }
+  .save i { display: block; width: 64px; height: 64px; margin: 0 auto 18px; transform: rotate(45deg); border: 5px solid rgba(255,255,255,.3); box-sizing: border-box; }
+  .save.on { color: #fff; }
+  .save.on i { border-color: var(--violet); background: rgba(166,139,255,.35); box-shadow: 0 0 18px rgba(166,139,255,.6); }
+  .logo svg { width: 880px; height: auto; color: #fff; --logo-re: #b9a2ff; filter: drop-shadow(0 0 16px rgba(166,139,255,.4)); }
+  .domain { font-family: 'Heavy', sans-serif; font-size: 116px; letter-spacing: 2px; position: relative; }
+  .domain .shine {
+    background: linear-gradient(100deg, #fff 0%, #fff 40%, #d9ccff 47%, #fff 50%, #fff 100%);
+    background-size: 300% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .chip { display: inline-block; border: 3px solid var(--violet); color: #fff; border-radius: 999px; padding: 14px 44px; font-size: 50px; font-weight: 700; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="fx" width="1080" height="1920"></canvas>
+
+  <!--
+    v2（作者 2026-10-19：太朴实，要番剧元素、特效拉满；看完又说太华丽，收敛了粒子、光芒、触手和发光）。番剧元素都是自己画的致敬，不用原画和角色：
+    “死亡回归”的轮回（LOOP、裂屏、心跳红光、倒转的时钟）、话数标题卡、魔女瘴气般的暗影触手、魔力粒子。
+    每个 .el 的 data-in / data-out 是出现和消失的秒数，data-fx 是入场方式；render(t) 按时间画出每一帧，录制逐帧调用。
+    画面要点放在 y 250–1500、x 90–990，避开抖音底部文案区和右侧按钮。
+  -->
+
+  <!-- 0. 0–2.6s 开场 -->
+  <div class="el h1 glow" style="top:640px" data-in="0.25" data-out="2.6" data-fx="glitch">第一次订阅</div>
+  <div class="el claude" style="top:810px" data-in="0.8" data-out="2.6" data-fx="pop" data-glow="1">Claude</div>
+
+  <!-- 1. 2.6–8.8s 三次轮回：每次在 data-hit 的时刻裂屏 -->
+  <div class="el loop" style="top:560px" data-in="2.6" data-out="4.6" data-fx="fade">LOOP · 1</div>
+  <div class="el pit" style="top:700px" data-in="2.7" data-out="4.6" data-fx="up" data-hit="3.9">注册不了</div>
+  <div class="el loop" style="top:560px" data-in="4.6" data-out="6.6" data-fx="fade">LOOP · 2</div>
+  <div class="el pit" style="top:700px" data-in="4.7" data-out="6.6" data-fx="up" data-hit="5.9">付不了款</div>
+  <div class="el loop" style="top:560px" data-in="6.6" data-out="8.8" data-fx="fade">LOOP · 3</div>
+  <div class="el pit" style="top:700px" data-in="6.7" data-out="8.8" data-fx="up" data-hit="7.9">用两天就被封</div>
+
+  <!-- 2. 8.8–12.2s 倒转的时钟 -->
+  <div class="el h2 glow" style="top:1240px" data-in="9.3" data-out="12.2" data-fx="up">每一次失败</div>
+  <div class="el h2 glow" style="top:1380px" data-in="9.9" data-out="12.2" data-fx="up">都<span style="color:var(--blood)">回到起点</span></div>
+
+  <!-- 3. 12.2–15.4s 话数标题卡 -->
+  <div class="el bars" data-in="12.2" data-out="15.4" data-fx="cut"></div>
+  <div class="el ep-no" style="top:760px" data-in="12.5" data-out="15.4" data-fx="fade">EPISODE 01</div>
+  <div class="el rule" style="top:850px" data-in="12.7" data-out="15.4" data-fx="rule"></div>
+  <div class="el ep-title" style="top:890px" data-in="12.9" data-out="15.4" data-fx="fade">从零开始的订阅生活</div>
+  <div class="el rule" style="top:1050px" data-in="12.7" data-out="15.4" data-fx="rule"></div>
+
+  <!-- 4. 15.4–18.6s 转折：暗影退去，光进来 -->
+  <div class="el h2 glow" style="top:620px" data-in="15.6" data-out="18.6" data-fx="up">别人已经替你</div>
+  <div class="el h1" style="top:760px; color:var(--violet)" data-in="16.1" data-out="18.6" data-fx="pop" data-glow="1">死亡回归过了</div>
+  <div class="el cap" style="top:1060px" data-in="17.3" data-out="18.6" data-fx="up">这一次，你只要<span class="violet">照着做</span></div>
+
+  <!-- 5. 18.6–26.4s 网站 -->
+  <div class="el cap glow" style="top:200px" data-in="18.7" data-out="22.4" data-fx="fade">把每一步，写成了<br>一份<span class="violet">照着做的说明书</span></div>
+  <div class="el cap glow" style="top:200px" data-in="22.5" data-out="26.4" data-fx="fade">一页一步<br><span class="violet">操作版</span>照着点 · <span class="violet">原理版</span>讲为什么</div>
+  <div class="el phone" data-in="18.7" data-out="26.4" data-fx="phone">
+    <div class="screen" data-in="18.7" data-out="22.5">
+      <div class="home-mock">
+        <p class="eyebrow">一份照着做的说明书</p>
+        <img src="shots/home-logo.png" alt="">
+        <div style="height:60px"></div>
+        <img src="shots/home-actions.png" alt="">
+        <div style="height:30px"></div>
+        <img src="shots/home-group.png" alt="">
+      </div>
+    </div>
+    <div class="screen" data-in="22.5" data-out="26.4"><img src="shots/step-register-claude.png" alt=""></div>
+  </div>
+
+  <!-- 6. 26.4–30.8s 五个存档点 -->
+  <div class="el num glow" style="top:330px" data-in="26.5" data-out="30.8" data-fx="pop">5<span style="font-family:'Heavy';font-size:120px"> 章</span></div>
+  <div class="el h2 glow" style="top:720px" data-in="27" data-out="30.8" data-fx="up">= 5 个<span class="violet">存档点</span></div>
+  <div class="el" style="top:930px" data-in="27.4" data-out="30.8" data-fx="fade" data-saves="27.6">
+    <div class="saves">
+      <div class="save"><i></i>00</div><div class="save"><i></i>01</div><div class="save"><i></i>02</div><div class="save"><i></i>03</div><div class="save"><i></i>04</div>
+    </div>
+  </div>
+  <div class="el cap small" style="top:1170px" data-in="28.9" data-out="30.8" data-fx="fade">卡在哪一章，就从哪一章读档</div>
+
+  <!-- 7. 30.8–35.6s 大肥鱼 -->
+  <div class="el cap" style="top:300px" data-in="30.9" data-out="35.6" data-fx="fade">卡住了？</div>
+  <div class="el h2 glow" style="top:400px" data-in="31.2" data-out="35.6" data-fx="up">进群问<span class="violet">大肥鱼</span></div>
+  <div class="el cap small" style="top:560px" data-in="31.7" data-out="35.6" data-fx="fade">群里的 AI 嘉宾 · 24 小时在线</div>
+  <div class="el card" style="top:760px" data-in="32.1" data-out="35.6" data-fx="up"><img src="shots/appendix-group.png" alt=""></div>
+
+  <!-- 8. 35.6–41s 结尾 -->
+  <div class="el logo" id="logo" style="top:300px" data-in="35.7" data-out="99" data-fx="pop"></div>
+  <div class="el small" style="top:690px" data-in="36.4" data-out="99" data-fx="fade">网址</div>
+  <div class="el domain glow" style="top:760px" data-in="36.6" data-out="99" data-fx="pop"><span class="shine" data-shine="37.6">re0claude.us.ci</span></div>
+  <div class="el" style="top:1010px" data-in="37.4" data-out="99" data-fx="up"><span class="chip">QQ 群 150585832</span></div>
+  <div class="el small" style="top:1170px" data-in="38" data-out="99" data-fx="fade">网址和群号都在主页、置顶评论</div>
+
+  <canvas id="fx-top" width="1080" height="1920"></canvas>
+</div>
+
+<script>
+  const W = 1080, H = 1920;
+  const bg = document.getElementById('fx').getContext('2d');
+  const fg = document.getElementById('fx-top').getContext('2d');
+  const clamp = (x, a = 0, b = 1) => Math.min(Math.max(x, a), b);
+  const ease = (x) => 1 - Math.pow(1 - clamp(x), 3);
+  const back = (x) => { x = clamp(x); const c = 1.7; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+  const between = (t, a, b) => t >= a && t < b;
+  const fadeWin = (t, a, b, fi = 0.4, fo = 0.4) => clamp(Math.min((t - a) / fi, (b - t) / fo));
+  function rng(seed) { return () => { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; let x = Math.imul(seed ^ (seed >>> 15), 1 | seed); x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x; return ((x ^ (x >>> 14)) >>> 0) / 4294967296; }; }
+
+  // ---------- 时间轴 ----------
+  const HITS = [3.9, 5.9, 7.9];
+  const DARK = [0, 18.0];          // 暗场（瘴气、红光）
+  const CLOCK = [2.6, 12.2];       // 时钟出现
+  const BURST = 17.3;              // 光芒爆开，转入亮色段
+
+  // ---------- 粒子精灵 ----------
+  function sprite(r, color) {
+    const c = document.createElement('canvas'); c.width = c.height = r * 2;
+    const g = c.getContext('2d'); const grad = g.createRadialGradient(r, r, 0, r, r, r);
+    grad.addColorStop(0, '#fff'); grad.addColorStop(0.25, color); grad.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = grad; g.fillRect(0, 0, r * 2, r * 2); return c;
+  }
+  const SPR_V = sprite(48, 'rgba(166,139,255,.9)');
+  const SPR_G = sprite(48, 'rgba(233,196,106,.9)');
+  const SPR_R = sprite(48, 'rgba(255,45,85,.9)');
+
+  const R = rng(7);
+  const motes = Array.from({ length: 80 }, () => ({ x: R() * W, y: R() * H, v: 30 + R() * 90, a: 20 + R() * 70, f: 0.3 + R() * 0.9, p: R() * 6.28, s: 0.1 + R() * 0.3, tw: 1 + R() * 3 }));
+  const tendrils = Array.from({ length: 10 }, (_, i) => {
+    const side = i % 4; // 0 下 1 左 2 右 3 上
+    const u = R();
+    const start = side === 0 ? [u * W, H + 40] : side === 1 ? [-40, u * H] : side === 2 ? [W + 40, u * H] : [u * W, -40];
+    return { start, ang: Math.atan2(H / 2 - start[1], W / 2 - start[0]) + (R() - 0.5) * 0.9, len: 500 + R() * 650, w: 18 + R() * 30, ph: R() * 6.28, fq: 0.6 + R() * 1.2 };
+  });
+  // 每次轮回一组裂纹：从撞击点放射，带分叉
+  const cracks = HITS.map((_, k) => {
+    const r = rng(100 + k); const cx = 260 + r() * 560, cy = 650 + r() * 300; const lines = [];
+    for (let i = 0; i < 15; i++) {
+      let a = (i / 15) * 6.28 + r() * 0.35, x = cx, y = cy; const pts = [[x, y]]; const n = 6 + Math.floor(r() * 6);
+      for (let j = 0; j < n; j++) { a += (r() - 0.5) * 0.7; const d = 50 + r() * 130; x += Math.cos(a) * d; y += Math.sin(a) * d; pts.push([x, y]); }
+      lines.push(pts);
+    }
+    return { cx, cy, lines };
+  });
+  const shards = HITS.map((_, k) => { const r = rng(300 + k); return Array.from({ length: 20 }, () => ({ a: r() * 6.28, v: 500 + r() * 1300, rot: (r() - 0.5) * 14, s: 18 + r() * 60, sides: 3 + Math.floor(r() * 2), seed: r() })); });
+
+  // ---------- 画布：背景层 ----------
+  function drawBg(t) {
+    // 底色：暗场是深紫夜色，光芒后过渡到更亮的紫
+    const lift = ease((t - BURST) / 1.2);
+    const g = bg.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, mix('#07040e', '#140c2a', lift)); g.addColorStop(0.55, mix('#0f0820', '#1d1340', lift)); g.addColorStop(1, mix('#05030a', '#0d0820', lift));
+    bg.fillStyle = g; bg.fillRect(0, 0, W, H);
+
+    // 魔法阵：缓慢旋转的同心圆和符文刻度
+    const circleA = 0.1;
+    drawCircle(bg, W / 2, H * 0.5, 470, t * 0.06, circleA);
+
+    // 时钟
+    if (between(t, CLOCK[0] - 0.5, CLOCK[1] + 0.5)) drawClock(t);
+
+    // 粒子（叠加发光）
+    bg.globalCompositeOperation = 'lighter';
+    for (const m of motes) {
+      const y = ((m.y - t * m.v) % H + H) % H, x = m.x + Math.sin(t * m.f + m.p) * m.a;
+      const tw = 0.45 + 0.55 * Math.sin(t * m.tw + m.p) ** 2;
+      const spr = t > BURST && m.p > 4.6 ? SPR_G : SPR_V;
+      const s = m.s * (1 + 0.2 * lift);
+      bg.globalAlpha = tw * 0.5;
+      bg.drawImage(spr, x - 48 * s, y - 48 * s, 96 * s, 96 * s);
+    }
+    bg.globalAlpha = 1; bg.globalCompositeOperation = 'source-over';
+
+    // 瘴气触手：暗场里从四边伸进来，光芒爆开时退回
+    const reach = between(t, DARK[0], DARK[1] + 1) ? clamp(ease(t / 2.5)) * (1 - ease((t - BURST + 0.6) / 1.1)) : 0;
+    if (reach > 0.01) drawTendrils(t, reach);
+
+    // 光芒
+    if (between(t, BURST - 0.2, 19.6)) drawRays(t, fadeWin(t, BURST - 0.1, 19.5, 0.4, 1.0));
+  }
+
+  function drawCircle(c, cx, cy, r, rot, alpha) {
+    c.save(); c.translate(cx, cy); c.globalAlpha = alpha; c.strokeStyle = '#a68bff'; c.lineWidth = 3;
+    for (const k of [1, 0.86, 0.62]) { c.beginPath(); c.arc(0, 0, r * k, 0, 6.283); c.stroke(); }
+    c.rotate(rot);
+    for (let i = 0; i < 48; i++) { c.rotate(6.283 / 48); c.beginPath(); c.moveTo(r * 0.86, 0); c.lineTo(r * (i % 4 ? 0.9 : 0.97), 0); c.stroke(); }
+    c.rotate(-rot * 2.4);
+    c.beginPath(); for (let i = 0; i <= 6; i++) { const a = i * 6.283 / 6 * 2; c.lineTo(Math.cos(a) * r * 0.62, Math.sin(a) * r * 0.62); } c.stroke();
+    c.restore(); c.globalAlpha = 1;
+  }
+
+  // 时钟：轮回段在背景淡淡转，倒转段放大到中间，指针倒着飞转再慢下来
+  const ROMAN = ['XII', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'];
+  function drawClock(t) {
+    const big = ease((t - 8.8) / 0.8);
+    const alpha = fadeWin(t, CLOCK[0], CLOCK[1], 0.6, 0.5) * (0.28 + 0.72 * big);
+    const r = 330 + 90 * big, cx = W / 2, cy = 760 + 0 * big;
+    // 指针：每次撞击后猛地倒转一圈；倒转段持续倒转并减速
+    let turns = 0;
+    for (const h of HITS) turns -= ease((t - h - 0.15) / 0.7);
+    if (t > 8.8) turns -= 3 * (1 - Math.pow(1 - clamp((t - 8.8) / 3.2), 2));
+    const minute = turns * 6.283 + 1.2, hour = minute / 12 + 3.6;
+    bg.save(); bg.translate(cx, cy); bg.globalAlpha = alpha;
+    const grad = bg.createRadialGradient(0, 0, r * 0.2, 0, 0, r * 1.25);
+    grad.addColorStop(0, 'rgba(91,63,160,.35)'); grad.addColorStop(1, 'rgba(0,0,0,0)'); bg.fillStyle = grad; bg.beginPath(); bg.arc(0, 0, r * 1.25, 0, 6.283); bg.fill();
+    bg.strokeStyle = '#e9c46a'; bg.lineWidth = 6; bg.beginPath(); bg.arc(0, 0, r, 0, 6.283); bg.stroke();
+    bg.lineWidth = 2; bg.beginPath(); bg.arc(0, 0, r * 0.93, 0, 6.283); bg.stroke();
+    bg.fillStyle = '#e9c46a'; bg.font = `600 ${Math.round(r * 0.13)}px Cinzel`; bg.textAlign = 'center'; bg.textBaseline = 'middle';
+    ROMAN.forEach((s, i) => { const a = i * 6.283 / 12 - 1.5708; bg.fillText(s, Math.cos(a) * r * 0.78, Math.sin(a) * r * 0.78); });
+    for (let i = 0; i < 60; i++) { const a = i * 6.283 / 60; bg.beginPath(); bg.moveTo(Math.cos(a) * r * 0.93, Math.sin(a) * r * 0.93); bg.lineTo(Math.cos(a) * r * (i % 5 ? 0.9 : 0.86), Math.sin(a) * r * (i % 5 ? 0.9 : 0.86)); bg.stroke(); }
+    // 拖影
+    for (let k = 6; k >= 0; k--) {
+      const lag = k * 0.06; let tt = 0; for (const h of HITS) tt -= ease((t - lag - h - 0.15) / 0.7);
+      if (t - lag > 8.8) tt -= 3 * (1 - Math.pow(1 - clamp((t - lag - 8.8) / 3.2), 2));
+      const m = tt * 6.283 + 1.2; bg.globalAlpha = alpha * (k ? 0.12 : 1);
+      hand(m - 1.5708, r * 0.82, 8, '#fff'); hand(m / 12 + 3.6 - 1.5708, r * 0.55, 14, '#e9c46a');
+    }
+    bg.globalAlpha = alpha; bg.fillStyle = '#fff'; bg.beginPath(); bg.arc(0, 0, 16, 0, 6.283); bg.fill();
+    bg.restore(); bg.globalAlpha = 1;
+  }
+  function hand(a, len, w, color) { bg.strokeStyle = color; bg.lineWidth = w; bg.lineCap = 'round'; bg.beginPath(); bg.moveTo(-Math.cos(a) * 40, -Math.sin(a) * 40); bg.lineTo(Math.cos(a) * len, Math.sin(a) * len); bg.stroke(); }
+
+  function drawTendrils(t, reach) {
+    bg.save(); bg.lineCap = 'round';
+    for (const td of tendrils) {
+      const L = td.len * reach * (0.85 + 0.15 * Math.sin(t * td.fq + td.ph));
+      const steps = 22; let [x, y] = td.start; let a = td.ang;
+      for (let pass = 0; pass < 2; pass++) {
+        bg.strokeStyle = pass ? 'rgba(120,70,220,.18)' : 'rgba(6,2,12,.8)';
+        bg.shadowColor = 'rgba(120,60,220,.8)'; bg.shadowBlur = pass ? 0 : 22;
+        [x, y] = td.start; a = td.ang;
+        for (let i = 0; i < steps; i++) {
+          const k = i / steps; const seg = L / steps;
+          a += Math.sin(t * 2.2 + td.ph + i * 0.55) * 0.13;
+          const nx = x + Math.cos(a) * seg, ny = y + Math.sin(a) * seg;
+          bg.lineWidth = td.w * (1 - k) * (pass ? 0.35 : 1) + 2;
+          bg.beginPath(); bg.moveTo(x, y); bg.lineTo(nx, ny); bg.stroke(); x = nx; y = ny;
+        }
+      }
+    }
+    bg.restore();
+    // 四周暗角
+    const v = bg.createRadialGradient(W / 2, H / 2, H * 0.25, W / 2, H / 2, H * 0.75);
+    v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, `rgba(0,0,0,${0.75 * reach})`); bg.fillStyle = v; bg.fillRect(0, 0, W, H);
+  }
+
+  function drawRays(t, a) {
+    bg.save(); bg.translate(W / 2, 860); bg.rotate(t * 0.12); bg.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 12; i++) {
+      bg.rotate(6.283 / 12);
+      const g = bg.createLinearGradient(0, 0, 1300, 0); g.addColorStop(0, `rgba(233,196,106,${0.12 * a})`); g.addColorStop(1, 'rgba(166,139,255,0)');
+      bg.fillStyle = g; bg.beginPath(); bg.moveTo(0, 0); bg.lineTo(1300, -60 - (i % 3) * 30); bg.lineTo(1300, 60 + (i % 3) * 30); bg.closePath(); bg.fill();
+    }
+    bg.restore();
+    const core = bg.createRadialGradient(W / 2, 860, 0, W / 2, 860, 700); core.addColorStop(0, `rgba(255,240,210,${0.55 * a * Math.max(0, 1 - (t - BURST) / 1.6)})`); core.addColorStop(1, 'rgba(0,0,0,0)');
+    bg.globalCompositeOperation = 'lighter'; bg.fillStyle = core; bg.fillRect(0, 0, W, H); bg.globalCompositeOperation = 'source-over';
+  }
+
+  // ---------- 画布：前景层（裂屏、碎片、闪白、心跳红光、扫描线） ----------
+  function drawTop(t) {
+    fg.clearRect(0, 0, W, H);
+    HITS.forEach((h, k) => {
+      const end = h + 0.7 + (k === 2 ? 0.2 : 0);
+      if (!between(t, h, end)) return;
+      const p = ease((t - h) / 0.18), fade = clamp((end - t) / 0.25);
+      const { lines, cx, cy } = cracks[k];
+      fg.save(); fg.lineCap = 'round'; fg.lineJoin = 'round';
+      for (const pass of [0, 1]) {
+        fg.strokeStyle = pass ? `rgba(255,255,255,${fade})` : `rgba(255,45,85,${0.7 * fade})`; fg.lineWidth = pass ? 3 : 12;
+        fg.shadowColor = '#ff2d55'; fg.shadowBlur = pass ? 0 : 30;
+        for (const pts of lines) {
+          const n = Math.max(1, Math.floor((pts.length - 1) * p)); fg.beginPath(); fg.moveTo(pts[0][0], pts[0][1]);
+          for (let i = 1; i <= n; i++) fg.lineTo(pts[i][0], pts[i][1]); fg.stroke();
+        }
+      }
+      // 碎片飞散
+      const dt = t - h - 0.08;
+      if (dt > 0) for (const s of shards[k]) {
+        const d = s.v * dt + 900 * dt * dt * 0.5 * s.seed; const x = cx + Math.cos(s.a) * d, y = cy + Math.sin(s.a) * d + 600 * dt * dt;
+        fg.save(); fg.translate(x, y); fg.rotate(s.rot * dt); fg.globalAlpha = fade * 0.9;
+        fg.fillStyle = 'rgba(220,210,255,.35)'; fg.strokeStyle = '#fff'; fg.lineWidth = 2;
+        fg.beginPath(); for (let i = 0; i < s.sides; i++) { const a = i * 6.283 / s.sides + s.seed; fg.lineTo(Math.cos(a) * s.s, Math.sin(a) * s.s * 0.6); } fg.closePath(); fg.fill(); fg.stroke(); fg.restore();
+      }
+      fg.restore();
+      // 闪白 + 红光
+      const flash = Math.max(0, 1 - (t - h) / 0.22);
+      fg.fillStyle = `rgba(255,255,255,${0.55 * flash})`; fg.fillRect(0, 0, W, H);
+    });
+    // 心跳红光：开场两下，撞击时一下
+    let beat = 0;
+    for (const b of [0.15, 0.55, 1.6, 2.0, ...HITS.map((h) => h + 0.05)]) { const d = t - b; if (d > 0 && d < 0.5) beat = Math.max(beat, Math.sin((d / 0.5) * Math.PI)); }
+    if (beat > 0) { const v = fg.createRadialGradient(W / 2, H / 2, H * 0.2, W / 2, H / 2, H * 0.72); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, `rgba(200,0,40,${0.6 * beat})`); fg.fillStyle = v; fg.fillRect(0, 0, W, H); }
+    // 话数卡开头的硬切黑
+    const cut = fadeWin(t, 12.2, 12.55, 0.01, 0.35); if (cut > 0) { fg.fillStyle = `rgba(0,0,0,${cut})`; fg.fillRect(0, 0, W, H); }
+    // 结尾前的过场闪光
+    const f2 = Math.max(0, 1 - Math.abs(t - 35.62) / 0.18); if (f2 > 0) { fg.fillStyle = `rgba(230,220,255,${0.8 * f2})`; fg.fillRect(0, 0, W, H); }
+    // 扫描线和胶片噪点，增加番剧/电视质感
+    fg.globalAlpha = 0.035; fg.fillStyle = '#000'; for (let y = (t * 120) % 6; y < H; y += 6) fg.fillRect(0, y, W, 2); fg.globalAlpha = 1;
+      }
+
+  function mix(a, b, k) { const p = (s) => [1, 3, 5].map((i) => parseInt(s.slice(i, i + 2), 16)); const A = p(a), B = p(b); return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * k)).join(',')})`; }
+
+  // ---------- DOM 元素 ----------
+  const IN = 0.45, OUT = 0.3;
+  window.DURATION = 41;
+  window.render = (t) => {
+    drawBg(t);
+    for (const el of document.querySelectorAll('[data-in]')) {
+      const tin = +el.dataset.in, tout = +el.dataset.out, fx = el.dataset.fx || 'fade';
+      const pin = (t - tin) / IN, pout = (tout - t) / OUT, visible = t >= tin && t < tout;
+      let opacity = visible ? Math.min(ease(pin), ease(pout)) : 0, transform = '', filter = '', shadow = '';
+      const k = ease(pin);
+      if (fx === 'up' || fx === 'phone') transform = `translateY(${(1 - k) * (fx === 'phone' ? 300 : 70)}px)`;
+      if (fx === 'phone') transform += ` perspective(1600px) rotateX(${(1 - k) * 22}deg)`;
+      if (fx === 'pop') { transform = `scale(${0.55 + 0.45 * back(pin * 0.9)})`; filter = `blur(${(1 - k) * 18}px)`; }
+      if (fx === 'rule') transform = `scaleX(${ease((t - tin) / 0.7)})`;
+      if (fx === 'cut') opacity = visible ? 1 : 0;
+      if (fx === 'glitch' && visible) {
+        const g = clamp(1 - (t - tin) / 0.6), r = rng(Math.floor(t * 40));
+        opacity = Math.min(1, pin * 4, ease(pout));
+        if (g > 0) { const dx = (r() - 0.5) * 60 * g; transform = `translateX(${dx}px) skewX(${(r() - 0.5) * 20 * g}deg)`; shadow = `${-14 * g}px 0 rgba(255,45,85,.9), ${14 * g}px 0 rgba(80,200,255,.9)`; }
+      }
+      // 轮回：撞击瞬间色散抖动，然后碎掉（下坠、模糊）
+      if (el.dataset.hit) {
+        const h = +el.dataset.hit, d = t - h;
+        if (d > -0.02 && d < 0.35) { const r = rng(Math.floor(t * 60)); const g = 1 - d / 0.35; transform += ` translate(${(r() - 0.5) * 50 * g}px, ${(r() - 0.5) * 30 * g}px)`; shadow = `${-18 * g}px 0 rgba(255,45,85,.95), ${18 * g}px 0 rgba(80,200,255,.95)`; }
+        if (d > 0.25) { const q = ease((d - 0.25) / 0.4); transform += ` translateY(${q * 140}px) rotate(${q * 4}deg)`; filter = `blur(${q * 10}px)`; opacity *= 1 - q; }
+      }
+      if (el.dataset.glow) shadow = shadow || `0 0 ${16 + 10 * Math.sin(t * 3) ** 2}px rgba(166,139,255,.6)`;
+      if (el.dataset.saves) el.querySelectorAll('.save').forEach((s, i) => s.classList.toggle('on', t > +el.dataset.saves + i * 0.25));
+      el.style.opacity = opacity; el.style.transform = transform; el.style.filter = filter;
+      if (shadow || el.dataset.hit || fx === 'glitch' || el.dataset.glow) el.style.textShadow = shadow;
+      if (el.classList.contains('screen')) el.style.transform = '';
+    }
+    const shine = document.querySelector('[data-shine]');
+    const sp = clamp((t - +shine.dataset.shine) / 1.1); shine.style.backgroundPosition = `${100 - sp * 100}% 0`;
+    drawTop(t);
+  };
+  window.setLogo = (svg) => { document.getElementById('logo').innerHTML = svg; };
+  render(0);
+</script>
+</body>
+</html>

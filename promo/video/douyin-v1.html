@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>抖音竖版 1080×1920</title>
+<style>
+  @font-face { font-family: 'Heavy'; src: url('../../.cache/fonts/SourceHanSansCN-Heavy.otf'); }
+  @font-face { font-family: 'Display'; src: url('../../.cache/fonts/CormorantGaramond.ttf'); }
+  :root { --accent: #5b4ba8; --accent-soft: #f3f1fb; --text: #18181b; --muted: #52525b; --border: #e4e4e7; }
+  html, body { margin: 0; background: #fff; }
+  #stage {
+    position: relative; width: 1080px; height: 1920px; overflow: hidden; background: #fff;
+    font-family: 'Noto Sans CJK SC', sans-serif; color: var(--text);
+  }
+  .el { position: absolute; left: 0; right: 0; text-align: center; opacity: 0; will-change: transform, opacity; }
+  .h1 { font-family: 'Heavy', sans-serif; font-size: 132px; line-height: 1.15; letter-spacing: 2px; }
+  .h2 { font-family: 'Heavy', sans-serif; font-size: 96px; line-height: 1.2; }
+  .cap { font-size: 56px; font-weight: 700; line-height: 1.4; padding: 0 90px; }
+  .small { font-size: 40px; color: var(--muted); }
+  .accent { color: var(--accent); }
+  .claude { font-family: 'Display', serif; font-weight: 600; font-size: 190px; color: var(--accent); letter-spacing: 6px; }
+  /* 坑：三行，划线由 --strike 控制 */
+  .pit { font-family: 'Heavy', sans-serif; font-size: 104px; }
+  .pit span { position: relative; display: inline-block; }
+  .pit span::after {
+    content: ''; position: absolute; left: -12px; top: 52%; height: 14px; background: #d4302b;
+    width: calc((100% + 24px) * var(--strike, 0));
+  }
+  .stamp {
+    left: 160px; right: 160px; font-family: 'Heavy', sans-serif; font-size: 76px; color: #d4302b;
+    border: 10px solid #d4302b; border-radius: 16px; padding: 18px 0;
+  }
+  /* 手机框 */
+  .phone {
+    left: 50%; width: 640px; height: 1300px; margin-left: -320px; top: 470px;
+    border: 18px solid #18181b; border-radius: 76px; background: #fff; overflow: hidden; text-align: left;
+    box-sizing: border-box;
+  }
+  .screen { position: absolute; inset: 0; opacity: 0; }
+  .screen img { display: block; width: 100%; }
+  .home-mock { padding: 90px 36px 0; }
+  .home-mock .eyebrow { color: var(--accent); font-weight: 700; font-size: 26px; margin: 0 0 22px; }
+  .card { left: 90px; right: 90px; border-radius: 24px; overflow: hidden; border: 3px solid var(--border); background: #fff; }
+  .card img { display: block; width: 100%; }
+  .domain { font-family: 'Heavy', sans-serif; font-size: 112px; letter-spacing: 1px; }
+  .chip { display: inline-block; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 14px 40px; font-size: 48px; font-weight: 700; }
+  .logo img { width: 820px; }
+  .num { font-family: 'Display', serif; font-size: 300px; line-height: 1; color: var(--text); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <!--
+    每个 .el 的 data-in / data-out 是出现和消失的秒数，data-fx 是入场方式（up 上浮、pop 弹出、fade 淡入、down 下落）。
+    render(t) 按时间算出每一帧的样子，录制脚本逐帧调用它，所以动画是确定的、可以重录。
+    画面要点都放在 y 250–1500、x 90–990 之间，避开抖音底部文案区和右侧按钮。
+  -->
+
+  <!-- 1. 0–3.6s 钩子 -->
+  <div class="el h1" style="top:520px" data-in="0.2" data-out="3.6" data-fx="up">第一次订阅</div>
+  <div class="el claude" style="top:700px" data-in="0.7" data-out="3.6" data-fx="pop">Claude</div>
+  <div class="el h2 accent" style="top:1010px" data-in="1.7" data-out="3.6" data-fx="up">最怕什么？</div>
+
+  <!-- 2. 3.6–9s 三个坑，一个个划掉，再盖章 -->
+  <div class="el pit" style="top:440px" data-in="3.65" data-out="9" data-fx="up" data-strike="4.5"><span>注册不了</span></div>
+  <div class="el pit" style="top:640px" data-in="4.6" data-out="9" data-fx="up" data-strike="5.3"><span>付不了款</span></div>
+  <div class="el pit" style="top:840px" data-in="5.4" data-out="9" data-fx="up" data-strike="6.1"><span>用两天被封</span></div>
+  <div class="el stamp" style="top:1120px" data-in="6.6" data-out="9" data-fx="stamp">回到起点，重来</div>
+
+  <!-- 3. 9–12.4s 转折 -->
+  <div class="el h2" style="top:640px" data-in="9.05" data-out="12.4" data-fx="up">别人已经</div>
+  <div class="el h2" style="top:780px" data-in="9.6" data-out="12.4" data-fx="up">替你</div>
+  <div class="el h1 accent" style="top:920px" data-in="10.1" data-out="12.4" data-fx="pop">死亡回归过了</div>
+
+  <!-- 4. 12.4–21s 网站：首页 → 步骤页 -->
+  <div class="el cap" style="top:200px" data-in="12.45" data-out="16.6" data-fx="fade">我把每一步写成了<br>一份<span class="accent">照着做的说明书</span></div>
+  <div class="el cap" style="top:200px" data-in="16.8" data-out="21" data-fx="fade">一页一步<br><span class="accent">操作版</span>照着点，<span class="accent">原理版</span>讲为什么</div>
+  <div class="el phone" data-in="12.45" data-out="21" data-fx="phone">
+    <div class="screen" data-in="12.45" data-out="16.8">
+      <div class="home-mock">
+        <p class="eyebrow">一份照着做的说明书</p>
+        <img src="shots/home-logo.png" alt="">
+        <div style="height:60px"></div>
+        <img src="shots/home-actions.png" alt="">
+        <div style="height:30px"></div>
+        <img src="shots/home-group.png" alt="">
+      </div>
+    </div>
+    <div class="screen" data-in="16.8" data-out="21">
+      <img src="shots/step-register-claude.png" alt="">
+    </div>
+  </div>
+
+  <!-- 5. 21–25s 规模 -->
+  <div class="el num" style="top:420px" data-in="21.05" data-out="25" data-fx="pop">5<span style="font-family:'Heavy';font-size:120px"> 章</span></div>
+  <div class="el h2" style="top:830px" data-in="21.8" data-out="25" data-fx="up">一台电脑</div>
+  <div class="el h2" style="top:960px" data-in="22.3" data-out="25" data-fx="up">一部手机</div>
+  <div class="el cap small" style="top:1150px" data-in="22.9" data-out="25" data-fx="fade">从零开始，一次做对</div>
+
+  <!-- 6. 25–30s 大肥鱼 -->
+  <div class="el cap" style="top:300px" data-in="25.05" data-out="30" data-fx="fade">卡住了？</div>
+  <div class="el h2" style="top:400px" data-in="25.5" data-out="30" data-fx="up">进群问<span class="accent">大肥鱼</span></div>
+  <div class="el cap small" style="top:560px" data-in="26" data-out="30" data-fx="fade">群里的 AI 嘉宾 · 24 小时在线</div>
+  <div class="el card" style="top:760px" data-in="26.4" data-out="30" data-fx="up"><img src="shots/appendix-group.png" alt=""></div>
+
+  <!-- 7. 30–35s 结尾：域名大字 -->
+  <div class="el logo" style="top:330px" data-in="30.05" data-out="99" data-fx="fade"><img src="../../src/assets/logo/logo-zh.svg" alt=""></div>
+  <div class="el small" style="top:690px" data-in="30.6" data-out="99" data-fx="fade">网址</div>
+  <div class="el domain" style="top:760px" data-in="30.8" data-out="99" data-fx="pop">re0claude.us.ci</div>
+  <div class="el" style="top:1000px" data-in="31.6" data-out="99" data-fx="up"><span class="chip">QQ 群 150585832</span></div>
+  <div class="el small" style="top:1150px" data-in="32.2" data-out="99" data-fx="fade">网址和群号都在主页、置顶评论</div>
+</div>
+
+<script>
+  const ease = (x) => 1 - Math.pow(1 - Math.min(Math.max(x, 0), 1), 3);
+  const back = (x) => { x = Math.min(Math.max(x, 0), 1); const c = 1.7; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+  const IN = 0.45, OUT = 0.3;
+
+  window.DURATION = 35;
+  window.render = (t) => {
+    for (const el of document.querySelectorAll('[data-in]')) {
+      const tin = +el.dataset.in, tout = +el.dataset.out, fx = el.dataset.fx || 'fade';
+      const pin = (t - tin) / IN, pout = (tout - t) / OUT;
+      const visible = t >= tin && t < tout;
+      let opacity = visible ? Math.min(ease(pin), ease(pout)) : 0;
+      let transform = '';
+      const k = ease(pin);
+      if (fx === 'up' || fx === 'phone') transform = `translateY(${(1 - k) * (fx === 'phone' ? 260 : 60)}px)`;
+      if (fx === 'pop') transform = `scale(${0.6 + 0.4 * back(pin)})`;
+      if (fx === 'stamp') { const s = back(pin * 1.4); transform = `rotate(-6deg) scale(${2.2 - 1.2 * s})`; opacity = visible ? Math.min(1, pin * 3, ease(pout)) : 0; }
+      if (el.classList.contains('screen')) transform = '';
+      el.style.opacity = opacity;
+      el.style.transform = transform;
+      if (el.dataset.strike) el.style.setProperty('--strike', ease((t - +el.dataset.strike) / 0.35));
+      if (el.dataset.scroll) {
+        const [a, b, y0, y1] = el.dataset.scroll.split(':').map(Number);
+        const p = ease((t - a) / (b - a));
+        el.firstElementChild.style.transform = `translateY(${y0 + (y1 - y0) * p}px)`;
+      }
+    }
+  };
+  render(0);
+</script>
+</body>
+</html>

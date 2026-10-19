@@ -31,3 +31,10 @@ npm-debug.log*
 
 # 重写稿的附件：只导入被引用、核对过打码的截图到 src/assets/screenshots/（#23）
 docs/rewrite/附件/
+
+# 宣传视频的中间产物（promo/video/README.md）：抽帧、检查图、音轨和中间视频都能由脚本重新生成，只提交选定的成片
+promo/video/stills/
+promo/video/*.png
+promo/video/*.wav
+promo/video/*.mp4
+!promo/video/douyin-v1-music.mp4
