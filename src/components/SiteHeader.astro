@@ -54,7 +54,8 @@ const { views = false, toc = false } = Astro.props;
     display: flex;
     align-items: center;
     gap: var(--space-2);
-    height: var(--header-height);
+    /* 页眉连同底边的 1px 细线一共 --header-height（56px）：侧边栏和吸顶元素都按 --header-height 贴在它下沿 */
+    height: calc(var(--header-height) - var(--border-width));
     padding: 0 var(--gutter);
   }
 
@@ -97,14 +98,6 @@ const { views = false, toc = false } = Astro.props;
     }
   }
 
-  /* ≥1100px：左侧常驻侧边栏就是目录，页眉不再放“目录”按钮（v2.2 D8 第 5 条）。
-     没有 JS 时它是链到首页目录的链接，也一起藏起来，侧边栏里的目录照样能点。 */
-  @media (min-width: 1100px) {
-    .toc-open {
-      display: none;
-    }
-  }
-
   .toc-open {
     display: inline-flex;
     flex: none;
@@ -123,6 +116,15 @@ const { views = false, toc = false } = Astro.props;
     font-weight: var(--fw-heading);
     text-decoration: none;
     cursor: pointer;
+  }
+
+  /* ≥1100px：左侧常驻侧边栏就是目录，页眉不再放“目录”按钮（v2.2 D8 第 5 条）。
+     没有 JS 时它是链到首页目录的链接，也一起藏起来，侧边栏里的目录照样能点。
+     要写在 .toc-open 的基础规则后面：同样的优先级，写在前面会被 display: inline-flex 盖掉。 */
+  @media (min-width: 1100px) {
+    .toc-open {
+      display: none;
+    }
   }
 
   /* 悬停时边框变 --text，同次按钮（design §5） */

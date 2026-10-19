@@ -257,13 +257,29 @@
   }
 }
 
-.toc-sidebar {
+/*
+ * 滚动容器只有 aside 这一层。TocNav 给侧边栏里的 <nav> 也加了 .toc-sidebar（下面的列表样式靠它），
+ * 所以这里必须写 aside.toc-sidebar：之前写成 .toc-sidebar 时 <nav> 也成了吸顶、满高、overflow:auto 的容器，
+ * 外层 aside 又多出内边距的高度，桌面上出现两条竖向滚动条和两条竖线。
+ * 滚动条用细的样式，只在内容超出时出现；overscroll-behavior 让滚到头时不带动页面。
+ */
+aside.toc-sidebar {
   position: sticky;
   top: var(--header-height);
   height: calc(100vh - var(--header-height));
+  height: calc(100dvh - var(--header-height));
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
   border-right: var(--border-width) solid var(--sidebar-rule);
   box-sizing: border-box;
+}
+
+/* 平时滑块是很淡的细线，指针移到侧边栏上才加深 */
+aside.toc-sidebar:hover,
+aside.toc-sidebar:focus-within {
+  scrollbar-color: var(--control-border) transparent;
 }
 
 .toc-sidebar-inner {
