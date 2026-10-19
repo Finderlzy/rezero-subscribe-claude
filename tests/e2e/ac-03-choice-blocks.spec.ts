@@ -34,8 +34,8 @@ test('回到选择页：所选的块标“已选”和 aria-current，其他块�
   const chosen = optionBlock(page, '方案二');
   await expect(chosen).toHaveAttribute('aria-current', 'true');
   await expect(chosen.getByText('已选')).toBeVisible();
-  // 编号圆圈和块在同一行，整行标 data-selected
-  await expect(page.locator('.option-row[data-selected]')).toHaveCount(1);
+  // 编号圆圈和块在同一行，整行标 data-selected（可见的那一版正文里只有一个）
+  await expect(page.locator('.option-row[data-selected]').filter({ visible: true })).toHaveCount(1);
   await expect(page.locator('.prose').filter({ visible: true }).locator('.option-block[aria-current]')).toHaveCount(1);
   await expect(page.getByRole('main').getByText('已选').filter({ visible: true })).toHaveCount(1);
   await expect(stepNav(page).getByRole('link', { name: /下一步.*方案二：住宅 IP 服务器/ })).toHaveAttribute('href', /\/plan2-residential-server\/$/);
@@ -48,7 +48,7 @@ test('回到选择页：所选的块标“已选”和 aria-current，其他块�
 test('点块里的其他站内链接，同样先记下这个选项再跳转', async ({ page }) => {
   await page.goto('./choose-plan/');
   await expectScriptRan(page);
-  await optionBlock(page, '方案一').getByRole('link', { name: '四、购买 ISP 代理', exact: true }).click();
+  await optionBlock(page, '方案一').getByRole('link', { name: '三、购买 ISP 代理', exact: true }).click();
   await expect(page).toHaveURL(/\/plan1-buy-isp\/$/);
 
   await page.goto('./choose-plan/');

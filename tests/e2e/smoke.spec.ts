@@ -17,7 +17,7 @@ test.describe('首页冒烟', () => {
   test('“从第 00 章开始”进入前言；首页有按章的目录，没有“继续上次”', async ({ page }) => {
     await page.goto('./');
     const toc = page.getByRole('navigation', { name: '全站目录' });
-    await expect(toc.locator('.toc-chapter-title')).toHaveText(['开始', '准备节点和住宅 IP', '注册和订阅', '结尾']);
+    await expect(toc.locator('.toc-chapter-title')).toHaveText(['开始', '准备节点和住宅 IP', '注册和订阅', '结尾', '附录']);
     await expect(page.getByText('继续上次')).toHaveCount(0);
 
     await page.getByRole('link', { name: '从第 00 章开始' }).click();
@@ -30,9 +30,9 @@ test.describe('首页冒烟', () => {
 
     await page.emulateMedia({ colorScheme: 'light' });
     await page.goto('./');
-    expect(await bodyBg()).toBe('rgb(248, 246, 241)'); // #F8F6F1
+    expect(await bodyBg()).toBe('rgb(255, 255, 255)'); // #FFFFFF（v2.2 W1）
 
     await page.emulateMedia({ colorScheme: 'dark' });
-    expect(await bodyBg()).toBe('rgb(21, 20, 26)'); // #15141A
+    expect(await bodyBg()).toBe('rgb(18, 18, 20)'); // #121214（v2.2 W1）
   });
 });

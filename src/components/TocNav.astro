@@ -8,12 +8,13 @@ import Numeral from './Numeral.astro';
 
 /**
  * 目录的列表本身：页面上的抽屉（Toc.astro）、首页和找不到页的目录都用它；标记契约见 Toc.astro。
- * 章名前是从 00 开始的章节号（固定字形 Numeral，读屏读“第 n 章”）；末尾单列“卡住了再看”的参考页（design §4.5）。
+ * 章名前是从 00 开始的章节号（固定字形 Numeral，读屏读“第 n 章”）；参考页（常见问题、IP 质量实测合集）列在最后一章“附录”的
+ * 附录页下面（design §4.5）。
  * 没有已读标记和“清除进度”（FR-16）。原理独有步骤标“原理”（不在当前视图的路线上时弱化）。
  */
 interface Props {
   outline: OutlineChapter[];
-  /** 末尾单列的参考页（`site.tocReferences`） */
+  /** 列在最后一章（附录）末尾的参考页（`site.tocReferences`） */
   references: TocReference[];
   /** 无障碍名称；一页里有两个目录时用来区分 */
   label?: string;
@@ -102,25 +103,22 @@ const otherRoute = (branch: OutlineBranch, option: OutlineBranch['options'][numb
                 </li>
               ),
             )}
+            {chapterIndex === outline.length - 1 && references.length > 0 && (
+              <li>
+                <ol class="toc-reference">
+                  {references.map((reference) => (
+                    <li class="toc-step">
+                      <a href={withBase(`/${reference.id}/`)}>
+                        <span class="toc-label">{reference.title}</span>
+                      </a>
+                    </li>
+                  ))}
+                </ol>
+              </li>
+            )}
           </ol>
         </li>
       ))
     }
-    <li class="toc-chapter toc-reference">
-      <p class="toc-chapter-head">
-        <span class="toc-reference-title">卡住了再看</span>
-      </p>
-      <ol>
-        {
-          references.map((reference) => (
-            <li class="toc-step">
-              <a href={withBase(`/${reference.id}/`)}>
-                <span class="toc-label">{reference.title}</span>
-              </a>
-            </li>
-          ))
-        }
-      </ol>
-    </li>
   </ol>
 </nav>

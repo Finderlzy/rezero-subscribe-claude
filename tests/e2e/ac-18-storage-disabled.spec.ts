@@ -38,7 +38,7 @@ for (const [name, disable] of DISABLERS) {
       await page.addInitScript(disable);
     });
 
-    test('选方案三、iPhone 后沿“下一步”走到后记，不在“订阅”绕圈', async ({ page }) => {
+    test('选方案三、iPhone 后沿“下一步”经后记走到附录，不在“订阅”绕圈', async ({ page }) => {
       const errors = collectErrors(page);
       const seen: string[] = ['preface'];
       await page.goto('./preface/');
@@ -54,7 +54,7 @@ for (const [name, disable] of DISABLERS) {
       await nextUntil(page, 'choose-phone', seen);
       await chooseOption(page, 'iPhone');
       seen.push(pageId(page));
-      await nextUntil(page, 'afterword', seen);
+      await nextUntil(page, 'appendix', seen);
       await expect(stepNav(page).getByRole('link', { name: /下一步.*回到首页/ })).toBeVisible();
 
       expect(seen).toEqual([
@@ -63,7 +63,7 @@ for (const [name, disable] of DISABLERS) {
         'iphone-app-store-austria', 'iphone-proxy', 'iphone-gmail',
         'register-gmail', 'chrome-sign-in', 'use-two-days', 'google-region', 'register-claude', 'subscribe',
         'iphone-apple-id', 'iphone-app-store-login', 'iphone-gift-card', 'iphone-subscribe', 'iphone-purchase-failed',
-        'after-subscribe', 'thanks', 'afterword',
+        'after-subscribe', 'thanks', 'afterword', 'appendix',
       ]);
       expect(errors).toEqual([]);
     });

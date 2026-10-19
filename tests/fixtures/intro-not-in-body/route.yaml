@@ -14,7 +14,7 @@ chapters:
       - { choose: node-plan, page: choose-plan }
       - branch: node-plan
         options:
-          plan-1: [plan1-free-isp, plan1-buy-server, plan1-make-node, plan1-buy-isp, plan1-panel]
+          plan-1: [plan1-free-isp, plan1-buy-server, plan1-buy-isp, plan1-make-node, plan1-panel]
           plan-2: [plan2-residential-server]
           plan-3: [plan3-residential-node]
       # F1 的汇合点
@@ -51,6 +51,9 @@ chapters:
     title: 结尾
     intro: 感谢每一位帮过我的人。
     items: [thanks, afterword]
+  - id: appendix
+    title: 附录
+    items: [appendix]
 # 旁支页：不在序列里，页脚是“回到：<returnTo>”和 returnTo 的下一步（FR-19）
 side:
   google-appeal: { returnTo: use-two-days }

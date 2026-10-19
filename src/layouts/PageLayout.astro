@@ -156,6 +156,8 @@ const hasZoom = [principle, operation].some((html) => html !== undefined && hasZ
   .band-inner {
     --mascot-right: calc(var(--gutter) + var(--space-5));
     position: relative;
+    /* 宽度连同左右边距一共 --content-width（和正文栏一样），左缘才和正文对齐；右边多留的小形象位置算在里面 */
+    box-sizing: border-box;
     max-width: var(--content-width);
     margin: 0 auto;
     padding: var(--band-pad-y) calc(var(--mascot-right) + var(--mascot-width) + var(--space-3)) var(--band-pad-y) var(--gutter);
@@ -219,6 +221,7 @@ const hasZoom = [principle, operation].some((html) => html !== undefined && hasZ
 
   /* 正文栏：色带下留出上边距，左右边距和色带里的内容一致 */
   .step-body {
+    box-sizing: border-box;
     max-width: var(--content-width);
     margin: 0 auto;
     padding: var(--space-6) var(--gutter) var(--space-7);

@@ -167,5 +167,7 @@ function renderNav(doc: Document, view: RouteView): void {
     link.href = withBase(pathOf(stop));
     const title = link.querySelector('[data-route-title]');
     if (title) title.textContent = stopTitle(stop, dir);
+    // 上一步 / 回到 的读屏名字写在 aria-label 里（手机吸底栏只露出箭头），目标变了要跟着改，不然读出的是构建时的标题
+    if (nav === 'prev' || nav === 'return') link.setAttribute('aria-label', `${nav === 'prev' ? '上一步' : '回到'}：${stopTitle(stop, dir)}`);
   }
 }

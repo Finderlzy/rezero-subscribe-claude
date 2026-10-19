@@ -129,11 +129,13 @@ describe('分支与汇合（AC-03 逻辑层）', () => {
   });
 });
 
-describe('首页是首尾（FR-11）', () => {
-  it('前言的上一步、后记的下一步都是首页', () => {
+describe('首页是首尾，后记之后是附录（FR-11）', () => {
+  it('前言的上一步是首页；后记的下一步是附录，附录（路线最后一页）的下一步是首页（v2.2 D11、FR-11）', () => {
     const map = sample();
     expect(map.view('preface', {}, 'operation').prev).toEqual({ kind: 'home' });
-    expect(map.view('afterword', {}, 'principle').next).toEqual({ kind: 'home' });
+    expect(map.view('afterword', {}, 'principle').next).toEqual({ kind: 'step', id: 'appendix', title: '附录' });
+    expect(map.view('appendix', {}, 'operation').prev).toEqual({ kind: 'step', id: 'afterword', title: '后记' });
+    expect(map.view('appendix', {}, 'principle').next).toEqual({ kind: 'home' });
   });
 });
 
@@ -164,14 +166,14 @@ describe('两种视图（FR-11、FR-30、AC-02 逻辑层）', () => {
       'choose-plan', 'plan1-buy-server', 'make-node', 'plan1-panel', 'import-proxy', 'check-ip', 'timezone',
       'choose-phone', 'iphone-proxy', 'iphone-gmail', 'register-gmail', 'use-two-days', 'google-region', 'subscribe',
       'iphone-apple-id', 'iphone-subscribe', 'after-subscribe',
-      'thanks', 'afterword',
+      'thanks', 'afterword', 'appendix',
     ]);
     expect(walk(map, { 'node-plan': 'plan-3', phone: 'android' }, 'principle')).toEqual([
       'preface', 'overview', 'clean-up',
       'choose-plan', 'plan3-node', 'import-proxy', 'check-ip', 'recap', 'timezone',
       'choose-phone', 'android-proxy', 'android-gmail', 'register-gmail', 'use-two-days', 'google-region', 'subscribe',
       'android-subscribe', 'after-subscribe',
-      'thanks', 'afterword',
+      'thanks', 'afterword', 'appendix',
     ]);
   });
 });
@@ -297,7 +299,7 @@ describe('目录 outline（FR-14、FR-16）', () => {
 
   it('列出全部章节；选择页、“或”分组、原理独有标记；当前项只有一处', () => {
     const outline = map.view('choose-plan', {}, 'operation').outline;
-    expect(outline.map((c) => c.id)).toEqual(['start', 'node-and-ip', 'register-and-subscribe', 'ending']);
+    expect(outline.map((c) => c.id)).toEqual(['start', 'node-and-ip', 'register-and-subscribe', 'ending', 'appendix']);
     expect(outline[1]!.items[0]).toEqual({ kind: 'choose', fork: 'node-plan', id: 'choose-plan', title: '选择方案', current: true });
     expect(outline[0]!.items[1]).toMatchObject({ kind: 'step', id: 'overview', principleOnly: true, onRoute: false });
     expect(JSON.stringify(outline).match(/"current":true/g)).toHaveLength(1);
@@ -378,13 +380,13 @@ describe('pathOf', () => {
 });
 
 describe('校验：夹具是合法的', () => {
-  it('3 × 2 种选择 × 2 种视图共 12 条路线都从前言走到后记，不重复经过同一页', () => {
+  it('3 × 2 种选择 × 2 种视图共 12 条路线都从前言经后记走到附录，不重复经过同一页', () => {
     const map = sample();
     for (const mode of ['operation', 'principle'] as const) {
       for (const plan of ['plan-1', 'plan-2', 'plan-3']) {
         for (const phone of ['iphone', 'android']) {
           const seen = walk(map, { 'node-plan': plan, phone }, mode);
-          expect(seen.at(-1)).toBe('afterword');
+          expect(seen.slice(-2)).toEqual(['afterword', 'appendix']);
           expect(new Set(seen).size).toBe(seen.length);
         }
       }
@@ -490,9 +492,10 @@ describe('校验错误（FR-61、AC-14 逻辑层）', () => {
   it('删掉分支的汇合：分支段是路线最后一项，或紧跟另一个分叉点的分支段', () => {
     const spec = sampleSpec();
     chapter(spec, 'register-and-subscribe').items.pop();
-    spec.chapters.pop();
+    spec.chapters.pop(); // 附录章
+    spec.chapters.pop(); // 结尾章：分支段成了路线最后一项
     expectError(
-      errorsOf(spec, samplePages().filter((p) => !['after-subscribe', 'thanks', 'afterword'].includes(p.id))),
+      errorsOf(spec, samplePages().filter((p) => !['after-subscribe', 'thanks', 'afterword', 'appendix'].includes(p.id))),
       'route.yaml',
       /分叉点 phone 的分支段（章节 register-and-subscribe）之后没有汇合点/,
     );
@@ -510,10 +513,10 @@ describe('校验错误（FR-61、AC-14 逻辑层）', () => {
   it('路线的首尾必须是普通页面，且不能是原理独有步骤', () => {
     const pages = samplePages();
     page(pages, 'preface').principleOnly = true;
-    page(pages, 'afterword').principleOnly = true;
+    page(pages, 'appendix').principleOnly = true;
     const errors = errorsOf(sampleSpec(), pages);
     expectError(errors, 'route.yaml', /路线的第一项 preface 不能是原理独有步骤/);
-    expectError(errors, 'route.yaml', /路线的最后一项 afterword 不能是原理独有步骤/);
+    expectError(errors, 'route.yaml', /路线的最后一项 appendix 不能是原理独有步骤/);
   });
 
   it('旁支页：returnTo 必须是普通页，页面要有文件', () => {

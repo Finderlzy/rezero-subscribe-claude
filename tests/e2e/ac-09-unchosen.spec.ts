@@ -75,5 +75,6 @@ test('进入方案三后，选择页出现“下一步”，汇合点的上一�
     /\/plan3-residential-node\/$/,
   );
   await expect(page.locator('[data-route-progress]')).toHaveText(/^准备节点和住宅 IP，第 \d+ 步，共 \d+ 步$/);
-  expect(await stepNo(page)).toMatch(/^\d\d$/);
+  // v2.2 D10：章和步写成文字，步数不补零
+  expect(await stepNo(page)).toMatch(/^\d+$/);
 });

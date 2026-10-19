@@ -10,7 +10,7 @@
 //
 // 输出：src/assets/logo/{logo-zh,logo-en,mark}.svg（由 Logo.astro 内联）、public/favicon.svg；
 // src/assets/numerals/ 的编号字形 symbols.svg + metrics.json（由 NumeralSprite.astro 和 lib/numeral.ts 使用）
-// 和四条章节副标题 chapter-00.svg…chapter-03.svg（由 ChapterSubtitle.astro 内联）。
+// 和五条章节副标题 chapter-00.svg…chapter-04.svg（由 ChapterSubtitle.astro 内联）。
 // 颜色：“Re”用 var(--logo-re, #5B3FA0)，其余用 currentColor；favicon 单独用文件，自带深浅配色。
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -320,7 +320,7 @@ const outputs = {
   'public/favicon.svg': favicon(),
   'src/assets/numerals/symbols.svg': numeralOut.symbols,
   'src/assets/numerals/metrics.json': numeralOut.metrics,
-  ...Object.fromEntries([0, 1, 2, 3].map((n) => [`src/assets/numerals/chapter-0${n}.svg`, chapterSubtitle(n)])),
+  ...Object.fromEntries([0, 1, 2, 3, 4].map((n) => [`src/assets/numerals/chapter-0${n}.svg`, chapterSubtitle(n)])),
 };
 
 for (const [file, content] of Object.entries(outputs)) {

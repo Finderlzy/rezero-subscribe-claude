@@ -7,7 +7,7 @@ import { chooseOption, collectErrors, expectScriptRan, nextUntil, pageId, stepLa
 // 一路上的步骤编号是本章进度（FR-10）：眉题每章从第 1 步数到 m，“共 m 步”一致；选择页不计步数，写“选择”。
 
 const PLANS = {
-  方案一: ['plan1-free-isp', 'plan1-buy-server', 'plan1-make-node', 'plan1-buy-isp', 'plan1-panel'],
+  方案一: ['plan1-free-isp', 'plan1-buy-server', 'plan1-buy-isp', 'plan1-make-node', 'plan1-panel'],
   方案二: ['plan2-residential-server'],
   方案三: ['plan3-residential-node'],
 };
@@ -68,7 +68,10 @@ for (const view of ['operation', 'principle'] as const) {
         seen.push(pageId(page));
         await record();
         await nextUntil(page, 'appendix', seen, record);
-        await expect(stepNav(page).getByRole('link', { name: /下一步.*回到首页/ })).toBeVisible();
+        // 附录是路线的最后一页（v2.2 D11、FR-11）：下一步是“回到首页”
+        const home = stepNav(page).getByRole('link', { name: /下一步.*回到首页/ });
+        await expect(home).toBeVisible();
+        await expect(home).toHaveAttribute('href', /^\/$/);
 
         expect(seen).toEqual(expected(plan, phone, view));
         expect(marks.map(([id]) => id)).toEqual(seen);

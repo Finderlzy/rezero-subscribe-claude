@@ -66,7 +66,8 @@ test('步骤页和参考页：正文、h1 字号和左右边距按当前档位',
       page.locator(selector).first().evaluate((el) => getComputedStyle(el).fontSize);
     expect(await size('.prose p'), path).toBe(tier.body);
     expect(await size('h1'), path).toBe(tier.h1);
-    const gutter = await page.locator('main').evaluate((el) => getComputedStyle(el).paddingLeft);
+    // 色带占满正文区，左右边距在色带里的 .band-inner 上（和正文栏一致，v2.2 W2）
+    const gutter = await page.locator('.band-inner').evaluate((el) => getComputedStyle(el).paddingLeft);
     expect(gutter, path).toBe(tier.gutter);
   }
 });

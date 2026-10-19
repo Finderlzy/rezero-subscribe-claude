@@ -63,7 +63,8 @@ test('色带的颜色和留白：--accent-soft 底、眉题 --accent、h1 600，
     };
     return {
       background: getComputedStyle(band).backgroundColor,
-      padding: [parseFloat(getComputedStyle(band).paddingTop), parseFloat(getComputedStyle(band).paddingBottom)],
+      // 内边距写在色带里的 .band-inner 上（它和正文栏同宽、居中；色带本身占满正文区）
+      padding: [parseFloat(getComputedStyle(band.querySelector('.band-inner')!).paddingTop), parseFloat(getComputedStyle(band.querySelector('.band-inner')!).paddingBottom)],
       accent: getComputedStyle(document.querySelector<HTMLElement>('[data-route-eyebrow]')!).color,
       h1Weight: getComputedStyle(document.querySelector('h1')!).fontWeight,
       hasRule: document.querySelector('.chapter-head') !== null,

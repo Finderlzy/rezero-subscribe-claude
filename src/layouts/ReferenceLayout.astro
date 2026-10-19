@@ -12,20 +12,25 @@ import '../styles/prose.css';
 
 /**
  * 参考页（常见问题和各条问题、IP 质量实测合集和各篇实测）的骨架（design §4.6，FR-20）：只有一版正文，
- * 没有上一步/下一步和视图切换（页眉没有切换控件）。各条问题和实测页多一个“回到：常见问题 / IP 质量实测合集”（`back`）。
- * 从步骤链接进来（`?from=<page-id>`）时，页面脚本在标题上方和正文末尾显示“← 返回刚才的步骤：<标题>”；
- * 附录页的页脚（W5）另有“上一条 / 下一条”。
+ * 没有上一步/下一步和视图切换（页眉没有切换控件）。
+ *
+ * 页头色带（v2.2 W5 第 7 条）：和步骤页一样一块 --accent-soft 色带，眉题写“附录 · <标题>”，下面接 h1；
+ * 小形象贴在色带右下角（D6）。正文在色带下面的 --content-width 栏里。
+ * 从步骤链接进来（`?from=<page-id>`）时，页面脚本在正文上方和正文末尾显示“← 返回刚才的步骤：<标题>”；
+ * 页脚只有“回到：…”：各条问题回常见问题，各篇实测回 IP 质量实测合集，两个参考页首页回附录（FR-20）。
+ * 参考页不进入上一步/下一步序列（requirements FR-20，取代 v2.2 计划 W5 第 2、3 条的“上一条 / 下一条”）。
  *
  * 目录（v2.2 D8、W3 第 7 条）：和步骤页一样内嵌 #route-data 和 Toc——≥1100px 左侧常驻，<1100px 是抽屉。
- * 所以页面也内嵌“页面标识 → 标题”，交给 toc.ts 和 route-enhance 之外的参考页脚本用。参考页不上路线图，
- * 只按本机选择画目录、不标当前项。
+ * 参考页不上路线图，只按本机选择画目录、不标当前项。
  */
 interface Props {
   title: string;
+  /** 页头色带上的眉题，例如“附录 · 常见问题”；不传时只写“附录” */
+  eyebrow?: string | undefined;
   back?: { href: string; title: string } | undefined;
 }
 
-const { title, back } = Astro.props;
+const { title, eyebrow = '附录', back } = Astro.props;
 const body = await Astro.slots.render('default');
 const hasZoom = hasZoomableImage(body);
 const site = await loadSite();
@@ -37,24 +42,29 @@ const routeJson = JSON.stringify(site.route.data).replace(/</g, '\\u003c');
 ---
 
 <BaseLayout title={title}>
-  <SiteHeader />
+  <SiteHeader toc />
   <Toc outline={site.route.outline({}, null, 'principle')} references={site.tocReferences} />
   <div class="page-view">
-    <main id="main" class="page">
-      <p class="reference-return" data-reference-return hidden>
-        <a>← 返回刚才的步骤</a>
-      </p>
-      <div class="page-head">
-        <h1 class="page-title">{title}</h1>
-        <Mascot />
+    <main id="main" class="reference-page">
+      <header class="band">
+        <div class="band-inner">
+          <Mascot />
+          <p class="eyebrow">{eyebrow}</p>
+          <h1 class="step-title">{title}</h1>
+        </div>
+      </header>
+      <div class="page-body">
+        <p class="reference-return" data-reference-return hidden>
+          <a>← 返回刚才的步骤</a>
+        </p>
+        <div class="prose" set:html={body} />
+        <p class="reference-return" data-reference-return hidden>
+          <a>← 返回刚才的步骤</a>
+        </p>
+        <p class="page-actions">
+          {back && <a class="button button-secondary" href={withBase(back.href)}>回到：{back.title}</a>}
+        </p>
       </div>
-      <div class="prose" set:html={body} />
-      <p class="reference-return" data-reference-return hidden>
-        <a>← 返回刚才的步骤</a>
-      </p>
-      <p class="page-actions">
-        {back && <a class="button button-secondary" href={withBase(back.href)}>回到：{back.title}</a>}
-      </p>
     </main>
   </div>
   <CodeCopy />
@@ -77,16 +87,57 @@ const routeJson = JSON.stringify(site.route.data).replace(/</g, '\\u003c');
 </script>
 
 <style>
-  /* 小形象（design v2.2 D6）在 h1 的右下方，脚底贴着标题这一块的下沿 */
-  .page-head {
-    display: flex;
-    align-items: flex-end;
-    gap: var(--space-4);
-    margin: 0 0 var(--space-5);
+  /* 页头色带：和 PageLayout 一样的 --accent-soft 底、--band-pad-y 内边距、正文栏左对齐；小形象贴右下角 */
+  .band {
+    position: relative;
+    background: var(--accent-soft);
   }
 
-  .page-head .page-title {
+  .band-inner {
+    --mascot-right: calc(var(--gutter) + var(--space-5));
+    position: relative;
+    /* 宽度连同左右边距一共 --content-width（和正文栏一样），左缘才和正文对齐；右边多留的小形象位置算在里面 */
+    box-sizing: border-box;
+    max-width: var(--content-width);
+    margin: 0 auto;
+    padding: var(--band-pad-y) calc(var(--mascot-right) + var(--mascot-width) + var(--space-3)) var(--band-pad-y) var(--gutter);
+  }
+
+  .band-inner > :global(.mascot) {
+    position: absolute;
+    right: var(--mascot-right);
+    bottom: 0;
+  }
+
+  @media (max-width: 719px) {
+    .band-inner {
+      --mascot-right: var(--gutter);
+    }
+  }
+
+  /* 色带里的眉题：14px --accent、加宽字距，一行（design v2.2 W5 第 7 条） */
+  .eyebrow {
+    margin: 0 0 var(--space-2);
+    color: var(--accent);
+    font-size: var(--fs-meta);
+    line-height: var(--lh-meta);
+    font-weight: var(--fw-heading);
+    letter-spacing: var(--tracking-meta);
+  }
+
+  .step-title {
     margin: 0;
+    font-size: var(--fs-title);
+    line-height: var(--lh-title);
+    font-weight: var(--fw-heading);
+  }
+
+  /* 正文在色带下面：和步骤页正文一样的边距 */
+  .page-body {
+    box-sizing: border-box;
+    max-width: var(--content-width);
+    margin: 0 auto;
+    padding: var(--space-6) var(--gutter) var(--space-7);
   }
 
   /* 桌面：正文区在侧边栏右边居中（base.css 的页面网格）；这里只保证不会被撑宽 */
