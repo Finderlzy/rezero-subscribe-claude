@@ -148,27 +148,28 @@ const hasZoom = [principle, operation].some((html) => html !== undefined && hasZ
     background: var(--accent-soft);
   }
 
+  /*
+   * 小形象贴在色带右下角（D6）：脚底贴着色带下沿，右边在正文栏右缘往里 --space-5（手机上空间小，贴着正文栏右缘）。
+   * 它在 .band-inner 里绝对定位（.band-inner 撑满色带的高度，下沿就是色带下沿）；
+   * .band-inner 右边按小形象的宽度留出位置，标题不会压到它。
+   */
   .band-inner {
+    --mascot-right: calc(var(--gutter) + var(--space-5));
+    position: relative;
     max-width: var(--content-width);
     margin: 0 auto;
-    /* 右边给小形象留出位置：小形象贴在色带右下角（D6），脚底贴着色带下沿，和正文栏右缘往里 --space-5 对齐 */
-    padding: var(--band-pad-y) calc(var(--gutter) + 51px + var(--space-3)) var(--band-pad-y) var(--gutter);
+    padding: var(--band-pad-y) calc(var(--mascot-right) + var(--mascot-width) + var(--space-3)) var(--band-pad-y) var(--gutter);
   }
 
-  .band > :global(.mascot) {
+  .band-inner > :global(.mascot) {
     position: absolute;
-    right: var(--space-5);
+    right: var(--mascot-right);
     bottom: 0;
   }
 
   @media (max-width: 719px) {
     .band-inner {
-      /* 手机上每格 2px，整体 34px 宽 */
-      padding-right: calc(var(--gutter) + 34px + var(--space-3));
-    }
-
-    .band > :global(.mascot) {
-      right: var(--space-4);
+      --mascot-right: var(--gutter);
     }
   }
 

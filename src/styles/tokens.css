@@ -32,6 +32,8 @@
   /* Claude Code 官方像素小形象的颜色：docs/assets/mascot-reference.png 的取色 #d87656 压深一点，
      让它在浅紫的页头色带上仍清楚（只给小形象用，design D6、D7） */
   --mascot: #c96442;
+  /* 小形象的眼睛：参考图里是纯黑，深浅两个主题都一样 */
+  --mascot-eye: #000000;
   /* logo 的“Re”跟主色走 */
   --logo-re: var(--accent);
 
@@ -101,6 +103,9 @@
   --sidebar-rule: var(--border);
   /* §4.1 页头色带的上下内边距：手机 24px，平板以上 32px */
   --band-pad-y: var(--space-5);
+  /* §4.1 小形象（Mascot.astro，24×16 格）的显示尺寸：手机每格 1px，平板起每格 1.5px（参考图的一个大像素 3px） */
+  --mascot-width: 24px;
+  --mascot-height: 16px;
 
   /* §4.7 按钮高度 */
   --button-height: 48px;
@@ -149,6 +154,8 @@
     --fs-tagline: 20px;
     --gutter: var(--space-6);
     --band-pad-y: var(--space-6);
+    --mascot-width: 36px;
+    --mascot-height: 24px;
   }
 }
 

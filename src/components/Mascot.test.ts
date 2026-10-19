@@ -19,22 +19,39 @@ describe('Mascot', () => {
     expect(html).not.toContain('tabindex');
   });
 
-  it('逐格画的是参考图的形状：17×12 格、每格一个方块，眼睛两格，没有文字、没有动画', async () => {
+  it('逐格画的是参考图的形状：24×16 格、每格一个 1×1 方块，viewBox 正好包住整只，没有文字、没有动画', async () => {
     const html = await render();
-    expect(html).toContain('viewBox="0 0 17 12"');
+    expect(html).toContain('viewBox="0 0 24 16"');
     expect(html).toContain('shape-rendering="crispEdges"');
-    // 身体 8 块 + 眼睛 2 块；每块的坐标和宽高都是整数格，没有半格
-    const rects = html.match(/<rect\b[^>]*>/g)!.filter((rect) => /width="/.test(rect));
-    expect(rects).toHaveLength(8 + 2);
-    for (const rect of rects) for (const [, d] of rect.matchAll(/\b(?:x|y|width|height)="([^"]*)"/g)) expect(d).toMatch(/^\d+$/);
-    expect(html).toContain('class="mascot-eyes"');
+    const cells = (group: string) =>
+      [...html.split(`class="${group}"`)[1]!.split('</g>')[0]!.matchAll(/<rect x="(\d+)" y="(\d+)" width="1" height="1"\/>/g)].map(
+        ([, x, y]) => [Number(x), Number(y)] as const,
+      );
+    const body = cells('mascot-body');
+    const eyes = cells('mascot-eyes');
+    // 每个 <rect> 都是一格（没有合并成大块、没有半格）
+    expect(html.match(/<rect\b[^>]*\/>/g)).toHaveLength(body.length + eyes.length);
+    // 两只眼睛各 2×2 格，在头部第 3、4 行
+    expect(eyes).toHaveLength(8);
+    for (const [, y] of eyes) expect([3, 4]).toContain(y);
+    // 整只从第 0 列画到第 23 列、第 0 行画到第 15 行：左臂、右臂、头顶、脚底都在，没有被 viewBox 裁掉
+    const all = [...body, ...eyes];
+    expect(Math.min(...all.map(([x]) => x))).toBe(0);
+    expect(Math.max(...all.map(([x]) => x))).toBe(23);
+    expect(Math.min(...all.map(([, y]) => y))).toBe(0);
+    expect(Math.max(...all.map(([, y]) => y))).toBe(15);
+    // 最下一行是四条腿，各 2 格宽
+    expect(body.filter(([, y]) => y === 15).map(([x]) => x)).toEqual([4, 5, 8, 9, 14, 15, 18, 19]);
     expect(html).not.toMatch(/<text\b|<animate\b|@keyframes|<style/);
   });
 
-  it('参考图 1 格 3px（手机 2px），整体 51×36px', async () => {
+  it('尺寸只由令牌给（--mascot-width / --mascot-height），SVG 不写死宽高', async () => {
     const html = await render();
-    expect(html).toContain('width="51"');
-    expect(html).toContain('height="36"');
+    const tag = html.match(/<svg\b[^>]*>/)![0];
+    expect(tag).not.toMatch(/\b(?:width|height)="/);
+    const tokens = readFileSync(new URL('../styles/tokens.css', import.meta.url), 'utf8');
+    expect(tokens).toMatch(/--mascot-width: 24px;/);
+    expect(tokens).toMatch(/--mascot-width: 36px;/);
   });
 
   it('颜色只用 --mascot（和眼睛的 --mascot-eye）：SVG 文件和组件里都不写别的色值（D7）', () => {
