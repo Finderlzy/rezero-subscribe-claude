@@ -20,7 +20,7 @@
 
 ![[iPhone改奥地利-5-同意条款.jpg|262]]
 
-6. 添加付款方式：付款方式选 **EPS**，下面的 Bank 随便选一家，比如 Bank Austria。不用填卡号。
+6. 添加付款方式：付款方式选 **EPS**，下面的 Bank **必须选 Bank Austria**。不用填卡号。
 
 ![[iPhone改奥地利-6-选择EPS.jpg|262]]
 
