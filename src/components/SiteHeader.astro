@@ -1,5 +1,6 @@
 ---
 import { withBase } from '../lib/with-base';
+import ContactLinks from './ContactLinks.astro';
 import Logo from './Logo.astro';
 import ViewToggle from './ViewToggle.astro';
 
@@ -8,7 +9,7 @@ import ViewToggle from './ViewToggle.astro';
  * 左边是“目录”（只在 <1100px 显示，≥1100px 由常驻侧边栏代替，v2.2 D8）和链到首页的 logo 标记 + 站名（<480px 时只留标记）。
  * “目录”（`toc`）构建时是指向首页完整目录 `/#home-chapters` 的链接，没有 JS 也能到达目录（design §5，FR-16），
  * 页面脚本 toc.ts 把它换成打开抽屉的按钮（换元素时保留这里的属性，样式照样选得中）。
- * 右边是“操作｜原理”切换（`views`），没有视图的页面（参考页、找不到页）不显示。
+ * 右边是作者的联系方式（ContactLinks.astro，FR-23；首页没有页眉，所以也没有），再往右是“操作｜原理”切换（`views`），没有视图的页面（参考页、找不到页）不显示。
  */
 interface Props {
   /** 页面有两种视图：显示切换控件，色带跟视图换色 */
@@ -36,6 +37,7 @@ const { views = false, toc = false } = Astro.props;
       <span class="site-mark" aria-hidden="true"><Logo variant="mark" /></span>
       <span class="site-name" aria-hidden="true">从零开始订阅 claude</span>
     </a>
+    <ContactLinks />
     {views && <ViewToggle />}
   </div>
 </header>
@@ -59,7 +61,7 @@ const { views = false, toc = false } = Astro.props;
     padding: 0 var(--gutter);
   }
 
-  /* 站名和切换控件分居页眉两端（右对齐：logo 和站名占满左侧剩余宽度，切换控件贴右缘） */
+  /* 站名在左，联系方式和切换控件在右：联系方式的 margin-left: auto 把右边一组推到右缘（ContactLinks.astro） */
   .site-home {
     display: inline-flex;
     align-items: center;
@@ -92,9 +94,14 @@ const { views = false, toc = false } = Astro.props;
     white-space: nowrap;
   }
 
+  /* 手机上只留标记，左右边距也收到 8px：页眉还要放“联系”（ContactLinks.astro），360px 宽才放得下 */
   @media (max-width: 479px) {
     .site-name {
       display: none;
+    }
+
+    .site-home {
+      margin: 0 var(--space-2);
     }
   }
 

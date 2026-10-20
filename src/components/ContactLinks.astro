@@ -1,0 +1,172 @@
+---
+import { CONTACTS } from '../lib/contact';
+
+/**
+ * 页眉右侧的作者联系方式（design §4.0）：GitHub、X、哔哩哔哩、抖音，数据在 src/lib/contact.ts。
+ * ≥720px 是一排单色图标链接（可点区域 44×44px）；<720px 页眉放不下四个图标，收成一个“联系”按钮，
+ * 点开是带平台名的列表。按钮用 <details>，没有 JS 也能开合；有 JS 时点别处或按 Esc 收起。
+ */
+---
+
+<nav class="contact" aria-label="作者的联系方式">
+  <ul class="contact-inline">
+    {
+      CONTACTS.map((contact) => (
+        <li>
+          <a class="contact-icon" href={contact.url} rel="noopener" aria-label={`作者的${contact.name}`} title={contact.name}>
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+              <path d={contact.icon} fill="currentColor" />
+            </svg>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+  <details class="contact-menu" data-contact-menu>
+    <summary>联系</summary>
+    <ul class="contact-panel">
+      {
+        CONTACTS.map((contact) => (
+          <li>
+            <a class="contact-row" href={contact.url} rel="noopener">
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+                <path d={contact.icon} fill="currentColor" />
+              </svg>
+              {contact.name}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </details>
+</nav>
+
+<script>
+  // 点开的“联系”列表：点列表以外的地方、按 Esc 或用 Tab 移出去时收起（没有 JS 时只能再点一次按钮收起）
+  for (const menu of document.querySelectorAll<HTMLDetailsElement>('[data-contact-menu]')) {
+    document.addEventListener('click', (event) => {
+      if (menu.open && !menu.contains(event.target as Node)) menu.open = false;
+    });
+    menu.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape' || !menu.open) return;
+      menu.open = false;
+      menu.querySelector('summary')?.focus();
+    });
+    menu.addEventListener('focusout', (event) => {
+      if (menu.open && !menu.contains(event.relatedTarget as Node | null)) menu.open = false;
+    });
+  }
+</script>
+
+<style>
+  /* 推到页眉右侧；≥720px 和视图切换之间多留 8px，手机上页眉放不下，不留 */
+  .contact {
+    flex: none;
+    margin-left: auto;
+  }
+
+  .contact ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .contact-inline {
+    display: none;
+  }
+
+  .contact-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    color: var(--text-muted);
+  }
+
+  .contact-icon:hover {
+    color: var(--text);
+  }
+
+  .contact-menu {
+    position: relative;
+  }
+
+  /* 同“目录”按钮：次按钮样式（design §5）；左右内边距收到 8px，360px 宽的页眉才放得下 */
+  .contact-menu summary {
+    display: inline-flex;
+    align-items: center;
+    min-width: 44px;
+    min-height: 44px;
+    box-sizing: border-box;
+    padding: 0 var(--space-2);
+    border: var(--border-width) solid var(--control-border);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    color: var(--text);
+    font-size: var(--fs-meta);
+    font-weight: var(--fw-heading);
+    list-style: none;
+    cursor: pointer;
+  }
+
+  /* 不是 button，按下反馈要自己加（base.css 只管 button 和 .button） */
+  .contact-menu summary:active {
+    translate: 0 var(--press-shift);
+  }
+
+  .contact-menu summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .contact-menu summary:hover,
+  .contact-menu[open] summary {
+    border-color: var(--text);
+  }
+
+  .contact-panel {
+    position: absolute;
+    top: calc(100% + var(--space-1));
+    right: 0;
+    min-width: 10em;
+    padding: var(--space-1) 0;
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-control);
+    background: var(--bg);
+  }
+
+  .contact-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 44px;
+    padding: 0 var(--space-4);
+    color: var(--text);
+    font-size: var(--fs-meta);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .contact-row svg {
+    flex: none;
+    color: var(--text-muted);
+  }
+
+  .contact-row:hover {
+    background: var(--surface-muted);
+  }
+
+  @media (min-width: 720px) {
+    .contact {
+      margin-right: var(--space-2);
+    }
+
+    .contact-inline {
+      display: flex;
+    }
+
+    .contact-menu {
+      display: none;
+    }
+  }
+</style>
