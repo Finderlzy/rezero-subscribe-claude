@@ -17,8 +17,10 @@ export function builtPages(dist = 'dist'): string[] {
     });
   // 已删除页面的旧地址只是跳转页（astro.config.mjs 的 redirects），不是内容页，不进逐页用例；
   // 跳转本身由 ac-15-base-path.spec.ts 在根路径和子路径下各测一次
+  // 搜索引擎的站点验证文件（public/google*.html）只有一行验证码，也不是页面
   const pages = walk(dist)
     .filter((path) => !removedPagePaths().includes(path))
+    .filter((path) => !/^google[0-9a-f]+\.html$/.test(path))
     .sort();
   // 防止拿到空的或残缺的产物，逐页用例悄悄变少
   for (const must of ['', '404.html', 'preface/', 'choose-plan/', 'google-appeal/', 'afterword/', 'appendix/', 'faq/', 'faq/split-routing/', 'ip-tests/', 'ip-tests/decodo/']) {

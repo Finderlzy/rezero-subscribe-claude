@@ -1,6 +1,7 @@
 // @ts-check
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'astro/config';
+import sitemap from '@astrojs/sitemap';
 import { unified } from '@astrojs/markdown-remark';
 import { contentValidation } from './src/lib/content/integration';
 import { createLinkIndex } from './src/lib/content/link-index';
@@ -28,7 +29,11 @@ export default defineConfig({
   },
   // 构建开始时检查全部内容的双链、嵌入和 Callout，有问题就终止构建（FR-61）；
   // 路线图在页面调用 loadSite() 时校验（src/lib/site.ts）。构建结束时列出内容提示（FR-21）。
-  integrations: [contentValidation({ base, linkIndex })],
+  // sitemap 要有 site 才生成（部署时由 SITE_URL 给出）；找不到页不进 sitemap。
+  integrations: [
+    contentValidation({ base, linkIndex }),
+    sitemap({ filter: (page) => !new URL(page).pathname.endsWith('/404/') }),
+  ],
   markdown: {
     // 默认的 Sätteri 不兼容 remark/rehype 插件，所以用 unified 处理器（reuse-research §4.1）。
     // 插件和 rehype-callouts 的配置见 src/lib/content/markdown.ts（M1 Obsidian 写法插件）。

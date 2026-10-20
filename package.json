@@ -1,6 +1,6 @@
 {
   "name": "rezero-subscribe-claude",
-  "version": "2.2.3",
+  "version": "2.2.4",
   "private": true,
   "license": "MIT",
   "description": "Re:从零开始订阅 claude —— 分步引导静态网站",
@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@astrojs/markdown-remark": "~7.3.2",
+    "@astrojs/sitemap": "~3.7.4",
     "astro": "~7.3.8",
     "github-slugger": "~2.0.0",
     "rehype-callouts": "~2.2.0",

@@ -8,10 +8,16 @@ import { withBase } from '../lib/with-base';
 interface Props {
   /** 页面自身的标题；省略时（首页）只用站名。 */
   title?: string;
+  /** 搜索结果里的摘要；省略时不写，由搜索引擎从正文里取。 */
+  description?: string;
+  /** 不该被搜索引擎收录的页面（找不到页）设为 true。 */
+  noindex?: boolean;
 }
 
 const SITE_NAME = 'Re:从零开始订阅 claude';
-const { title } = Astro.props;
+const { title, description, noindex = false } = Astro.props;
+// 构建时给了 site（部署时的 SITE_URL）才写规范网址。
+const canonical = Astro.site && !noindex ? new URL(Astro.url.pathname, Astro.site).href : undefined;
 const fullTitle = title ? `${title} - ${SITE_NAME}` : SITE_NAME;
 ---
 
@@ -21,6 +27,9 @@ const fullTitle = title ? `${title} - ${SITE_NAME}` : SITE_NAME;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{fullTitle}</title>
+    {description && <meta name="description" content={description} />}
+    {canonical && <link rel="canonical" href={canonical} />}
+    {noindex && <meta name="robots" content="noindex" />}
     <link rel="icon" type="image/svg+xml" href={withBase('/favicon.svg')} />
     <slot name="head" />
   </head>
