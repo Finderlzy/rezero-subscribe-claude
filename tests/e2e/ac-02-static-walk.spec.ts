@@ -1,7 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 
 // AC-02 的静态部分（Issue #25 的验收）：不运行 JS，从首页点“开始”，在选择页选方案三、iPhone，一路点到“后记”“附录”再回到首页，
-// 中途没有断链。没有 JS 时导航是“操作视图 + 未选”：选择页没有“下一步”，要点正文里的链接进入分支；
+// 中途没有断链。没有 JS 时导航是“操作视图 + 未选”：节点方案按默认的方案二走，“选择方案”的下一步是方案二，选方案三要点正文里的链接；
+// 手机系统没有默认，“选择手机系统”没有“下一步”，要点正文里的链接进入分支；
 // “订阅”的下一步指向“选择手机系统”（再点会回到手机的第一段），所以那里点正文里的订阅分支链接（架构 §3 M3 的降级体验）。
 // 每次换页都检查新页面是 200、标题对得上，并记下走过的页面。
 test.use({ javaScriptEnabled: false });
@@ -37,13 +38,14 @@ test('关掉 JS：首页 → 方案三 → iPhone → 后记 → 附录 → 首�
   seen.push('preface');
 
   await nextUntil(page, 'choose-plan', seen);
-  await expect(page.getByRole('navigation', { name: '上一步和下一步' }).getByRole('link', { name: /下一步/ })).toHaveCount(0);
+  await expect(page.getByRole('navigation', { name: '上一步和下一步' }).getByRole('link', { name: /下一步.*方案二：住宅 IP 服务器/ })).toBeVisible();
   await bodyLink(page, '方案三：直接买住宅节点', seen);
   await nextUntil(page, 'import-proxy', seen);
-  // 没有 JS 时导航是“未选”：汇合点的上一步是选择页（AC-09），不是刚走过的方案三
-  await expect(page.getByRole('navigation', { name: '上一步和下一步' }).getByRole('link', { name: /上一步.*选择方案/ })).toBeVisible();
+  // 没有 JS 时导航按默认的方案二算：汇合点的上一步是方案二（AC-09），不是刚走过的方案三
+  await expect(page.getByRole('navigation', { name: '上一步和下一步' }).getByRole('link', { name: /上一步.*方案二：住宅 IP 服务器/ })).toBeVisible();
 
   await nextUntil(page, 'choose-phone', seen);
+  await expect(page.getByRole('navigation', { name: '上一步和下一步' }).getByRole('link', { name: /下一步/ })).toHaveCount(0);
   await bodyLink(page, 'iPhone：把 App Store 改到奥地利', seen);
   await nextUntil(page, 'subscribe', seen);
   await bodyLink(page, 'iPhone：注册美区 Apple ID', seen);

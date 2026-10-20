@@ -36,6 +36,13 @@ Node ≥ 22.12，使用 npm，以 `package.json` 为准。`npm run dev`、`npm r
 - 页面（步骤、选择页、旁支页）和分叉点的标识用英文 kebab-case，同时也是文件名和 URL。**v2.0 发布后标识不能改**（ADR-0002）。
 - v2.0 起正文从重写稿原样导入：双链写中文标题 `[[选择方案]]`，不改命令、链接、优惠码、商家；要改内容就改重写稿再重新导入（ADR-0005）。`[!why]` 块不再使用（ADR-0004 取代 ADR-0003）。
 
+## 文章同步
+
+每次改了文章（`docs/rewrite/` 的原理版、操作版、附件），在同一个任务里同步到 Writing 和大肥鱼，两边都只读本仓库：
+
+- **Writing**（`~/Workspace/Writing`，作者博客）：改到的文件同步到 `docs/04技术/原理版/`、`docs/04技术/操作版/`，截图和说明图放 `docs/09附件/`。先 diff 再改，保留那边已有的改写：嵌入写 `![[09附件/文件名]]`；操作版链到只在原理版的页面写 `[[../原理版/标题]]`；frontmatter 的 `slug` 和链到博客自己文章的写法保持 Writing 原样。在 Writing 里单独提交，信息写“同步订阅教程：……”，规则以 Writing 的 `docs/AGENTS.md` 为准。
+- **大肥鱼**（`~/Workspace/dafeiyu`）：本仓库导入并提交后，在 `MaiBot-1.2.4/plugins/dafeiyu_tutorial_qa/` 运行 `python3 build_corpus.py ~/Workspace/rezero-subscribe-claude` 重新生成 `corpus.json`（记录本仓库的提交号），再按该目录 `README.md` 同步到服务器、重启 core。上服务器会影响线上群，先问用户；大肥鱼仓库不自动提交，在它的 `docs/project-board.md` 登记，规则以它的 `AGENTS.md` 为准。
+
 ## 测试指南
 
 - 路线、内容解析、本机状态用单元测试覆盖；每条 AC 至少有一个 e2e 用例或写明的人工核对方式。

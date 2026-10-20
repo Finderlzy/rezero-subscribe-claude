@@ -301,14 +301,15 @@ test.describe('截图图版', () => {
     expect((await plate(page, 1)).text).toBe(`图 ${(await plate(page)).stepNo!.padStart(2, '0')}-2`);
   });
 
-  test('数不清第几步时只用序号（架构 §11.4 W-4）', async ({ page }) => {
-    // check-ip 前面有没选的分叉点
+  test('节点方案没选时按默认的方案二数步骤（FR-13 v0.6）', async ({ page }) => {
+    // 数不清第几步时只用序号（架构 §11.4 W-4）：真实内容里已没有带截图、又在没选的分叉点之后的页面，
+    // 这一条由 src/scripts/route-enhance.test.ts 用没有 default 的夹具覆盖
     await page.goto('./check-ip/');
     await expectScriptRan(page);
     const first = await plate(page);
-    expect(first.stepNo).toBeNull();
-    expect(first.text).toBe('图 1');
-    expect((await plate(page, 1)).text).toBe('图 2');
+    expect(first.stepNo).toMatch(/^\d+$/);
+    expect(first.text).toBe(`图 ${first.stepNo!.padStart(2, '0')}-1`);
+    expect((await plate(page, 1)).text).toBe(`图 ${first.stepNo!.padStart(2, '0')}-2`);
   });
 
   test('切到原理视图后编号跟着原理视图的步骤号（清理旧账号前面多一个原理独有步骤）', async ({ page }) => {

@@ -1,7 +1,8 @@
 # 路线图：章节、分叉点、页面顺序和旁支页的唯一来源（架构 §3 M1/M2、需求 §5.2）。
 # 页面标识是 principle/<id>.md 的文件名，也是 URL /<id>/；v2.0 发布后不能改（ADR-0002）。
 # 章节的 intro 是标题卡下的一句话（design §4.1）：必须原样摘自这一章第一页的原理版正文，构建时核对（ADR-0005）。
-# 没有默认路线：分叉点没选时，它的分支段两侧的页面指向它的选择页（FR-13）。
+# 选择页可写 default：本机没选时按这个选项计算导航和目录（节点方案默认方案二）；没有 default 的分叉点没选时，
+# 它的分支段两侧的页面指向它的选择页（FR-13）。
 chapters:
   - id: start
     title: 开始
@@ -11,7 +12,7 @@ chapters:
     title: 准备节点和住宅 IP
     intro: 三个方案的目的都一样：让 claude 看到一个静态住宅 IP，而且只有你自己在用。
     items:
-      - { choose: node-plan, page: choose-plan }
+      - { choose: node-plan, page: choose-plan, default: plan-2 }
       - branch: node-plan
         options:
           plan-1: [plan1-buy-server, plan1-buy-isp, plan1-make-node, plan1-panel]

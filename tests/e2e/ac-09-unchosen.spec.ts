@@ -1,18 +1,18 @@
 import { expect, test } from '@playwright/test';
-import { chooseOption, expectScriptRan, stepLabel, stepNav, stepNo, stepTotal } from './route-helpers';
+import { chooseOption, expectScriptRan, stepLabel, stepNav, stepNo } from './route-helpers';
 
-// AC-09（FR-12、FR-13）：没有默认路线。在无痕窗口（新的浏览器上下文）打开汇合点和“订阅”，
-// 没选的分叉点处指向它的选择页；选择页没选时没有“下一步”，也没有“默认”字样。
+// AC-09（FR-12、FR-13）：节点方案默认方案二，手机系统没有默认。在无痕窗口（新的浏览器上下文）打开汇合点和“订阅”：
+// 节点方案没选时按方案二走；手机系统没选时指向它的选择页，选择页没选时没有“下一步”。两个选择页都没有“默认”字样。
 // 每个用例都等页面脚本跑完：脚本按空的本机选择重算，结果要和构建时写好的一致。
-test('导入代理软件：上一步是“选择方案”，进度只有章节', async ({ page }) => {
+test('导入代理软件：上一步是默认的方案二，进度写出第几步', async ({ page }) => {
   await page.goto('./import-proxy/');
   await expectScriptRan(page);
-  await expect(stepNav(page).getByRole('link', { name: /上一步.*选择方案/ })).toHaveAttribute('href', /\/choose-plan\/$/);
-  await expect(page.locator('[data-route-progress]')).toHaveText('准备节点和住宅 IP');
-  // 数不清第几步：眉题只有章和章名，不写步数（FR-10、design §4.1）
-  await expect(page.locator('[data-route-eyebrow]')).toHaveText('第 1 章 · 准备节点和住宅 IP');
-  expect(await stepNo(page)).toBeNull();
-  expect(await stepTotal(page)).toBeNull();
+  await expect(stepNav(page).getByRole('link', { name: /上一步.*方案二：住宅 IP 服务器/ })).toHaveAttribute(
+    'href',
+    /\/plan2-residential-server\/$/,
+  );
+  await expect(page.locator('[data-route-progress]')).toHaveText(/^准备节点和住宅 IP，第 \d+ 步，共 \d+ 步$/);
+  expect(await stepNo(page)).toMatch(/^\d+$/);
 });
 
 test('注册 Gmail：上一步是“选择手机系统”', async ({ page }) => {
@@ -27,12 +27,21 @@ test('订阅：下一步是“选择手机系统”', async ({ page }) => {
   await expect(stepNav(page).getByRole('link', { name: /下一步.*选择手机系统/ })).toHaveAttribute('href', /\/choose-phone\/$/);
 });
 
-test('选择页没选时没有“下一步”，没有“默认”字样', async ({ page }) => {
+test('选择方案没选时下一步是方案二、不标“已选”；选择手机系统没选时没有“下一步”；都没有“默认”字样', async ({ page }) => {
   for (const choose of ['choose-plan', 'choose-phone']) {
     await page.goto(`./${choose}/`);
     await expectScriptRan(page);
     await expect(stepNav(page).getByRole('link', { name: /上一步/ })).toBeVisible();
-    await expect(stepNav(page).getByRole('link', { name: /下一步/ })).toHaveCount(0);
+    if (choose === 'choose-plan') {
+      await expect(stepNav(page).getByRole('link', { name: /下一步.*方案二：住宅 IP 服务器/ })).toHaveAttribute(
+        'href',
+        /\/plan2-residential-server\/$/,
+      );
+    } else {
+      await expect(stepNav(page).getByRole('link', { name: /下一步/ })).toHaveCount(0);
+    }
+    // 默认方案不算读者选过：没有选项块标“已选”
+    await expect(page.locator('.option-block[aria-current="true"]')).toHaveCount(0);
     await expect(page.getByRole('main').getByText('默认')).toHaveCount(0);
     // 选择页不计步数：眉题结尾写“选择”（design §4.2）
     expect(await stepLabel(page)).toBe('选择');
@@ -45,7 +54,7 @@ test('收到 reader-choices-changed 后按新选择重算导航', async ({ page 
   await page.goto('./import-proxy/');
   await expectScriptRan(page);
   const prev = stepNav(page).getByRole('link', { name: /上一步/ });
-  await expect(prev).toHaveAttribute('href', /\/choose-plan\/$/);
+  await expect(prev).toHaveAttribute('href', /\/plan2-residential-server\/$/);
 
   await page.evaluate(() => {
     localStorage.setItem('rezero-subscribe-claude:v2', JSON.stringify({ choices: { 'node-plan': 'plan-3' }, view: 'operation' }));

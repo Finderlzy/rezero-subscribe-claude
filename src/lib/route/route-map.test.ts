@@ -60,7 +60,7 @@ function page(pages: PageMeta[], id: string): PageMeta {
 
 // ================================================================ 导航
 
-describe('没有默认路线：未选的分叉点指向选择页（FR-12、FR-13、AC-09 逻辑层）', () => {
+describe('没有 default 的分叉点：未选时指向选择页（FR-12、FR-13、AC-09 逻辑层）', () => {
   const map = sample();
 
   it('汇合点的上一步、分支前一页的下一步都是选择页', () => {
@@ -87,6 +87,43 @@ describe('没有默认路线：未选的分叉点指向选择页（FR-12、FR-13
   it('生效的选择不含没选的分叉点', () => {
     expect(map.view('preface', {}, 'operation').choices).toEqual({});
     expect(map.view('timezone', { phone: 'android' }, 'operation').choices).toEqual({ phone: 'android' });
+  });
+});
+
+describe('默认选项 default：本机没选时按它走（FR-13、AC-09 逻辑层）', () => {
+  const withDefault = (): RouteMap => {
+    const spec = sampleSpec();
+    chapter(spec, 'node-and-ip').items[0] = { choose: 'node-plan', page: 'choose-plan', default: 'plan-2' };
+    return buildRouteMap(spec, samplePages());
+  };
+  const map = withDefault();
+
+  it('没选时按默认选项计算：汇合点的上一步是默认选项的最后一步，选择页的下一步是它的第一步', () => {
+    expect(short(map.view('import-proxy', {}, 'operation').prev)).toBe('make-node');
+    expect(short(map.view('choose-plan', {}, 'operation').next)).toBe('plan2-server');
+    expect(short(map.view('clean-up', {}, 'operation').next)).toBe('choose-plan');
+    expect(map.view('preface', {}, 'operation').choices).toEqual({ 'node-plan': 'plan-2' });
+  });
+
+  it('本机的选择优先于默认；失效的选择退回默认', () => {
+    expect(short(map.view('import-proxy', { 'node-plan': 'plan-3' }, 'operation').prev)).toBe('plan3-node');
+    expect(short(map.view('import-proxy', { 'node-plan': 'plan-9' }, 'operation').prev)).toBe('make-node');
+  });
+
+  it('没有 default 的分叉点照旧折叠成选择页：从前言一直走到第二个选择页', () => {
+    expect(walk(map, {}, 'operation')).toContain('plan2-server');
+    expect(walk(map, {}, 'operation').at(-1)).toBe('choose-phone');
+  });
+
+  it('目录按默认选项标当前路线', () => {
+    const branch = map.outline({}, null, 'operation').flatMap((c) => c.items).find((i) => i.kind === 'branch' && i.fork === 'node-plan') as OutlineBranch;
+    expect(branch.options.map((o) => o.selected)).toEqual([false, true, false]);
+  });
+
+  it('default 不是选择页的选项时报错', () => {
+    const spec = sampleSpec();
+    chapter(spec, 'node-and-ip').items[0] = { choose: 'node-plan', page: 'choose-plan', default: 'plan-9' };
+    expectError(errorsOf(spec), 'route.yaml', /分叉点 node-plan 的 default（plan-9）不是选择页 options 里的选项/);
   });
 });
 

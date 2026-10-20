@@ -58,9 +58,10 @@ export function initRouteEnhance(doc: Document, data: RouteData, store: ReaderSt
 
   const fork = forkOfChoosePage(data, at);
   const render = () => {
-    const view = map.view(at, store.read().choices, mode());
-    renderNav(doc, view);
-    if (fork) markChoice(doc, view.choices[fork]);
+    const { choices } = store.read();
+    renderNav(doc, map.view(at, choices, mode()));
+    // 只标本机保存的选择：默认选项只决定导航，不算读者选过（FR-12）
+    if (fork) markChoice(doc, Object.hasOwn(choices, fork) ? choices[fork] : undefined);
   };
   const open = () => {
     const patch = openPatch(data, at);

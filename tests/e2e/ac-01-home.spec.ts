@@ -39,12 +39,16 @@ test('新浏览器打开首页：眉题、logo 和站名、一句话、小字信
     '第 4 章',
   ]);
   await expect(toc.locator('.toc-chapter-title')).toHaveText(['开始', '准备节点和住宅 IP', '注册和订阅', '结尾', '附录']);
-  // 结构同原理版目录页：分叉点下列各选项的页面，原理独有步骤标“原理”；首页没有视图，不弱化，也不标“其他路线”
+  // 结构同原理版目录页：分叉点下列各选项的页面，原理独有步骤标“原理”。首页没有视图，原理独有步骤不弱化；
+  // 节点方案默认方案二（FR-13 v0.6）：方案一、三的页面弱化并标“其他路线”，手机系统没有默认，两边都不弱化
   await expect(toc.locator('.toc-option-title')).toContainText(['方案一', '或：方案二', '或：方案三', 'iPhone', '或：安卓']);
   await expect(toc.getByRole('link', { name: /一、购买服务器/ })).toBeVisible();
   await expect(toc.getByRole('link', { name: /小结：从服务器到代理软件/ })).toContainText('原理');
-  await expect(toc.locator('[data-off-route]')).toHaveCount(0);
-  await expect(toc.getByText('其他路线').filter({ visible: true })).toHaveCount(0);
+  await expect(toc.locator('[data-toc-option="plan-2"]')).toHaveAttribute('data-selected', '');
+  const others = toc.locator('[data-toc-option="plan-1"] [data-toc-step], [data-toc-option="plan-3"] [data-toc-step]');
+  await expect(toc.locator('[data-off-route]')).toHaveCount(await others.count());
+  await expect(toc.locator('[data-toc-option="plan-1"] [data-off-route], [data-toc-option="plan-3"] [data-off-route]')).toHaveCount(await others.count());
+  await expect(toc.getByText('其他路线').filter({ visible: true })).toHaveCount(await others.count());
   // 参考页列在附录一章里，附录页下面
   const appendix = toc.locator('#chapter-appendix');
   await expect(appendix.getByRole('link')).toHaveText(['附录', '常见问题', 'IP 质量实测合集']);

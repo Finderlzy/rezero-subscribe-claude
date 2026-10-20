@@ -148,15 +148,16 @@ function parseSpec(raw: unknown, errors: RouteError[]): RouteSpec | null {
 function parseItem(item: unknown, where: string, err: (m: string) => void): RouteSpecItem | null {
   if (typeof item === 'string') return item;
   if (isRecord(item) && 'choose' in item) {
-    if (Object.keys(item).length !== 2 || typeof item.choose !== 'string' || typeof item.page !== 'string') {
-      err(`${where}：选择页写作 { choose: <分叉点>, page: <选择页标识> }`);
+    const extra = Object.keys(item).filter((k) => !['choose', 'page', 'default'].includes(k));
+    if (typeof item.choose !== 'string' || typeof item.page !== 'string' || extra.length > 0 || ('default' in item && typeof item.default !== 'string')) {
+      err(`${where}：选择页写作 { choose: <分叉点>, page: <选择页标识> }，可加 default: <选项>`);
       return null;
     }
     if (!KEBAB.test(item.choose)) {
       err(`${where}：分叉点标识 ${item.choose} 必须是英文 kebab-case`);
       return null;
     }
-    return { choose: item.choose, page: item.page };
+    return { choose: item.choose, page: item.page, ...(typeof item.default === 'string' && { default: item.default }) };
   }
   if (isRecord(item) && 'branch' in item) {
     const extra = Object.keys(item).filter((k) => k !== 'branch' && k !== 'options');
@@ -239,6 +240,9 @@ function checkSemantics(spec: RouteSpec, pages: PageMeta[], errors: RouteError[]
         errors.push({ file: pageFile(item.page), message: `是分叉点 ${item.choose} 的选择页，frontmatter 要写 options` });
       }
       forkOptions.set(item.choose, meta?.options?.map((o) => o.id) ?? []);
+      if (item.default !== undefined && meta?.options && !meta.options.some((o) => o.id === item.default)) {
+        routeErr(`分叉点 ${item.choose} 的 default（${item.default}）不是选择页 options 里的选项`);
+      }
       return;
     }
 
@@ -392,7 +396,7 @@ function compile(spec: RouteSpec, pages: PageMeta[]): RouteData {
       if (typeof item === 'string') return { kind: 'step', id: item };
       if ('choose' in item) {
         const options = byId.get(item.page)!.options!.map((o) => ({ id: o.id, title: o.title }));
-        data.forks[item.choose] = { page: item.page, options };
+        data.forks[item.choose] = { page: item.page, options, ...(item.default !== undefined && { default: item.default }) };
         return { kind: 'choose', fork: item.choose, id: item.page };
       }
       return { kind: 'branch', fork: item.branch, options: structuredClone(item.options) };
@@ -405,7 +409,7 @@ function compile(spec: RouteSpec, pages: PageMeta[]): RouteData {
 // ================================================================ 运行时
 
 /**
- * 当前路线上的一项。`fold` 是没选的分叉点的一段分支：它两侧的页面把“下一步”“上一步”指向该分叉点的选择页（FR-13）。
+ * 当前路线上的一项。`fold` 是没选、也没有默认选项的分叉点的一段分支：它两侧的页面把“下一步”“上一步”指向该分叉点的选择页（FR-13）。
  */
 type Entry = { kind: 'step' | 'choose'; id: PageId; chapter: number } | { kind: 'fold'; fork: ForkId; chapter: number };
 
@@ -440,13 +444,15 @@ export function routeMapFromData(data: RouteData): RouteMap {
   const isOption = (fork: ForkId, option: unknown): option is OptionId =>
     typeof option === 'string' && Object.hasOwn(data.forks, fork) && data.forks[fork]!.options.some((o) => o.id === option);
 
-  /** 本机保存的选择（失效项忽略）← 当前页所属选项（`at` 为 null 时不看当前页）。 */
+  /** 默认选项 ← 本机保存的选择（失效项忽略）← 当前页所属选项（`at` 为 null 时不看当前页）。 */
   function effectiveChoices(at: PageId | null, stored: Choices): Choices {
     const choices: Choices = {};
     const safeStored: Choices = isRecord(stored) ? stored : {}; // stored 来自本机存储，不信任它的形状
     for (const fork of Object.keys(data.forks)) {
       const saved = Object.hasOwn(safeStored, fork) ? safeStored[fork] : undefined;
+      const fallback = data.forks[fork]!.default;
       if (isOption(fork, saved)) choices[fork] = saved;
+      else if (fallback !== undefined) choices[fork] = fallback;
     }
     const home = at === null ? undefined : branchHome.get(at);
     // 共享步骤属于多个选项：本机已选的在其中就沿用，否则取第一个
@@ -561,7 +567,7 @@ export function routeMapFromData(data: RouteData): RouteMap {
       progress.total = steps.length;
     }
 
-    // 选择页未选时没有下一步（FR-12）
+    // 选择页未选（也没有默认选项）时没有下一步（FR-12）
     const unchosen = here.kind === 'choose' && choices[forkOfPage.get(here.id)!] === undefined;
     return {
       choices,

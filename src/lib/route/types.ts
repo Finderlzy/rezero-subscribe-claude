@@ -38,7 +38,10 @@ export interface RouteSpecChapter {
 }
 
 /** 普通页 | 选择页（分叉点 + 页面标识）| 某个分叉点的一段分支（各选项的页面序列）。 */
-export type RouteSpecItem = PageId | { choose: ForkId; page: PageId } | { branch: ForkId; options: Record<OptionId, PageId[]> };
+export type RouteSpecItem =
+  | PageId
+  | { choose: ForkId; page: PageId; default?: OptionId }
+  | { branch: ForkId; options: Record<OptionId, PageId[]> };
 
 /** 原理版 `principle/<id>.md` 里与路线有关的元数据（由 `loadSite()` 从 M1 映射而来，M2 不读文件）。 */
 export interface PageMeta {
@@ -97,6 +100,8 @@ export interface RouteDataFork {
   /** 选择页的标识 */
   page: PageId;
   options: { id: OptionId; title: string }[];
+  /** 默认选项：本机没选时按它计算导航和目录，但不写入本机、选择页不标“已选”（FR-13） */
+  default?: OptionId;
 }
 
 // ---------------------------------------------------------------- 页面视图

@@ -145,14 +145,15 @@ describe('真实 route.yaml', () => {
     expect(startOf(route)).toEqual({ kind: 'step', id: 'preface', title: '前言' });
   });
 
-  it('无痕打开（没有本机选择）：导入代理软件 → 上一步选择方案；注册 Gmail → 上一步选择手机系统；订阅 → 下一步选择手机系统（AC-09）', () => {
-    expect(nav('import-proxy').prev).toBe('choose-plan');
+  it('无痕打开（没有本机选择）：节点方案默认方案二，导入代理软件 → 上一步方案二；注册 Gmail → 上一步选择手机系统；订阅 → 下一步选择手机系统（AC-09）', () => {
+    expect(nav('import-proxy').prev).toBe('plan2-residential-server');
     expect(nav('register-gmail').prev).toBe('choose-phone');
     expect(nav('subscribe').next).toBe('choose-phone');
   });
 
-  it('选择方案未选时没有下一步', () => {
-    expect(nav('choose-plan').next).toBeNull();
+  it('选择方案未选时下一步是默认的方案二；选择手机系统未选时没有下一步', () => {
+    expect(nav('choose-plan').next).toBe('plan2-residential-server');
+    expect(nav('choose-phone').next).toBeNull();
   });
 
   it('iPhone：下载 Gmail → 上一步 iPhone：导入代理软件，下一步注册 Gmail（AC-08）', () => {
