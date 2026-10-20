@@ -113,3 +113,28 @@ test('两个选项共用的结尾（“两条路走完，都接着注册 Gmail�
   await expect(shared).toHaveCount(1);
   await expect(page.locator('.option-block').getByRole('link', { name: '注册 Gmail', exact: true })).toHaveCount(0);
 });
+
+// 路线图 default 的选项是推荐的：标题后一直写“推荐”；本机没选时它按“已选”的样子高亮（不标“已选”），选了别的就只高亮所选的
+test('选择方案：方案二标“推荐”，没选时高亮方案二；选了方案一后只高亮方案一', async ({ page }) => {
+  const background = (name: string) => optionBlock(page, name).evaluate((el) => getComputedStyle(el).backgroundColor);
+  await page.goto('./choose-plan/');
+  await expectScriptRan(page);
+  await expect(optionBlock(page, '方案二').getByText('推荐', { exact: true })).toBeVisible();
+  await expect(page.getByRole('main').getByText('推荐', { exact: true }).filter({ visible: true })).toHaveCount(1);
+  const plain = await background('方案三');
+  expect(await background('方案二')).not.toBe(plain);
+  expect(await background('方案一')).toBe(plain);
+
+  await chooseOption(page, '方案一');
+  await page.goto('./choose-plan/');
+  await expectScriptRan(page);
+  await expect(optionBlock(page, '方案二').getByText('推荐', { exact: true })).toBeVisible();
+  expect(await background('方案一')).not.toBe(plain);
+  expect(await background('方案二')).toBe(plain);
+});
+
+test('选择手机系统没有 default，不标“推荐”', async ({ page }) => {
+  await page.goto('./choose-phone/');
+  await expectScriptRan(page);
+  await expect(page.getByRole('main').getByText('推荐', { exact: true })).toHaveCount(0);
+});

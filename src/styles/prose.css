@@ -232,7 +232,8 @@
  * 行是 1px --border、8px 圆角、16px 20px 内边距，行与行间距 12px；整行可点：块内第一个链接（这个选项的第一步，
  * data-option-start）用伪元素撑满整行；块内其他链接（以及代码块、图片等可操作的内容）浮在上面，仍可单独点、选中。
  * 悬停：--surface-muted 底、--control-border 边框（这一行有底色了，边框不用再加粗），箭头右移 --nudge。
- * 本机选过的选项由页面脚本标 aria-current 和“已选”，边框和底色用 --accent / --accent-soft，不标默认。
+ * 本机选过的选项由页面脚本标 aria-current 和“已选”，边框和底色用 --accent / --accent-soft；本机没选时，
+ * 路线图 default 的选项（构建时标 data-recommended 和“推荐”）用同样的高亮，不标“已选”（FR-12）。
  * 手机上同样是竖排的行，内边距 14px 16px。
  */
 .prose .option-row {
@@ -287,7 +288,8 @@
   translate: var(--nudge) 0;
 }
 
-.prose .option-block[aria-current='true'] {
+.prose .option-block[aria-current='true'],
+.prose:not(:has(.option-block[aria-current])) .option-block[data-recommended] {
   background: var(--accent-soft);
   border-color: var(--accent);
 }
@@ -350,8 +352,9 @@
   }
 }
 
-/* “已选”标签（design v2.2 W4a）：--accent 字、12px，跟在选项标题后面 */
-.prose .option-current {
+/* “已选”“推荐”标签（design v2.2 W4a）：--accent 字、12px，跟在选项标题后面 */
+.prose .option-current,
+.prose .option-tag {
   display: inline-block;
   margin-left: var(--space-2);
   color: var(--accent);

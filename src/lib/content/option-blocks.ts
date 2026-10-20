@@ -24,14 +24,17 @@ declare module 'mdast' {
   }
 }
 
-/** 选项 → 各视图下的第一步 */
-type OptionStarts = ReadonlyMap<string, Record<ViewMode, PageId | null>>;
+/** 选项 → 各视图下的第一步；recommended 是路线图里这个分叉点的 default */
+interface OptionStarts {
+  starts: ReadonlyMap<string, Record<ViewMode, PageId | null>>;
+  recommended: string | undefined;
+}
 
 /**
  * 用 M2 的 `view(选择页, {分叉点: 选项}, 视图).next` 算出选择页每个选项的第一步，与“选择页的下一步”同一个定义
  * （M1 只在这里用 M2 的纯函数，见架构 §3 M1）。只有选择页才调用，所以 route.yaml 按需读取。
  * 页面元数据只填影响 `next` 的字段（标识、标题、principleOnly、选项标识），跳过和文案与第一步无关。
- * route.yaml 读不到或路线图本身有错时返回 null：错误由 loadSite 报出，这里不重复，也不再核对第一步。
+ * route.yaml 读不到或路线图本身有错时返回 null：错误由 loadSite 报出，这里不重复，也不再核对第一步，也不标推荐。
  */
 function optionStarts(index: LinkIndex, choosePage: PageId): OptionStarts | null {
   const file = join(index.contentRoot, 'route.yaml');
@@ -48,12 +51,13 @@ function optionStarts(index: LinkIndex, choosePage: PageId): OptionStarts | null
     const map = buildRouteMap(parseYaml(readFileSync(file, 'utf8')), pages);
     const entry = Object.entries(map.data.forks).find(([, f]) => f.page === choosePage);
     if (!entry) return null;
-    const [fork, { options }] = entry;
+    const [fork, { options, default: recommended }] = entry;
     const first = (option: string, mode: ViewMode) => {
       const next = map.view(choosePage, { [fork]: option }, mode).next;
       return next && next.kind !== 'home' ? next.id : null;
     };
-    return new Map(options.map(({ id }) => [id, { operation: first(id, 'operation'), principle: first(id, 'principle') }]));
+    const starts = new Map(options.map(({ id }) => [id, { operation: first(id, 'operation'), principle: first(id, 'principle') }] as const));
+    return { starts, recommended };
   } catch {
     return null;
   }
@@ -121,7 +125,7 @@ export function wrapOptionBlocks(tree: Root, page: IndexedPage, index: LinkIndex
   // 原理版在操作视图下也会顶替还没写的操作版（FR-21），这时两种视图都按它核对
   const hasOperation = index.pages.some((p) => p.kind === 'operation' && p.id === page.id);
   const modes: ViewMode[] = page.kind === 'operation' ? ['operation'] : hasOperation ? ['principle'] : ['principle', 'operation'];
-  const starts = optionStarts(index, page.id);
+  const route = optionStarts(index, page.id);
   const titleOf = (id: PageId) => index.pages.find((p) => p.kind !== 'operation' && p.id === id)?.title ?? id;
 
   const found: { option: string; heading: string; start: number }[] = [];
@@ -146,9 +150,12 @@ export function wrapOptionBlocks(tree: Root, page: IndexedPage, index: LinkIndex
     }
     const title = tree.children[start] as Paragraph;
     title.data = { ...title.data, hProperties: { className: ['option-title'] } };
+    // 路线图的 default 就是推荐的选项：标题后加“推荐”，块标 data-recommended，没选时 CSS 按它高亮（FR-12）
+    const recommended = route?.recommended === option;
+    if (recommended) title.children.push({ type: 'html', value: ' <span class="option-tag">推荐</span>' } as unknown as Paragraph['children'][number]);
     const block = {
       type: BLOCK_TYPE,
-      data: { hName: 'section', hProperties: { className: ['option-block'], dataOption: option } },
+      data: { hName: 'section', hProperties: { className: ['option-block'], dataOption: option, ...(recommended && { dataRecommended: '' }) } },
       children: [...tree.children.slice(start, end), arrow()],
     } as unknown as RootContent;
     // 编号圆圈和块合成一行（.option-row）：圆圈在左、块在右（v2.2 W4a）
@@ -164,7 +171,7 @@ export function wrapOptionBlocks(tree: Root, page: IndexedPage, index: LinkIndex
     // hProperties 由 mdast-util-to-hast 读取，原样成为 <a> 的属性
     const data = link.data as { hProperties?: Record<string, unknown> };
     data.hProperties = { ...data.hProperties, dataOptionStart: '' };
-    const expected = starts?.get(option);
+    const expected = route?.starts.get(option);
     if (!expected) continue;
     for (const mode of modes) {
       const want = expected[mode];

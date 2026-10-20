@@ -96,6 +96,23 @@ describe('选项块', () => {
     expect(html).not.toMatch(/<a[^>]*>\s*<span class="option-no"/);
   });
 
+  it('路线图写了 default 的选项：块标 data-recommended，标题后加“推荐”；其他块不标', async () => {
+    fx.write('route.yaml', ROUTE.replace('{ choose: f, page: choose }', '{ choose: f, page: choose, default: b }'));
+    fx.write('operation/choose.md', '# 选一个\n');
+    const { html, problems } = await render('principle/choose.md', md(OPTIONS, '# 选一个\n\n**甲方案**\n\n[[甲：先讲道理]]\n\n**乙方案**\n\n[[乙：动手]]\n'));
+    expect(messages(problems)).toEqual([]);
+    expect(html).toContain('<section class="option-block" data-option="b" data-recommended=""><p class="option-title"><strong>乙方案</strong> <span class="option-tag">推荐</span></p>');
+    expect(html).toContain('<section class="option-block" data-option="a"><p class="option-title"><strong>甲方案</strong></p>');
+    expect(html.match(/推荐/g)).toHaveLength(1);
+  });
+
+  it('没有 default 的分叉点不标推荐', async () => {
+    fx.write('operation/choose.md', '# 选一个\n');
+    const { html } = await render('principle/choose.md', md(OPTIONS, '# 选一个\n\n**甲方案**\n\n[[甲：先讲道理]]\n\n**乙方案**\n\n[[乙：动手]]\n'));
+    expect(html).not.toContain('推荐');
+    expect(html).not.toContain('data-recommended');
+  });
+
   it('分隔线和标题也结束一块；最后一块包到正文结尾', async () => {
     fx.write('operation/choose.md', '# 选一个\n');
     const body = '# 选一个\n\n**甲方案**\n\n[[甲：先讲道理]]\n\n---\n\n后话\n\n**乙方案**\n\n[[乙：动手]]\n\n## 小标题\n\n**甲方案2**\n';

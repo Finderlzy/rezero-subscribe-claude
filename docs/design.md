@@ -249,6 +249,7 @@ v2.2 另看了 Josh Comeau 的个人站（joshwcomeau.com）：页头一条浅�
   - 选项标题（原文独占一段的加粗文字）17px 600；说明段落 15px `--text-muted`；块里的步骤列表收紧成 15px `--text-muted`，链接仍是 `--accent`。
 - 整行可点：块内第一个链接（这个选项的第一步）的点击区域撑满整行；块内其他链接浮在上面，仍可单独点。悬停：底色 `--surface-muted`、边框 `--control-border`、箭头右移 4px。
 - 本机选过的选项：边框 `--accent`、底色 `--accent-soft`，标题后加 12px 的“已选”（`--accent`），块上标 `aria-current="true"`。**没有任何“默认”字样**（FR-12）。
+- 推荐的选项（route.yaml 里分叉点的 default，构建时标 `data-recommended`）：标题后一直有 12px 的“推荐”（`--accent`，和“已选”同样式）；本机没选时它用“本机选过”的边框和底色，但不标“已选”和 `aria-current`；选了别的就不再高亮（2026-10-20）。
 - 底部导航：“上一步”照常；“下一步”只在已选时出现，指向所选选项的第一步（FR-12）。
 
 ### 4.3 两种视图
