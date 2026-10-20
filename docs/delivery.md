@@ -53,7 +53,7 @@ AC-13 比对脚本这次先报了 37 条差异，逐条查过都是脚本落后�
 | AC-05 | 五、打开面板的跳过 | `ac-05-skip.spec.ts` | 通过 |
 | AC-06 | 原理/操作整页切换，跨页保持 | `ac-06-view-toggle.spec.ts` | 通过 |
 | AC-07 | 视频区域 | `ac-07-video.spec.ts`（没有视频时没有视频区域、不请求视频平台）；有视频时的门面由 `VideoFacade.test.ts` 覆盖 | 部分：现有内容没有带视频的步骤，真实播放不适用 |
-| AC-08、AC-09 | 无痕窗口直接打开、没选时指向选择页 | `ac-08-direct-url.spec.ts`、`ac-09-unchosen.spec.ts` | 通过 |
+| AC-08、AC-09 | 无痕窗口直接打开；节点方案没选时按默认的方案二走（2026-10-20 起），手机系统没选时指向选择页 | `ac-08-direct-url.spec.ts`、`ac-09-unchosen.spec.ts` | 通过 |
 | AC-10 | 没有“默认”、已读标记和进度 | `ac-10-no-default.spec.ts`、`ac-10-no-progress.spec.ts` | 通过 |
 | AC-11 | 参考页“返回刚才的步骤” | `ac-11-reference-return.spec.ts` | 通过 |
 | AC-12 | TODO 显示“作者待补”，构建列出 | `ac-12-author-todo.spec.ts` + 构建输出 | 通过 |
