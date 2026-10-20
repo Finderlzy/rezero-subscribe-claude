@@ -40,7 +40,7 @@ Node ≥ 22.12，使用 npm，以 `package.json` 为准。`npm run dev`、`npm r
 
 每次改了文章（`docs/rewrite/` 的原理版、操作版、附件），在同一个任务里同步到 Writing 和大肥鱼，两边都只读本仓库：
 
-- **Writing**（`~/Workspace/Writing`，作者博客）：改到的文件同步到 `docs/04技术/原理版/`、`docs/04技术/操作版/`，截图和说明图放 `docs/09附件/`。先 diff 再改，保留那边已有的改写：嵌入写 `![[09附件/文件名]]`；操作版链到只在原理版的页面写 `[[../原理版/标题]]`；frontmatter 的 `slug` 和链到博客自己文章的写法保持 Writing 原样。在 Writing 里单独提交，信息写“同步订阅教程：……”，规则以 Writing 的 `docs/AGENTS.md` 为准。
+- **Writing**（`~/Workspace/Writing`，作者博客）：改到的文件同步到 `docs/04技术/原理版/`、`docs/04技术/操作版/`，截图和说明图放 `docs/09附件/`。先 diff 再改，保留那边已有的改写：嵌入写 `![[09附件/文件名]]`；操作版链到只在原理版的页面写 `[[../原理版/标题]]`；frontmatter 的 `slug`、链到另一版目录页（如 `[如何订阅claude](../subscribe-claude-new/)`）和博客其他文章的网址链接保持 Writing 原样。在 Writing 里单独提交，信息写“同步订阅教程：……”，规则以 Writing 的 `docs/AGENTS.md` 为准。
 - **大肥鱼**（`~/Workspace/dafeiyu`）：本仓库导入并提交后，在 `MaiBot-1.2.4/plugins/dafeiyu_tutorial_qa/` 运行 `python3 build_corpus.py ~/Workspace/rezero-subscribe-claude` 重新生成 `corpus.json`（记录本仓库的提交号），再按该目录 `README.md` 同步到服务器、重启 core。上服务器会影响线上群，先问用户；大肥鱼仓库不自动提交，在它的 `docs/project-board.md` 登记，规则以它的 `AGENTS.md` 为准。
 
 ## 测试指南
