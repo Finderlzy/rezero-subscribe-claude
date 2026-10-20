@@ -116,6 +116,15 @@ v2.0 的素材换成作者的重写稿 `docs/rewrite/原理版/`、`docs/rewrite
 
 `截图 2026-10-15 13-43-53 1.png`（`clean-up` 两版都引用）原本不在 `附件/` 里。仓库根目录去掉“ 1”的同名原图没有打码（露出账号名、Organization ID、侧栏对话标题和自定义指令）；按作者选定，从原图裁剪出 Settings → Account 的标题和“Log out of all devices”一行（含 Log out 按钮），其余内容不在图里，核对没有个人信息后入库 ✓（同时放了一份到重写稿的 `附件/`，便于重跑导入）。
 
+2026-10-20 `iphone-proxy` 补上 V2Box 的导入步骤，新入库 4 张截图（作者发来的手机截图，转成 592×1280 的 jpg，和“改到奥地利”那组一样宽 `|262`）：
+
+| 截图 | 核对结果 |
+| --- | --- |
+| `iPhone导入代理-1-下载V2Box.jpg` | App Store 商品页，只有状态栏，没有个人信息 ✓ |
+| `iPhone导入代理-2-选择China.jpg` | V2Box 首次设置页，没有个人信息 ✓ |
+| `iPhone导入代理-3-首页.jpg` | V2Box 首页，未连接，没有节点信息 ✓ |
+| `iPhone导入代理-4-配置页.jpg` | 配置页是空的（Local (0)），没有节点链接 ✓ |
+
 ### v2 全文比对（#28）
 
 一次性脚本 `scripts/compare-migration.mjs` 比对重写稿 `docs/rewrite/` 和构建产物 `dist/`。脚本不负责构建，先构建再比对：
