@@ -73,6 +73,7 @@ v2.0 的素材换成作者的重写稿 `docs/rewrite/原理版/`、`docs/rewrite
 | “1 人独享”怎么确认真的只有我在用？ | `faq/dedicated-ip-check` | 参考页，沿用 1.0.0 标识 |
 | 测出来好几个不同的 IP？ | `faq/different-ips` | 参考页 |
 | 分流规则具体怎么写？ | `faq/split-routing` | 参考页，沿用 1.0.0 标识 |
+| 节点导入小火箭后用不了？ | `faq/shadowrocket-not-working` | 参考页，2026-10-20 新增 |
 | IP 质量实测合集 | `reference/ip-tests` → `/ip-tests/` | 参考页 |
 | 实测：proxy.qsu.hk 白嫖 ISP | `ip-tests/qsu-free-isp` | 参考页 |
 | 实测：VoyraCloud 住宅服务器 | `ip-tests/voyracloud` | 参考页 |

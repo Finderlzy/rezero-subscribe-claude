@@ -13,9 +13,10 @@ const ITEMS = [
   { id: 'dedicated-ip-check', title: '“1 人独享”怎么确认真的只有我在用？' },
   { id: 'different-ips', title: '测出来好几个不同的 IP？' },
   { id: 'split-routing', title: '分流规则具体怎么写？' },
+  { id: 'shadowrocket-not-working', title: '节点导入小火箭后用不了？' },
 ];
 
-test('/faq/ 按重写稿的顺序列出 7 条问题，每条链到 /faq/<id>/', async ({ page }) => {
+test('/faq/ 按重写稿的顺序列出 8 条问题，每条链到 /faq/<id>/', async ({ page }) => {
   await page.goto('./faq/');
   const links = page.locator('.prose li a');
   await expect(links).toHaveText(ITEMS.map((item) => item.title));

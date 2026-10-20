@@ -148,7 +148,7 @@ v2 对 M1、M2、M4 是改动，M3 是重做，M5 的校验规则随 M1、M2 调
 | | 订阅之后 `after-subscribe` | F2 订阅段的汇合点 |
 | 结尾 | 致谢 `thanks` → 后记 `afterword` | 后记的“下一步”是“附录” |
 | 附录 | 附录 `appendix` | 2026-10-17 加入；链到两个参考页，“下一步”是“回到首页” |
-| 参考页 | 常见问题 `/faq/`（各条问题的目录）；各条问题 `/faq/<id>/`：SSH 提示 Permission denied？ `ssh-permission-denied`、SSH 端口不是 22？ `ssh-port-not-22`、装过了，想重装？ `reinstall`、面板的用户名、密码、端口，大家都一样，安全吗？ `panel-login`、“1 人独享”怎么确认真的只有我在用？ `dedicated-ip-check`、测出来好几个不同的 IP？ `different-ips`、分流规则具体怎么写？ `split-routing`（2026-10-17 一问一页，`reinstall`、`dedicated-ip-check`、`split-routing` 沿用 1.0.0 的标识）；IP 质量实测合集 `/ip-tests/`；实测：proxy.qsu.hk 白嫖 ISP `qsu-free-isp`、实测：VoyraCloud 住宅服务器 `voyracloud`、实测：丽萨住宅服务器 `lisahost`、实测：QSU 住宅服务器 `qsu-residential`、实测：ipequal 住宅节点 `ipequal`、实测：Decodo ISP `decodo`（都在 `/ip-tests/` 下） | 不进入序列 |
+| 参考页 | 常见问题 `/faq/`（各条问题的目录）；各条问题 `/faq/<id>/`：SSH 提示 Permission denied？ `ssh-permission-denied`、SSH 端口不是 22？ `ssh-port-not-22`、装过了，想重装？ `reinstall`、面板的用户名、密码、端口，大家都一样，安全吗？ `panel-login`、“1 人独享”怎么确认真的只有我在用？ `dedicated-ip-check`、测出来好几个不同的 IP？ `different-ips`、分流规则具体怎么写？ `split-routing`、节点导入小火箭后用不了？ `shadowrocket-not-working`（2026-10-17 一问一页，`reinstall`、`dedicated-ip-check`、`split-routing` 沿用 1.0.0 的标识；`shadowrocket-not-working` 2026-10-20 新增）；IP 质量实测合集 `/ip-tests/`；实测：proxy.qsu.hk 白嫖 ISP `qsu-free-isp`、实测：VoyraCloud 住宅服务器 `voyracloud`、实测：丽萨住宅服务器 `lisahost`、实测：QSU 住宅服务器 `qsu-residential`、实测：ipequal 住宅节点 `ipequal`、实测：Decodo ISP `decodo`（都在 `/ip-tests/` 下） | 不进入序列 |
 
 可跳过步骤依据重写稿正文里的“可以跳过/可选/已经有的不用再下”。v1 的 `before-you-start`、`ssh-connect`、`run-script`、`v2rayn-*`、`clash-verge-*`、`webrtc`、`ipv6`、`replace-ip-or-refund`、`about-kyc` 等页面和 `/choose/<fork>/`、`/done/` 不再存在。
 
@@ -245,7 +245,7 @@ v2 对 M1、M2、M4 是改动，M3 是重做，M5 的校验规则随 M1、M2 调
 | AC-22 | FR-11、FR-16、FR-20 | 在“后记”点“下一步” → 进入“附录”，附录链到常见问题和 IP 质量实测合集；附录的“下一步”是“回到首页”；目录的最后一章是附录，两个参考页列在附录页下面；参考页没有上一步/下一步（v0.4） |
 | AC-24 | FR-22 | 打开首页、附录和常见问题 → 都有“加入群聊”链接指向加群地址、显示群号；附录和常见问题在 1280px 下显示二维码，360px 下不显示（v0.5） |
 | AC-25 | FR-23、FR-22 | 打开后记 → 页眉有四个联系方式链接，地址和 `src/lib/contact.ts` 一致：1280px 下是图标，360px 下点“联系”才展开、页面不横向滚动；后记正文末尾有群号和加群链接（v0.7） |
-| AC-23 | FR-20 | 打开常见问题 → 列出 7 条问题，各自链到 `/faq/<id>/`；在“测 IP 质量”点“测出来好几个不同的 IP？” → 打开这一问的页面，“返回刚才的步骤”能回去；各条问题有“回到：常见问题”（v0.4） |
+| AC-23 | FR-20 | 打开常见问题 → 列出 8 条问题，各自链到 `/faq/<id>/`；在“测 IP 质量”点“测出来好几个不同的 IP？” → 打开这一问的页面，“返回刚才的步骤”能回去；各条问题有“回到：常见问题”（v0.4） |
 
 ## 9. 假设与待决策项
 
