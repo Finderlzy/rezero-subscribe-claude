@@ -510,7 +510,7 @@ function search(index: SearchEntry[], query: string, view: ViewMode, limit = 10)
 
 ### 13.3 M3 页面（按 design.md v3）
 
-design.md 要先按 FR-72 写出 v3 版本（令牌、尺寸、断点、深色配色、Q-17 的 360px 顶栏试排），M3 的实现以它为准；本节只定结构和接口。
+[design.md](design.md) v3（2026-10-21 定稿）给出令牌、尺寸、断点、深色配色和 Q-17 的 360px 顶栏预算，M3 的实现以它为准；本节只定结构和接口。
 
 - **断点**：`720px` 一档取代 `1100px` 的“常驻目录”档；具体令牌由 design 定，`tokens.css` 和 `tokens.test.ts` 同步。
 - **顶栏**：`SiteHeader.astro` 改为文档站顶栏，左边 `Logo`（小号）+ 站名 + `Mascot`，右边 `SiteSearch`、`ViewToggle`（文字链接风格）、`ContactLinks`；<720px 左边多“目录”按钮。不吸顶。首页不用顶栏（FR-18）。
@@ -581,14 +581,14 @@ tests/fixtures/moved-*/         跳转表的坏内容用例（目标不存在、
 
 | 编号 | 事项 | 影响 | 阻塞？ |
 | --- | --- | --- | --- |
-| Q-17 | 360px 顶栏放不放得下（需求遗留） | design v3 试排 | 否，设计阶段处理 |
+| Q-17 | 360px 顶栏放不放得下（需求遗留） | 已试排：design §4.0 预算约 320px，放得下；实现后由 e2e 核对 | 否 |
 | Q-18 | 合并清单、合并页标题和新标识（需求遗留）；ADR-0006 给了提议 | `route.yaml`、`moved:`、ADR-0006 末尾的表、提到被合并页面的 AC | 阻塞合并和跳转的**数据**；机制（`moved:`、`section-hash`、`merge-rewrite.mjs`、M6）可以先用测试数据做完 |
 | A-05 | 小节只在原理版时，从操作视图跳过去会切到原理视图并写进本机（ADR-0006） | 读者之后打开的页面也是原理视图 | 否；如作者不想要，改成只切本页不写本机 |
-| A-06 | 首页首屏一句话的构建核对是否保留 | design v3 定 | 否 |
+| A-06 | 首页首屏一句话的构建核对是否保留 | 已定保留（design V14） | 否 |
 
 ### 13.10 建议的实施顺序（交给 project-plan）
 
-1. design.md v3（含 Q-17 试排）——其余 M3 任务的前提。
+1. ~~design.md v3（含 Q-17 试排）~~ 已完成（2026-10-21）。
 2. M3 骨架：顶栏、两栏布局、侧边栏 `<details>` 和小标题列表、翻页、首页、选择页卡片、删除 v2.2 色带和标题卡（可拆成两三个 Issue）。
 3. M6 搜索（依赖 2 的顶栏挂载点；`src/lib/search/` 可以和 2 并行）。
 4. 跳转和锚点机制：`moved:` 段及校验、`MovedPage`、`section-hash`、双链的视图锚点、sitemap 过滤（用 `plan1-free-isp` 和测试路线图验证，不等 Q-18）。
