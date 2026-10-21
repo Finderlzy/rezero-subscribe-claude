@@ -4,6 +4,7 @@
 - 依据：[CONTEXT.md](../CONTEXT.md)、[docs/requirements.md](requirements.md)（v0.1）
 - 检索方式：网页检索 + 官方文档 + npm registry 元数据（`npm view`）。本机没有 `gh`，没有用 GitHub API；没有克隆、安装或运行任何第三方代码。
 - v2.0 补充（2026-10-15）：只为新增的 logo 转曲需求补做检索，见 §5；其余能力没有新的复用需求，沿用下文结论。本次用 `gh api` 和 npm registry 查询。
+- v3 补充（2026-10-21）：只为站内搜索、文档站外观和合并页补做检索，见 §5.1。
 - 结论标记：**文档/源码核查** = 只读过 README、官方文档或 npm 元数据，没有实际运行过；**已验证** = 在本项目里跑通过（2026-10-13 检索时没有这一类；#2 的实测见 §4.1）。
 
 ## 1. 检索词
@@ -45,7 +46,7 @@
 | 单元测试 | `vitest` 5.0.4 | Node `^22.12 \|\| ^24 \|\| >=26` | MIT；活跃 | 采用 |
 | 端到端测试 | `@playwright/test` 1.64.0 | 可以设置视口、拦截域名，正好用来测 AC-16、AC-17 | Apache-2.0；活跃 | 采用 |
 | 类型检查 | `@astrojs/check` 0.9.10 | peer 依赖 `typescript ^5 \|\| ^6`，而 TypeScript 最新版已经是 7.0.2 | MIT | 采用，**TypeScript 固定 6.x**，安装时再核实一遍 |
-| 站内搜索 | `pagefind` 1.5.2 | 静态全文搜索 | MIT | 首期不需要，不引入 |
+| 站内搜索 | `pagefind` 1.5.2 | 静态全文搜索 | MIT | 首期不需要，不引入（v3 的结论见 §5.1） |
 
 ## 4. 推荐方向与缺口
 
@@ -106,6 +107,29 @@
 
 缺口：没有现成工具做“仿某个标题字风格”的版式，这部分是 `scripts/build-logo.mjs` 里的自研排版参数，由作者对照参考图确认（AC-20）。
 
+## 5.1 v3 补充：文档站外观、站内搜索、合并页（2026-10-21）
+
+依据需求 v0.9 §0.1、§0.2。v3 新出现的复用需求只有**站内搜索**（FR-24）；文档站外观由作者限定为“只学参考站、不换框架、不引入现成文档主题”（需求三级边界 Ask first），合并页和旧网址跳转是本项目内容管线的延伸。检索方式：npm registry 元数据（`npm view <包> version license time.modified`，2026-10-21）+ 官方文档；没有克隆、安装或运行第三方代码。结论都是**文档/源码核查**。
+
+检索词：`static site search titles headings client side`、`pagefind astro`、`minisearch` / `flexsearch` / `fuse.js`、`vuepress default theme search headers`。
+
+| 候选 | 覆盖 | 缺口 | 许可证 / 维护 | 结论 |
+| --- | --- | --- | --- | --- |
+| [Pagefind](https://pagefind.app/) 1.5.2（及 `astro-pagefind` 2.0.1） | 构建后扫 `dist/` 生成分片索引，自带 UI，CJK 分词，不发外部请求 | 定位是**正文全文**搜索，需求把全文搜索列为 v3 非目标；匹配到小标题后要“切到含它的视图再滚动”（FR-24），它的结果只给 URL 和片段，要包一层；构建多一步、产物多几十个文件；新增依赖属于 Ask first | MIT；2026-04 有发布 | 不采用（超出范围） |
+| [MiniSearch](https://github.com/lucaong/minisearch) 7.2.0 | 浏览器内倒排索引、前缀和模糊匹配 | 默认按空格分词，中文要自带分词器；数据量只有约 100 条，倒排索引没有收益 | MIT；2025-09 | 不采用 |
+| [FlexSearch](https://github.com/nextapps-de/flexsearch) 0.8.212 | 高性能全文索引，可配 CJK 编码 | 同上；0.8 的 API 变动大 | Apache-2.0；2025-09 | 不采用 |
+| [Fuse.js](https://github.com/krisk/Fuse) 7.5.0 | 模糊匹配，小数据集合适 | 模糊打分对两三个汉字的查询容易给出不相干的结果；仍是新增依赖 | Apache-2.0；2026-08 | 不采用 |
+| VuePress 1.9.10 默认主题的顶栏搜索（`@vuepress/plugin-search`） | **正好是需求要的范围**：只匹配页面标题和 h2/h3，下拉列出“页面 > 小标题”，上下键选、回车打开，`searchMaxSuggestions` 限条数 | Vue 组件，不能直接用在 Astro | MIT；VuePress 1 已停止开发 | **仅作参考**：照它的范围和交互，自己用几十行代码做子串匹配 |
+| Starlight 0.42.6 / VitePress | 文档站外壳 + 搜索 | 作者 2026-10-21 选定不换框架、不引入现成文档主题（需求三级边界） | MIT | 结论同 §2，不采用 |
+
+**推荐**：站内搜索**自研、不加依赖**（新模块 M6，见 [architecture.md §13](architecture.md#13-v3-增量架构2026-10-21)）。理由：索引条目约 100 条（41 个原理版页面、16 个参考页，合并后每页几个小标题），整份 JSON 只有几 KB，对全部条目做规范化后的子串匹配就足够快；中文不需要分词；“匹配小标题时切视图再滚动”本来就要自己写。
+
+**文档站外观**：参考 VuePress 1 默认主题的布局（顶栏、`sidebarDepth` 式的小标题列表、只展开当前分组、`prev`/`next` 文字链接、首页 hero），只看文档和参考站的页面，不复制它的样式表；具体尺寸由 design.md v3 定。
+
+**合并页**：机械合并（拼文件、标题降级、去手写页脚、改双链）没有现成工具，和导入脚本共用解析规则，自研为开发脚本 `scripts/merge-rewrite.mjs`。旧网址跳转用 Astro 自带的 `redirects` 做不到“跳到视图对应的小节 + 没有 JS 时显示说明”，改为自己生成跳转页（[ADR-0006](adr/0006-merged-pages-and-moved-urls.md)）。
+
+缺口：没有。中文搜索的匹配质量（例如“时区”能否命中“改时区”）由 M6 的单元测试和 AC-28 覆盖。
+
 ## 6. 证据链接
 
 - Material for MkDocs 维护期：<https://discuss.privacyguides.net/t/mkdocs-material-is-now-in-maintenance-mode/32736>
@@ -125,3 +149,5 @@
 - npm registry 元数据：2026-10-13 用 `npm view <包> version license` 查询
 - opentype.js `Font.getPath()`：<https://github.com/opentypejs/opentype.js#fontgetpathtext-x-y-fontsize-options>（2026-10-15）
 - 字体许可：<https://github.com/google/fonts/tree/main/ofl/cinzel>、<https://github.com/google/fonts/tree/main/ofl/cormorantgaramond>、<https://github.com/google/fonts/tree/main/ofl/robotocondensed>、<https://github.com/adobe-fonts/source-han-sans/blob/release/LICENSE.txt>（2026-10-15）
+- v3 搜索候选（2026-10-21）：<https://pagefind.app/docs/>、<https://github.com/lucaong/minisearch>、<https://github.com/nextapps-de/flexsearch>、<https://github.com/krisk/Fuse>；npm registry 元数据 2026-10-21 查询
+- VuePress 1 默认主题（搜索范围、侧边栏、首页）：<https://v1.vuepress.vuejs.org/theme/default-theme-config.html>；参考站：<https://docs.wallpaperengine.io/en/scene/first/gettingstarted.html>

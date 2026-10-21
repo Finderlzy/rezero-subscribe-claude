@@ -10,6 +10,8 @@
 
 > 2026-10-19 修订：作者改用方案二，删掉方案一的“一、白嫖 ISP”（`/plan1-free-isp/`，已上线）。删页和换标识一样处理：旧标识登记在 `src/lib/route/route-map.ts` 的 `REMOVED_PAGES`（旧标识 → 跳到的页面），`astro.config.mjs` 用它生成 `redirects` 跳转页（目标自己拼 base，Astro 不拼）；路线图校验不许再把这个标识分给别的页面，AC-15 的用例在根路径和子路径下各核对一次跳转。
 
+> 2026-10-21 修订（v3，[ADR-0006](0006-merged-pages-and-moved-urls.md)）：作者批准 v3 合并页面，这是“已发布的 URL 不能改”的一次例外。合并页用新标识，被合并掉的旧标识和 2026-10-19 删掉的 `plan1-free-isp` 一起登记在 `route.yaml` 的 `moved:` 段，跳到合并页里对应的小节；`REMOVED_PAGES` 和 Astro `redirects` 不再使用。合并清单以外的改动仍要先问作者。
+
 ## Considered Options
 
 - **中文路径**：分享出去时会被编码成很长的 `%E5…`，在聊天软件里不好看，也容易被截断。
