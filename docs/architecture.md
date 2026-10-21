@@ -595,3 +595,22 @@ tests/fixtures/moved-*/         跳转表的坏内容用例（目标不存在、
 5. `merge-rewrite.mjs`（不等 Q-18，用测试重写稿验证）。
 6. Q-18 定后：按清单合并、导入、改路线图和跳转表、同步 Writing 和大肥鱼。
 7. v3 整体验收（AC-26–AC-33、AC-31 回归），版本升到 3.0.0。
+
+### 13.11 v3 实施前评审（2026-10-21）
+
+范围：需求 v0.9（FR-05、FR-16、FR-18、FR-24、FR-25、FR-72、AC-26–AC-33）对照本节 13.1–13.10、design v3 和 ADR-0006，再对照 v2.2 代码（`PageLayout.astro`、`Toc.astro`、`view-toggle.ts`、`[page].astro`、`route-map.ts`、`astro.config.mjs`、`tests/e2e/`）。这是文档评审，没有运行验证。**结论：通过，没有阻塞项**；以下几条已在本节或实施计划里落实：
+
+| # | 发现 | 影响 | 处理 |
+| --- | --- | --- | --- |
+| R-1 | 侧边栏要列当前页两版的 h2（FR-16），但 `[page].astro` 只取 `render()` 的 `Content`，`PageLayout`/`Toc` 没有标题数据 | V02 无从下手 | 接口：`[page].astro` 把两版 `render()` 的 `headings`（depth 2）传给 `PageLayout` 的新参数 `sections: { principle: Heading[]; operation?: Heading[] }`，再传给 `Toc`；参考页只有 `principle` |
+| R-2 | `section-hash` 要切视图但不能像按钮那样滚回顶部；`view-toggle.ts` 现在没有导出切换函数 | V08 需要改 view-toggle 的接口 | `initViewToggle` 返回 `{ setView(view, { scroll: boolean }) }`，按钮调用时 `scroll: true`；`section-hash` 收到它 |
+| R-3 | `tests/e2e/ac-02-chapter-card.spec.ts` 专测 v2.2 的页头色带和章首页一组，v3 按 FR-72 去掉这部分 | 按 AC-31“不删检查项”会误以为不能删 | 这是需求删掉的功能，不是放宽断言：V01 把这个文件换成 AC-26 的断言（找不到色带和章首页一组、眉题和 h1 仍在），在提交说明里写明对应 FR-72 |
+| R-4 | 手机吸底翻页栏取消（design V11），`ac-16-responsive`、`a11y` 里有按底栏高度预留空白和 44px 按钮的断言 | 断言会失败 | V04 按 AC-30 改成“翻页链接可点区域 ≥44px”，同样是功能变化，写明 |
+| R-5 | `Toc` 把 `TocNav` 写两份（侧边栏 + 抽屉），v3 的 `<details>` 和小节列表也会写两份 | 只是体积，不影响 id（列表里只有链接） | 沿用 v2.2 做法，不改 |
+| R-6 | 跳转页的 `location.replace` 目标和 meta refresh 都要带 `BASE_PATH`；AC-15 现有 `plan1-free-isp` 的子路径用例依赖 Astro `redirects` 的输出 | 换实现后子路径可能失效 | V09 用 `withBase()` 生成两处地址，AC-15 的子路径用例保留并改为断言新跳转页 |
+| R-7 | 搜索框也在参考页和找不到页的顶栏里（FR-24“首页以外每页”），这些页面没有视图切换 | `search.ts` 取不到当前视图 | 统一从 M4 读视图（`createReaderStore` 已可用），没有就按操作视图选锚点 |
+| R-8 | 合并后，AC-03/04/05/08/09/30 的用例里有会被合并的页面 | Q-18 定后才知道改哪些 | V11 按 AC-31 的规则改成合并页及其小节，在提交说明里逐条列出 |
+| R-9 | “合并页和被合并页面属于同一选项”（ADR-0006 的前提）删页后无法由构建校验 | 本机选择可能丢 | V11 的手工核对清单逐条比对 `route.yaml` 改前改后；AC-33 的 e2e 断言跳转后 `choices` 写入了对应选项 |
+| R-10 | `merge-rewrite.mjs` 要和 `import-rewrite.mjs` 识别同一种手写页脚 | 两套规则会漂移 | 先把页脚识别抽成两者共用的模块（V10 的第一步，先重构） |
+
+模块依赖方向、M2 纯函数接口、M4 都不变；M6 的接口（13.2）和 ADR-0006 的锚点规则足够让 V06–V09 分开实现。

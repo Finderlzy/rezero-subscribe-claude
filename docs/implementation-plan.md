@@ -1,5 +1,298 @@
 # 实施计划：Re:从零开始订阅 claude
 
+- 状态：**v3 计划（2026-10-21）**，把代码从 v2.2 改到 v3：文档站风格（design v3）、站内搜索（M6）、合并页和旧网址跳转（ADR-0006）。对应需求 v0.9 的 FR-05、FR-16、FR-18、FR-24、FR-25、FR-72 和 AC-26–AC-33（AC-31 是全量回归），架构 [§13](architecture.md#13-v3-增量架构2026-10-21)，实施前评审见[架构 §13.11](architecture.md#1311-v3-实施前评审2026-10-21)（通过，没有阻塞项）。目标站点版本 **3.0.0**（V12 验收通过后升版）。
+- 任务记录：[GitHub Issues](https://github.com/Finderlzy/rezero-subscribe-claude/issues)，标题以 `[v3]` 开头（**草稿，待发布**；发布后在 §3 回填编号）。任务范围、状态和完成证据以 Issue 为准，本文只保留里程碑、顺序和链接；§4 是发布时的正文草稿。
+- 档位规则见开发流程契约“模型档位”：`强` / `标准`。
+- 历史：v2.2 已完成（2026-10-19，[v2.2 改版计划](v2.2-plan.md)，没有建 Issue）；v2.1（#32–#40）、v2.0（#23–#31）和 1.0.0 的计划在文末附录。
+
+> **首个可开工任务：V01 [v3] 换成文档站的令牌、顶栏和两栏骨架**（建议档位：强）。发布后新开会话，用 `task-implement` 指定它的 Issue。**V06（搜索索引）、V08（小节锚点）、V10（合并脚本）可以同时开工**，各用独立 worktree（改动范围见 §2）。
+
+## 1. 里程碑（v3）
+
+一个里程碑一个任务。
+
+| 里程碑 | 任务 | 交付的可用能力 | 覆盖 |
+| --- | --- | --- | --- |
+| MS11 骨架 | V01 | 全站换成 v3 令牌；顶栏（logo、站名、小形象、视图切换、联系方式）；≥720px 常驻侧边栏、<720px 抽屉；页头色带和章首页一组去掉，眉题 + 纯文字 h1；页脚 | FR-72（顶栏、正文栏、主色）、FR-16（断点）、FR-23；AC-26（搜索框除外） |
+| MS12 侧边栏 | V02 | 只展开当前章、点章名开合；当前页下列出当前视图的 h2，切视图跟着换；当前项紫字 + 左边线 | FR-16；AC-27 |
+| MS13 正文排版 | V03 | h1–h4、链接、代码、表格、提示块、截图按 design §3.2、§4.7 | FR-72（正文栏）、FR-21 |
+| MS14 翻页和选择页 | V04 | 文字链接翻页（≥44px）、跳过小字、回到/返回刚才的步骤；手机不再吸底；选项卡片 | FR-72、FR-10、FR-15、FR-12、FR-19、FR-20；AC-30 |
+| MS15 首页和找不到页 | V05 | VuePress 式首屏 + 按章目录；找不到页换外壳；删掉章节副标题和多余的编号字形 | FR-18、FR-72；AC-29 |
+| MS16 搜索索引 | V06 | `src/lib/search/` 纯函数 + `search-index.json` 静态端点 | FR-24（数据部分）；AC-28 的单元测试 |
+| MS17 小节锚点 | V07 | 双链按视图选小节 id；`section-hash` 让任何带小节锚点的链接落到对应视图并滚动 | FR-05（双链校验）、ADR-0006 第 3 条 |
+| MS18 搜索框 | V08 | 顶栏搜索（桌面输入框、手机图标）、下拉、键盘、没有找到；打开小标题结果切视图并滚动 | FR-24；AC-28、AC-26（搜索框） |
+| MS19 跳转表 | V09 | `route.yaml` 的 `moved:` 段和校验、跳转页、sitemap 过滤；`plan1-free-isp` 迁过来 | FR-25、ADR-0006；AC-33（用现有数据）、AC-15 |
+| MS20 合并脚本 | V10 | `merge-rewrite.mjs`：机械合并 + 自检；页脚识别和导入脚本共用 | FR-05（机械合并）；AC-32 前半段 |
+| MS21 合并页面 | V11 | 按作者的合并清单合并、导入、改路线图和跳转表、同步 Writing 和大肥鱼 | FR-05、FR-25、需求 Q-18；AC-32、AC-33 |
+| MS22 v3 验收 | V12 | 三种宽度、深浅两色截图对照；AC-26–AC-33 和 AC-01–AC-25 全量回归；升 3.0.0 | AC-31、design §7 |
+
+
+## 2. 依赖与顺序（v3）
+
+```
+V01 骨架（立即，强）──┬── V02 侧边栏 ─────────────────────────────┐
+                     ├── V03 正文排版 ── V04 翻页和选择页 ──────────┤
+                     ├── V05 首页和找不到页 ────────────────────────┤
+V06 搜索索引（立即）──┼──────────────┐                              │
+V07 小节锚点（立即，强）┴──────────────┴── V08 搜索框 ───────────────┤
+V07 ──────────────────────────────────── V09 跳转表（强）───┐        │
+V10 合并脚本（立即）────────────────────────────────────────┼─ V11 合并页面（强，等 Q-18）
+V02 ────────────────────────────────────────────────────────┘        │
+                                                                     └── V12 v3 验收
+```
+
+- **立即可开工**：V01、V06、V07、V10。改动范围基本不重叠：V01 改 `src/styles/`、`src/layouts/`、`src/components/` 的外壳；V06 只新建 `src/lib/search/` 和一个端点；V07 改 `src/lib/content/`、`src/scripts/view-toggle.ts`、新建 `section-hash.ts`（在 `PageLayout` 里只加一行脚本引用，后合并的一方变基）；V10 只改 `scripts/`。
+- V02、V03、V05 在 V01 之后可以并行；V04 排在 V03 之后（选项卡片和翻页的样式都在 `prose.css` 周边，避免两边同时大改）。
+- V08 依赖 V01（顶栏挂载点）、V06（索引）、V07（打开小标题结果靠 `section-hash`）。
+- V09 依赖 V07（跳转页按视图选锚点，复用 V07 的“小节 → 锚点”函数）。
+- V11 依赖 V02（侧边栏列小节）、V09、V10，**并等作者定合并清单（需求 Q-18）**；没定之前其余任务都能做完。
+- V12 最后做。
+
+## 3. 任务索引（v3）
+
+| 任务 | 标题 | 依赖 | 档位 | 细化 | Issue |
+| --- | --- | --- | --- | --- | --- |
+| V01 | 换成文档站的令牌、顶栏和两栏骨架 | 无 | 强 | 已细化 | 待发布 |
+| V02 | 侧边栏按章折叠并列出当前页小节 | V01 | 标准 | 已细化 | 待发布 |
+| V03 | 按 design v3 重排正文和内容组件 | V01 | 标准 | 已细化 | 待发布 |
+| V04 | 文字链接翻页和选择页卡片 | V03 | 标准 | 已细化 | 待发布 |
+| V05 | VuePress 式首页和找不到页 | V01 | 标准 | 已细化 | 待发布 |
+| V06 | 站内搜索的索引和匹配 | 无 | 标准 | 已细化 | 待发布 |
+| V07 | 小节锚点按视图解析和落点 | 无 | 强 | 已细化 | 待发布 |
+| V08 | 顶栏搜索框 | V01、V06、V07 | 标准 | 已细化 | 待发布 |
+| V09 | 跳转表和旧网址跳转页 | V07 | 强 | 已细化 | 待发布 |
+| V10 | 重写稿机械合并脚本 | 无 | 标准 | 已细化 | 待发布 |
+| V11 | 按合并清单合并页面 | V02、V09、V10、Q-18 | 强 | 待细化 | 待发布 |
+| V12 | v3 视觉验收和全量回归 | 全部 | 标准 | 待细化 | 待发布 |
+
+## 4. 任务正文（v3，发布用草稿）
+
+公共约定（每个任务都适用，不在各 Issue 里重复）：按 [design.md](design.md) v3 和[架构 §13](architecture.md#13-v3-增量架构2026-10-21)做，颜色、间距只用 `src/styles/tokens.css` 的令牌；代码注释里引用 design 章节时用 v3 的章节号；不放宽任何内容校验，不删断言——**只有需求明确去掉的功能**（FR-72 去掉的页头色带、章首页一组、黑色主按钮、手机吸底翻页栏）对应的断言可以换成 v3 的断言，并在提交说明里写明对应的 FR（架构 §13.11 R-3、R-4）；`npm run check` 和 `npm run test:e2e` 是每个任务的通用验收，下面只写各任务自己的。
+
+### V01 换成文档站的令牌、顶栏和两栏骨架
+
+**目标**：全站换成 design v3 的外壳（FR-72、FR-16 的断点、FR-23）：令牌按 design §3 改；首页以外的页面是“顶栏 + 侧边栏 | 正文区”两栏，≥720px 侧边栏常驻、独立滚动，<720px 是抽屉；去掉页头色带和章首页一组，h1 上方一行灰色眉题；小形象挪到顶栏站名旁；视图切换改成两个文字按钮；页脚一行非官方声明。侧边栏的内容和样式先沿用 v2.2 的 `TocNav`（折叠和小节列表在 V02），正文排版沿用（V03），翻页沿用（V04）。
+
+**涉及范围**：`src/styles/tokens.css`、`tokens.test.ts`、`base.css`、`toc.css`（断点 1100 → 720，抽屉宽度）；`src/components/SiteHeader.astro`、`ViewToggle.astro`、`ContactLinks.astro`、`Mascot.astro`（只改放置和尺寸令牌，不改画）、`SiteFooter.astro`、`Toc.astro`；`src/layouts/PageLayout.astro`、`ReferenceLayout.astro`、`BaseLayout.astro`；`src/scripts/toc.ts`（断点）；`src/content/route.yaml`、`src/lib/site.ts`、`src/lib/route/`（删除 `intro` 字段及其核对和测试，连同构建级坏内容用例 `tests/fixtures/intro-not-in-body/`，这是 FR-72 去掉的功能，架构 §13.1）；`src/lib/nav-text.ts`（`isChapterStart` 等不再用的导出删除）；`tests/e2e/ac-02-chapter-card.spec.ts` → `ac-26-docs-style.spec.ts`，以及因外壳改动失效的选择器；`docs/architecture.md` §13（改成现状）。
+
+**依赖**：可立即开工
+
+**建议档位**：`强` — 首个端到端骨架：断点、令牌和两个布局一起换，后面 V02–V05、V08 都挂在它定下的结构和挂载点上。
+
+**参照**：
+- 布局结构和尺寸：design §3.3、§4.0、§4.1、§4.5；参考站实测 design §1.1。
+- 令牌：design §3.1 表的“浅色/深色”列；`--primary-*` 改紫色，`--radius-control`/`--radius-panel` 合并成 `--radius`（6px），新增 `--radius-pill`、`--sidebar-width`（平板 256px、桌面 300px）、`--measure: 740px`；1100px 的媒体查询改成 960px。
+- 顶栏右侧为搜索留一个空挂载点（`<div data-search-slot hidden>`），V08 填。
+- 侧边栏：`Toc.astro` 现有的 `aside[data-toc-sidebar]` + `<dialog>` 两份结构保留（架构 §13.11 R-5），`position: sticky; top: 0; max-height: 100vh; overflow-y: auto`。
+- 眉题挂载点 `[data-route-progress]`、`[data-route-total]` 名字不变，`route-enhance.ts` 不改逻辑。
+- 边界：360px 顶栏全部元素放得下（design §4.0 预算），不出现横向滚动；没有 JS 时视图切换隐藏、≥720px 侧边栏可点、<720px“目录”是链接。
+
+**验收**：
+- [ ] 测试：`npm test`（`tokens.test.ts` 含 design §3.1 新增的对比度组合）
+- [ ] 构建：`npm run check`
+- [ ] e2e：`npx playwright test tests/e2e/ac-26-docs-style.spec.ts tests/e2e/ac-16-responsive.spec.ts tests/e2e/ac-25-contact.spec.ts tests/e2e/a11y.spec.ts`，再跑全量 `npm run test:e2e`
+- [ ] 手工验证：1280 打开 `/import-proxy/` → 顶栏白底细线，左边“Re:”标记、站名、小形象，右边视图切换和四个联系图标；没有浅紫色带；h1 上方有眉题；左侧侧边栏独立滚动。768 → 侧边栏仍常驻；719 → 没有侧边栏，点“目录”打开抽屉。360 → 顶栏不横向滚动
+
+### V02 侧边栏按章折叠并列出当前页小节
+
+**目标**：FR-16 的 v3 行为（AC-27）：每章一个 `<details>`，只展开当前页所在的章，点章名开合（不写本机）；当前页下面列出它当前视图正文的 h2，切换视图后跟着换；当前项 600 `--accent` + 4px 左边线；分叉点、其他路线、原理、可跳过的标记按 design §4.5。
+
+**涉及范围**：`src/pages/[page].astro`、`src/pages/faq/*.astro`、`src/pages/ip-tests/*.astro`（把 `render()` 的 `headings` 传下去）、`src/layouts/PageLayout.astro`、`ReferenceLayout.astro`（新参数 `sections`）、`src/components/Toc.astro`、`TocNav.astro`、`src/styles/toc.css`、`src/scripts/toc.ts`（只在需要时调整对 `<details>` 的重画）；`tests/e2e/ac-27-sidebar.spec.ts`（新）、`toc-helpers.ts`。
+
+**依赖**：依赖 V01
+
+**建议档位**：`标准` — 结构和接口在架构 §13.3、§13.11 R-1 已定，沿用 `TocNav` 的标记契约。
+
+**参照**：
+- 接口：`PageLayout` 新参数 `sections: { principle: { slug: string; text: string }[]; operation?: { slug: string; text: string }[] }`，只取 `depth === 2`；两份列表写成 `<ol data-view-only="principle|operation">`，CSS 按 `<html data-view>` 显示（没有 `data-view` 时显示操作版），参考页只有一份、不带 `data-view-only`。
+- 链接锚点直接用 `headings` 的 `slug`（操作版已是 `op-` 前缀，`rehype-operation-ids.ts`）。
+- `toc.ts` 按 `outline()` 改写弱化和当前项的逻辑不变；首页目录（`TocNav` 首页变体）不折叠（V05 再改样式）。
+- 边界：没有 h2 的页面不输出列表；原理独有页在操作视图下列原理版的 h2（它只有原理版正文）；当前章是附录时参考页也展开附录章。
+
+**验收**：
+- [ ] e2e：`npx playwright test tests/e2e/ac-27-sidebar.spec.ts`（768、1280；用例里另设 719 宽）
+- [ ] 手工验证：1280 打开 `/import-proxy/` → 只有第 1 章展开；点“注册和订阅”展开它；切到原理视图 → 当前页下的小节换成原理版的（Q-18 之前用有 h2 的页面，例如 `/overview/`）；禁用 JS → 章仍能开合
+
+### V03 按 design v3 重排正文和内容组件
+
+**目标**：正文栏的排版和内容组件按 design §3.2、§4.7（FR-72 的正文栏）：h1–h4 字号和 h2 下边线；正文 16px/1.75、最大 740px；正文链接下划线、导航链接不加；行内代码、代码块 6px 圆角；表格全格线 + 隔行；提示块“浅底 + 4px 左色条”（普通提示、作者待补、caution、正文上方的“只有原理版/操作版还在写”）；截图 4px 圆角 + 细边框；QQ 群入口改成提示块样式。
+
+**涉及范围**：`src/styles/prose.css`、`code-zoom.css`、`src/components/CodeCopy.astro`、`GroupInvite.astro`（只改样式和外层结构）、`src/lib/content/markdown.ts`（只在提示块标签需要改时）；`tests/e2e/ac-12-author-todo.spec.ts`、`ac-24-qq-group.spec.ts`、`nfr-02-copy-zoom.spec.ts` 的选择器。
+
+**依赖**：依赖 V01
+
+**建议档位**：`标准` — 纯样式，规格全在 design §3.2、§4.7。
+
+**参照**：design §4.7 的表逐行实现；对比度组合已在 V01 的 `tokens.test.ts` 里；表格第一列粘性固定和横向滚动沿用 `rehype-scrollable-tables.ts` 的输出。边界：360 下表格、代码块只在自己的容器里横向滚动；深色模式的隔行和提示块底色对比度。
+
+**验收**：
+- [ ] e2e：`npx playwright test tests/e2e/ac-12-author-todo.spec.ts tests/e2e/ac-24-qq-group.spec.ts tests/e2e/nfr-02-copy-zoom.spec.ts tests/e2e/ac-16-responsive.spec.ts tests/e2e/a11y.spec.ts`
+- [ ] 手工验证：浅色和深色下看 `/ip-tests/`（表格）、一页有“作者待补”的页面、`/plan2-residential-server/`（代码块和截图）→ 和 design §4.7 一致
+
+### V04 文字链接翻页和选择页卡片
+
+**目标**：AC-30 和 design §4.1、§4.2、§4.6 的翻页：正文末尾细线下“← 上一步 / 标题”和“下一步 → / 标题”，可点区域 ≥44px；“跳过”是下一步下面的一行小字；旁支页、参考页的“回到”“返回刚才的步骤”同样式；手机不再吸底。选择页的选项改成细边框卡片，去掉编号圆圈和箭头，“推荐”“当前选择”沿用。
+
+**涉及范围**：`src/components/StepNav.astro`、`src/layouts/PageLayout.astro`（去掉底栏预留空白）、`ReferenceLayout.astro`（回到/返回的块）、`src/lib/content/option-blocks.ts`（不再插编号和箭头）及其测试、`src/styles/prose.css`（选项卡片）；`tests/e2e/ac-30-page-nav.spec.ts`（新）、`ac-03-choice-blocks.spec.ts`、`ac-05-skip.spec.ts`、`ac-11-reference-return.spec.ts`、`ac-19-side-page.spec.ts`、`ac-16-responsive.spec.ts` 的选择器。
+
+**依赖**：依赖 V03
+
+**建议档位**：`标准` — 导航数据和 `route-enhance` 的改写逻辑不变，只换标记和样式。
+
+**参照**：`route-enhance.ts` 改写的挂载点（链接地址、目标标题、跳过）名字保持不变；`option-blocks.ts` 保留 `data-recommended` 和整块可点的结构；“当前选择”标签 `span.option-current` 沿用。边界：只有上一步或只有下一步时各靠自己一侧；标题很长时折行不截断；选择页未选时没有“下一步”。
+
+**验收**：
+- [ ] 测试：`npx vitest run src/lib/content/option-blocks.test.ts`
+- [ ] e2e：`npx playwright test tests/e2e/ac-30-page-nav.spec.ts tests/e2e/ac-03-choice-blocks.spec.ts tests/e2e/ac-05-skip.spec.ts tests/e2e/ac-19-side-page.spec.ts tests/e2e/ac-11-reference-return.spec.ts`
+- [ ] 手工验证：已选方案一，打开 `/plan1-panel/` → 正文末尾左“← 三、把服务器变成节点”、右“导入代理软件 →”，没有黑色按钮，“跳过”在下面一行；360 下两个链接高度 ≥44px，页面底部没有吸底栏
+
+### V05 VuePress 式首页和找不到页
+
+**目标**：FR-18、AC-29 和 design §4.4、§4.6：首页没有顶栏和侧边栏，首屏居中放 logo（h1，`aria-label` 含站名和英文副标题）、小形象、一句话（构建核对保留）、紫色主按钮“从第 00 章开始 →”、QQ 群小字；下面一条线，按章列目录（h2“第 n 章　章名”，全部展开），页脚居中。找不到页换成 v3 的顶栏和正文栏，`404` 固定字形保留。删除不再使用的章节副标题和章级索引。
+
+**涉及范围**：`src/pages/index.astro`、`src/pages/404.astro`、`src/components/TocNav.astro`（首页变体的样式）、`Logo.astro`（`aria-label` 文案）、`GroupInvite.astro`（紧凑版样式）；删除 `ChapterSubtitle.astro`（及测试）、`src/assets/numerals/chapter-0X.svg`，`scripts/build-logo.mjs` 和 `build-logo.test.ts` 去掉对应输出；`NumeralSprite` 只在找不到页内联；`AGENTS.md` 的生成物清单；`tests/e2e/ac-01-home.spec.ts`、`ac-29-home.spec.ts`（新）、`ac-18-not-found.spec.ts`。
+
+**依赖**：依赖 V01
+
+**建议档位**：`标准` — 规格在 design §4.4，构建核对沿用 #38 的实现。
+
+**参照**：一句话的核对在 `src/pages/index.astro`（#38）；目录数据 `outline({}, null, 'principle')`；logo 的 `aria-label` 在 `Logo.astro` 的 `defaultTitles`；`build-logo.mjs` 的输出要和 `build-logo.test.ts` 一致（生成物不手改，删输出后重跑脚本，需要 `.cache/fonts/`）。边界：手机 logo 满宽减边距；首页仍没有“继续上次”和已读标记（AC-10）。
+
+**验收**：
+- [ ] 测试：`npx vitest run scripts/build-logo.test.ts`
+- [ ] e2e：`npx playwright test tests/e2e/ac-29-home.spec.ts tests/e2e/ac-01-home.spec.ts tests/e2e/ac-18-not-found.spec.ts tests/e2e/ac-10-no-progress.spec.ts`
+- [ ] 手工验证：360 和 1280 打开首页 → 首屏居中的 logo、一句话、主按钮、QQ 群小字，下面五章目录，没有侧边栏；打开 `/nope/` → v3 顶栏 + 大号 404
+
+### V06 站内搜索的索引和匹配
+
+**目标**：FR-24 的数据部分（架构 §13.2，新模块 M6）：构建时把所有步骤、选择页、旁支页、附录、参考页的标题和两版正文的 h2、h3 做成 `search-index.json`；浏览器用纯函数 `search()` 匹配并给出最多 10 条、已选好锚点的结果。不做界面（V08）。
+
+**涉及范围**：`src/lib/search/index.ts`、`index.test.ts`（新）；`src/pages/search-index.json.ts`（新，静态端点）；`src/lib/site.ts`（只在需要导出页面顺序时）；`docs/architecture.md` §13.2 改成现状。
+
+**依赖**：可立即开工
+
+**建议档位**：`标准` — 接口签名、匹配和排序规则都在架构 §13.2 写定，纯函数，好测。
+
+**参照**：
+- 签名：`buildSearchIndex(pages: SearchSourcePage[]): SearchEntry[]`、`search(index, query, view, limit = 10): SearchHit[]`（架构 §13.2 的类型）。`SearchSourcePage = { page: PageId; title: string; order: number; principle: Heading[]; operation?: Heading[] }`，`Heading` 取 Astro `MarkdownHeading` 的 `depth/slug/text`。
+- 端点：`export const GET` + `getStaticPaths` 不需要；用 `loadSite()` 的页面清单和 `render()` 的 `headings`，参考页用 `site.tocReferences` 和 reference 集合；跳转页（V09 之后的 `moved:`）、首页、找不到页不进索引。
+- 规范化：`normalize = s => s.normalize('NFKC').toLowerCase().replace(/\s+/g, '')`。
+- 排序：页面标题命中 > 小标题命中；开头命中 > 中间命中；再按 `order`。
+- 锚点：同一页两版文字相同的小标题合并成一条，`anchors.principle`/`anchors.operation` 各记 slug；`search(..., view)` 的 `href` 用当前视图的锚点，没有就用另一版的；参考页的 `href` 是 `/faq/<id>/#slug` 这类，经 `withBase()`。
+- 边界用例：空查询返回空；“时区”命中“改时区”；大小写和全角半角（`ＩＰ`、`ip`）都命中；只在原理版的小标题在操作视图下 `href` 用原理版 slug；结果超过 10 条截断；同分按目录顺序。
+
+**验收**：
+- [ ] 测试：`npx vitest run src/lib/search/`
+- [ ] 构建：`npm run build`，然后 `node -e "const i=require('./dist/search-index.json');console.log(i.length, i.some(e=>e.page==='timezone'))"` 输出条数和 `true`
+- [ ] 手工验证：看 `dist/search-index.json` 体积在几 KB 量级，没有正文段落
+
+### V07 小节锚点按视图解析和落点
+
+**目标**：ADR-0006 第 3 条和架构 §13.4：`[[页面#小标题]]` 按所在视图选 id（操作版优先 `#op-<slug>`，原理版和参考页优先 `#<slug>`，这一版没有就用另一版，两版都没有就构建失败）；新增页面脚本 `section-hash`，页面加载和 `hashchange` 时，小节在当前视图就滚过去，只在另一视图就先切视图（写 M4，不滚回顶部）再滚动。
+
+**涉及范围**：`src/lib/content/link-index.ts`（`IndexedPage` 增加操作版的 `headings`）、`remark-obsidian.ts`（锚点选择）、对应测试；`src/scripts/view-toggle.ts`（返回 `setView(view, { scroll })`，架构 §13.11 R-2）、`src/scripts/section-hash.ts`（新）和测试、`src/layouts/PageLayout.astro`（加载脚本，一行）；`tests/e2e/section-hash.spec.ts`（新）；`docs/architecture.md` §13.4 改成现状。
+
+**依赖**：可立即开工（和 V01 都改 `PageLayout`，后合并的一方变基）
+
+**建议档位**：`强` — 跨模块（M1 的链接解析 + M3 的页面脚本 + M4 写入），V08、V09 都依赖它定下的“小节 → 锚点”规则。
+
+**参照**：
+- 导出一个两边共用的纯函数 `sectionAnchor(slug, has: { principle: boolean; operation: boolean }, prefer: ViewMode): string | undefined`（放 `src/lib/section-anchor.ts`），M1 构建时和 V09 的跳转页都用它。
+- `OPERATION_ID_PREFIX`（`rehype-operation-ids.ts`）是唯一的前缀来源。
+- `section-hash.ts`：解码 `location.hash`，去掉 `op-` 得到 slug；查 `[data-body="principle"] #slug`、`[data-body="operation"] #op-slug`；切视图用 `setView(view, { scroll: false })` 后 `scrollIntoView()`。
+- 边界：hash 不是小节（如 `#main`）时不处理；参考页不加载这个脚本；没有 JS 时原样降级（design §4.3）。
+- 构建级坏内容用例：`tests/fixtures/` 加一个“双链指向两版都没有的小标题”的目录（沿用 AC-14 的机制，`tests/build/ac-14-build-fail.test.ts` 加一条）。
+
+**验收**：
+- [ ] 测试：`npx vitest run src/lib/content/ src/lib/section-anchor.test.ts src/scripts/`
+- [ ] 构建级：`npm run test:build`
+- [ ] e2e：`npx playwright test tests/e2e/section-hash.spec.ts`（操作视图打开指向只有原理版小节的地址 → 切到原理视图、小节在视口内、M4 的 view 变成 principle；原理视图打开 `#op-…` → 切到操作视图）
+
+### V08 顶栏搜索框
+
+**目标**：FR-24、AC-28 和 design §4.8 的界面：桌面和平板是胶囊输入框，手机是放大镜按钮、点开后盖住顶栏；输入后下拉最多 10 条（页面标题，命中小标题时第二行写小标题），上下键、回车、Esc；没有结果“没有找到”；第一次聚焦才下载 `search-index.json`，请求里没有搜索文字；打开小标题结果后由 `section-hash` 切视图并滚动。
+
+**涉及范围**：`src/components/SiteSearch.astro`（新）、`src/scripts/search.ts`（新）和测试、`src/components/SiteHeader.astro`（填 V01 留的挂载点）、`src/styles/`（搜索的样式，新文件 `search.css`）；`tests/e2e/ac-28-search.spec.ts`（新）、`ac-26-docs-style.spec.ts`（补搜索框的断言）。
+
+**依赖**：依赖 V01、V06、V07
+
+**建议档位**：`标准` — 数据和落点分别由 V06、V07 提供，这里按 ARIA combobox 模式和 design §4.8 做界面。
+
+**参照**：ARIA APG 的 combobox（list autocomplete）模式；视图从 M4 读（`createReaderStore`，架构 §13.11 R-7）；索引地址 `withBase('/search-index.json')`；抽屉的打开/关闭和焦点归还参照 `src/scripts/toc.ts`。边界：输入法组字时（`compositionstart`/`compositionend`）不触发搜索；索引下载失败时下拉显示“搜索暂时不可用”且不报错；360 下打开后没有横向滚动；没有 JS 时控件 `hidden`。
+
+**验收**：
+- [ ] 测试：`npx vitest run src/scripts/search.test.ts`
+- [ ] e2e：`npx playwright test tests/e2e/ac-28-search.spec.ts tests/e2e/ac-26-docs-style.spec.ts tests/e2e/a11y.spec.ts`
+- [ ] 手工验证：搜“时区”→ 有“改时区”，回车打开；搜“zzzz”→“没有找到”；DevTools 网络面板里只有一次 `search-index.json` 请求、不带查询文字
+
+### V09 跳转表和旧网址跳转页
+
+**目标**：FR-25、ADR-0006：`route.yaml` 新增 `moved:` 段（旧标识 → `{ to, section? }`）和校验；`[page].astro` 为每个旧标识生成跳转页（内联脚本按 M4 视图选锚点后 `location.replace`，meta refresh 指向操作版优先的锚点，`canonical`、`noindex`，正文“这一页已经并入《…》”和链接）；sitemap 过滤旧标识；`REMOVED_PAGES` 和 `astro.config.mjs` 的 `redirects` 删除，`plan1-free-isp → choose-plan` 迁进 `moved:`。
+
+**涉及范围**：`src/content/route.yaml`、`src/lib/route/route-map.ts`、`types.ts` 及测试（`moved` 的解析和校验）、`src/lib/site.ts`（`section` 对照 M1 的 headings）、`src/pages/[page].astro`、`src/components/MovedPage.astro`（新）、`astro.config.mjs`；`tests/fixtures/moved-*`（目标不存在、小节不存在、旧标识被复用、串联）、`tests/build/ac-14-build-fail.test.ts`；`tests/e2e/ac-33-moved.spec.ts`（新）、`ac-15-base-path.spec.ts`；`docs/adr/0002`、ADR-0006 和架构的“现状”。
+
+**依赖**：依赖 V07
+
+**建议档位**：`强` — 已发布 URL 的契约和路线图的数据迁移；跳转页还要在根路径和子路径下都正确。
+
+**参照**：ADR-0006 的“Consequences”是校验清单；锚点用 V07 的 `sectionAnchor()`；地址一律 `withBase()`（架构 §13.11 R-6）；sitemap 过滤沿用 `astro.config.mjs` 现有的 `filter`；`RouteData` 不收录旧标识（目录和搜索自然不含）。边界：没有 `section` 的条目跳到目标页顶部；旧标识等于保留字或现有页面标识时构建失败；`to` 是另一个旧标识时构建失败。
+
+**验收**：
+- [ ] 测试：`npx vitest run src/lib/route/ src/lib/site.test.ts`
+- [ ] 构建级：`npm run test:build`
+- [ ] e2e：`npx playwright test tests/e2e/ac-33-moved.spec.ts tests/e2e/ac-15-base-path.spec.ts`（无痕打开 `/plan1-free-isp/` → 到 `/choose-plan/`；禁用 JS → 看到“已经并入”和链接；用 `SITE_URL=https://example.test npm run build` 构建后，`dist/sitemap-0.xml`、`dist/search-index.json` 里没有 `plan1-free-isp`（sitemap 只在给了 `SITE_URL` 时生成）；子路径同样跳对）
+
+### V10 重写稿机械合并脚本
+
+**目标**：FR-05 的机械合并（架构 §13.5）：`node scripts/merge-rewrite.mjs <合并页标题> <页面标题…>` 在 `docs/rewrite/` 里把原理版、操作版各自拼成一个文件（原标题变 h2、原 h2/h3 降一级、去手写页脚、正文一字不改），把全部重写稿里指向被合并页面的双链改成 `[[合并页#原标题]]`，合并前后自检命令、外链、嵌入、TODO 不变，删除原文件并打印 `moved:` 草稿。本任务只做脚本和测试，不对真实重写稿执行（V11 做）。
+
+**涉及范围**：`scripts/rewrite-markdown.mjs`（新，先重构：把 `import-rewrite.mjs` 里识别手写页脚、围栏代码块、双链的函数抽出来）、`scripts/import-rewrite.mjs`（改为引用它，行为不变）、`scripts/merge-rewrite.mjs` 和 `merge-rewrite.test.ts`（新，`vitest.config.ts` 只收 `scripts/**/*.test.ts`）、测试用的小重写稿（放在测试旁的 `fixtures/`）；`AGENTS.md`（开发脚本清单）、`docs/architecture.md` §13.5 改成现状。
+
+**依赖**：可立即开工
+
+**建议档位**：`标准` — 规则在架构 §13.5 写定；先重构的部分有 `scripts/import-rewrite.test.ts` 兜底。
+
+**参照**：`scripts/import-rewrite.mjs` 及其测试（页脚、双链、TODO 的现有识别）；`scripts/compare-migration.mjs` 的命令/外链/嵌入提取规则（自检用同一套口径，能复用就抽到共用模块）。边界：某一版缺某个文件时跳过（原理独有页只进原理版）；围栏代码块里的 `#` 不降级；双链带显示文字 `[[旧标题|文字]]` 保留文字；带小标题的 `[[旧标题#x]]` 改成 `[[合并页#x]]`；自检不过时不写任何文件、退出码非 0；连跑两次第二次报“没有可合并的文件”。
+
+**验收**：
+- [ ] 测试：`npx vitest run scripts/`
+- [ ] 手工验证：在测试重写稿副本上跑一次 → 生成的合并文件标题层级正确、页脚已去、其他文件的双链已改；`git diff` 只有预期改动；`node scripts/import-rewrite.mjs` 对真实重写稿连跑两次没有改动（重构后行为不变）
+
+### V11 按合并清单合并页面（待细化）
+
+**目标**：作者定下合并清单（需求 Q-18）后：用 `merge-rewrite.mjs` 逐组合并重写稿；手建合并页的 `src/content/principle/<新标识>.md`，改 `route.yaml` 的路线和 `moved:`；导入、构建、跑 `compare-migration.mjs`；改提到被合并页面的 e2e（AC-03/04/05/08/09/30，按 AC-31 的规则）；ADR-0006 末尾的合并清单表、需求 §5.2 页面地图、migration-checklist 的 v3 节；按 AGENTS.md“文章同步”同步 Writing 和大肥鱼（上服务器先问作者）。
+
+**涉及范围**：`docs/rewrite/`、`src/content/`、`tests/e2e/`、`docs/requirements.md` §5.2、`docs/adr/0006-…`、`docs/migration-checklist.md`；Writing、大肥鱼两个仓库（各按自己的规则提交/登记）。
+
+**依赖**：依赖 V02、V09、V10，并等作者定合并清单（Q-18）
+
+**建议档位**：`强` — 改已发布的 URL 和路线图数据，还要跨三个仓库同步；合并后作者要在合并稿上改内容。
+
+**验收**（细化时补全）：AC-32、AC-33 全部合并页；全量 e2e 通过；作者确认合并页标题。
+
+### V12 v3 视觉验收和全量回归（待细化）
+
+**目标**：design §7 的截图对照（360/768/1280，深浅两色，清单见 design §7）；AC-26–AC-33 和 AC-01–AC-25 全量 e2e、axe、键盘、对比度（AC-31）；结果写进 delivery.md 的 v3 小节；版本升到 3.0.0（task-closeout 打标签）。
+
+**涉及范围**：`tests/e2e/`（只补缺口）、`docs/delivery.md`、`package.json` 的 `version`。
+
+**依赖**：依赖其余全部任务
+
+**建议档位**：`标准` — 照 design §7 和需求 §8 核对，参照 #40（v2.1 视觉验收）。
+
+**验收**（细化时补全）：`npm run check`、`npm run test:e2e` 全部通过；截图对照的发现逐条修完或登记为待补项。
+
+## 5. 检查点（v3）
+
+- **V01 合并后**：在作者的手机上看一次顶栏（360 预算、design §9 待确认第 2 条：正文 16px 是否太小）和首页以外的一页；回看本计划 V02–V05 的拆分是否仍然合适。
+- **V05 合并后**：作者确认首页首屏（design §9 待确认第 1 条：站名和英文副标题由 logo 承担）。
+- **Q-18 定下后**：细化 V11，回填 ADR-0006 的合并清单。
+- **全部完成**：V12 通过后，交 project-delivery 做 3.0.0 上线前整体验收（部署需要作者另行授权）。
+
+---
+
+## 附：v2.1 实施计划（2026-10-16，历史）
+
 - v2.2：**已完成（2026-10-19）**，计划和执行记录见 [v2.2 改版计划](v2.2-plan.md)（作者 2026-10-17 同意，一次会话做完，没有建 Issue）；实现和计划的出入见 design §8、架构 §12，验收结果见 [delivery.md](delivery.md) v2.2 小节。
 - 状态：**v2.1 计划（2026-10-16，作者同意）**，把代码从[设计 v2.0](design.md)（#31 的现状）改到设计 v2.1（2026-10-16 定稿，决定 D1–D11 见 design §8）。对应需求 v0.3 的 FR-10、FR-16、FR-18、FR-70、FR-71、NFR-01、NFR-03、NFR-06，[架构 §11.4 v2.1 实施前评审](architecture.md#114-v21-实施前评审2026-10-16)。v2.0 的任务（#23–#31）已全部关闭，计划保留在下文；1.0.0 的计划在文末。
 - 任务记录：[GitHub Issues](https://github.com/Finderlzy/rezero-subscribe-claude/issues)，v2.1 的标题以 `[v2.1]` 开头（2026-10-16 发布，#32–#40；W 编号与 Issue 的对应见 §3）。**任务范围、状态和完成证据以 Issue 为准**，本文只保留里程碑、顺序和链接；§4 是发布时的正文草稿。
@@ -8,7 +301,7 @@
 
 > **首个可开工任务：[#32 [v2.1] 生成编号字形并用在找不到页](https://github.com/Finderlzy/rezero-subscribe-claude/issues/32)**（W01，建议档位：强）。新开会话，用 `task-implement` 指定 #32。**[#33 令牌和控件反馈](https://github.com/Finderlzy/rezero-subscribe-claude/issues/33)（W02，标准）可以立即并行开工**（W01 改 `scripts/`、`src/assets/`、`src/components/`，W02 改 `src/styles/`，基本不重叠）。
 
-## 1. 里程碑（v2.1）
+### 1. 里程碑（v2.1）
 
 | 里程碑 | 交付的可用能力 | 覆盖 | 任务 |
 | --- | --- | --- | --- |
@@ -16,7 +309,7 @@
 | **MS9 v2.1 页面** | 步骤页的页边栏和步骤编号；每章第一页的章节标题卡；截图编号；首页说明书封面 + 完整目录 | design §4.1、§4.2、§4.4、§4.6（旁支）、§4.7；D2、D3、D4、D6；FR-10、FR-18 | W04、W05、W06、W07 |
 | **MS10 v2.1 验收** | 三种宽度、深浅两色的截图对照和可访问性检查；说明图 | design §4.7（说明图）、§6、§7；AC-16、AC-20、AC-21 | W08、W09 |
 
-## 2. 依赖与顺序（v2.1）
+### 2. 依赖与顺序（v2.1）
 
 ```
 W01（可立即开工）──┬────────────── W03 ──┬── W04 ──┬── W05 ──┐
@@ -31,7 +324,7 @@ W02（可立即开工）──┘                     │         └── W06 
 - W05 还要等作者确认四章的“一句话”，W07 要等作者确认首页的一句话和小字信息行（§6）；没确认前可以先做其余部分，文案位置留空，不能自己编。
 - W08 的素材和放进页面的方式作者已定（2026-10-17，§6 第 4 条）。W09 最后做。
 
-## 3. 任务索引（v2.1）
+### 3. 任务索引（v2.1）
 
 | 任务 | 标题 | 里程碑 | 依赖 | 档位 | 细化 | 设计章节 | Issue |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -45,11 +338,11 @@ W02（可立即开工）──┘                     │         └── W06 
 | W08 | 原理页的说明图 | MS10 | W04 | 标准 | 已细化 | §4.7、§9 | [#39](https://github.com/Finderlzy/rezero-subscribe-claude/issues/39) |
 | W09 | 按设计 v2.1 做视觉验收 | MS10 | W05、W06、W07、W08 | 标准 | 已细化 | §6、§7 | [#40](https://github.com/Finderlzy/rezero-subscribe-claude/issues/40) |
 
-## 4. 任务正文（v2.1，发布时的草稿，现以 Issue 为准）
+### 4. 任务正文（v2.1，发布时的草稿，现以 Issue 为准）
 
 公共约定（每个任务都适用）：改动按 design v2.1 的对应章节做，颜色、间距只用 `src/styles/tokens.css` 的令牌；代码注释里的 `design §x.y` 引用照旧有效（章节号和 v2.0 一致），说到版本处改成 v2.1；不放宽任何内容校验和断言；`npm run check`、`npm run test:e2e` 是每个任务的通用验收，下面只写各任务自己的。
 
-### W01 生成编号字形并用在找不到页
+#### W01 生成编号字形并用在找不到页
 
 **目标**：编号用和 logo“Re”同一种细衬线（Cormorant Garamond 500）的等高数字，事先转成图形，所有设备显示一样（design §3.2、D7；FR-70 的做法；NFR-03 不加载网页字体）。本任务做出字形和渲染组件，先用在找不到页的大号 `404`（design §4.6），后续任务直接复用。
 
@@ -70,7 +363,7 @@ W02（可立即开工）──┘                     │         └── W06 
 - [ ] e2e：`tests/e2e/ac-18-not-found.spec.ts` 断言 404 的大号数字是 SVG 且读屏名称是“404”
 - [ ] 手工验证：360 和 1280 宽打开找不到页 → `404` 是等高的细衬线数字（`0` 和 `4` 一样高），桌面 96px、手机 64px，`--text` 色，深色模式变浅
 
-### W02 按 v2.1 调整令牌、断点和控件反馈
+#### W02 按 v2.1 调整令牌、断点和控件反馈
 
 **目标**：把三档断点（手机 <720、平板 720–1099、桌面 ≥1100px）和 §3.2 的字号表写进令牌；补 §3.3 的间距 96 和平板 32px 边距；按 §5（D11）加悬停、按下的轻反馈和 `prefers-reduced-motion`；视图切换按下的一段改成 `--text` 底、`--bg` 字（§3.1 用紫规则、§4.3、D8）。
 
@@ -87,7 +380,7 @@ W02（可立即开工）──┘                     │         └── W06 
 - [ ] e2e：`tests/e2e/ac-06-view-toggle.spec.ts` 断言按下的一段背景色等于 `--text`；`ac-16-responsive.spec.ts` 增加 768 宽：正文 18px、h1 30px，没有页面级横向滚动
 - [ ] 手工验证：悬停主按钮 → 箭头右移 4px、颜色不变；悬停次按钮 → 边框变 `--text`；按下任意按钮 → 下移 1px；系统开启“减少动态效果”后以上位移都没有；步骤页首屏只有主按钮一个大块紫色
 
-### W03 目录只用抽屉，没有 JS 时链到首页目录
+#### W03 目录只用抽屉，没有 JS 时链到首页目录
 
 **目标**：取消 ≥1100px 的常驻目录侧栏，所有宽度都从页眉的“目录”按钮打开抽屉（design §4.5、D5）；手机全屏，平板和桌面从左侧滑出宽 400px，滑入 200ms、关闭 150ms，遮罩同时淡入；看大图淡入 150ms（§5）。没有 JS 时“目录”按钮是指向首页完整目录的链接（§5，FR-16）。目录的章节号换成 W01 的固定字形（20px）。
 
@@ -104,7 +397,7 @@ W02（可立即开工）──┘                     │         └── W06 
 - [ ] e2e：`javaScriptEnabled: false` 时“目录”是链接，点击到达首页 `#home-chapters`
 - [ ] 手工验证：360 宽抽屉全屏、768 和 1280 宽抽屉宽 400px 从左滑入；开启“减少动态效果”后没有滑动和淡入
 
-### W04 步骤页的页边栏和步骤编号
+#### W04 步骤页的页边栏和步骤编号
 
 **目标**：桌面（≥1100px）的步骤页按 design §3.3、§4.1 排版：正文栏（≤38em）居中，左侧悬挂 96px 页边栏、间隔 32px；页边栏顶端是步骤编号（固定字形 56px、`--text`），和 h1 底边对齐、右对齐到页边栏右边缘，下一行“共 m 步”；数不清第几步时显示短横 `–`、不写步数；选择页放“选择”、旁支页放“旁支”（§4.2、§4.6）。平板和手机没有页边栏，编号放在 h1 前（和 h1 同字号、`--text-muted`）。眉题按宽度变化：桌面 `— 01 准备节点和住宅 IP —`，平板和手机多“ · 共 m 步”；读屏读“准备节点和住宅 IP，第 2 步，共 5 步”。编号是本章进度（FR-10），切换视图、改选分叉点后由页面脚本重算。
 
@@ -122,7 +415,7 @@ W02（可立即开工）──┘                     │         └── W06 
 - [ ] e2e：360 宽编号在 h1 前、眉题含“共 m 步”；没有页面级横向滚动（AC-16）
 - [ ] 手工验证：1280 宽看三个页面，编号落在同一条竖线上，页面重心偏左、右侧留白
 
-### W05 每章第一页的章节标题卡
+#### W05 每章第一页的章节标题卡
 
 **目标**：每章第一页（前言、选择方案、选择手机系统、致谢）顶部换成章节标题卡（design §4.1、D6）：英文副标题 `− CHAPTER 0n −`（固定字形）、章节号（固定字形、`--accent`）+ 章名（800），桌面和平板并排底边对齐、章节号右缘对齐页边栏右缘，手机上下排；一句话（`--text-muted`、最宽 24em）；一条横跨页边栏和正文栏的 1px `--text` 线；留白按 §4.1。没有入场动画。
 
@@ -139,7 +432,7 @@ W02（可立即开工）──┘                     │         └── W06 
 - [ ] e2e：四个章首页都有标题卡，章节号读屏为“第 n 章”，副标题对读屏隐藏；非章首页没有
 - [ ] 手工验证：1280 宽“选择方案”的章节号是首屏唯一的大块紫色（主按钮不在首屏），章节号和章名底边对齐；360 宽章节号在章名上方
 
-### W06 截图编号和页边注
+#### W06 截图编号和页边注
 
 **目标**：截图成为编号的图版（design §4.7、D4）：统一边框、圆角、上下 24px；编号“图 02-1”（本页步骤号-序号）——桌面标在页边栏、和截图顶边对齐，平板和手机写在截图下方作图注；选择页、旁支页、参考页只用序号“图 1”；步骤号数不清时也只用序号（架构 §11.4 W-4）。`[!caution]` 在桌面的页边栏同高处标“注意”（`--caution-rule`）。
 
@@ -156,7 +449,7 @@ W02（可立即开工）──┘                     │         └── W06 
 - [ ] e2e：1280 宽有截图的步骤页，“图 nn-1”在页边栏、顶边和截图顶边差 ≤2px；360 宽在截图下方；常见问题里是“图 1”；点截图仍能看大图
 - [ ] 手工验证：“清理旧账号和配置”的截图编号和步骤编号在同一条竖线上
 
-### W07 首页说明书封面和完整目录
+#### W07 首页说明书封面和完整目录
 
 **目标**：首页按 design §4.4（D2）重做：顶部留白 96px（手机 32px）；眉题“一份照着做的说明书”；中文两行 logo 作 h1；一句话；小字信息行；主按钮“从第 00 章开始 →”（进前言）+ 文字链接“先看整体思路”。桌面 12 栏，右侧（第 9–12 栏）是四行章级索引（固定字形 32px），每行链到下方完整目录的对应章；平板和手机不显示索引。封面下一条 1px `--border` 线，上下各 64px，下面是完整目录（章节号固定字形 28px）。首页没有“继续上次”和已读标记（FR-18）。
 
@@ -173,7 +466,7 @@ W02（可立即开工）──┘                     │         └── W06 
 - [ ] e2e：首页首屏只有主按钮和 logo 的“Re”是 `--accent`（取计算后的颜色）
 - [ ] 手工验证：1280 宽封面左对齐、索引和主区顶部对齐；360 宽 logo 满宽、没有横向滚动
 
-### W08 原理页的说明图
+#### W08 原理页的说明图
 
 **目标**：给“整体思路”“小结：从服务器到代理软件”“测 IP 质量”三页加单色线稿说明图（design §4.7、§9，作者 2026-10-16 确认这三页）。
 
@@ -190,7 +483,7 @@ W02（可立即开工）──┘                     │         └── W06 
 - [x] e2e：三页原理版各有一张说明图，有读屏名字、编号同截图；按 1:1 显示、不超出正文栏，图中文字 14px、系统字体，线条是 `--text`、强调是 `--accent`；360 宽没有横向滚动；桌面编号在页边栏；测 IP 质量的操作版没有说明图
 - [ ] 作者确认：三张图的画法和强调的那一环（design §9 待确认第 2 条）
 
-### W09 按设计 v2.1 做视觉验收
+#### W09 按设计 v2.1 做视觉验收
 
 **目标**：按 design §7 对 v2.1 做一次整体检查并留证据，作为 2.0.0 整体验收的视觉部分（AC-16、AC-21，AC-20 的 logo 部分沿用 #24 的结论）。
 
@@ -207,7 +500,7 @@ W02（可立即开工）──┘                     │         └── W06 
 - [ ] 手工验证：360×800、768×1024、1280×800，浅色和深色，截首页、步骤页（两种视图，含章首页）、选择页（未选/已选）、旁支页、目录抽屉、常见问题、实测、找不到页，逐条对照 §4、§6；每屏只有一个大块紫色；编号落在同一条竖线上（截图是临时产物，不提交）
 - [ ] 手工验证（需要作者的设备）：编号字形在 iPhone、安卓、Windows 上截图对比，必须一样
 
-## 5. 检查点（v2.1）
+### 5. 检查点（v2.1）
 
 **MS8 结束（W01–W03 合并后）**
 - [ ] 找不到页的 `404` 在作者的手机上和电脑上看起来一样（D7 的第一次真机检查）
@@ -217,7 +510,7 @@ W02（可立即开工）──┘                     │         └── W06 
 
 **全部完成**：交 project-delivery 做 2.0.0 整体验收（AC-01–21）。
 
-## 6. 待作者确认（v2.1）
+### 6. 待作者确认（v2.1）
 
 下面的候选都是从 `docs/rewrite/` 原样摘出的句子，没有改写；作者选一个、改原文，或者决定不放。
 
