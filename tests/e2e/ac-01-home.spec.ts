@@ -63,11 +63,11 @@ test('新浏览器打开首页：logo（含中英文站名）、一句话、“�
   await expect(chapters.getByRole('link', { name: '前言' })).toHaveCount(0);
   await expect(chapters.locator('[data-toc-step]')).toHaveCount(0);
 
-  // 首屏的 QQ 群是紧凑版：群号、加群链接，没有二维码（FR-22、design §4.4）
-  const invite = page.getByRole('region', { name: 'QQ 群' });
+  // 首屏的 QQ 中转群是紧凑版：群号、加群链接，没有二维码（FR-22、design §4.4）
+  const invite = page.getByRole('region', { name: 'QQ 中转群' });
   await expect(invite.getByRole('link', { name: /加入群聊/ })).toHaveAttribute('href', GROUP_URL);
   await expect(invite).toContainText(GROUP_NUMBER);
-  await expect(invite.getByRole('img', { name: /QQ 群二维码/ })).toHaveCount(0);
+  await expect(invite.getByRole('img', { name: /QQ 中转群二维码/ })).toHaveCount(0);
 });
 
 test('点“从第 00 章开始”进入前言', async ({ page }) => {

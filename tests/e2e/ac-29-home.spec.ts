@@ -3,10 +3,10 @@ import { expect, test } from '@playwright/test';
 const SITE_NAME = 'Re:从零开始订阅 claude';
 const SITE_NAME_EN = 'Re:Zero − Starting Life with Claude';
 
-// AC-29（FR-18，design v3 §4.4）：打开首页 → 居中显示 logo、站名、英文副标题、“从第 00 章开始”和 QQ 群小字，
+// AC-29（FR-18，design v3 §4.4）：打开首页 → 居中显示 logo、站名、英文副标题、“从第 00 章开始”和 QQ 中转群小字，
 // 下面是五章简介；首页没有侧边栏。站名和英文副标题画在 logo 里，由 h1 的 aria-label 给出（design V12）。
 // 五章从左到右：桌面五栏一行、平板三栏（3 + 2）、手机一栏（作者 2026-10-22 决定）。
-test('首屏居中：logo、中英文站名、一句话、紫色主按钮、QQ 群小字，没有顶栏和侧边栏', async ({ page }) => {
+test('首屏居中：logo、中英文站名、一句话、紫色主按钮、QQ 中转群小字，没有顶栏和侧边栏', async ({ page }) => {
   await page.goto('./');
 
   const width = page.viewportSize()!.width;
@@ -98,10 +98,10 @@ test('首屏居中：logo、中英文站名、一句话、紫色主按钮、QQ �
   expect(startStyle.height).toBeGreaterThanOrEqual(48);
   expect(startStyle.radius).toBe('6px');
 
-  // QQ 群小字：平板起和标题、群号、链接排在同一行；首页没有二维码（FR-22、design §4.4）
-  const invite = page.getByRole('region', { name: 'QQ 群' });
+  // QQ 中转群小字：平板起和标题、群号、链接排在同一行；首页没有二维码（FR-22、design §4.4）
+  const invite = page.getByRole('region', { name: 'QQ 中转群' });
   await expect(invite).toBeVisible();
-  await expect(invite.getByRole('img', { name: /QQ 群二维码/ })).toHaveCount(0);
+  await expect(invite.getByRole('img', { name: /QQ 中转群二维码/ })).toHaveCount(0);
   if (width >= 720) {
     // 标题和“群号”这一行排在同一行：两段文字的下沿（基线附近）相差不到 2px
     const rows = await invite.evaluate((el) => {

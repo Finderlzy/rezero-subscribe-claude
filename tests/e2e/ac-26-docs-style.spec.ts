@@ -276,7 +276,7 @@ test.describe('没有 JS 时', () => {
 });
 
 // 正文栏和内容组件（design v3 §3.2、§4.7）：字号、h2 细线、正文链接下划线、代码、表格、
-// 截图图版、作者待补提示块和 QQ 群入口。AC-26 的 FR-72 把整站换成文档站排版，外壳之外这些也要一起核对。
+// 截图图版、作者待补提示块和 QQ 中转群入口。AC-26 的 FR-72 把整站换成文档站排版，外壳之外这些也要一起核对。
 // h2/h3/h4 和合并页的小节在 v3 重写稿导入后才有（V11），这里在正文里临时插入三个标题量样式，
 // 不依赖当时的内容；其余组件都用真实页面。
 test('正文：字号、行高、标题层级和链接下划线（design §3.2、§4.7）', async ({ page }) => {
@@ -345,7 +345,7 @@ test('正文：字号、行高、标题层级和链接下划线（design §3.2�
   expect(await link.evaluate((el) => getComputedStyle(el).textDecorationThickness)).toBe('2px');
 });
 
-test('内容组件：代码、提示块、表格、截图、作者待补和 QQ 群入口（design §4.7）', async ({ page }) => {
+test('内容组件：代码、提示块、表格、截图、作者待补和 QQ 中转群入口（design §4.7）', async ({ page }) => {
   // 先打开站点页面，再读令牌（about:blank 上没有 tokens.css，读出来是透明色）
   await page.goto('./plan1/');
   const token = (name: string, prop: 'color' | 'background-color') => tokenColor(page, name, prop);
@@ -499,7 +499,7 @@ test('内容组件：代码、提示块、表格、截图、作者待补和 QQ �
   expect(todo.labelColor).toBe(await token('--todo-rule', 'color'));
   expect(todo.radius).toBe('0px 6px 6px 0px');
 
-  // QQ 群入口：普通提示块的形状（浅底 + 4px --accent 左边线），标签 13px 600
+  // QQ 中转群入口：普通提示块的形状（浅底 + 4px --accent 左边线），标签 13px 600
   await page.goto('./ip-tests/');
   const invite = await page.locator('.group-invite').evaluate((el) => {
     const s = getComputedStyle(el);

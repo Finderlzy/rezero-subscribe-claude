@@ -11,7 +11,7 @@ import { withBase } from '../lib/with-base';
  * 首页（FR-18、AC-29，design v3 §4.4）：VuePress 默认首页的样子。没有顶栏、没有侧边栏，内容居中。
  *
  * 首屏：中文两行版 logo（h1，无障碍名称同时给出中文站名和英文副标题）、右下方的小形象、
- * 一句话（--text-muted）、紫色主按钮“从第 00 章开始 →”（首页唯一的实心按钮）和 QQ 群入口的紧凑版（FR-22）。
+ * 一句话（--text-muted）、紫色主按钮“从第 00 章开始 →”（首页唯一的实心按钮）和 QQ 中转群入口的紧凑版（FR-22）。
  *
  * 一条细线下是五章简介（作者 2026-10-22 决定）：桌面五栏从左到右排成一行，平板三栏、手机一栏；
  * 每栏只写章名（链到这一章的第一页）和 `route.yaml` 的 summary，不再列具体页面。
@@ -105,7 +105,7 @@ function chapterEntryId(chapter: (typeof chapters)[number]): string {
     }
   }
 
-  /* 首屏：logo、一句话、主按钮和 QQ 群小字都居中，最宽 960px（design §4.4） */
+  /* 首屏：logo、一句话、主按钮和 QQ 中转群小字都居中，最宽 960px（design §4.4） */
   .home-hero {
     max-width: 960px;
     margin: 0 auto;
@@ -148,7 +148,7 @@ function chapterEntryId(chapter: (typeof chapters)[number]): string {
     line-height: var(--lh-tagline);
   }
 
-  /* 一句话到主按钮 32px；按钮下 20px 是 QQ 群小字（GroupInvite 的紧凑版） */
+  /* 一句话到主按钮 32px；按钮下 20px 是 QQ 中转群小字（GroupInvite 的紧凑版） */
   .home-actions {
     margin: var(--space-6) 0 0;
   }
