@@ -25,7 +25,7 @@ const DISCLAIMER = '本站是个人教程，与 Anthropic 无关。';
     border-top: var(--border-width) solid var(--border);
   }
 
-  /* 宽度和正文栏一样（--content-width），字号写在里面的 <small> 上，左缘和正文对齐 */
+  /* 宽度和正文栏一样（--content-width），字号写在里面的 <small> 上；首页居中，其他页左缘和正文对齐 */
   .site-footer p {
     max-width: var(--content-width);
     margin: 0 auto;
@@ -42,12 +42,5 @@ const DISCLAIMER = '本站是个人教程，与 Anthropic 无关。';
   /* 首页：声明居中（design §4.0、§4.4；首页以外只有首屏和页脚可以居中） */
   .site-footer-centered p {
     text-align: center;
-  }
-
-  /* 手机上底栏吸底：给声明多留出底栏的高度 */
-  @media (max-width: 719px) {
-    .site-footer {
-      padding-bottom: calc(var(--bar-button-height) + var(--space-2) * 2 + env(safe-area-inset-bottom));
-    }
   }
 </style>

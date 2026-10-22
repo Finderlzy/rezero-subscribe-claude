@@ -12,9 +12,8 @@ import type { IndexedPage, LinkIndex } from './link-index';
  * 正文结尾”时提前结束，包成 `<section class="option-block" data-option="<id>">`。块内第一个站内链接是这个选项的第一步，
  * 标上 `data-option-start`，页面用它撑满整块做点击区域，并且必须与路线图里该选项的第一步一致。
  *
- * v2.2 W4a：选项显示成列表行，不是大框。构建时在块前面放一个编号圆圈（`<span class="option-no" aria-hidden="true">`，
- * 按 frontmatter 的顺序从 1 编号）、在块里最后一个列表后面放一个箭头（`<span class="option-go" aria-hidden="true">`），
- * 两个都只用来装饰，正文照原样渲染。
+ * v3（V04，design §4.2）：选项显示成细边框卡片。构建时不加编号圆圈和箭头，正文照原样渲染；
+ * 页面脚本标“当前选择”，卡片样式在 `prose.css`。
  */
 
 declare module 'mdast' {
@@ -75,26 +74,11 @@ function isBoldParagraph(node: RootContent): node is Paragraph {
 }
 
 const BLOCK_TYPE = 'optionBlock';
-const ROW_TYPE = 'optionRow';
 
-/** 选项块在这里结束；从后往前包，已经包好的选项行也算边界 */
+/** 选项块在这里结束；从后往前包，已经包好的选项块也算边界 */
 function isBoundary(node: RootContent): boolean {
   const type = node.type as string;
-  return isBoldParagraph(node) || node.type === 'thematicBreak' || node.type === 'heading' || type === BLOCK_TYPE || type === ROW_TYPE;
-}
-
-/** 选项行：编号圆圈（装饰，对读屏隐藏）和块并排（v2.2 W4a） */
-function row(no: number, block: RootContent): RootContent {
-  return {
-    type: ROW_TYPE,
-    data: { hName: 'div', hProperties: { className: ['option-row'] } },
-    children: [{ type: 'html', value: `<span class="option-no" aria-hidden="true">${no}</span>` }, block],
-  } as unknown as RootContent;
-}
-
-/** 选项行末尾的箭头：装饰，对读屏隐藏（v2.2 W4a） */
-function arrow(): RootContent {
-  return { type: 'html', value: '<span class="option-go" aria-hidden="true">→</span>' } as unknown as RootContent;
+  return isBoldParagraph(node) || node.type === 'thematicBreak' || node.type === 'heading' || type === BLOCK_TYPE;
 }
 
 function text(node: RootContent | Parent): string {
@@ -139,8 +123,6 @@ export function wrapOptionBlocks(tree: Root, page: IndexedPage, index: LinkIndex
   }
   // 从后往前包，前面的下标不受影响
   for (const { option, heading, start } of found.sort((a, b) => b.start - a.start)) {
-    // 编号圆圈按 frontmatter 的顺序从 1 编号（v2.2 W4a）；从后往前包块，所以这里先记下每个选项的编号
-    const no = [...options.keys()].indexOf(option) + 1;
     let end = start + 1;
     // 选项小节是“加粗标题 → 说明 → 步骤链接列表”：列表之后的普通段落是几个选项共用的话（如“两条路走完，都接着…”），
     // 不能算进最后一块，否则点它会把选择记成这一项
@@ -156,10 +138,9 @@ export function wrapOptionBlocks(tree: Root, page: IndexedPage, index: LinkIndex
     const block = {
       type: BLOCK_TYPE,
       data: { hName: 'section', hProperties: { className: ['option-block'], dataOption: option, ...(recommended && { dataRecommended: '' }) } },
-      children: [...tree.children.slice(start, end), arrow()],
+      children: [...tree.children.slice(start, end)],
     } as unknown as RootContent;
-    // 编号圆圈和块合成一行（.option-row）：圆圈在左、块在右（v2.2 W4a）
-    tree.children.splice(start, end - start, row(no, block));
+    tree.children.splice(start, end - start, block);
 
     const at = title.position?.start;
     const link = firstPageLink(block as Parent);

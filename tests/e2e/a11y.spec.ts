@@ -57,7 +57,7 @@ async function tabUntil(page: Page, target: Locator, label: string) {
     expect(outline.style, `${outline.tag} 拿到焦点时没有焦点环`).not.toBe('none');
     expect(outline.width).toBe('2px');
   }
-  // 吸底的底栏不能挡住拿到焦点的目标
+  // 浮层（目录抽屉、看大图）不能挡住拿到焦点的目标
   await expect(target).toBeInViewport();
   await target.click({ trial: true });
 }

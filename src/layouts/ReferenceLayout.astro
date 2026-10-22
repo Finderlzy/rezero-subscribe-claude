@@ -54,18 +54,33 @@ const routeJson = JSON.stringify(site.route.data).replace(/</g, '\\u003c');
     <main id="main" class="reference-page">
       <div class="page-body">
         <p class="eyebrow">{eyebrow}</p>
+        <p class="reference-return reference-return-top" data-reference-return hidden>
+          <a>
+            <span class="step-nav-dir"><span aria-hidden="true">←</span> 返回刚才的步骤</span>
+            <span class="step-nav-title" data-reference-return-title></span>
+          </a>
+        </p>
         <h1 class="step-title">{title}</h1>
-        <p class="reference-return" data-reference-return hidden>
-          <a>← 返回刚才的步骤</a>
-        </p>
         <div class="prose" set:html={body} />
-        <p class="reference-return" data-reference-return hidden>
-          <a>← 返回刚才的步骤</a>
-        </p>
         <GroupInvite />
-        <p class="page-actions">
-          {back && <a class="button button-secondary" href={withBase(back.href)}>回到：{back.title}</a>}
-        </p>
+        <nav class="reference-nav" aria-label="返回" data-reference-nav hidden={!back}>
+          {
+            back && (
+              <a class="reference-back" href={withBase(back.href)}>
+                <span class="step-nav-dir">
+                  <span aria-hidden="true">←</span> 回到
+                </span>
+                <span class="step-nav-title">{back.title}</span>
+              </a>
+            )
+          }
+          <p class="reference-return" data-reference-return hidden>
+            <a>
+              <span class="step-nav-dir"><span aria-hidden="true">←</span> 返回刚才的步骤</span>
+              <span class="step-nav-title" data-reference-return-title></span>
+            </a>
+          </p>
+        </nav>
       </div>
     </main>
   </div>
@@ -109,19 +124,74 @@ const routeJson = JSON.stringify(site.route.data).replace(/</g, '\\u003c');
     min-width: 0;
   }
 
+  /*
+   * 参考页的“回到”和“返回刚才的步骤”（design §4.6）：和步骤页的翻页同样的文字链接，
+   * 两行、可点区域 44px；正文末尾一条细线下面，左边“← 回到”，右边“← 返回刚才的步骤”（有 ?from= 时）。
+   */
+  .reference-nav {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-top: var(--space-7);
+    padding-top: var(--space-4);
+    border-top: var(--border-width) solid var(--border);
+  }
+
+  .reference-nav[hidden] {
+    display: none;
+  }
+
+  .reference-back,
+  .reference-return a {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    max-width: 48%;
+    min-height: 44px;
+    padding: var(--space-1) 0;
+    box-sizing: border-box;
+    text-decoration: none;
+  }
+
   .reference-return {
     margin: 0 0 var(--space-4);
-    font-size: var(--fs-meta);
+  }
+
+  /* h1 上方的“返回刚才的步骤”只有一块，不按两块的 48% 收窄 */
+  .reference-return-top a {
+    max-width: none;
+  }
+
+  /* 正文末尾的“返回刚才的步骤”在“回到”右边；块本身最多占一半，链接不再按块宽收窄（否则会缩成一团） */
+  .reference-nav .reference-return {
+    max-width: 48%;
+    margin: 0 0 0 auto;
+    text-align: right;
+  }
+
+  .reference-nav .reference-return a {
+    max-width: none;
+    margin-left: auto;
+    align-items: flex-end;
+  }
+
+  .step-nav-dir {
+    color: var(--text-muted);
+    font-size: var(--fs-caption);
     line-height: var(--lh-meta);
   }
 
-  .reference-return a {
-    display: inline-flex;
-    align-items: center;
-    min-height: 44px;
+  .step-nav-title {
+    color: var(--accent);
+    font-size: var(--fs-body);
+    line-height: var(--lh-heading);
+    font-weight: var(--fw-heading);
   }
 
-  .prose + .reference-return {
-    margin-top: var(--space-6);
+  .reference-back:hover .step-nav-title,
+  .reference-return a:hover .step-nav-title {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
   }
 </style>

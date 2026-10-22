@@ -66,7 +66,7 @@ test.describe('代码块复制', () => {
 
   test('复制按钮的可点区域至少 44×44px（design §5）', async ({ page }) => {
     await page.goto('./plan1-make-node/');
-    // 原理版的第一个代码块在 360 宽时落在首屏以下，先滚进视口中间再量（elementFromPoint 只看视口内，手机上吸底的翻页栏会压住视口底边）
+    // 原理版的第一个代码块在 360 宽时落在首屏以下，先滚进视口中间再量（elementFromPoint 只看视口内）
     const copy = page.locator('.code-copy').filter({ visible: true }).first();
     await copy.evaluate((el) => el.scrollIntoView({ block: 'center' }));
     const box = (await copy.boundingBox())!;
