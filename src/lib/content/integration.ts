@@ -27,7 +27,7 @@ export function contentValidation(options: ContentValidationOptions): AstroInteg
         // 明细只在上面逐条打印一次：消息里再带“文件:行:列”会被 Astro 当成错误位置重新拼一遍，读起来更乱。
         throw new Error(`内容校验失败，共 ${problems.length} 处，见上方 [rezero:content-validation] 的逐条输出`);
       },
-      // 内容提示：操作版缺失、作者待补、博客链接待填，只提示，不让构建失败（架构 §3 M5，FR-21、Q-11）
+      // 内容提示：作者待补、博客链接待填，只提示，不让构建失败（架构 §3 M5，FR-21、Q-11）
       'astro:build:done': ({ logger }) => {
         const lines = formatHints(hints);
         if (lines.length === 0) return;

@@ -7,17 +7,19 @@ import { markdownPipeline } from './markdown';
 import { formatHints, type ContentHint, type ContentProblem } from './remark-obsidian';
 import { createFixture, type Fixture } from './test-fixture';
 
-/** 页面级的写法转换（principle/、operation/、reference/）（架构 §3 M1、ADR-0005） */
+/** 页面级的写法转换（principle/、reference/）（架构 §3 M1、ADR-0005） */
 
 let fx: Fixture;
 
 beforeEach(() => {
   fx = createFixture();
   fx.write('principle/preface.md', '# 前言\n\n## 成本\n');
-  fx.write('principle/choose-plan.md', '# 选择方案\n');
-  fx.write('principle/plan3-residential-node.md', '# 方案三：直接买住宅节点\n');
-  fx.write('reference/faq.md', '# 常见问题\n\n## 装过了，想重装？\n\n## “1 人独享”怎么确认真的只有我在用？\n\n## 分流规则具体怎么写？\n');
-  fx.write('reference/ip-tests.md', '# IP 质量实测合集\n');
+  fx.write('principle/overview.md', '# 整体思路与方案选型\n');
+  fx.write('principle/plan2-residential-server.md', '# 方案二：配置住宅IP服务器\n');
+  fx.write(
+    'reference/ip-tests.md',
+    '# IP 质量实测合集\n\n## 装过了，想重装？\n\n## “1 人独享”怎么确认真的只有我在用？\n\n## 分流规则具体怎么写？\n',
+  );
   fx.write('reference/ip-tests/qsu-residential.md', '# 实测：QSU 住宅服务器\n');
   fx.write('blog-links.yaml', '"04技术/给 VPS 节点套上住宅 IP": null\n"04技术/自建梯子：VPS + 3x-ui + VLESS Reality": https://blog.example/vps/\n');
   fx.shot('截图 2026-10-15 13-43-53 1.png');
@@ -67,26 +69,33 @@ describe('标题', () => {
     expect(messages(r)).toEqual([expect.stringMatching(/^6:1 找不到标题为“没有这页”的页面/)]);
   });
 
-  it('操作版正文的标题 id 加 op- 前缀，避免与同页的原理版重复', async () => {
-    fx.write('principle/subscribe.md', '# 订阅\n');
-    const r = await render('operation/subscribe.md', '# 订阅\n\n## 第一步\n\n## 第一步\n');
-    expect(r.html).toContain('<h2 id="op-第一步">');
-    expect(r.html).toContain('<h2 id="op-第一步-1">');
-    expect(r.headings.map((h) => h.slug)).toEqual(['op-第一步', 'op-第一步-1']);
+  it('紧跟标题的 `---` 不渲染（作者新稿的分隔写法），标题下的正文照常', async () => {
+    const r = await render('principle/subscribe.md', '# 订阅\n---\n\n正文\n\n## 第一步\n---\n\n内容\n');
+    expect(r.problems).toEqual([]);
+    expect(r.html).not.toContain('<hr');
+    expect(r.html).toContain('<h2 id="第一步">第一步</h2>');
+    expect(r.html).toContain('内容');
   });
 });
 
 describe('双链按中文标题解析', () => {
   it('[[标题]] 和 [[标题|文字]] 链到 /<id>/，不写文字时原样用标题', async () => {
-    const r = await render('principle/subscribe.md', '# 订阅\n\n先看 [[选择方案]]，再看 [[方案三：直接买住宅节点|方案三]]。\n');
+    const r = await render('principle/subscribe.md', '# 订阅\n\n先看 [[整体思路与方案选型]]，再看 [[方案二：配置住宅IP服务器|方案二]]。\n');
     expect(r.problems).toEqual([]);
-    expect(r.html).toContain('<a href="/choose-plan/">选择方案</a>');
-    expect(r.html).toContain('<a href="/plan3-residential-node/">方案三</a>');
+    expect(r.html).toContain('<a href="/overview/">整体思路与方案选型</a>');
+    expect(r.html).toContain('<a href="/plan2-residential-server/">方案二</a>');
   });
 
   it('部署在子路径下时 href 带上 base', async () => {
-    const r = await render('principle/subscribe.md', '# 订阅\n\n[[选择方案]]\n', '/sub/');
-    expect(r.html).toContain('href="/sub/choose-plan/"');
+    const r = await render('principle/subscribe.md', '# 订阅\n\n[[整体思路与方案选型]]\n', '/sub/');
+    expect(r.html).toContain('href="/sub/overview/"');
+  });
+
+  it('正文里还留着相对 Markdown 链接（导入脚本没转换）时构建失败（FR-61）', async () => {
+    const r = await render('principle/subscribe.md', '# 订阅\n\n见 [方案一](02-方案一.md)。\n');
+    expect(messages(r)).toEqual([
+      '3:3 相对 Markdown 链接没有在导入时转换：02-方案一.md（改重写稿的写法或重跑 import-rewrite.mjs）',
+    ]);
   });
 
   it('找不到标题时报出文件、行号和目标', async () => {
@@ -95,40 +104,35 @@ describe('双链按中文标题解析', () => {
     expect(r.problems[0].file).toMatch(/principle\/subscribe\.md$/);
   });
 
-  it('不能链到操作版独有的标题：操作版不进标题表', async () => {
-    fx.write('principle/x.md', '# 甲\n');
-    fx.write('operation/x.md', '# 乙\n');
-    const r = await render('principle/subscribe.md', '# 订阅\n\n[[乙]]\n');
-    expect(messages(r)).toEqual([expect.stringMatching(/找不到标题为“乙”的页面/)]);
-  });
+
 });
 
 describe('锚点', () => {
   it('锚点解析成 github-slugger 的 slug；链到参考页时锚点在 ?from= 之后（引号、标点、中文都能对上）', async () => {
     const r = await render(
-      'principle/plan3-residential-node.md',
+      'principle/plan1.md',
       [
-        '# 方案三：直接买住宅节点',
+        '# 方案一：搭建专属住宅代理节点',
         '',
-        '[[常见问题#“1 人独享”怎么确认真的只有我在用？|常见问题]]',
-        '[[常见问题#分流规则具体怎么写？|分流规则具体怎么写？]]',
-        '[[常见问题#装过了，想重装？|装过了，想重装？]]',
+        '[[IP 质量实测合集#“1 人独享”怎么确认真的只有我在用？|实测合集]]',
+        '[[IP 质量实测合集#分流规则具体怎么写？|分流规则具体怎么写？]]',
+        '[[IP 质量实测合集#装过了，想重装？|装过了，想重装？]]',
         '[[前言#成本]]',
       ].join('\n'),
     );
     expect(r.problems).toEqual([]);
     // 输出 HTML 时锚点按 URL 规则百分号编码，浏览器解码后与标题 id 相同
     const href = (path: string) => `href="${encodeURI(path)}"`;
-    expect(r.html).toContain(`<a ${href('/faq/?from=plan3-residential-node#1-人独享怎么确认真的只有我在用')}>常见问题</a>`);
-    expect(r.html).toContain(`<a ${href('/faq/?from=plan3-residential-node#分流规则具体怎么写')}>分流规则具体怎么写？</a>`);
-    expect(r.html).toContain(`<a ${href('/faq/?from=plan3-residential-node#装过了想重装')}>`);
+    expect(r.html).toContain(`<a ${href('/ip-tests/?from=plan1#1-人独享怎么确认真的只有我在用')}>实测合集</a>`);
+    expect(r.html).toContain(`<a ${href('/ip-tests/?from=plan1#分流规则具体怎么写')}>分流规则具体怎么写？</a>`);
+    expect(r.html).toContain(`<a ${href('/ip-tests/?from=plan1#装过了想重装')}>`);
     // 不写文字时仿照 Obsidian 显示“页面 > 小标题”
     expect(r.html).toContain(`<a ${href('/preface/#成本')}>前言 > 成本</a>`);
   });
 
   it('目标页没有这个小标题时报错', async () => {
-    const r = await render('principle/subscribe.md', '# 订阅\n\n[[常见问题#没有这一条|看这里]]\n');
-    expect(messages(r)).toEqual(['3:1 “常见问题”里没有小标题“没有这一条”：[[常见问题#没有这一条|看这里]]']);
+    const r = await render('principle/subscribe.md', '# 订阅\n\n[[IP 质量实测合集#没有这一条|看这里]]\n');
+    expect(messages(r)).toEqual(['3:1 “IP 质量实测合集”里没有小标题“没有这一条”：[[IP 质量实测合集#没有这一条|看这里]]']);
   });
 
   it('第一行标题不算小标题', async () => {
@@ -189,47 +193,20 @@ describe('同页小节链接（V07）', () => {
     expect(r.html).toContain('<a href="#main">跳到正文</a>');
   });
 
-  it('操作版不再渲染，同页链接不在这里校验（标题 id 会加 op- 前缀）', async () => {
-    fx.write('principle/overview.md', '# 整体思路\n');
-    const r = await render('operation/overview.md', '# 整体思路\n\n[坏了](#没有这个小节)\n');
-    expect(r.problems).toEqual([]);
-  });
+
 });
 
 describe('参考页链接带 ?from=', () => {
-  it('从步骤（两版都算）链到参考页时带当前页标识，锚点放在查询串之后', async () => {
-    fx.write('principle/subscribe.md', '# 订阅\n');
-    const op = await render('operation/subscribe.md', '# 订阅\n\n[[IP 质量实测合集]]、[[实测：QSU 住宅服务器|它的实测]]\n');
-    expect(op.html).toContain('<a href="/ip-tests/?from=subscribe">IP 质量实测合集</a>');
-    expect(op.html).toContain('<a href="/ip-tests/qsu-residential/?from=subscribe">它的实测</a>');
-  });
-
-  it('常见问题一问一页：[[问题标题]] 解析到 /faq/<id>/?from=<来源页>，不带锚点；[[常见问题]] 仍是目录页（FR-20、AC-11）', async () => {
-    fx.write('reference/faq/split-routing.md', '# 分流规则具体怎么写？\n');
-    fx.write('reference/faq/dedicated-ip-check.md', '# “1 人独享”怎么确认真的只有我在用？\n');
-    const r = await render(
-      'principle/plan3-residential-node.md',
-      '# 方案三：直接买住宅节点\n\n[[分流规则具体怎么写？]]、[[“1 人独享”怎么确认真的只有我在用？|怎么确认]]、[[常见问题]]\n',
-    );
-    expect(r.problems).toEqual([]);
-    expect(r.html).toContain('<a href="/faq/split-routing/?from=plan3-residential-node">分流规则具体怎么写？</a>');
-    expect(r.html).toContain('<a href="/faq/dedicated-ip-check/?from=plan3-residential-node">怎么确认</a>');
-    expect(r.html).toContain('<a href="/faq/?from=plan3-residential-node">常见问题</a>');
-    // 子路径部署时同样加 base（AC-15）
-    const sub = await render('principle/plan3-residential-node.md', '# 方案三：直接买住宅节点\n\n[[分流规则具体怎么写？]]\n', '/sub/');
-    expect(sub.html).toContain('<a href="/sub/faq/split-routing/?from=plan3-residential-node">分流规则具体怎么写？</a>');
-  });
-
-  it('常见问题的目录链到各条时不带 ?from=（参考页之间）', async () => {
-    fx.write('reference/faq/split-routing.md', '# 分流规则具体怎么写？\n');
-    const r = await render('reference/faq.md', '# 常见问题\n\n- [[分流规则具体怎么写？]]\n');
-    expect(r.html).toContain('<a href="/faq/split-routing/">分流规则具体怎么写？</a>');
+  it('从步骤链到参考页时带当前页标识，锚点放在查询串之后', async () => {
+    const r = await render('principle/subscribe.md', '# 订阅\n\n[[IP 质量实测合集]]、[[实测：QSU 住宅服务器|它的实测]]\n');
+    expect(r.html).toContain('<a href="/ip-tests/?from=subscribe">IP 质量实测合集</a>');
+    expect(r.html).toContain('<a href="/ip-tests/qsu-residential/?from=subscribe">它的实测</a>');
   });
 
   it('参考页之间、步骤之间不带', async () => {
-    const ref = await render('reference/ip-tests/lisahost.md', '# 实测：丽萨住宅服务器\n\n[[IP 质量实测合集]]、[[选择方案]]\n');
+    const ref = await render('reference/ip-tests/lisahost.md', '# 实测：丽萨住宅服务器\n\n[[IP 质量实测合集]]、[[整体思路与方案选型]]\n');
     expect(ref.html).toContain('<a href="/ip-tests/">IP 质量实测合集</a>');
-    expect(ref.html).toContain('<a href="/choose-plan/">选择方案</a>');
+    expect(ref.html).toContain('<a href="/overview/">整体思路与方案选型</a>');
   });
 });
 
@@ -282,7 +259,7 @@ describe('手写页脚', () => {
   });
 
   it('不在末尾、前面没有分隔线、或不是这三种开头时保留', async () => {
-    const middle = await render('principle/subscribe.md', '# 订阅\n\n---\n\n下一步：[[前言]]\n\n正文\n');
+    const middle = await render('principle/subscribe.md', '# 订阅\n\n正文\n\n---\n\n下一步：[[前言]]\n\n正文二\n');
     expect(middle.html).toContain('<hr>');
     expect(middle.html).toContain('下一步：<a href="/preface/">前言</a>');
 
@@ -337,13 +314,11 @@ describe('formatHints', () => {
     const hints: ContentHint[] = [
       { kind: 'blog-link', file: 'p', page, target: '04技术/乙' },
       { kind: 'author-todo', file: 'p', page, text: 'TODO：甲' },
-      { kind: 'missing-operation', file: 'a', page: { id: 'android-subscribe', title: '安卓：订阅' } },
       { kind: 'blog-link', file: 'p', page, target: '04技术/甲' },
       { kind: 'author-todo', file: 'o', page, text: 'TODO：乙' },
       { kind: 'blog-link', file: 'o', page, target: '04技术/甲' },
     ];
     expect(formatHints(hints)).toEqual([
-      '操作版缺失：android-subscribe 安卓：订阅',
       '作者待补：plan1-buy-isp 四、购买 ISP 代理（2 处）',
       '博客链接待填：04技术/乙',
       '博客链接待填：04技术/甲',

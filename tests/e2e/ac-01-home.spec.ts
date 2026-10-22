@@ -4,7 +4,8 @@ import { GROUP_NUMBER, GROUP_URL } from '../../src/lib/group';
 const SITE_NAME = 'Re:从零开始订阅 claude';
 const SITE_NAME_EN = 'Re:Zero − Starting Life with Claude';
 const START = '从第 00 章开始';
-const TAGLINE = '下面每一步，其实都在做同一件事：让每一项信息都不露出“我在国内”，而且像一个普通用户。';
+// V10：一句话换成新稿（docs/v3-rewrite/01）里的那句，构建时核对它原样出现在整体思路的正文里
+const TAGLINE = '让 Claude 能看到的每一项信息，都指向一个 Claude 支持地区的普通用户，并且用得像个普通人。';
 
 
 // AC-01（FR-18，design v3 §4.4）：在新浏览器打开首页 → 看到 logo（含站名和英文副标题）、五章简介和“从第 00 章开始”，
@@ -32,30 +33,31 @@ test('新浏览器打开首页：logo（含中英文站名）、一句话、“�
   await expect(page.locator('[data-toc-dialog]')).toHaveCount(0);
 
   // 下面五章简介：从左到右排，每栏只有章名（链到这一章的第一页）和简介，不列具体页面，也不写“第几章”
+  // V10：五章按新路线图（route.yaml）：开始、准备节点和住宅 IP、客户端配置与订阅、日常维护、结尾
   const chapters = page.locator('#home-chapters');
   await expect(chapters.getByRole('heading', { level: 2 })).toHaveText([
     '开始',
     '准备节点和住宅 IP',
-    '注册和订阅',
+    '客户端配置与订阅',
+    '日常维护',
     '结尾',
-    '附录',
   ]);
   await expect(chapters).not.toContainText('第 0 章');
   await expect(chapters).not.toContainText('第 1 章');
   await expect(chapters.getByRole('link')).toHaveCount(5);
   expect(await chapters.locator('h2 a').evaluateAll((links) => links.map((a) => new URL((a as HTMLAnchorElement).href).pathname))).toEqual([
     '/preface/',
-    '/choose-plan/',
-    '/choose-phone/',
-    '/thanks/',
-    '/appendix/',
+    '/overview/',
+    '/client-desktop/',
+    '/maintenance/',
+    '/afterword/',
   ]);
   await expect(chapters.locator('.home-chapter-summary')).toHaveText([
-    '先看这份教程怎么用，再清掉旧账号和环境里可能露馅的地方。',
-    '三个方案目的相同：让 claude 看到一个静态住宅 IP，而且只有你在用。',
-    '从手机、Google 账号到美区 Apple ID，一步步把订阅走完。',
-    '订阅成功之后，日常怎么用、怎么维护、出问题怎么处理。',
-    '常见问题、IP 质量实测和后续补充，卡住了再来查。',
+    '先弄清这份教程怎么用、要准备什么，再决定走哪条路。',
+    '两条路让 Claude 看到独享的住宅 IP：自己搭代理节点，或者直接买住宅服务器。',
+    '把节点接到电脑和手机上，再一步步注册账号、完成订阅。',
+    '订阅之后怎么用、怎么续费，账号受限和常见故障怎么处理。',
+    '后记与致谢：这一路走下来的一些话。',
   ]);
   // 不再列具体页面（页面导航在步骤页的侧边栏里）
   await expect(chapters.getByRole('link', { name: '前言' })).toHaveCount(0);
@@ -128,9 +130,9 @@ test('五章简介的章名链到各章第一页；一句话仍原样出现在�
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('前言');
 
   await page.goto('./');
-  await page.locator('#home-chapters').getByRole('link', { name: '附录' }).click();
-  await expect(page).toHaveURL(/\/appendix\/$/);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('附录');
+  await page.locator('#home-chapters').getByRole('link', { name: '结尾' }).click();
+  await expect(page).toHaveURL(/\/afterword\/$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('后记与致谢');
 
   // 一句话原样出现在整体思路的正文里（构建时也核对，ADR-0005）
   await page.goto('./overview/');

@@ -32,7 +32,12 @@ const site = await loadSite();
     </p>
     <section class="not-found-toc" aria-labelledby="not-found-toc">
       <h2 id="not-found-toc" class="not-found-toc-title">目录</h2>
-      <TocNav outline={site.route.outline({}, null, 'principle')} references={site.tocReferences} label="全站目录" />
+      <TocNav
+        outline={site.route.outline({}, null, 'principle')}
+        references={site.tocReferences}
+        referencesChapter={site.referenceChapter.id}
+        label="全站目录"
+      />
     </section>
   </main>
 </BaseLayout>

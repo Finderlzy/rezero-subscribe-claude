@@ -13,28 +13,31 @@ describe('AC-14 坏内容让构建失败并报出文件', () => {
     expect(code, output).toBe(0);
   });
 
-  // 每个用例只覆盖一个现有文件（致谢页、选择页或 route.yaml），其余内容不变，所以只会因为这一处坏内容失败。
+  // 每个用例只覆盖一个现有文件（日常维护页或 route.yaml），其余内容不变，所以只会因为这一处坏内容失败。
   // moved-* 的 route.yaml 是真实路线图的副本：真实路线图增删页面后这几份副本要跟着同步（missing-merge 同理）。
+  // v3 只有一版正文（实施计划 §3.1）：原来的操作版坏内容夹具都改到 principle/maintenance.md；
+  // “两版标题不同”“选项块第一个链接不对”“常见问题目录双向核对”这几类用例随功能删除（V10）。
   test.concurrent.each([
     {
       fixture: 'missing-image',
-      file: 'src/content/operation/thanks.md',
+      file: 'src/content/principle/maintenance.md',
       messages: ['找不到图片“no-such-screenshot.png”'],
     },
     {
       fixture: 'missing-link',
-      file: 'src/content/operation/thanks.md',
+      file: 'src/content/principle/maintenance.md',
       messages: ['找不到标题为“没有这一页”的页面'],
     },
     {
+      // 测 IP 质量并进了电脑端，常见问题也并进各章；链到实测合集里不存在的小节仍然要失败
       fixture: 'missing-anchor',
-      file: 'src/content/operation/thanks.md',
-      messages: ['“常见问题”里没有小标题“没有这一条”'],
+      file: 'src/content/principle/maintenance.md',
+      messages: ['“IP 质量实测合集”里没有小标题“没有这一条”'],
     },
     {
-      // V07：v3 一章一页，页内目录链到不存在的小节时构建失败
+      // V07：一章一页，页内目录链到不存在的小节时构建失败
       fixture: 'missing-local-anchor',
-      file: 'src/content/principle/thanks.md',
+      file: 'src/content/principle/maintenance.md',
       messages: ['这一页里没有小标题“没有这个小节”'],
     },
     {
@@ -52,13 +55,13 @@ describe('AC-14 坏内容让构建失败并报出文件', () => {
       // 跳转表（FR-25、ADR-0006）：旧标识跳到不存在的页面
       fixture: 'moved-target-missing',
       file: 'route.yaml',
-      messages: ['route.yaml：moved.plan1-free-isp 的 to（no-such-page）不是路线图里的页面'],
+      messages: ['route.yaml：moved.old-page 的 to（no-such-page）不是路线图里的页面'],
     },
     {
       // 跳转表写了目标页正文里没有的小节
       fixture: 'moved-section-missing',
       file: 'route.yaml',
-      messages: ['route.yaml：moved.plan1-free-isp.section 写的“没有这个小节”在 choose-plan 的原理版正文里找不到唯一的小标题（h2 或 h3）'],
+      messages: ['route.yaml：moved.old-section.section 写的“没有这个小节”在 afterword 的原理版正文里找不到唯一的小标题（h2 或 h3）'],
     },
     {
       // 跳转表的目标是另一个旧标识：不串联
@@ -101,65 +104,12 @@ describe('AC-14 坏内容让构建失败并报出文件', () => {
       fixture: 'moved-id-reused',
       // 路线图校验按 src/content/ 内的相对路径报文件（src/lib/site.ts 的“文件：说明”）
       file: 'principle/preface.md',
-      messages: ['页面标识 preface 是跳转表的旧标识（旧地址跳到 choose-plan），不能再分给新页面'],
-    },
-    {
-      fixture: 'title-mismatch',
-      file: 'src/content/operation/thanks.md',
-      messages: ['操作版标题“感谢”与原理版“致谢”不同'],
-    },
-    {
-      // 选项块（FR-12）：方案三的块里第一个链接改成方案二的页面，与路线图不一致
-      fixture: 'option-first-step',
-      file: 'src/content/operation/choose-plan.md',
-      messages: ['选项块“方案三：直接买住宅节点”的第一个链接指向“方案二：住宅 IP 服务器”，但路线图里选项 plan-3 在操作视图下的第一步是“方案三：直接买住宅节点”'],
-    },
-    {
-      // 常见问题一问一页（FR-20）：reference/faq/ 里多了一条，常见问题的目录里没有链到它
-      fixture: 'faq-unlisted',
-      file: 'src/content/reference/faq/unlisted-question.md',
-      messages: ['常见问题（reference/faq.md）里没有链到“没列出来的问题？”'],
-    },
-    {
-      // 拆页之后常见问题首页没有二级标题：旧的 [[常见问题#…]] 锚点写法要改成直接链单条问题
-      fixture: 'faq-old-anchor',
-      file: 'src/content/operation/thanks.md',
-      messages: ['“常见问题”里没有小标题“SSH 提示 Permission denied？”'],
-    },
-    {
-      // 常见问题双向核对（FR-20）：目录里列了一个标题，reference/faq/ 里没有它的条目文件（标题没有标识）
-      fixture: 'faq-title-without-id',
-      file: 'src/content/reference/faq.md',
-      messages: ['常见问题里列了“还没有条目文件的问题？”，但 reference/faq/ 里没有标题是它的条目文件'],
-    },
-    {
-      // 同一条问题在目录里列了两次
-      fixture: 'faq-listed-twice',
-      file: 'src/content/reference/faq.md',
-      messages: ['“装过了，想重装？”在常见问题里列了两次（第 7 行已经列过）'],
-    },
-    {
-      // 一个标题两个标识：两份条目文件同标题
-      fixture: 'faq-two-ids',
-      file: 'src/content/reference/faq/reinstall-again.md',
-      messages: ['标题“装过了，想重装？”与 reference/faq/reinstall.md 重复'],
-    },
-    {
-      // 条目文件没有标题（标识对不上任何问题）
-      fixture: 'faq-item-untitled',
-      file: 'src/content/reference/faq/no-title.md',
-      messages: ['缺少第一行标题'],
-    },
-    {
-      // 条目标识和已有页面（前言 preface）相同（ADR-0002：标识全站一张表）
-      fixture: 'faq-id-clash',
-      file: 'src/content/reference/faq/preface.md',
-      messages: ['常见问题条目的标识“preface”和已有页面的标识相同'],
+      messages: ['页面标识 preface 是跳转表的旧标识（旧地址跳到 overview），不能再分给新页面'],
     },
     {
       fixture: 'bad-metadata',
-      file: 'src/content/principle/thanks.md',
-      messages: ['principle → thanks data does not match collection schema', 'Unrecognized key: "skipable"'],
+      file: 'src/content/principle/maintenance.md',
+      messages: ['principle → maintenance data does not match collection schema', 'Unrecognized key: "skipable"'],
     },
   ])('$fixture：报出 $file', async ({ fixture, file, messages }) => {
     const { code, output } = await buildProject({ fixture });

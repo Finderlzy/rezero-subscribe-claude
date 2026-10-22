@@ -2,11 +2,13 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { builtPages } from './built-pages';
 
-// design §7、§5：axe-core 扫描没有 serious 及以上的问题；只用 Tab 键走完一条路线的前五页（前言到方案一的第一步）。
+// design §7、§5：axe-core 扫描没有 serious 及以上的问题；只用 Tab 键走完一条路线的前四页（前言到电脑端配置），
+// 再从选项卡片进入 iPhone 分支的第一步。
 // 浅色、深色各扫一遍（color-contrast 规则按实际渲染出的颜色量）。
 // 原来两版正文的页面在原理视图下再扫一遍；用户 2026-10-22 决定去掉视图切换、固定原理视图，页面上只有原理版，扫一遍即可。
+// V10（作者新稿）的页面清单由 built-pages.ts 从构建产物取，11 个步骤页和 IP 实测参考页都自动纳入。
 // 页面清单取自构建产物（built-pages.ts），三种宽度（360、768、1280）由 playwright.config.ts 的三个 project 提供。
-// 代价：约 50 页 × 两种主题 × 三种宽度，整套 e2e 因此多出约 2 分钟。
+// 代价：约 20 页 × 两种主题 × 三种宽度，整套 e2e 因此多出约 1 分钟。
 
 const PAGES = builtPages();
 
@@ -38,10 +40,10 @@ for (const colorScheme of ['light', 'dark'] as const) {
   });
 }
 
-// 从前言沿“下一步”到第一个选择页（没选时选择页没有下一步），再从选项块进入方案一的第一步。
-// 原来是操作视图的五页；固定原理视图后多经过原理独有的整体思路，共六页
-const FIRST_STEPS = ['/preface/', '/disclaimer/', '/overview/', '/clean-up/', '/choose-plan/'];
-const AFTER_CHOICE = '/plan1-buy-server/';
+// 从前言沿“下一步”到两个选择页：先经有默认选项的“整体思路与方案选型”到方案二，再到没有默认选项的
+// “客户端配置与环境验证：电脑端”，从选项卡片进入 iOS 分支的第一步。
+const FIRST_STEPS = ['/preface/', '/overview/', '/plan2-residential-server/', '/client-desktop/'];
+const AFTER_CHOICE = '/iphone-prepare/';
 
 /** 按 Tab 直到 `target` 拿到焦点，途中每个拿到焦点的元素都要有可见的焦点环（design §5：2px，不能去掉）。 */
 async function tabUntil(page: Page, target: Locator, label: string) {
@@ -62,7 +64,7 @@ async function tabUntil(page: Page, target: Locator, label: string) {
   await target.click({ trial: true });
 }
 
-test('只用键盘：Tab 到“跳到正文”回车，再 Tab 到“下一步”回车，从前言走到选择方案，再从选项块进入方案一', async ({ page }) => {
+test('只用键盘：Tab 到“跳到正文”回车，再 Tab 到“下一步”回车，从前言走到电脑端配置，再从选项卡片进入 iPhone', async ({ page }) => {
   await page.goto('.' + FIRST_STEPS[0]);
 
   const skipToMain = async () => {
@@ -80,9 +82,9 @@ test('只用键盘：Tab 到“跳到正文”回车，再 Tab 到“下一步�
     await expect(page).toHaveURL(new RegExp(`${target.replace(/\//g, '\\/')}$`));
   }
 
-  // 选择页没选时没有“下一步”：Tab 到方案一选项块的第一步链接，回车进入
+  // 选择页没选时没有“下一步”：Tab 到 iPhone 选项卡片的第一步链接，回车进入
   await skipToMain();
-  await tabUntil(page, page.locator('.option-block a[data-option-start]').filter({ visible: true }).first(), '方案一的第一步');
+  await tabUntil(page, page.locator('.option-block a[data-option-start]').filter({ visible: true }).first(), 'iPhone 的第一步');
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(new RegExp(`${AFTER_CHOICE.replace(/\//g, '\\/')}$`));
 });

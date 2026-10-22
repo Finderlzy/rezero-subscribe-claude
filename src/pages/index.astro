@@ -28,10 +28,10 @@ const overview = site.pages.get(OVERVIEW_ID);
 if (!overview) throw new Error(`首页：构建核对用的页面 principle/${OVERVIEW_ID}.md 不存在`);
 
 /*
- * logo 下的一句话：摘自整体思路的原理版正文，去掉开头的“所以”和加粗（作者 2026-10-17 确认，实施计划 v2.1 §6）。
+ * logo 下的一句话：摘自“整体思路与方案选型”的正文，去掉加粗（作者 2026-10-17 确认；V10 换成新稿里的那句话）。
  * 构建时核对它原样出现在正文里（ADR-0005）；按 Markdown 原文比较，去掉加粗。
  */
-const TAGLINE = '下面每一步，其实都在做同一件事：让每一项信息都不露出“我在国内”，而且像一个普通用户。';
+const TAGLINE = '让 Claude 能看到的每一项信息，都指向一个 Claude 支持地区的普通用户，并且用得像个普通人。';
 if (!(overview.principle.body ?? '').replaceAll('**', '').includes(TAGLINE)) {
   throw new Error(`首页：logo 下的一句话没有原样出现在 principle/${OVERVIEW_ID}.md 的正文里（去掉加粗后比较）`);
 }

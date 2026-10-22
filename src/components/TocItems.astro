@@ -7,8 +7,9 @@ import { withBase } from '../lib/with-base';
 import TocSections from './TocSections.astro';
 
 /**
- * 一章下面的目录项（TocNav.astro 的正文）：页面、分叉点的“或”分组和参考页。
- * 当前页下面列出它的小节（design v3 §4.5，FR-16）；页面固定原理视图，只有一份小节列表（用户 2026-10-22 决定）。
+ * 一章下面的目录项（TocNav.astro 的正文）：页面、当前路线和“换到另一条路线”的入口、参考页。
+ * 分叉点只画当前选项：选项名下面列它的页面，另一条路线收成一行文字链接（作者 2026-10-23）。
+ * 当前页下面列出它的小节（design v3 §4.5，FR-16）；页面固定原理视图，只有一份小节列表。
  */
 interface Props {
   items: OutlineChapter['items'];
@@ -21,13 +22,19 @@ interface Props {
   currentReference?: string | undefined;
   /** 最后一个（附录）章末尾列参考页 */
   showReferences: boolean;
+  /** 不折叠的目录（找不到页）要列出所有路线；侧边栏和抽屉只画当前路线 */
+  allRoutes?: boolean;
 }
 
-const { items, references, sections, currentPageId, currentReference, showReferences } = Astro.props;
+const { items, references, sections, currentPageId, currentReference, showReferences, allRoutes = false } = Astro.props;
 const stepHref = (step: OutlineStep) => withBase(pathOf({ kind: 'step', id: step.id, title: step.title }));
-/** 分叉点选了别的选项时，这个选项下的步骤标“其他路线”；没选时不标 */
-const otherRoute = (branch: OutlineBranch, option: OutlineBranch['options'][number]) =>
-  !option.selected && branch.options.some((o) => o.selected);
+/** 分叉点的当前选项：本机已选的那一个；都没选时取含当前页的选项，再退回第一个 */
+const selectedOption = (branch: OutlineBranch) =>
+  branch.options.find((option) => option.selected) ??
+  branch.options.find((option) => option.steps.some((step) => step.current)) ??
+  branch.options[0]!;
+/** 侧边栏里的页面名去掉“方案一：”前缀，路线名已经在上面一行（作者 2026-10-23） */
+const navLabel = (title: string) => title.replace(/^方案[一二三四五六七八九十]+：/, '');
 /** 小节列表只挂在当前项（共享步骤在每个选项下各一份，只有一份是当前项）或当前参考页 */
 const sectionsFor = (id: string, current: boolean) => current && sections.length > 0 && id === (currentReference ?? currentPageId);
 ---
@@ -38,7 +45,7 @@ const sectionsFor = (id: string, current: boolean) => current && sections.length
       item.kind === 'step' ? (
         <li class="toc-step" data-toc-step={item.id} data-off-route={item.onRoute ? undefined : ''}>
           <a href={stepHref(item)} aria-current={item.current ? 'page' : undefined}>
-            <span class="toc-label">{item.title}</span>
+            <span class="toc-label">{navLabel(item.title)}</span>
             {item.principleOnly && <span class="toc-tag">原理</span>}
             {item.skippable && <span class="toc-tag">可跳过</span>}
           </a>
@@ -47,42 +54,57 @@ const sectionsFor = (id: string, current: boolean) => current && sections.length
       ) : item.kind === 'choose' ? (
         <li class="toc-step" data-toc-choose={item.fork}>
           <a href={withBase(pathOf({ kind: 'choose', id: item.id, title: item.title }))} aria-current={item.current ? 'page' : undefined}>
-            <span class="toc-label">{item.title}</span>
+            <span class="toc-label">{navLabel(item.title)}</span>
           </a>
           <TocSections sections={sectionsFor(item.id, item.current) ? sections : []} />
         </li>
-      ) : (
+      ) : allRoutes ? (
         <li>
-          <ul>
-            {item.options.map((option, i) => (
-              <li class="toc-option" data-toc-option={option.id} data-selected={option.selected ? '' : undefined}>
-                <div class="toc-option-head">
-                  <span class="toc-option-title">
-                    {i > 0 && '或：'}
-                    {option.title}
-                  </span>
-                  <button type="button" class="toc-switch" data-toc-switch={item.fork} value={option.id} aria-label={`切换到${option.title}`} hidden>
-                    切换
-                  </button>
-                </div>
-                <ol>
-                  {option.steps.map((step) => (
-                    <li class="toc-step" data-toc-step={step.id} data-off-route={step.onRoute ? undefined : ''}>
-                      <a href={stepHref(step)} aria-current={step.current ? 'page' : undefined}>
-                        <span class="toc-label">{step.title}</span>
-                        <span class="toc-tag" data-toc-other hidden={!otherRoute(item, option)}>
-                          其他路线
-                        </span>
-                        {step.principleOnly && <span class="toc-tag">原理</span>}
-                        {step.skippable && <span class="toc-tag">可跳过</span>}
-                      </a>
-                      <TocSections sections={sectionsFor(step.id, step.current) ? sections : []} />
-                    </li>
-                  ))}
-                </ol>
+          {item.options.map((option, i) => (
+            <div class="toc-route" data-toc-option={option.id}>
+              <p class="toc-route-label">
+                {i > 0 && '或：'}
+                {option.title}
+              </p>
+              <ol>
+                {option.steps.map((step) => (
+                  <li class="toc-step" data-toc-step={step.id} data-off-route={step.onRoute ? undefined : ''}>
+                    <a href={stepHref(step)} aria-current={step.current ? 'page' : undefined}>
+                      <span class="toc-label">{navLabel(step.title)}</span>
+                      {step.principleOnly && <span class="toc-tag">原理</span>}
+                      {step.skippable && <span class="toc-tag">可跳过</span>}
+                    </a>
+                    <TocSections sections={sectionsFor(step.id, step.current) ? sections : []} />
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ))}
+        </li>
+      ) : (
+        <li class="toc-route" data-toc-option={selectedOption(item).id}>
+          <p class="toc-route-label">{selectedOption(item).title}</p>
+          <ol>
+            {selectedOption(item).steps.map((step) => (
+              <li class="toc-step" data-toc-step={step.id} data-off-route={step.onRoute ? undefined : ''}>
+                <a href={stepHref(step)} aria-current={step.current ? 'page' : undefined}>
+                  <span class="toc-label">{navLabel(step.title)}</span>
+                  {step.principleOnly && <span class="toc-tag">原理</span>}
+                  {step.skippable && <span class="toc-tag">可跳过</span>}
+                </a>
+                <TocSections sections={sectionsFor(step.id, step.current) ? sections : []} />
               </li>
             ))}
-          </ul>
+          </ol>
+          {item.options
+            .filter((option) => option.id !== selectedOption(item).id)
+            .map((option) =>
+              option.steps[0] ? (
+                <a class="toc-route-switch" href={stepHref(option.steps[0])}>
+                  换到{option.title} →
+                </a>
+              ) : null,
+            )}
         </li>
       ),
     )

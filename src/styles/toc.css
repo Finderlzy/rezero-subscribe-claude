@@ -140,15 +140,7 @@
   letter-spacing: var(--tracking-meta);
 }
 
-/* 找不到页的目录：章号写成文字“第 n 章”，20px --accent（首页第二屏是五章简介，不用这份目录）。 */
-.toc-chapter-no {
-  flex: none;
-  color: var(--accent);
-  font-size: 20px;
-  line-height: 1;
-}
-
-/* 参考页挂在附录页下面，缩进一级（design §4.5）。 */
+/* 参考页挂在“日常维护”章末尾，缩进一级（design §4.5、实施计划 §3.1）。 */
 .toc-reference {
   margin-left: var(--space-5);
 }
@@ -263,6 +255,36 @@
   box-shadow: inset 4px 0 0 var(--accent);
 }
 
+/*
+ * 分叉点：只画当前路线。选项名是一行小字，页面项在它下面；另一条路线收成一行文字链接
+ * （作者 2026-10-23，替代原来的“方案一 / 或：方案二”两组和“切换”按钮）。
+ */
+.toc-route {
+  margin: 0;
+}
+
+.toc-route-label {
+  margin: 0;
+  padding: var(--space-2) var(--space-2) var(--space-1) var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-heading);
+  letter-spacing: normal;
+}
+
+.toc-route-switch {
+  display: block;
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  color: var(--accent);
+  font-size: var(--fs-meta);
+  text-decoration: none;
+}
+
+.toc-route-switch:hover .toc-label,
+.toc-route-switch:hover {
+  text-decoration: underline;
+}
+
 .toc-tag {
   color: var(--text-muted);
   font-weight: 400;
@@ -275,51 +297,6 @@
 /* 其他路线：弱化色，并带“其他路线”文字（design §4.5）。 */
 .toc-step[data-off-route] > a {
   color: var(--text-faint);
-}
-
-/* “或”分组：各选项用左侧短竖线连起来；选项名 13px --text-faint（design §4.5，v2.2） */
-.toc-option {
-  margin-left: var(--space-2);
-  padding-left: var(--space-2);
-  border-left: 2px solid var(--border);
-}
-
-.toc-option[data-selected] {
-  border-left-color: var(--accent);
-}
-
-.toc-option + .toc-option {
-  margin-top: var(--space-1);
-}
-
-.toc-option-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  min-height: 44px;
-  padding-left: var(--space-2);
-  color: var(--text-faint);
-  font-size: var(--fs-caption);
-  font-weight: var(--fw-heading);
-}
-
-.toc-option[data-selected] .toc-option-head {
-  color: var(--text);
-}
-
-.toc-switch {
-  flex: none;
-  white-space: nowrap;
-  min-height: 44px;
-  padding: 0 var(--space-3);
-  border: var(--border-width) solid var(--control-border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--accent);
-  font: inherit;
-  font-weight: var(--fw-heading);
-  cursor: pointer;
 }
 
 /*
@@ -383,19 +360,4 @@ aside.toc-sidebar:focus-within {
 /* 抽屉里的页面项从抽屉边缘缩进 32px（.toc-dialog-body 自身有 16px 内边距，design §4.5） */
 .toc-dialog-body .toc-step > a {
   padding-left: var(--space-4);
-}
-
-/* “或”分组：保留下面的短竖线；256px 宽的侧边栏里选项名和“切换”按钮要能并排（按钮还没按过时是本机没选，见 toc.ts） */
-.toc-sidebar .toc-option-head {
-  min-height: var(--space-6);
-  padding-left: var(--space-2);
-  font-size: var(--fs-caption);
-}
-
-.toc-sidebar .toc-switch {
-  min-height: 28px;
-  padding: 0 var(--space-2);
-  border-color: var(--border);
-  color: var(--accent);
-  font-size: var(--fs-caption);
 }

@@ -54,7 +54,8 @@ const TIERS = [
 test('步骤页和参考页：正文、h1 字号和左右边距按当前档位', async ({ page }) => {
   const width = page.viewportSize()!.width;
   const tier = TIERS.find((t) => width >= t.min)!;
-  for (const path of ['leak-protection/', 'faq/']) {
+  // V10 的步骤页取日常维护，参考页取 IP 质量实测合集（参考页只有 IP 实测这一组）
+  for (const path of ['maintenance/', 'ip-tests/']) {
     await page.goto(`./${path}`);
     const size = (selector: string) =>
       page.locator(selector).first().evaluate((el) => getComputedStyle(el).fontSize);
@@ -70,7 +71,8 @@ test('步骤页和参考页：正文、h1 字号和左右边距按当前档位',
 // 侧边栏加上正文没有横向滚动。
 test('≥720 宽：左侧目录常驻、当前页高亮、能独立滚动，页面没有横向滚动', async ({ page }) => {
   const width = page.viewportSize()!.width;
-  await page.goto('./check-ip/');
+  // V10 的“日常维护、风控应对与常见故障”展开各章后目录比视口高，用来核对独立滚动
+  await page.goto('./maintenance/');
   const aside = page.locator('[data-toc-sidebar]');
   if (width < 720) {
     await expect(aside).toBeHidden();
@@ -125,7 +127,7 @@ test('≥720 宽：左侧目录常驻、当前页高亮、能独立滚动，页�
   // 当前页高亮：600 --accent 字 + 4px --accent 左边线，没有底色块（design v3 §4.5），只有一个
   const current = aside.locator('a[aria-current="page"]');
   await expect(current).toHaveCount(1);
-  await expect(current).toHaveAccessibleName(/^测 IP 质量/);
+  await expect(current).toHaveAccessibleName(/^日常维护、风控应对与常见故障/);
   const colors = await current.evaluate((el) => {
     const probe = (name: string, prop: 'color' | 'background-color') => {
       const d = document.createElement('div');

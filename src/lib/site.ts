@@ -7,20 +7,18 @@ import type { ForkId, OptionId, PageId, PageMeta, RouteMap, RouteSpecMovedTarget
 import { sectionAnchor, type AnchorHeading } from './section-anchor';
 
 /**
- * 构建时装配（架构 §3 M3）：读取 M1 的三个内容集合和 route.yaml，交给 M2 编译成 RouteMap。
+ * 构建时装配（架构 §3 M3）：读取 M1 的内容集合和 route.yaml，交给 M2 编译成 RouteMap。
  * 页面都从 `loadSite()` 取数据；M2 不引用 M1 的类型，两边的形状在这里映射。
  */
 
-/** 一个步骤、选择页或旁支页：两版正文同名（ADR-0004），元数据在原理版 */
+/** 一个步骤页或选择页：v3 起只有一版正文（实施计划 §3.1），元数据写在 frontmatter 里 */
 export interface SitePage {
   id: string;
   title: string;
   principle: CollectionEntry<'principle'>;
-  /** 原理独有步骤和还没写操作版的页面没有 */
-  operation: CollectionEntry<'operation'> | undefined;
 }
 
-/** 参考页（常见问题、实测合集、各篇实测），只有一版正文 */
+/** 参考页（IP 质量实测合集、各篇实测），只有一版正文 */
 export interface SiteReference {
   id: string;
   title: string;
@@ -34,10 +32,12 @@ export interface Site {
   start: Stop;
   /** 按标识查找 */
   pages: ReadonlyMap<string, SitePage>;
-  /** 按标识查找：`faq`、`faq/<id>`、`ip-tests`、`ip-tests/<id>` */
+  /** 按标识查找：`ip-tests`、`ip-tests/<id>` */
   references: ReadonlyMap<string, SiteReference>;
-  /** 目录里列在附录页下面的参考页：常见问题、IP 质量实测合集（design §4.5） */
+  /** 目录里列在“日常维护”章末尾的参考页：IP 质量实测合集（design §4.5、实施计划 §3.1） */
   tocReferences: TocReference[];
+  /** 参考页在目录里挂在哪一章末尾（实施计划 §3.1：`TOC_REFERENCES` 挂在 `maintenance` 章末） */
+  referenceChapter: { id: string; title: string };
   /** 跳转表的旧网址（FR-25、ADR-0006）：每个旧标识生成一页，不进目录、搜索和 sitemap */
   moved: MovedPage[];
 }
@@ -69,8 +69,10 @@ export interface TocReference {
   title: string;
 }
 
-/** 目录里附录页下面的参考页，按这个顺序 */
-const TOC_REFERENCES = ['faq', 'ip-tests'];
+/** 目录里列在“日常维护”章末尾的参考页，按这个顺序（实施计划 §3.1：常见问题并进各章后只留实测） */
+const TOC_REFERENCES = ['ip-tests'];
+/** 参考页挂在目录的哪一章末尾（章标识，见 route.yaml） */
+const REFERENCE_CHAPTER_ID = 'maintenance';
 
 /** 只取映射需要的字段，单元测试可以直接传普通对象。 */
 export type PrincipleEntry = Pick<CollectionEntry<'principle'>, 'id' | 'body'> & {
@@ -201,6 +203,15 @@ export function searchReferences<T extends { id: string }>(references: ReadonlyM
     });
 }
 
+/** 参考页挂在目录里的那一章（`route.yaml` 的 `maintenance`）：标题用于参考页的眉题 */
+function referenceChapterOf(route: RouteMap): { id: string; title: string } {
+  const chapter = route.data.chapters.find((entry) => entry.id === REFERENCE_CHAPTER_ID);
+  if (chapter === undefined) {
+    throw new Error(`route.yaml：缺少参考页所属的章节 ${REFERENCE_CHAPTER_ID}（实施计划 §3.1）`);
+  }
+  return { id: chapter.id, title: chapter.title };
+}
+
 let cached: Promise<Site> | undefined;
 
 /**
@@ -212,11 +223,7 @@ export function loadSite(): Promise<Site> {
 }
 
 async function readSite(): Promise<Site> {
-  const [principles, operations, references] = await Promise.all([
-    getCollection('principle'),
-    getCollection('operation'),
-    getCollection('reference'),
-  ]);
+  const [principles, references] = await Promise.all([getCollection('principle'), getCollection('reference')]);
 
   let spec: unknown;
   let route: RouteMap;
@@ -228,7 +235,6 @@ async function readSite(): Promise<Site> {
     if (error instanceof RouteValidationError) throw new Error(error.message);
     throw error;
   }
-  const operationById = new Map(operations.map((entry) => [entry.id, entry]));
   const referenceById = new Map(
     references.map((entry) => [entry.id, { id: entry.id, title: pageTitle(entry.body, `src/content/reference/${entry.id}.md`), entry }]),
   );
@@ -240,10 +246,7 @@ async function readSite(): Promise<Site> {
     start: startOf(route),
     moved: buildMovedPages(spec, route, (id) => principleHeadings.get(id), new Set(referenceById.keys())),
     pages: new Map(
-      principles.map((entry) => [
-        entry.id,
-        { id: entry.id, title: route.data.pages[entry.id]!.title, principle: entry, operation: operationById.get(entry.id) },
-      ]),
+      principles.map((entry) => [entry.id, { id: entry.id, title: route.data.pages[entry.id]!.title, principle: entry }]),
     ),
     references: referenceById,
     tocReferences: TOC_REFERENCES.map((id) => {
@@ -251,5 +254,6 @@ async function readSite(): Promise<Site> {
       if (!reference) throw new Error(`src/content/reference/${id}.md：缺少目录要列出的参考页`);
       return { id, title: reference.title };
     }),
+    referenceChapter: referenceChapterOf(route),
   };
 }

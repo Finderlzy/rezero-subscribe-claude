@@ -23,8 +23,8 @@ import '../styles/prose.css';
  * 看得见的部分不进无障碍树，读屏读它自己那一句（progressText）；步数和眉题由 route-enhance 按当前路线改写
  * （挂载点 `[data-route-eyebrow]`、`[data-route-progress]` 名字不变）。
  *
- * 只显示原理版正文（用户 2026-10-22 决定：去掉“操作｜原理”视图切换，页面固定原理视图；内容集合里的操作版数据暂不删，
- * 等 docs/v3-rewrite 的单版本重写统一处理）。`<head>` 里的 VIEW_BOOT_SCRIPT 固定写 `data-view="principle"`，
+ * 只显示唯一的正文（用户 2026-10-22 决定去掉视图切换、页面固定原理视图；v3 起内容本身只有一版，实施计划 §3.1）。
+ * `<head>` 里的 VIEW_BOOT_SCRIPT 固定写 `data-view="principle"`，
  * 只用来标记“页面脚本会运行”（route-enhance、toc 的视图固定为 principle）；没有 JS 时没有 data-view，
  * 构建时的导航本来就按原理视图写好。
  *
@@ -40,14 +40,16 @@ interface Props {
   view: RouteView;
   /** `routeMap.data`：内嵌进页面，浏览器用它重算导航 */
   routeData: RouteData;
-  /** `site.tocReferences`：目录末尾附录分组里的参考页 */
+  /** `site.tocReferences`：目录里“日常维护”章末尾的参考页 */
   tocReferences: TocReference[];
+  /** 参考页挂在目录里的哪一章（`site.referenceChapter.id`） */
+  referencesChapter?: string;
   /** 当前页正文的 h2：列在侧边栏当前项下面（design §4.5，FR-16） */
   sections?: TocSection[];
   skipLabel?: string | undefined;
 }
 
-const { title, view, routeData, tocReferences, sections = [], skipLabel } = Astro.props;
+const { title, view, routeData, tocReferences, referencesChapter, sections = [], skipLabel } = Astro.props;
 // 内嵌在 <script> 里的 JSON 不能出现 `</script>`，把 `<` 转义掉。
 const routeJson = JSON.stringify(routeData).replace(/</g, '\\u003c');
 // 截图编号的步骤号（design §4.7）：构建时按原理视图写，没有 JS 时就是它；route-enhance 按当前选择改写
@@ -58,7 +60,13 @@ const hasZoom = hasZoomableImage(principle);
 <BaseLayout title={title}>
   <script is:inline slot="head" set:html={VIEW_BOOT_SCRIPT} />
   <SiteHeader toc />
-  <Toc outline={view.outline} references={tocReferences} sections={sections} openChapterId={view.progress.chapterId} />
+  <Toc
+    outline={view.outline}
+    references={tocReferences}
+    referencesChapter={referencesChapter}
+    sections={sections}
+    openChapterId={view.progress.chapterId}
+  />
   <div class="page-view">
     <main id="main" class="step" data-route-at={view.current.kind === 'home' ? undefined : view.current.id}>
       <div class="step-body">

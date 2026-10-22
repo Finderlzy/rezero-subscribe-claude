@@ -4,17 +4,17 @@ import ReferenceLayout from '../../layouts/ReferenceLayout.astro';
 import { loadSite } from '../../lib/site';
 import { tocSections } from '../../lib/toc-sections';
 
-/** IP 质量实测合集：/ip-tests/（FR-20）。眉题“附录 · IP 质量实测合集”，页脚回附录。 */
+/** IP 质量实测合集：/ip-tests/（FR-20）。眉题“日常维护 · IP 质量实测合集”，页脚回“日常维护”（实施计划 §3.1）。 */
 const site = await loadSite();
 const collection = site.references.get('ip-tests')!;
-const appendix = site.route.data.pages.appendix;
+const parent = site.route.data.pages[site.referenceChapter.id];
 const { Content, headings } = await render(collection.entry);
 ---
 
 <ReferenceLayout
   title={collection.title}
-  eyebrow={`附录 · ${collection.title}`}
-  back={appendix && { href: '/appendix/', title: appendix.title }}
+  eyebrow={`${site.referenceChapter.title} · ${collection.title}`}
+  back={parent && { href: `/${site.referenceChapter.id}/`, title: parent.title }}
   currentReference="ip-tests"
   sections={tocSections(headings)}
 >

@@ -30,10 +30,11 @@ test('全站构建产物里没有“继续上次”“清除进度”和已读�
 test('读过几页、选过方案之后，首页和目录里仍然没有进度相关的内容', async ({ page }) => {
   await page.goto('./preface/');
   await expectScriptRan(page);
-  await page.goto('./choose-plan/');
+  // V10：选择页换成 overview（节点方案）和 client-desktop（手机系统）
+  await page.goto('./overview/');
   await expectScriptRan(page);
   await chooseOption(page, '方案二');
-  await page.goto('./import-proxy/');
+  await page.goto('./client-desktop/');
   await expectScriptRan(page);
 
   const toc = await openToc(page);

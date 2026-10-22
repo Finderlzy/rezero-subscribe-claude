@@ -33,20 +33,20 @@ describe('AC-33 跳转页、sitemap 和搜索索引', () => {
   test('旧网址仍然是一个页面：说明、链接、noindex、canonical、meta refresh 和立即跳转的内联脚本', () => {
     const html = readFileSync(join(dist(), 'plan1-free-isp/index.html'), 'utf8');
 
-    expect(html).toContain('这一页已经并入《选择方案》');
-    expect(html).toContain('<a href="/choose-plan/">打开《选择方案》→</a>');
+    expect(html).toContain('这一页已经并入《整体思路与方案选型》');
+    expect(html).toContain('打开《整体思路与方案选型 › 方案一和方案二》→');
     expect(html).toContain('<meta name="robots" content="noindex">');
-    expect(html).toContain('<link rel="canonical" href="https://example.test/choose-plan/">');
+    expect(html).toContain('<link rel="canonical" href="https://example.test/overview/">');
     // 有 JS 时立即 replace；没有 JS 时 5 秒后由 meta refresh 前往（AC-33 要求先看得到说明和链接）
-    expect(html).toContain('location.replace("/choose-plan/");');
-    expect(html).toContain('<meta http-equiv="refresh" content="5; url=/choose-plan/">');
+    expect(html).toContain('location.replace("/overview/#方案一和方案二");');
+    expect(html).toContain('<meta http-equiv="refresh" content="5; url=/overview/#方案一和方案二">');
   });
 
   test('带 section 的跳转页：脚本、meta refresh 和链接都指向目标页的原理版 h2 锚点', () => {
     const html = readFileSync(join(dist(), 'old-afterword-page/index.html'), 'utf8');
 
-    expect(html).toContain('这一页已经并入《后记》');
-    expect(html).toContain('打开《后记 › 临时小节》→');
+    expect(html).toContain('这一页已经并入《后记与致谢》');
+    expect(html).toContain('打开《后记与致谢 › 临时小节》→');
     expect(html).toContain('href="/afterword/#临时小节"');
     expect(html).toContain('location.replace("/afterword/#临时小节");');
     expect(html).toContain('<meta http-equiv="refresh" content="5; url=/afterword/#临时小节">');
@@ -63,7 +63,7 @@ describe('AC-33 跳转页、sitemap 和搜索索引', () => {
 
     expect(xml).not.toContain('plan1-free-isp');
     expect(xml).not.toContain('old-afterword-page');
-    expect(xml).toContain('<loc>https://example.test/choose-plan/</loc>');
+    expect(xml).toContain('<loc>https://example.test/overview/</loc>');
     expect(xml).toContain('<loc>https://example.test/afterword/</loc>');
   });
 
@@ -72,7 +72,7 @@ describe('AC-33 跳转页、sitemap 和搜索索引', () => {
 
     expect(index).not.toContain('plan1-free-isp');
     expect(index).not.toContain('old-afterword-page');
-    expect(index).toContain('"path":"/choose-plan/"');
+    expect(index).toContain('"path":"/overview/"');
   });
 });
 
@@ -96,31 +96,31 @@ describe('AC-33 按分叉点选择分流和多段旧网址（实施计划 §3.1�
   test('按选择分流的跳转页：正文、meta refresh 和 canonical 用兜底去向，各选项的去向写在 head 的 JSON 里', () => {
     const html = readFileSync(join(dist(), 'old-register-gmail/index.html'), 'utf8');
 
-    expect(html).toContain('这一页已经并入《选择手机系统》');
-    expect(html).toContain('<a href="/choose-phone/">打开《选择手机系统》→</a>');
-    expect(html).toContain('<meta http-equiv="refresh" content="5; url=/choose-phone/">');
-    expect(html).toContain('<link rel="canonical" href="https://example.test/choose-phone/">');
+    expect(html).toContain('这一页已经并入《客户端配置与环境验证：电脑端》');
+    expect(html).toContain('<a href="/client-desktop/">打开《客户端配置与环境验证：电脑端》→</a>');
+    expect(html).toContain('<meta http-equiv="refresh" content="5; url=/client-desktop/">');
+    expect(html).toContain('<link rel="canonical" href="https://example.test/client-desktop/">');
     expect(html).toContain('type="application/json" id="moved-data"');
     expect(html).toContain('"fork":"phone"');
-    expect(html).toContain('"fallback":"/choose-phone/"');
+    expect(html).toContain('"fallback":"/client-desktop/"');
     // 带小节的选项：锚点按目标页 h2 的 slug 算好，和渲染出来的 id 一致（下面另测）
-    expect(html).toMatch(/"iphone":"\/iphone-gmail\/#[^"]+"/);
-    expect(html).toContain('"/android-gmail/"');
+    expect(html).toMatch(/"iphone":"\/iphone-subscription\/#[^"]+"/);
+    expect(html).toContain('"/android-subscription/"');
   });
 
   test('选项的锚点和目标页渲染出的 h2 id 是同一个', () => {
     const moved = readFileSync(join(dist(), 'old-register-gmail/index.html'), 'utf8');
-    const anchor = /"iphone":"\/iphone-gmail\/#([^"]+)"/.exec(moved)?.[1];
+    const anchor = /"iphone":"\/iphone-subscription\/#([^"]+)"/.exec(moved)?.[1];
     expect(anchor).toBeTruthy();
     expect(decodeURIComponent(anchor!)).toBeTruthy();
-    expect(readFileSync(join(dist(), 'iphone-gmail/index.html'), 'utf8')).toContain(`id="${decodeURIComponent(anchor!)}"`);
+    expect(readFileSync(join(dist(), 'iphone-subscription/index.html'), 'utf8')).toContain(`id="${decodeURIComponent(anchor!)}"`);
   });
 
   test('多段旧参考页路径（faq/<id>）也生成跳转页', () => {
     const html = readFileSync(join(dist(), 'faq/old-question/index.html'), 'utf8');
 
-    expect(html).toContain('这一页已经并入《后记》');
-    expect(html).toContain('<a href="/afterword/">打开《后记》→</a>');
+    expect(html).toContain('这一页已经并入《后记与致谢》');
+    expect(html).toContain('<a href="/afterword/">打开《后记与致谢》→</a>');
     expect(html).toContain('location.replace("/afterword/");');
   });
 
@@ -132,6 +132,6 @@ describe('AC-33 按分叉点选择分流和多段旧网址（实施计划 §3.1�
       expect(xml).not.toContain(old);
       expect(index).not.toContain(old);
     }
-    expect(xml).toContain('<loc>https://example.test/choose-phone/</loc>');
+    expect(xml).toContain('<loc>https://example.test/client-desktop/</loc>');
   });
 });

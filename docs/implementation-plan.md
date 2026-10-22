@@ -72,7 +72,7 @@ V10 换成 v3 单版本（强）───────────────┴
 | `00-前言.md` | 前言 | **`preface`** | 开始 | `disclaimer` → `#免责声明` |
 | `01-整体思路与方案选型.md` | 整体思路与方案选型 | **`overview`** | 准备节点和住宅 IP | `clean-up` → `#清理旧账号和配置`；`choose-plan` → `#接下来怎么选`；`plan3-residential-node` → `#为什么不推荐直接买住宅节点`；`plan1-free-isp` → `#方案一和方案二` |
 | `02-方案一：搭建专属住宅代理节点.md` | 方案一：搭建专属住宅代理节点 | `plan1` | 准备节点和住宅 IP | `plan1-buy-server` → `#第一步：购买海外 VPS`；`plan1-buy-isp` → `#第二步：购买静态住宅 ISP 代理`；`plan1-make-node` → `#第三步：SSH 连接服务器`；`plan1-panel` → `#第五步（可选）：打开面板` |
-| `03-方案二：配置住宅IP服务器.md` | 方案二：配置住宅IP服务器 | **`plan2-residential-server`** | 准备节点和住宅 IP | 同一页扩写，没有旧网址要跳 |
+| `03-方案二：配置住宅IP服务器.md` | 方案二：配置住宅 IP 服务器 | **`plan2-residential-server`** | 准备节点和住宅 IP | 同一页扩写，没有旧网址要跳 |
 | `04-客户端配置与环境验证-电脑端.md` | 客户端配置与环境验证：电脑端 | `client-desktop` | 客户端配置与订阅 | `import-proxy` → `#安装代理软件`；`check-ip` → `#验收清单`；`recap` → `#先看一眼整条链路`；`leak-protection` → `#防泄漏`；`timezone` → `#改时区`；`choose-phone` → `#下一步` |
 | `05-客户端配置与环境验证-iOS端.md` | 客户端配置与环境验证：iOS 端 | `iphone-prepare` | 客户端配置与订阅 | `iphone-app-store-austria` → `#第一步：准备一个能下载代理软件的 App Store`；`iphone-proxy` → `#第二步：在 V2Box 里导入节点`；`iphone-gmail` → `#第五步：下载 Gmail` |
 | `06-客户端配置与环境验证-安卓端.md` | 客户端配置与环境验证：安卓端 | `android-prepare` | 客户端配置与订阅 | `android-proxy` → `#第一步：安装 v2rayNG`；`android-google-play` → `#第二步：准备 Google Play`；`android-gmail` → `#第五步：下载 Gmail` |

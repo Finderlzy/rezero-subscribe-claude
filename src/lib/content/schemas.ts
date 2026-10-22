@@ -25,13 +25,13 @@ const optionId = z.string().regex(ID_PATTERN, '选项标识要用英文 kebab-ca
 
 /*
  * 内容集合（架构 §3 M1 内容文件表）。页面标题不写在 frontmatter 里，取正文第一行的 `# 标题`
- * （由链接索引读取并校验），所以三个 schema 都没有 title。
+ * （由链接索引读取并校验），所以 schema 里没有 title。v3 起只有一版正文，没有操作版集合。
  */
 
-/** 原理版 `principle/<id>.md`：一个页面（步骤、选择页、旁支页）的全部元数据都写在这里，frontmatter 可以整段省略 */
+/** 步骤页 `principle/<id>.md`：一个页面（步骤、选择页）的全部元数据都写在这里，frontmatter 可以整段省略 */
 export const principleSchema = z
   .strictObject({
-    /** 原理独有步骤：没有操作版，操作视图绕过（FR-21） */
+    /** 旧字段，v3 只有一个版本后没有“原理独有步骤”；M2 仍接受，统一为 false */
     principleOnly: z.boolean().default(false),
     /** 可跳过步骤（FR-15） */
     skippable: z.boolean().default(false),
@@ -39,11 +39,11 @@ export const principleSchema = z
     skipLabel: text.optional(),
     video: videoSchema.optional(),
     /**
-     * 选择页的选项（FR-12）：`heading` 是正文里独占一段的加粗文字原文，选项块的包装和
-     * “是不是选择页”的核对在路线图和选项块任务里做，这里只校验形状。
+     * 选择页的选项（FR-12）：标题写在 frontmatter 里，选项卡片渲染在正文末尾（V10，design §4.2）；
+     * “是不是选择页”的核对在路线图里做，这里只校验形状。
      */
     options: z
-      .record(optionId, z.strictObject({ title: text, heading: text }))
+      .record(optionId, z.strictObject({ title: text }))
       .refine((options) => Object.keys(options).length >= 2, '选择页至少要有两个选项')
       .optional(),
   })
@@ -52,12 +52,9 @@ export const principleSchema = z
       ctx.addIssue({ code: 'custom', path: ['skipLabel'], message: '只有 skippable: true 的页面才能写 skipLabel' });
     }
     if (page.principleOnly && page.options !== undefined) {
-      ctx.addIssue({ code: 'custom', path: ['options'], message: '选择页两种视图都要有，不能写 principleOnly: true' });
+      ctx.addIssue({ code: 'custom', path: ['options'], message: '选择页不能写 principleOnly: true（v3 只有一个版本）' });
     }
   });
-
-/** 操作版 `operation/<id>.md`：不写 frontmatter，元数据跟随同名原理版 */
-export const operationSchema = z.strictObject({});
 
 /** 参考页 `reference/**`：不写 frontmatter */
 export const referenceSchema = z.strictObject({});

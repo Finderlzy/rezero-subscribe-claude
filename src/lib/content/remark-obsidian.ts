@@ -6,7 +6,6 @@ import { hashFragment, LAYOUT_ANCHOR_IDS, resolveSectionAnchor } from '../sectio
 import { joinBase } from '../with-base';
 import { parseDiagram } from './diagram';
 import { resolveLinkIndex, type IndexedPage, type LinkIndex } from './link-index';
-import { wrapOptionBlocks } from './option-blocks';
 
 /**
  * M1 的 Obsidian 写法插件（架构 §3 M1）：把双链、嵌入转换成链接、图片节点和内联的说明图，
@@ -53,10 +52,9 @@ export interface ContentProblem {
 
 /**
  * 内容提示（FR-21、Q-11）：不让构建失败，构建结束时按 formatHints 汇总打印（架构 §3 M5）。
- * `page` 是提示所在的页面（两版同一个标识）；作者待补带段落原文，博客链接带双链目标。
+ * `page` 是提示所在的页面；作者待补带段落原文，博客链接带双链目标。
  */
 export type ContentHint = { file: string; line?: number; page: { id: string; title: string } } & (
-  | { kind: 'missing-operation' }
   | { kind: 'author-todo'; text: string }
   | { kind: 'blog-link'; target: string }
 );
@@ -65,12 +63,11 @@ export type ContentHint = { file: string; line?: number; page: { id: string; tit
 export function formatHints(hints: readonly ContentHint[]): string[] {
   const lines = new Map<string, number>();
   const add = (line: string) => lines.set(line, (lines.get(line) ?? 0) + 1);
-  const order = ['missing-operation', 'author-todo', 'blog-link'];
+  const order = ['author-todo', 'blog-link'];
   // 同类提示排在一起，类内保持出现顺序
   const sorted = [...hints].sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind));
   for (const hint of sorted) {
-    if (hint.kind === 'missing-operation') add(`操作版缺失：${hint.page.id} ${hint.page.title}`);
-    else if (hint.kind === 'author-todo') add(`作者待补：${hint.page.id} ${hint.page.title}`);
+    if (hint.kind === 'author-todo') add(`作者待补：${hint.page.id} ${hint.page.title}`);
     else add(`博客链接待填：${hint.target}`);
   }
   return [...lines].map(([line, n]) => (line.startsWith('作者待补：') ? `${line}（${n} 处）` : line));
@@ -101,7 +98,7 @@ interface DocContext {
   base: string;
   /** 文档的绝对路径；没有时为 undefined */
   path: string | undefined;
-  /** 当前文件是 principle/、operation/、reference/ 下的页面时为该页面（去标题和页脚、`?from=`、内容提示） */
+  /** 当前文件是 principle/、reference/ 下的页面时为该页面（去标题和页脚、`?from=`、内容提示） */
   page: IndexedPage | undefined;
   report(message: string, at: Point | undefined): void;
   /** 记一条内容提示（不是页面文件时忽略） */
@@ -133,8 +130,6 @@ export default function remarkObsidian(options: RemarkObsidianOptions) {
     };
     if (ctx.page) preparePage(tree, ctx.page);
     walk(tree, ctx, false);
-    // 选项块要在双链转成链接之后包：核对的是块内第一个站内链接的目标页
-    if (ctx.page) wrapOptionBlocks(tree, ctx.page, index, ctx);
     if (hints.length > 0) options.onHints?.(hints);
     if (problems.length === 0) return;
     if (options.onProblems) options.onProblems(problems);
@@ -167,11 +162,18 @@ function sourceShift(path: string | undefined, value: unknown): (p: Point) => Po
 /**
  * 页面正文的结构调整（架构 §3 M1）：去掉第一行的 `# 标题`（布局输出 h1），
  * 去掉末尾手写的页脚（FR-04，页脚由路线图生成）。页脚里的双链不再解析。
+ * 作者在新稿里习惯在每个标题下面写一行 `---` 当分隔（Obsidian 的写法）；标题的样式由页面负责，
+ * 这行分隔线不渲染，否则会在每个 h2 下面多一条和 h2 下边线重复的线（design §3.2、§4.7）。
  */
 function preparePage(tree: Root, page: IndexedPage): void {
   const [first] = tree.children;
   if (first?.type === 'heading' && first.depth === 1 && page.title !== undefined && plainText(first) === page.title) {
     tree.children.shift();
+    // 标题下面那一行 `---` 紧跟着标题，标题去掉后它在最前面
+    if (tree.children[0]?.type === 'thematicBreak') tree.children.shift();
+  }
+  for (let i = tree.children.length - 1; i > 0; i--) {
+    if (tree.children[i]!.type === 'thematicBreak' && tree.children[i - 1]!.type === 'heading') tree.children.splice(i, 1);
   }
   const n = tree.children.length;
   const rule = tree.children[n - 2];
@@ -224,6 +226,7 @@ function walk(node: Parent, ctx: DocContext, inLink: boolean): void {
       }
     } else if (child.type === 'link' && !inLink && ctx.page) {
       checkSectionLink(child, ctx);
+      checkRelativeMarkdownLink(child, ctx);
       walk(child, ctx, true);
     } else if ('children' in child) {
       walk(child, ctx, inLink || child.type === 'link' || child.type === 'linkReference');
@@ -328,9 +331,19 @@ function parseWikiTarget(raw: string, source: string, at: Point | undefined, ctx
  * 片段可以写标题原文，也可以写 slug；解析成页面上的 slug 后写回链接，找不到就构建失败。
  * 只处理 `#` 开头的链接，外链和别的页面不受影响。
  */
+/**
+ * 相对 Markdown 链接（`[文字](02-….md)`）要在导入时换成双链（V10，import-rewrite.mjs）。
+ * 这里兜底：正文里还留着 `.md` 链接，说明重写稿有导入脚本没认出来的写法（比如目标里有空格），
+ * 或者有人手改了正文；构建失败（FR-61），不要让它变成站内 404。
+ */
+function checkRelativeMarkdownLink(node: Link, ctx: DocContext): void {
+  if (/^https?:/.test(node.url)) return;
+  if (!/\.md(?:#|$)/.test(node.url)) return;
+  ctx.report(`相对 Markdown 链接没有在导入时转换：${node.url}（改重写稿的写法或重跑 import-rewrite.mjs）`, node.position?.start);
+}
+
 function checkSectionLink(node: Link, ctx: DocContext): void {
-  // 操作版不再渲染（页面固定原理视图），而且它的标题 id 会加 op- 前缀；这里只管实际渲染的正文
-  if (ctx.page === undefined || ctx.page.kind === 'operation' || !node.url.startsWith('#')) return;
+  if (ctx.page === undefined || !node.url.startsWith('#')) return;
   const fragment = hashFragment(node.url);
   if (fragment === undefined) {
     ctx.report(`小节链接“${node.url}”没有写小标题：要写成 [文字](#小标题)`, node.position?.start);

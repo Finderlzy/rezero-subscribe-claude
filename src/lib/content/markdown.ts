@@ -5,8 +5,8 @@ import { createMarkdownProcessor, parseFrontmatter, type UnifiedProcessorOptions
 import rehypeCallouts from 'rehype-callouts';
 import { checkPages, resolveLinkIndex, type LinkIndex } from './link-index';
 import rehypeFigures from './rehype-figures';
-import rehypeOperationIds from './rehype-operation-ids';
 import rehypeScrollableTables from './rehype-scrollable-tables';
+import rehypeTaskListCheckboxes from './rehype-task-list-checkboxes';
 import { ID_PATTERN } from './schemas';
 import remarkObsidian, { type ContentHint, type ContentProblem } from './remark-obsidian';
 
@@ -31,8 +31,8 @@ export function markdownPipeline({ base, linkIndex, onProblems, onHints }: Markd
     smartypants: false,
     remarkPlugins: [[remarkObsidian, { base, linkIndex, onProblems, onHints }]],
     rehypePlugins: [
-      [rehypeOperationIds, { linkIndex }],
       rehypeScrollableTables,
+      rehypeTaskListCheckboxes,
       rehypeFigures,
       [
         rehypeCallouts,
@@ -58,7 +58,7 @@ export function markdownPipeline({ base, linkIndex, onProblems, onHints }: Markd
 export async function validateContent(options: MarkdownPipelineOptions): Promise<ContentReport> {
   const index = resolveLinkIndex(options.linkIndex);
   const problems: ContentProblem[] = checkPages(index);
-  const hints: ContentHint[] = missingOperationHints(index);
+  const hints: ContentHint[] = [];
   const pipeline = markdownPipeline({
     base: options.base,
     linkIndex: index,
@@ -91,14 +91,6 @@ export async function validateContent(options: MarkdownPipelineOptions): Promise
 export interface ContentReport {
   problems: ContentProblem[];
   hints: ContentHint[];
-}
-
-/** 还没有操作版的页面（不含原理独有步骤和参考页），构建结束时列为内容提示（FR-21；页面固定原理视图后只作记录，架构 §13.12） */
-function missingOperationHints(index: LinkIndex): ContentHint[] {
-  const operations = new Set(index.pages.filter((p) => p.kind === 'operation').map((p) => p.id));
-  return index.pages
-    .filter((p) => p.kind === 'principle' && !p.principleOnly && !operations.has(p.id))
-    .map((p) => ({ kind: 'missing-operation', file: display(p.file), page: { id: p.id, title: p.title ?? p.id } }));
 }
 
 function display(file: string): string {

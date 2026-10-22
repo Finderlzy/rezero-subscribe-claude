@@ -3,75 +3,50 @@
 # 选择页可写 default：本机没选时按这个选项计算导航和目录（节点方案默认方案二）；没有 default 的分叉点没选时，
 # 它的分支段两侧的页面指向它的选择页（FR-13）。
 # 章节的 summary 是首页五栏简介的文案（作者 2026-10-22 决定）：不是导入的正文，作者可以直接改这几句。
+# v3（2026-10-22，实施计划 §3.1）：作者的新稿一章一页，11 页、5 章、2 个分叉点；方案一/二和 iPhone/安卓
+# 各自放在同一章下面，分叉段的汇合点是下一章的第一页（选择页或普通页）。
 chapters:
   - id: start
     title: 开始
-    summary: 先看这份教程怎么用，再清掉旧账号和环境里可能露馅的地方。
-    items: [preface, disclaimer, overview, clean-up]
+    summary: 先弄清这份教程怎么用、要准备什么，再决定走哪条路。
+    items: [preface]
   - id: node-and-ip
     title: 准备节点和住宅 IP
-    summary: 三个方案目的相同：让 claude 看到一个静态住宅 IP，而且只有你在用。
+    summary: 两条路让 Claude 看到独享的住宅 IP：自己搭代理节点，或者直接买住宅服务器。
     items:
-      - { choose: node-plan, page: choose-plan, default: plan-2 }
+      - { choose: node-plan, page: overview, default: plan-2 }
       - branch: node-plan
         options:
-          plan-1: [plan1-buy-server, plan1-buy-isp, plan1-make-node, plan1-panel]
+          plan-1: [plan1]
           plan-2: [plan2-residential-server]
-          plan-3: [plan3-residential-node]
-      # F1 的汇合点
-      - import-proxy
-      - check-ip
-      # 原理独有，操作视图绕过
-      - recap
-      - leak-protection
-      - timezone
-  - id: register-and-subscribe
-    title: 注册和订阅
-    summary: 从手机、Google 账号到美区 Apple ID，一步步把订阅走完。
+  - id: client-and-subscribe
+    title: 客户端配置与订阅
+    summary: 把节点接到电脑和手机上，再一步步注册账号、完成订阅。
     items:
-      - { choose: phone, page: choose-phone }
+      - { choose: phone, page: client-desktop }
       - branch: phone
         options:
-          iphone: [iphone-app-store-austria, iphone-proxy, iphone-gmail]
-          android: [android-proxy, android-google-play, android-gmail]
-      # F2 第一段的汇合点
-      - register-gmail
-      - chrome-sign-in
-      - use-two-days
-      - google-region
-      - register-claude
-      - subscribe
-      # 同一分叉点的第二段，没有选择页；没选时“订阅”的下一步是“选择手机系统”
-      - branch: phone
-        options:
-          iphone: [iphone-why-us-apple-id, iphone-apple-id, iphone-app-store-login, iphone-gift-card, iphone-subscribe, iphone-purchase-failed]
-          android: [android-subscribe]
-      # F2 订阅段的汇合点
-      - after-subscribe
+          iphone: [iphone-prepare, iphone-subscription]
+          android: [android-prepare, android-subscription]
+  - id: maintenance
+    title: 日常维护
+    summary: 订阅之后怎么用、怎么续费，账号受限和常见故障怎么处理。
+    items: [maintenance]
   - id: ending
     title: 结尾
-    summary: 订阅成功之后，日常怎么用、怎么维护、出问题怎么处理。
-    items: [thanks, afterword]
-  # 后记的下一步；常见问题和 IP 质量实测合集是参考页，从这一页进去
-  - id: appendix
-    title: 附录
-    summary: 常见问题、IP 质量实测和后续补充，卡住了再来查。
-    items: [appendix]
-# 旁支页：不在序列里，页脚是“回到：<returnTo>”和 returnTo 的下一步（FR-19）
-side:
-  google-appeal: { returnTo: use-two-days }
+    summary: 后记与致谢：这一路走下来的一些话。
+    items: [afterword]
+# 旁支页：不在序列里，页脚是“回到：<returnTo>”和 returnTo 的下一步（FR-19）。v3 没有旁支页。
+side: {}
 # 跳转表：被合并掉或删掉的旧网址 → 目标页（可写 section 指名目标页正文里的一个小节），旧地址仍然生成一个跳转页
 # （FR-25、ADR-0006）。旧标识不能再分给新页面，也不进目录、搜索和 sitemap。
 moved:
-  # 2026-10-19 作者改用方案二，删掉方案一的“一、白嫖 ISP”，旧地址跳到“选择方案”
-  plan1-free-isp: { to: choose-plan }
-  # 手机相关的旧页（实施计划 §3.1）：按 M4 里的手机选项分流；没选过或读不到本机选择时落到选择手机系统
+  plan1-free-isp: { to: overview, section: 方案一和方案二 }
   old-register-gmail:
     choice:
       fork: phone
       options:
-        iphone: { to: iphone-gmail, section: '第五步：下载 Gmail' }
-        android: { to: android-gmail }
-      fallback: { to: choose-phone }
-  # 旧参考页路径（多段）：常见问题并进各章后，旧的一问一页仍然是一个地址
+        iphone: { to: iphone-subscription, section: 注册 Gmail }
+        android: { to: android-subscription }
+      fallback: { to: client-desktop }
   faq/old-question: { to: afterword }
