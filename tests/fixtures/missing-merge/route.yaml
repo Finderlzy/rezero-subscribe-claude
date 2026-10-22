@@ -1,56 +1,28 @@
-# 路线图：章节、分叉点、页面顺序和旁支页的唯一来源（架构 §3 M1/M2、需求 §5.2）。
-# 页面标识是 principle/<id>.md 的文件名，也是 URL /<id>/；v2.0 发布后不能改（ADR-0002）。
-# 没有默认路线：分叉点没选时，它的分支段两侧的页面指向它的选择页（FR-13）。
+# 坏内容（AC-14）：分叉点 phone 的分支段挪到路线最后，后面没有汇合点，最后一项也不是普通页面。
 chapters:
   - id: start
     title: 开始
-    items: [preface, disclaimer, overview, clean-up]
+    items: [preface]
   - id: node-and-ip
     title: 准备节点和住宅 IP
     items:
-      - { choose: node-plan, page: choose-plan }
+      - { choose: node-plan, page: overview, default: plan-2 }
       - branch: node-plan
         options:
-          plan-1: [plan1-buy-server, plan1-buy-isp, plan1-make-node, plan1-panel]
+          plan-1: [plan1]
           plan-2: [plan2-residential-server]
-          plan-3: [plan3-residential-node]
-      # F1 的汇合点
-      - import-proxy
-      - check-ip
-      # 原理独有，操作视图绕过
-      - recap
-      - leak-protection
-      - timezone
-  - id: register-and-subscribe
-    title: 注册和订阅
+  - id: client-and-subscribe
+    title: 客户端配置与订阅
     items:
-      - { choose: phone, page: choose-phone }
-      - branch: phone
-        options:
-          iphone: [iphone-app-store-austria, iphone-proxy, iphone-gmail]
-          android: [android-proxy, android-google-play, android-gmail]
-      # F2 第一段的汇合点
-      - register-gmail
-      - chrome-sign-in
-      - use-two-days
-      - google-region
-      - register-claude
-      - subscribe
-      - after-subscribe
-  # 坏内容（AC-14）：F2 的订阅段挪到路线最后，后面没有汇合点
-  # 附录放在结尾之前，让结尾的分支段仍是路线的最后一项（后面没有汇合点）
-  - id: appendix
-    title: 附录
-    items: [appendix]
+      - { choose: phone, page: client-desktop }
+  - id: maintenance
+    title: 日常维护
+    items: [maintenance]
   - id: ending
     title: 结尾
     items:
-      - thanks
       - afterword
       - branch: phone
         options:
-          iphone: [iphone-why-us-apple-id, iphone-apple-id, iphone-app-store-login, iphone-gift-card, iphone-subscribe, iphone-purchase-failed]
-          android: [android-subscribe]
-# 旁支页：不在序列里，页脚是“回到：<returnTo>”和 returnTo 的下一步（FR-19）
-side:
-  google-appeal: { returnTo: use-two-days }
+          iphone: [iphone-prepare, iphone-subscription]
+          android: [android-prepare, android-subscription]

@@ -88,6 +88,24 @@
 }
 
 /*
+ * GFM 任务列表（`- [ ]`，作者新稿的验收清单）：圆点是多余的，方框本身就是标记。
+ * 去掉列表圆点和缩进，方框和条目文字按顶部对齐；方框的 aria-hidden 由 rehype-task-list-checkboxes 加。
+ */
+.prose :is(ul, ol).contains-task-list {
+  padding-left: 0;
+  list-style: none;
+}
+
+.prose li.task-list-item {
+  list-style: none;
+}
+
+.prose li.task-list-item > input[type='checkbox'] {
+  margin-right: var(--space-2);
+  vertical-align: -0.1em;
+}
+
+/*
  * 截图图版（design v3 §4.7（截图规则沿用 v2.1、D4））：rehype-figures 把独占一行的截图包成 figure.plate，编号 figcaption 在截图前面。
  * 截图保持原文宽度（不超过正文栏），1px --border 边框、4px 圆角，上下各留 24px。
  * 编号在所有宽度下都排到截图下方作图注（v2.2 去掉了桌面的页边栏，W2 第 3 条）。
@@ -338,4 +356,12 @@
 .prose .option-block :is(a:not([data-option-start]), button, summary, pre, img) {
   position: relative;
   z-index: 1;
+}
+
+/*
+ * 选择页的选项卡片（V10）：由 frontmatter 的 options 渲染在正文末尾（ChoiceCards.astro），
+ * 和正文之间留 24px；卡片沿用上面 .option-block 的样式。
+ */
+.prose .choice-cards {
+  margin-top: var(--space-5);
 }

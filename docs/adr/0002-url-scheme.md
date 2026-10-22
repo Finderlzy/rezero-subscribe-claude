@@ -12,6 +12,8 @@
 
 > 2026-10-21 修订（v3，[ADR-0006](0006-merged-pages-and-moved-urls.md)）：作者批准 v3 合并页面，这是“已发布的 URL 不能改”的一次例外。合并页用新标识，被合并掉的旧标识和 2026-10-19 删掉的 `plan1-free-isp` 一起登记在 `route.yaml` 的 `moved:` 段，跳到合并页里对应的小节；`REMOVED_PAGES` 和 Astro `redirects` 不再使用。合并清单以外的改动仍要先问作者。
 
+> 2026-10-22 修订（V11）：作者确认新稿 11 页的页面地图（实施计划 §3.1）。页面角色和标题都没变的 `preface`、`overview`、`plan2-residential-server`、`afterword` 沿用旧标识；其余合并页起新标识。全部 37 条旧页面（含 6 条手机分流）、8 条旧常见问题路径和旧 `faq` 目录都进 `moved:`，`/ip-tests/` 和 6 篇实测保留原网址。
+
 ## Considered Options
 
 - **中文路径**：分享出去时会被编码成很长的 `%E5…`，在聊天软件里不好看，也容易被截断。

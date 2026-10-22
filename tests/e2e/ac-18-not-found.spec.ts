@@ -39,7 +39,8 @@ test('打开不存在的页面：v3 顶栏和正文栏、“找不到这一页�
 
   const toc = page.getByRole('navigation', { name: '全站目录' });
   await expect(toc.getByRole('link', { name: '前言' })).toHaveAttribute('href', /\/preface\/$/);
-  await expect(toc.getByRole('link', { name: '选择方案' })).toHaveAttribute('href', /\/choose-plan\/$/);
+  // V10 的参考页只有 IP 质量实测合集
+  await expect(toc.getByRole('link', { name: 'IP 质量实测合集' })).toHaveAttribute('href', /\/ip-tests\/$/);
 
   // “回到首页”是主按钮，“打开目录”是次按钮（design §4.7）
   await expect(page.getByRole('link', { name: '回到首页' })).toHaveClass(/\bbutton\b/);
@@ -50,7 +51,7 @@ test('打开不存在的页面：v3 顶栏和正文栏、“找不到这一页�
 });
 
 test('固定字形只在找不到页内联，其他页不带 NumeralSprite', async ({ page }) => {
-  await page.goto('./import-proxy/');
+  await page.goto('./maintenance/');
   await expect(page.locator('symbol[id^="numeral-"]')).toHaveCount(0);
   await page.goto('./no-such-page/');
   await expect(page.locator('symbol[id^="numeral-"]')).toHaveCount(10);

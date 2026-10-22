@@ -24,12 +24,13 @@ async function tokenColor(page: Page, name: string, prop: 'color' | 'background-
   );
 }
 
-const CHAPTER_STARTS = ['./preface/', './choose-plan/', './choose-phone/', './thanks/', './appendix/'];
-const OTHER_PAGES = ['./disclaimer/', './import-proxy/', './register-gmail/', './google-appeal/', './afterword/'];
+// 五章的第一页（实施计划 §3.1）：开始、准备节点和住宅 IP、客户端配置与订阅、日常维护、结尾
+const CHAPTER_STARTS = ['./preface/', './overview/', './client-desktop/', './maintenance/', './afterword/'];
+const OTHER_PAGES = ['./plan1/', './iphone-subscription/'];
 
 test('顶栏：白底、1px 细线、不固定；左边标记、站名、小形象，右边搜索、昼夜切换、联系方式（design §4.0）', async ({ page }) => {
   const width = page.viewportSize()!.width;
-  await page.goto('./import-proxy/');
+  await page.goto('./plan1/');
   const header = page.locator('header.site-header');
   const style = await header.evaluate((el) => {
     const s = getComputedStyle(el);
@@ -85,9 +86,8 @@ for (const path of [...CHAPTER_STARTS, ...OTHER_PAGES]) {
     const h1 = page.getByRole('heading', { level: 1 });
     await expect(eyebrow).toBeVisible();
     await expect(h1).toBeVisible();
-    // 章首页也写全章号和章名（附录页只写“附录”）
-    if (path === './appendix/') await expect(page.locator('[data-route-eyebrow]')).toHaveText('附录');
-    else await expect(page.locator('[data-route-eyebrow]')).toContainText(/^第 \d+ 章 · /);
+    // 眉题写全章号和章名（v3 没有附录章了）
+    await expect(page.locator('[data-route-eyebrow]')).toContainText(/^第 \d+ 章 · /);
     const box = await page.evaluate(() => {
       const eyebrow = document.querySelector('main .eyebrow')!;
       const h1 = document.querySelector('h1')!;
@@ -122,16 +122,16 @@ for (const path of [...CHAPTER_STARTS, ...OTHER_PAGES]) {
 }
 
 test('参考页也是眉题 + 纯文字 h1，没有色带', async ({ page }) => {
-  for (const path of ['./faq/', './ip-tests/']) {
+  for (const path of ['./ip-tests/', './ip-tests/voyracloud/']) {
     await page.goto(path);
     await expect(page.locator('.band'), path).toHaveCount(0);
-    await expect(page.locator('main .eyebrow'), path).toHaveText(/^附录/);
+    await expect(page.locator('main .eyebrow'), path).toHaveText(/^日常维护/);
     await expect(page.getByRole('heading', { level: 1 }), path).toBeVisible();
   }
 });
 
 test('页脚：正文区下面一条细线，一行 13px 的非官方声明', async ({ page }) => {
-  await page.goto('./import-proxy/');
+  await page.goto('./plan1/');
   const footer = page.locator('footer.site-footer');
   await expect(footer).toHaveText('本站是个人教程，与 Anthropic 无关。');
   const style = await footer.evaluate((el) => ({ border: getComputedStyle(el).borderTopWidth, size: getComputedStyle(el.querySelector('small')!).fontSize }));
@@ -156,7 +156,7 @@ test('紫色主色：主按钮用 --primary-bg，它就是 --accent（design §3
 
 test('360 宽：顶栏放得下全部元素，页面没有横向滚动（design §4.0 预算）', async ({ page }) => {
   test.skip(page.viewportSize()!.width !== 360, '只在 360 宽下核对');
-  for (const path of ['./import-proxy/', './choose-plan/', './faq/', './ip-tests/voyracloud/', './no-such-page/']) {
+  for (const path of ['./plan1/', './overview/', './ip-tests/', './ip-tests/voyracloud/', './no-such-page/']) {
     await page.goto(path);
     expect(await page.evaluate(() => document.documentElement.scrollWidth), path).toBeLessThanOrEqual(360);
     const right = await page.locator('.site-header-tools').evaluate((el) => el.getBoundingClientRect().right);
@@ -169,7 +169,7 @@ test.describe('昼夜切换（用户 2026-10-22 决定，放在原来视图切�
   test.use({ colorScheme: 'light' });
 
   test('点击后 data-theme 和背景色令牌都变，刷新后保持；再点回到浅色', async ({ page }) => {
-    await page.goto('./import-proxy/');
+    await page.goto('./plan1/');
     const toggle = page.getByRole('button', { name: '深色模式' });
     const root = page.locator('html');
     const bg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
@@ -196,7 +196,7 @@ test.describe('昼夜切换（用户 2026-10-22 决定，放在原来视图切�
     await expect(root).toHaveAttribute('data-theme', 'dark');
     expect(await bg()).toBe('rgb(18, 18, 20)');
 
-    await page.goto('./faq/');
+    await page.goto('./ip-tests/');
     await toggle.click();
     await expect(root).toHaveAttribute('data-theme', 'light');
     await expect(toggle).toHaveAttribute('aria-pressed', 'false');
@@ -205,7 +205,7 @@ test.describe('昼夜切换（用户 2026-10-22 决定，放在原来视图切�
 
   test('键盘可操作：从首页链接 Tab 到搜索、再到昼夜切换按钮，空格、回车切换', async ({ page }) => {
     const width = page.viewportSize()!.width;
-    await page.goto('./import-proxy/');
+    await page.goto('./plan1/');
     const toggle = page.getByRole('button', { name: '深色模式' });
     await expect(toggle).toBeVisible();
     // 顶栏里首页链接后面是搜索（小形象不可聚焦），再后面是昼夜切换
@@ -231,7 +231,7 @@ test.describe('昼夜切换（用户 2026-10-22 决定，放在原来视图切�
         },
       });
     });
-    await page.goto('./import-proxy/');
+    await page.goto('./plan1/');
     const toggle = page.getByRole('button', { name: '深色模式' });
     await expect(page.locator('html')).not.toHaveAttribute('data-theme');
     await toggle.click();
@@ -246,7 +246,7 @@ test.describe('系统是深色时', () => {
   test.use({ colorScheme: 'dark' });
 
   test('默认跟随系统显示深色，按钮是按下状态；切到浅色后系统深色也用浅色', async ({ page }) => {
-    await page.goto('./import-proxy/');
+    await page.goto('./plan1/');
     const toggle = page.getByRole('button', { name: '深色模式' });
     await expect(page.locator('html')).not.toHaveAttribute('data-theme');
     await expect(toggle).toHaveAttribute('aria-pressed', 'true');
@@ -260,8 +260,8 @@ test.describe('系统是深色时', () => {
 test.describe('没有 JS 时', () => {
   test.use({ javaScriptEnabled: false });
 
-  test('昼夜切换隐藏，页面跟随系统；正文是原理版，搜索也隐藏', async ({ page }) => {
-    await page.goto('./import-proxy/');
+  test('昼夜切换隐藏，页面跟随系统；正文照常，搜索也隐藏', async ({ page }) => {
+    await page.goto('./plan1/');
     await expect(page.locator('[data-theme-toggle]')).toBeHidden();
     await expect(page.locator('[data-site-search]')).toBeHidden();
     await expect(page.locator('html')).not.toHaveAttribute('data-theme');
@@ -275,7 +275,7 @@ test.describe('没有 JS 时', () => {
 // 不依赖当时的内容；其余组件都用真实页面。
 test('正文：字号、行高、标题层级和链接下划线（design §3.2、§4.7）', async ({ page }) => {
   const width = page.viewportSize()!.width;
-  await page.goto('./plan1-make-node/');
+  await page.goto('./plan1/');
   const styles = await page.evaluate(() => {
     const prose = document.querySelector('.prose')!;
     const read = (el: Element) => {
@@ -341,7 +341,7 @@ test('正文：字号、行高、标题层级和链接下划线（design §3.2�
 
 test('内容组件：代码、提示块、表格、截图、作者待补和 QQ 群入口（design §4.7）', async ({ page }) => {
   // 先打开站点页面，再读令牌（about:blank 上没有 tokens.css，读出来是透明色）
-  await page.goto('./plan1-make-node/');
+  await page.goto('./plan1/');
   const token = (name: string, prop: 'color' | 'background-color') => tokenColor(page, name, prop);
   const surfaceMuted = await token('--surface-muted', 'background-color');
 
@@ -372,7 +372,7 @@ test('内容组件：代码、提示块、表格、截图、作者待补和 QQ �
 
   // 提示块：普通提示 --surface-muted 底 + --accent 条，caution 用 --caution-bg + --caution-rule 条；
   // 都是左边 4px、右侧 6px 圆角、内边距 12px 16px，标签 13px 600。
-  // 现有正文没有 callout（v3 重写稿导入后才会出现），这里按 rehype-callouts 的标记临时插入。
+  // 按 rehype-callouts 的标记临时插入（新稿里的 callout 在别的页，这里不依赖内容）。
   const callout = await page.evaluate(() => {
     const prose = document.querySelector('.prose')!;
     const make = (type: string) => {
@@ -443,7 +443,8 @@ test('内容组件：代码、提示块、表格、截图、作者待补和 QQ �
   expect(table.evenFirst).toMatchObject({ position: 'sticky', bg: surfaceMuted });
 
   // 截图：1px 边框、4px 圆角，图版上下各 24px；编号 13px 400 --text-faint
-  await page.goto('./clean-up/');
+  // （新稿正文换成视频占位，截图在保留的 IP 实测参考页里）
+  await page.goto('./ip-tests/voyracloud/');
   const plate = await page.locator('.prose figure.plate').first().evaluate((el) => {
     const img = el.querySelector('img')!;
     const no = el.querySelector('.plate-no')!;
@@ -471,7 +472,8 @@ test('内容组件：代码、提示块、表格、截图、作者待补和 QQ �
   });
 
   // 作者待补：浅黄底 + 4px 左边线、右侧 6px 圆角，标签 13px 600
-  await page.goto('./android-subscribe/');
+  // （新稿正文没有 TODO，保留的实测参考页里有一处）
+  await page.goto('./ip-tests/qsu-residential/');
   const todo = await page.locator('.prose aside.author-todo').evaluate((el) => {
     const s = getComputedStyle(el);
     const label = getComputedStyle(el.querySelector('.author-todo-label')!);
@@ -492,7 +494,7 @@ test('内容组件：代码、提示块、表格、截图、作者待补和 QQ �
   expect(todo.radius).toBe('0px 6px 6px 0px');
 
   // QQ 群入口：普通提示块的形状（浅底 + 4px --accent 左边线），标签 13px 600
-  await page.goto('./faq/');
+  await page.goto('./ip-tests/');
   const invite = await page.locator('.group-invite').evaluate((el) => {
     const s = getComputedStyle(el);
     const lead = getComputedStyle(el.querySelector('.group-invite-lead')!);
@@ -519,4 +521,21 @@ test('内容组件：代码、提示块、表格、截图、作者待补和 QQ �
   });
   expect(compact).toMatchObject({ bg: 'rgba(0, 0, 0, 0)', border: '0px', padding: '0px', leadSize: '14px', leadWeight: '400' });
   expect(compact.leadColor).toBe(await tokenColor(page, '--text-muted'));
+});
+
+// 作者新稿的验收清单用了 GFM 任务列表（`- [ ]`）。方框本身就是标记，不能再带列表圆点；
+// 方框对读屏隐藏，由 rehype-task-list-checkboxes 加 aria-hidden（a11y.spec 的 axe 扫描覆盖）。
+test('验收清单：任务列表没有多余的圆点，方框和条目文字排在一起', async ({ page }) => {
+  await page.goto('./client-desktop/');
+  const item = page.locator('.prose li.task-list-item').first();
+  await expect(item).toBeVisible();
+  const style = await item.evaluate((el) => ({
+    listStyle: getComputedStyle(el).listStyleType,
+    box: el.querySelector('input[type="checkbox"]')!.getBoundingClientRect().width,
+    overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  }));
+  expect(style.listStyle).toBe('none');
+  expect(style.box).toBeGreaterThan(0);
+  // 360 宽下不能因为清单把页面撑出横向滚动
+  if (page.viewportSize()!.width === 360) expect(style.overflow).toBeLessThanOrEqual(0);
 });

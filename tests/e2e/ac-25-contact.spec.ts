@@ -4,7 +4,7 @@ import { GROUP_NUMBER, GROUP_URL } from '../../src/lib/group';
 
 // AC-25（FR-23、FR-22）：页眉有作者的联系方式，≥720px 是图标，手机上收进“联系”按钮；后记正文末尾写了进群方式。
 
-for (const path of ['./afterword/', './faq/']) {
+for (const path of ['./afterword/', './ip-tests/']) {
   test(`${path} 的页眉有四个联系方式`, async ({ page }) => {
     await page.goto(path);
     const nav = page.getByRole('navigation', { name: '作者的联系方式' });

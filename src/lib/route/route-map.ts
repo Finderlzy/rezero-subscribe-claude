@@ -35,7 +35,7 @@ export type * from './types';
 /** 不能用作页面标识的保留路径（ADR-0002）：参考页和构建产物占用的路径。 */
 export const RESERVED_PAGE_IDS: readonly string[] = ['faq', 'ip-tests', '404', '_astro'];
 
-/** 跳转的去向：目标页和可选的小节标题（目标页原理版正文里的 h2）。 */
+/** 跳转的去向：目标页和可选的小节标题（目标页原理版正文里的 h2 或 h3）。 */
 export interface MovedTarget {
   to: PageId;
   section?: string;
@@ -444,8 +444,9 @@ function checkSemantics(spec: RouteSpec, pages: PageMeta[], errors: RouteError[]
   // ---- 跳转表（FR-25、ADR-0006）：旧标识不能是保留路径，目标页要存在，且不能指向另一个旧标识（不串联）；
   // 按选择分流的条目还要和分叉点的选项对得上（V11 的手机相关旧页靠它，实施计划 §3.1）
   for (const [from, entry] of Object.entries(moved)) {
-    if (!from.includes('/') && RESERVED_PAGE_IDS.includes(from)) {
-      routeErr(`moved.${from} 用了保留路径（${RESERVED_PAGE_IDS.join('、')}），旧标识请换一个`);
+    // `faq` 是旧常见问题目录的网址（V11 起跳到日常维护）：作为旧网址保留，但仍不能用作页面标识。
+    if (!from.includes('/') && from !== 'faq' && RESERVED_PAGE_IDS.includes(from)) {
+      routeErr(`moved.${from} 用了保留路径（${RESERVED_PAGE_IDS.filter((id) => id !== 'faq').join('、')}），旧标识请换一个`);
     }
     const targets: [string, RouteSpecMovedTarget][] =
       'choice' in entry

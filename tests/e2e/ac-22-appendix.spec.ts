@@ -2,55 +2,31 @@ import { expect, test } from '@playwright/test';
 import { expectScriptRan, stepNav } from './route-helpers';
 import { openToc } from './toc-helpers';
 
-// AC-22（FR-11、FR-20，requirements §5 路线表）：附录 `appendix` 是路线的最后一章，后记的“下一步”是附录，
-// 附录的“下一步”是“回到首页”；附录链到常见问题和 IP 质量实测合集。参考页不进入上一步/下一步序列，
-// 在目录里列在附录页下面（取代 v2.2 计划 W5 第 2、3 条的“附录阅读顺序”和“上一条 / 下一条”）。
+// AC-22（FR-11、FR-20）原本验收附录章：后记的“下一步”是附录，附录链到两个参考页。
+// v3 不再收录附录（实施计划 §3.1）：后记是路线的最后一页，下一步回首页；
+// 参考页只在“日常维护”章末尾列出，不进入上一步/下一步序列。
 
-test('后记 → 附录 → 回到首页；附录的上一步是后记', async ({ page }) => {
+test('后记是最后一页：下一步是“回到首页”，上一步是日常维护', async ({ page }) => {
   await page.goto('./afterword/');
   await expectScriptRan(page);
-  await stepNav(page).getByRole('link', { name: /下一步.*附录/ }).click();
-  await expect(page).toHaveURL(/\/appendix\/$/);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('附录');
-  await expectScriptRan(page);
-
-  const nav = stepNav(page);
-  await expect(nav.getByRole('link', { name: /上一步.*后记/ })).toHaveAttribute('href', /\/afterword\/$/);
-  await nav.getByRole('link', { name: /回到首页/ }).click();
+  const home = stepNav(page).getByRole('link', { name: /下一步.*回到首页/ });
+  await expect(home).toHaveAttribute('href', /^\/$/);
+  await expect(stepNav(page).getByRole('link', { name: /上一步.*日常维护/ })).toHaveAttribute('href', /\/maintenance\/$/);
+  await home.click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole('link', { name: '从第 00 章开始' })).toBeVisible();
 });
 
-// 原来两种视图各核对一遍；用户 2026-10-22 决定去掉视图切换、固定原理视图，只核对原理版正文。v3 去掉了页头色带（FR-72），眉题在 h1 上方
-test('附录链到常见问题和 IP 质量实测合集；眉题只写“附录”，不显示步数', async ({ page }) => {
-  await page.goto('./appendix/');
-  await expectScriptRan(page);
-  // W5 第 1 条：附录不计入“共 m 步”，看得见的眉题和读屏文字都只写“附录”
-  await expect(page.locator('.eyebrow [data-route-eyebrow]')).toHaveText('附录');
-  await expect(page.locator('.eyebrow [data-route-progress]')).toHaveText('附录');
-  const prose = page.locator('.prose').filter({ visible: true });
-  await expect(prose.getByRole('link', { name: '常见问题' })).toHaveAttribute('href', /\/faq\/\?from=appendix$/);
-  await expect(prose.getByRole('link', { name: 'IP 质量实测合集' })).toHaveAttribute('href', /\/ip-tests\/\?from=appendix$/);
-});
-
-test('目录的最后一章是附录，常见问题和 IP 质量实测合集列在附录页下面', async ({ page }) => {
-  await page.goto('./appendix/');
+test('参考页列在“日常维护”章末尾，不在上一步/下一步序列里', async ({ page }) => {
+  await page.goto('./maintenance/');
   await expectScriptRan(page);
   const toc = await openToc(page);
-  const chapter = toc.locator('.toc-chapter').last();
-  await expect(chapter).toContainText('附录');
-  await expect(chapter.getByRole('link', { name: '附录' })).toHaveAttribute('aria-current', 'page');
+  const chapter = toc.locator('.toc-chapter').filter({ hasText: '日常维护' });
   const references = chapter.locator('ol.toc-reference a');
-  await expect(references).toHaveText(['常见问题', 'IP 质量实测合集']);
-  await expect(references.nth(0)).toHaveAttribute('href', /\/faq\/$/);
-  await expect(references.nth(1)).toHaveAttribute('href', /\/ip-tests\/$/);
+  await expect(references).toHaveText(['IP 质量实测合集']);
+  await expect(references.first()).toHaveAttribute('href', /\/ip-tests\/$/);
+  // 参考页本身没有上一步/下一步
+  await page.goto('./ip-tests/');
+  await expect(stepNav(page)).toHaveCount(0);
+  await expect(page.locator('main[data-reference-ready]')).toHaveCount(1);
 });
-
-for (const path of ['./faq/', './faq/reinstall/', './ip-tests/', './ip-tests/decodo/']) {
-  test(`${path} 不在上一步/下一步序列里，眉题写“附录 · …”`, async ({ page }) => {
-    await page.goto(path);
-    await expect(page.locator('main[data-reference-ready]')).toHaveCount(1);
-    await expect(stepNav(page)).toHaveCount(0);
-    await expect(page.locator('main .eyebrow')).toHaveText(/^附录 · (常见问题|IP 质量实测合集)$/);
-  });
-}

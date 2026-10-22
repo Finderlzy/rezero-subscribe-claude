@@ -12,34 +12,35 @@ import BaseLayout from './BaseLayout.astro';
 import '../styles/prose.css';
 
 /**
- * 参考页（常见问题和各条问题、IP 质量实测合集和各篇实测）的骨架（design v3 §4.6，FR-20）：只有一版正文，
+ * 参考页（IP 质量实测合集和各篇实测）的骨架（design v3 §4.6，FR-20）：只有一版正文，
  * 没有上一步/下一步。
  *
- * 和步骤页一样是“顶栏 + 侧边栏 | 正文区”（design §3.3）：正文栏里 h1 上方一行灰色眉题“附录 · <标题>”，
+ * 和步骤页一样是“顶栏 + 侧边栏 | 正文区”（design §3.3）：正文栏里 h1 上方一行灰色眉题“日常维护 · <标题>”，
  * 下面是纯文字 h1（v2.2 的页头色带去掉了，FR-72；小形象在顶栏站名旁）。
  * 从步骤链接进来（`?from=<page-id>`）时，页面脚本在正文上方和正文末尾显示“← 返回刚才的步骤：<标题>”；
- * 页脚只有“回到：…”：各条问题回常见问题，各篇实测回 IP 质量实测合集，两个参考页首页回附录（FR-20）。
- * 正文末尾、返回链接之后放 QQ 群入口（FR-22）：在常见问题里没找到答案，就进群问。
- * 参考页不进入上一步/下一步序列（requirements FR-20，取代 v2.2 计划 W5 第 2、3 条的“上一条 / 下一条”）。
+ * 页脚只有“回到：…”：各篇实测回 IP 质量实测合集，合集回“日常维护”页（实施计划 §3.1）。
+ * 正文末尾、返回链接之后放 QQ 群入口（FR-22）：在实测里没找到答案，就进群问。
+ * 参考页不进入上一步/下一步序列（requirements FR-20）。
  *
  * 目录（design §4.5）：和步骤页一样内嵌 #route-data 和 Toc——≥720px 左侧常驻，<720px 是抽屉。
- * 参考页不上路线图，只按本机选择画目录；当前参考页高亮在附录章下面，各条问题、各篇实测高亮它们的上级。
+ * 参考页不上路线图，只按本机选择画目录；当前参考页高亮在“日常维护”章下面（`site.referenceChapter`）。
  */
 interface Props {
   title: string;
-  /** h1 上方的眉题，例如“附录 · 常见问题”；不传时只写“附录” */
+  /** h1 上方的眉题，例如“日常维护 · IP 质量实测合集”；不传时只写所属章名 */
   eyebrow?: string | undefined;
   back?: { href: string; title: string } | undefined;
-  /** 侧边栏里要高亮的参考页：常见问题、IP 质量实测合集；各条问题、各篇实测填它们的上级 */
+  /** 侧边栏里要高亮的参考页：IP 质量实测合集；各篇实测填它们的上级 */
   currentReference: string;
-  /** 这一页自己的 h2；各条问题、各篇实测也传，小节挂在上级参考项下面 */
+  /** 这一页自己的 h2；各篇实测也传，小节挂在上级参考项下面 */
   sections?: TocSection[] | undefined;
 }
 
-const { title, eyebrow = '附录', back, currentReference, sections = [] } = Astro.props;
+const { title, eyebrow, back, currentReference, sections = [] } = Astro.props;
 const body = await Astro.slots.render('default');
 const hasZoom = hasZoomableImage(body);
 const site = await loadSite();
+const eyebrowText = eyebrow ?? site.referenceChapter.title;
 // 页面脚本只需要“页面标识 → 标题”来写返回链接；内嵌 JSON 里的 `<` 转义掉（同 PageLayout）。
 const pageTitles = Object.fromEntries(Object.entries(site.route.data.pages).map(([id, page]) => [id, page.title]));
 const pagesJson = JSON.stringify(pageTitles).replace(/</g, '\\u003c');
@@ -49,11 +50,17 @@ const routeJson = JSON.stringify(site.route.data).replace(/</g, '\\u003c');
 
 <BaseLayout title={title}>
   <SiteHeader toc />
-  <Toc outline={site.route.outline({}, null, 'principle')} references={site.tocReferences} sections={sections} currentReference={currentReference} />
+  <Toc
+    outline={site.route.outline({}, null, 'principle')}
+    references={site.tocReferences}
+    referencesChapter={site.referenceChapter.id}
+    sections={sections}
+    currentReference={currentReference}
+  />
   <div class="page-view">
     <main id="main" class="reference-page">
       <div class="page-body">
-        <p class="eyebrow">{eyebrow}</p>
+        <p class="eyebrow">{eyebrowText}</p>
         <p class="reference-return reference-return-top" data-reference-return hidden>
           <a>
             <span class="step-nav-dir"><span aria-hidden="true">←</span> 返回刚才的步骤</span>

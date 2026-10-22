@@ -3,8 +3,8 @@ import { expect, test, type Page } from '@playwright/test';
 // AC-28（FR-24、design §4.8、架构 §13.2、§13.4）：顶栏站内搜索。
 // 数据由 V06 的 search-index.json 提供，落点由 V07 的 section-hash 负责（页面固定原理视图，用户 2026-10-22 决定）；
 // 第一次聚焦才下载索引，请求里没有读者输入的文字，也没有站外请求。
-// 现有内容里的小标题只在 IP 质量实测的参考页（原理版正文的 h2 随 V11 合并页面补上），
-// 所以“打开小标题结果”用 /ip-tests/voyracloud/ 的“我的第一台”核对。
+// 搜索索引收页面标题和正文的 h2、h3；v3 一章一页，“改时区”是电脑端的 h2，
+// “我的第一台”是实测参考页的 h2。
 
 const searchRoot = (page: Page) => page.locator('[data-site-search]');
 const searchInput = (page: Page) => page.getByRole('combobox', { name: '搜索页面和小标题' });
@@ -26,7 +26,7 @@ test('第一次聚焦才下载一次索引，请求里没有搜索文字，也�
   });
   const indexRequests = () => requested.filter((url) => url.includes('search-index.json'));
 
-  await page.goto('./import-proxy/');
+  await page.goto('./plan1/');
   const origin = new URL(page.url()).origin;
   // 页面加载完、还没聚焦：一个索引请求都没有
   expect(indexRequests()).toEqual([]);
@@ -50,8 +50,8 @@ test('第一次聚焦才下载一次索引，请求里没有搜索文字，也�
   }
 });
 
-test('搜“时区”：下拉列出“改时区”，下键选中、回车打开页面（AC-28）', async ({ page }) => {
-  await page.goto('./import-proxy/');
+test('搜“时区”：下拉列出“改时区”小标题，下键选中、回车打开并滚到小节（AC-28）', async ({ page }) => {
+  await page.goto('./plan1/');
   await openSearch(page);
   await searchInput(page).fill('时区');
 
@@ -59,9 +59,8 @@ test('搜“时区”：下拉列出“改时区”，下键选中、回车打�
   await expect(searchInput(page)).toHaveAttribute('aria-expanded', 'true');
   const option = options(page).filter({ hasText: '改时区' }).first();
   await expect(option).toBeVisible();
-  // 只命中页面标题：没有第二行小标题
-  await expect(option.locator('.search-option-heading')).toHaveCount(0);
-  // 命中的“时区”加粗（design §4.8）
+  // v3 一章一页：“改时区”是正文的 h2，结果是“页面标题 + › 小标题”
+  await expect(option.locator('.search-option-heading')).toHaveText('› 改时区');
   await expect(option.locator('strong')).toHaveText('时区');
 
   await searchInput(page).press('ArrowDown');
@@ -71,8 +70,9 @@ test('搜“时区”：下拉列出“改时区”，下键选中、回车打�
   await expect(searchInput(page)).toHaveAttribute('aria-activedescendant', id!);
 
   await searchInput(page).press('Enter');
-  await expect(page).toHaveURL(/\/timezone\/$/);
-  await expect(page.getByRole('heading', { level: 1, name: '改时区' })).toBeVisible();
+  await expect(page).toHaveURL(/\/client-desktop\/#/);
+  await expect(page.locator('h2#改时区')).toBeVisible();
+  await expect(page.locator('h2#改时区')).toBeInViewport();
   // 换页后搜索还在（首页以外每页都有）；手机上又收成放大镜，下拉已经收起
   if (isMobile(page)) await expect(searchButton(page)).toBeVisible();
   else await expect(searchInput(page)).toBeVisible();
@@ -80,17 +80,17 @@ test('搜“时区”：下拉列出“改时区”，下键选中、回车打�
 });
 
 test('鼠标点结果也能打开（design §4.8 的结果是链接）', async ({ page }) => {
-  await page.goto('./import-proxy/');
+  await page.goto('./plan1/');
   await openSearch(page);
   await searchInput(page).fill('时区');
   const option = options(page).filter({ hasText: '改时区' }).first();
   await expect(option).toBeVisible();
   await option.click();
-  await expect(page).toHaveURL(/\/timezone\/$/);
+  await expect(page).toHaveURL(/\/client-desktop\/#/);
 });
 
 test('输入法组字时不搜索，组字结束才出结果（design §4.8、实施计划的边界）', async ({ page }) => {
-  await page.goto('./import-proxy/');
+  await page.goto('./plan1/');
   await openSearch(page);
   // 先把索引加载出来，再模拟组字：compositionstart 之后的 input 不触发搜索
   await searchInput(page).fill('时区');
@@ -115,7 +115,7 @@ test('输入法组字时不搜索，组字结束才出结果（design §4.8、�
 });
 
 test('打开小标题结果：第二行写“› 小标题”，落到那一页并滚到小节（AC-28、V07）', async ({ page }) => {
-  await page.goto('./import-proxy/');
+  await page.goto('./plan1/');
   await openSearch(page);
   await searchInput(page).fill('我的第一台');
 
@@ -132,9 +132,9 @@ test('打开小标题结果：第二行写“› 小标题”，落到那一页�
 });
 
 test('没有匹配时显示“没有找到”（AC-28）', async ({ page }) => {
-  await page.goto('./import-proxy/');
+  await page.goto('./plan1/');
   await openSearch(page);
-  await searchInput(page).fill('我的');
+  await searchInput(page).fill('服务器');
   await expect(options(page).nth(1)).toBeVisible();
   // 先选中一条，再搜到没有结果：aria-activedescendant 不能还指向已经删掉的 option
   await searchInput(page).press('ArrowDown');
@@ -152,9 +152,9 @@ test('没有匹配时显示“没有找到”（AC-28）', async ({ page }) => {
 });
 
 test('上下键移动、Esc 先清空再关闭、Tab 离开时关闭（design §4.8）', async ({ page }) => {
-  await page.goto('./import-proxy/');
+  await page.goto('./plan1/');
   await openSearch(page);
-  await searchInput(page).fill('我的');
+  await searchInput(page).fill('服务器');
   await expect(options(page).nth(1)).toBeVisible();
 
   await searchInput(page).press('ArrowDown');
@@ -171,14 +171,14 @@ test('上下键移动、Esc 先清空再关闭、Tab 离开时关闭（design §
   await expect(searchInput(page)).toBeVisible();
 
   // 再输入后按 Tab：焦点离开，下拉收起
-  await searchInput(page).fill('我的');
+  await searchInput(page).fill('服务器');
   await expect(listbox(page)).toBeVisible();
   await page.keyboard.press('Tab');
   await expect(listbox(page)).toBeHidden();
 });
 
 test('参考页和找不到页的顶栏也有搜索', async ({ page }) => {
-  for (const path of ['./faq/', './ip-tests/voyracloud/', './no-such-page/']) {
+  for (const path of ['./ip-tests/', './ip-tests/voyracloud/', './no-such-page/']) {
     await page.goto(path);
     await expect(searchRoot(page), path).toBeVisible();
     if (isMobile(page)) await expect(searchButton(page), path).toBeVisible();
@@ -188,7 +188,7 @@ test('参考页和找不到页的顶栏也有搜索', async ({ page }) => {
 
 test('360：只有放大镜；点开后输入框盖住顶栏，Esc 收起并还焦点，页面不横向滚动', async ({ page }) => {
   test.skip(page.viewportSize()!.width !== 360, '只在 360 宽下核对');
-  await page.goto('./import-proxy/');
+  await page.goto('./plan1/');
   await expect(searchInput(page)).toBeHidden();
   await expect(searchButton(page)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
@@ -219,7 +219,7 @@ test('360：只有放大镜；点开后输入框盖住顶栏，Esc 收起并还�
 
 test('360：关闭按钮收起输入框，焦点回到放大镜', async ({ page }) => {
   test.skip(page.viewportSize()!.width !== 360, '只在 360 宽下核对');
-  await page.goto('./import-proxy/');
+  await page.goto('./plan1/');
   await searchButton(page).click();
   await expect(searchInput(page)).toBeFocused();
   await page.getByRole('button', { name: '关闭搜索' }).click();
@@ -232,7 +232,7 @@ test('索引下载失败：下拉写“搜索暂时不可用”，页面不报�
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.route('**/search-index.json', (route) => route.abort());
-  await page.goto('./import-proxy/');
+  await page.goto('./plan1/');
   await openSearch(page);
   await searchInput(page).fill('时区');
   await expect(page.locator('[data-search-status]')).toHaveText('搜索暂时不可用');
@@ -244,7 +244,7 @@ test.describe('没有 JS 时', () => {
   test.use({ javaScriptEnabled: false });
 
   test('搜索控件整个不显示（design §5）', async ({ page }) => {
-    await page.goto('./import-proxy/');
+    await page.goto('./plan1/');
     await expect(searchRoot(page)).toBeHidden();
     await expect(searchInput(page)).toBeHidden();
     await expect(searchButton(page)).toBeHidden();

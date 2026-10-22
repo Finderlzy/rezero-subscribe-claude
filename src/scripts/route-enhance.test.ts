@@ -70,11 +70,6 @@ describe('renderProgress：改写眉题、步数和读屏文字（FR-10，design
     });
   });
 
-  it('附录页（本章唯一一页，也是章首页）：眉题和读屏都只写“附录”，不写“第 1 步，共 1 步”（W5 第 1 条）', () => {
-    for (const mode of ['operation', 'principle'] as const) {
-      expect(render('appendix', {}, mode)).toEqual({ eyebrow: '附录', text: '附录' });
-    }
-  });
 
   it('选择页写“选择”，旁支页写“旁支”，都不写步数', () => {
     expect(render('choose-plan', {}, 'operation')).toEqual({ eyebrow: '第 1 章 · 准备节点和住宅 IP · 选择', text: '准备节点和住宅 IP' });

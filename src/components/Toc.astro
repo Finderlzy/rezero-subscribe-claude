@@ -11,24 +11,28 @@ import '../styles/toc.css';
  * 构建时按 `outline` 把全部章节和页面写两遍：一份在 `aside[data-toc-sidebar]`（静态 HTML，没有 JS 也照样能点），
  * 一份在 `<dialog>` 里。顶栏的“目录”（`[data-toc-open]`，SiteHeader）只在 <720px 显示（CSS），
  * 没有 JS 时是指向首页完整目录的链接；页面脚本 toc.ts 把它换成打开抽屉的按钮。
- * 两份用同一套标记契约（见下），toc.ts 对两份都按当前路线重画（页面固定原理视图）。
+ * 两份用同一套标记契约（见下），都按构建时的当前路线写（页面固定原理视图）。
+ * 分叉点只画当前选项，另一条路线收成一行 `a.toc-route-switch` 文字链接（作者 2026-10-23）；
+ * 找不到页的目录（不折叠）仍列出所有选项。
  *
- * 标记契约（脚本按文档顺序把它们和 outline 一一对应）：
- *   [data-toc-step]：每个步骤（共享步骤在每个选项下各一个），内含 a、[data-toc-other]；
- *   [data-toc-choose]：选择页；[data-toc-option]：“或”分组里的一个选项，内含 [data-toc-switch] 按钮。
+ * 标记契约：
+ *   [data-toc-step]：每个步骤；
+ *   [data-toc-choose]：选择页；[data-toc-option]：当前选项（或找不到页里的每个选项）。
  */
 interface Props {
   outline: OutlineChapter[];
   references: TocReference[];
   /** 当前页正文的 h2，列在当前项下面（design v3 §4.5，FR-16） */
   sections?: TocSection[];
-  /** 参考页的当前项：常见问题、IP 质量实测合集 */
+  /** 参考页的当前项：IP 质量实测合集 */
   currentReference?: string;
+  /** 参考页挂在目录里的哪一章（`site.referenceChapter.id`） */
+  referencesChapter?: string;
   /** 要展开的章（旁支页不在 outline 里时由 PageLayout 传入） */
   openChapterId?: string;
 }
 
-const { outline, references, sections = [], currentReference, openChapterId } = Astro.props;
+const { outline, references, sections = [], currentReference, referencesChapter, openChapterId } = Astro.props;
 ---
 
 <aside class="toc-sidebar" data-toc-sidebar aria-label="步骤目录">
@@ -41,6 +45,7 @@ const { outline, references, sections = [], currentReference, openChapterId } = 
       collapsible
       sections={sections}
       currentReference={currentReference}
+      referencesChapter={referencesChapter}
       openChapterId={openChapterId}
     />
   </div>
@@ -62,6 +67,7 @@ const { outline, references, sections = [], currentReference, openChapterId } = 
       collapsible
       sections={sections}
       currentReference={currentReference}
+      referencesChapter={referencesChapter}
       openChapterId={openChapterId}
     />
   </div>

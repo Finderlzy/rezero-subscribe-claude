@@ -69,16 +69,13 @@ describe('PageLayout', () => {
     expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
 
-  it('目录（design v3 §4.5）：≥720px 一份常驻侧边栏 + <720px 的抽屉，两份标记一样；“目录”按钮是链到首页目录的链接，参考页在附录一章里（design §4.5、§5，FR-16）', async () => {
-    const tocReferences = [
-      { id: 'faq', title: '常见问题' },
-      { id: 'ip-tests', title: 'IP 质量实测合集' },
-    ];
+  it('目录（design v3 §4.5）：≥720px 一份常驻侧边栏 + <720px 的抽屉，两份标记一样；“目录”按钮是链到首页目录的链接，参考页在日常维护章末（design §4.5、§5，FR-16）', async () => {
+    const tocReferences = [{ id: 'ip-tests', title: 'IP 质量实测合集' }];
     const outline = [
       { id: 'start', title: '开始', items: [] },
-      { id: 'appendix', title: '附录', items: [] },
+      { id: 'maintenance', title: '日常维护', items: [] },
     ];
-    const html = await render({ tocReferences, view: { ...view, outline } }, { principle: '<p>原理正文</p>' });
+    const html = await render({ tocReferences, referencesChapter: 'maintenance', view: { ...view, outline } }, { principle: '<p>原理正文</p>' });
     // 侧边栏是静态 HTML，在抽屉之前；抽屉里一份
     expect(html).toMatch(/<aside class="toc-sidebar"[^>]*data-toc-sidebar[\s\S]*<nav[^>]*data-toc[\s\S]*<\/aside>\s*<dialog[^>]*data-toc-dialog/);
     expect(html.match(/<nav[^>]*data-toc[\s>]/g)).toHaveLength(2);
@@ -90,7 +87,6 @@ describe('PageLayout', () => {
     expect(html).toMatch(/<details class="toc-chapter-details"[^>]*>\s*<summary class="toc-chapter-head"[^>]*>\s*<span class="toc-chapter-title"[^>]*>开始<\/span>/);
     expect(html).not.toMatch(/<span class="toc-chapter-no"[^>]*>第 0 章<\/span>/);
     expect(html).not.toMatch(/<span class="toc-chapter-no"[^>]*>\s*<svg class="numeral"[^>]*aria-label="第 0 章"/);
-    expect(html).toMatch(/href="[^"]*\/faq\/"[^>]*>\s*<span class="toc-label"[^>]*>常见问题/);
     expect(html).toMatch(/href="[^"]*\/ip-tests\/"[^>]*>\s*<span class="toc-label"[^>]*>IP 质量实测合集/);
   });
 

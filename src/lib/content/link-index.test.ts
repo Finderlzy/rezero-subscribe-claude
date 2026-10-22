@@ -48,25 +48,24 @@ describe('createLinkIndex', () => {
 describe('createLinkIndex：页面', () => {
   it('按第一行的 # 标题建“标题 → 页面”，参考页的标识带子目录', () => {
     fx.write('principle/preface.md', '# 前言\n\n正文\n');
-    fx.write('principle/check-ip.md', md('skippable: true', '\n# 测 IP 质量\n\n## 怎么看结果\n'));
-    fx.write('operation/preface.md', '# 前言\n\n操作\n');
-    fx.write('reference/faq.md', '# 常见问题\n');
+    fx.write('principle/check-ip.md', md('skippable: true', '\n# 验收清单\n\n## 怎么看结果\n'));
+    fx.write('reference/ip-tests.md', '# IP 质量实测合集\n');
     fx.write('reference/ip-tests/decodo.md', '# 实测：Decodo ISP\n');
 
     const index = createLinkIndex(fx.contentRoot);
 
-    expect([...index.titles.keys()].sort()).toEqual(['前言', '实测：Decodo ISP', '常见问题', '测 IP 质量'].sort());
+    expect([...index.titles.keys()].sort()).toEqual(['IP 质量实测合集', '前言', '实测：Decodo ISP', '验收清单'].sort());
     expect(index.titles.get('实测：Decodo ISP')).toMatchObject({ kind: 'reference', id: 'ip-tests/decodo' });
-    expect(index.titles.get('测 IP 质量')).toMatchObject({ kind: 'principle', id: 'check-ip', title: '测 IP 质量' });
-    // 操作版不进“标题 → 页面”：双链总是指向页面本身（URL 相同）
-    expect(index.pages.filter((p) => p.kind === 'operation').map((p) => p.id)).toEqual(['preface']);
+    expect(index.titles.get('验收清单')).toMatchObject({ kind: 'principle', id: 'check-ip', title: '验收清单' });
+    // v3 只有一版正文：页面集合里没有操作版
+    expect(index.pages.map((p) => p.kind)).toEqual(['principle', 'principle', 'reference', 'reference']);
   });
 
   it('小标题按 github-slugger 生成 slug（与页面上的 id 一致），跳过第一行标题和代码块里的 #', () => {
     fx.write(
-      'reference/faq.md',
+      'reference/ip-tests.md',
       [
-        '# 常见问题',
+        '# 实测合集',
         '',
         '## 装过了，想重装？',
         '',
@@ -81,7 +80,7 @@ describe('createLinkIndex：页面', () => {
       ].join('\n'),
     );
 
-    const page = createLinkIndex(fx.contentRoot).titles.get('常见问题');
+    const page = createLinkIndex(fx.contentRoot).titles.get('实测合集');
 
     expect(page?.headings).toEqual([
       { slug: '装过了想重装', text: '装过了，想重装？', depth: 2 },
@@ -125,46 +124,29 @@ describe('checkPages', () => {
 
   it('内容正确时没有问题', () => {
     fx.write('principle/preface.md', '# 前言\n');
-    fx.write('operation/preface.md', '# 前言\n');
     fx.write('principle/overview.md', md('principleOnly: true', '# 整体思路\n'));
-    fx.write('principle/subscribe.md', '# 订阅\n'); // 没写操作版：只是内容提示，不是错误
-    fx.write('reference/faq.md', '# 常见问题\n');
+    fx.write('principle/subscribe.md', '# 订阅\n');
+    fx.write('reference/ip-tests.md', '# IP 质量实测合集\n');
     fx.write('blog-links.yaml', '"04技术/甲": null\n');
     expect(messages()).toEqual([]);
   });
 
   it('缺第一行标题', () => {
     fx.write('principle/preface.md', '前言\n\n# 前言\n');
-    fx.write('reference/faq.md', '## 常见问题\n');
+    fx.write('reference/ip-tests.md', '## IP 质量实测合集\n');
     expect(messages()).toEqual([
       'principle/preface.md:1 缺少第一行标题：正文第一行要写“# 页面标题”（与重写稿文件名相同）',
-      'reference/faq.md:1 缺少第一行标题：正文第一行要写“# 页面标题”（与重写稿文件名相同）',
+      'reference/ip-tests.md:1 缺少第一行标题：正文第一行要写“# 页面标题”（与重写稿文件名相同）',
     ]);
   });
 
-  it('两版标题不同', () => {
-    fx.write('principle/preface.md', '# 前言\n');
-    fx.write('operation/preface.md', md('', '# 序言\n'));
-    expect(messages()).toEqual(['operation/preface.md:4 操作版标题“序言”与原理版“前言”不同：两版同名页的标题必须相同（FR-03）']);
-  });
-
-  it('标题重复（原理版和参考页之间也算）', () => {
+  it('标题重复（步骤页和参考页之间也算）', () => {
     fx.write('principle/a.md', '# 订阅\n');
     fx.write('principle/b.md', '# 订阅\n');
-    fx.write('reference/faq.md', '# 订阅\n');
+    fx.write('reference/ip-tests.md', '# 订阅\n');
     expect(messages()).toEqual([
       'principle/b.md:1 标题“订阅”与 principle/a.md 重复：双链按标题解析，全站标题不能重复',
-      'reference/faq.md:1 标题“订阅”与 principle/a.md 重复：双链按标题解析，全站标题不能重复',
-    ]);
-  });
-
-  it('操作版没有同名原理版；原理独有步骤却有操作版', () => {
-    fx.write('operation/orphan.md', '# 孤儿\n');
-    fx.write('principle/overview.md', md('principleOnly: true', '# 整体思路\n'));
-    fx.write('operation/overview.md', '# 整体思路\n');
-    expect(messages()).toEqual([
-      'operation/orphan.md: 没有同名的原理版 principle/orphan.md：页面元数据写在原理版里，先建原理版文件',
-      'operation/overview.md: 原理版写了 principleOnly: true（原理独有步骤），就不能再有操作版',
+      'reference/ip-tests.md:1 标题“订阅”与 principle/a.md 重复：双链按标题解析，全站标题不能重复',
     ]);
   });
 

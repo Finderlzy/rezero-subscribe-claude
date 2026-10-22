@@ -1,33 +1,32 @@
 #!/usr/bin/env node
-// 一次性核对脚本（#28，FR-03、FR-21、AC-12、AC-13）：比对重写稿 docs/rewrite/ 和构建产物 dist/ 里的
-// 命令、外链和截图，每个页面分别比对原理视图和操作视图。
+// 一次性核对脚本（#28 建立，V10 改成 v3 单版本；FR-03、FR-21、AC-12、AC-13）：比对重写稿和构建产物
+// 里的命令、外链、截图和正文。
 //
 // 用法：node scripts/compare-migration.mjs [重写稿目录]
-//   重写稿目录默认是 docs/rewrite。脚本不负责构建：先跑 npm run build 再跑这个脚本。
+//   重写稿目录默认是 docs/v3-rewrite。脚本不负责构建：先跑 npm run build 再跑这个脚本。
 //   dist/ 必须是当前 src/content/ 构建出来的；src/content/ 落后于重写稿时（改了重写稿没重跑导入），
 //   先跑 node scripts/import-rewrite.mjs 再重新构建，否则报出来的差异是内容快照过期，不是脚本的问题。
 //
-// 比对规则：
-// - 范围：route.yaml 里的步骤页、选择页、旁支页和参考页。首页（重写稿的目录页）不在比对范围，跳过。
-// - 两种视图：原理视图对应 `原理版/<标题>.md`（导入到 src/content/principle/<id>.md，元数据在 frontmatter 里），
-//   操作视图对应 `操作版/<标题>.md`（导入到 src/content/operation/<id>.md）。两版各自和产物里
-//   `<div class="prose" data-body="principle|operation">` 的那一段比。重写稿里没有对应视图的文件时：
-//   登记的“操作版缺失”页算待补项，原理独有步骤不算差异。只有一版的页面（原理独有步骤、参考页）只渲染一段
-//   不带 data-body 的正文，按原理版比；重写稿有这一版、产物里却没有对应正文时报差异。
-// - TODO 段落：每页两种视图合计的段数要等于 PENDING.todos 的登记（和构建提示“作者待补”的处数一致）。
+// 比对规则（v3：一章一页、只有一版正文）：
+// - 范围：route.yaml 里的 11 页 + 参考页（`reference/` 下的实测合集和各篇实测）。首页不在比对范围。
+// - 对应关系：重写稿根目录的 `*.md` 按第一行的 `# 标题` 对应 `src/content/principle/<id>.md`；
+//   参考页在 `reference/` 子目录，按标题对应 `src/content/reference/**`。产物里每页只有一段
+//   `<div class="prose">` 正文。
+// - 正文：重写稿的每一行（段落、列表项、标题、表格单元格）去掉 Markdown 记号后都要在产物正文里找到，
+//   防止导入时丢段。代码块、图片嵌入、Callout 首行单独核对。
+// - TODO 段落：段数要等于 PENDING.todos 的登记（和构建提示“作者待补”的处数一致）。
 // - 命令：围栏代码块（连同语言标记，去掉 Callout 的 `>` 前缀和公共缩进后逐字比较）；行内代码按渲染出来的
 //   正文文字找（表格单元格里的 `x` 渲染成不带标签的纯文本，产物里没有 <code>）。
-// - 外链：重写稿正文里的外链（Markdown 链接、裸地址）必须原样出现在该视图的产物里，地址和链接文字都要对上；
-//   围栏代码块和行内代码里的 `https://…` 是命令的一部分，不算外链。产物里的外链必须来自重写稿的链接、
-//   登记的双链转换结果，或者是页面自己生成的（站内导航、参考页的“返回刚才的步骤”）。
-//   Markdown 链接还要连同链接文字前后各 LINK_CONTEXT 个字一起对上。
-// - 截图：重写稿的 `![[文件名|宽度]]` 在该视图的产物里要有同名的图片（比 `alt`，Astro 会把图片转成带哈希的
+// - 外链：重写稿正文里的外链（Markdown 链接、裸地址）必须原样出现在产物里，地址和链接文字都要对上；
+//   围栏代码块和行内代码里的 `https://…` 是命令的一部分，不算外链。
+// - 站内链接：`[文字](02-….md)` 和双链 `[[标题|文字]]` 都按标题解析成 `/<id>/`（导入时转成双链，
+//   ADR-0005），带 `#小节` 的核对锚点存在；同页 `[文字](#小节)` 换成页面上的 slug。链接连同前后各
+//   LINK_CONTEXT 个字比较。产物里的站内链接都要能追溯到重写稿或同页小节。
+// - 截图：重写稿的 `![[文件名|宽度]]` 在产物里要有同名的图片（比 `alt`，Astro 会把图片转成带哈希的
 //   webp，`src` 不是重写稿里的名字）、宽度一致（重写稿写了宽度才比），且图片文件确实在 dist/ 里。
 //   说明图（`说明图-….svg`）是内联的 `<svg data-diagram>`，按 `<title>` 和 `附件/` 里的原稿比，张数也要一致。
-// - 双链：重写稿的每条双链都要能解析出来（按标题找页面、带 `#小标题` 的核对锚点、`[[04技术/…]]` 查
-//   blog-links.yaml、目录页指向首页）；产物里的每个站内链接都要能追溯到重写稿的双链或页面生成。
 // 允许的差异只有 ADR-0005 和 import-rewrite.mjs 规定的转换，逐条登记在 CONVERSIONS 里，运行时逐条打印。
-// 都按集合比较：同一条命令、链接或截图在两版重复出现、产物里只剩一处时查不出来，这部分靠人工抽查。
+// 都按集合比较：同一条命令、链接或截图重复出现、产物里只剩一处时查不出来，这部分靠人工抽查。
 //
 // 退出码：0 = 没有差异，也没有待补项；1 = 有未登记的差异；2 = 只剩登记过的待补项。
 
@@ -37,57 +36,61 @@ import GithubSlugger from 'github-slugger';
 import { parse as parseYaml } from 'yaml';
 
 const repoRoot = resolve(import.meta.dirname, '..');
-const rewriteDir = resolve(process.argv[2] ?? join(repoRoot, 'docs', 'rewrite'));
+const rewriteDir = resolve(process.argv[2] ?? join(repoRoot, 'docs', 'v3-rewrite'));
 const distDir = join(repoRoot, 'dist');
 const contentRoot = join(repoRoot, 'src', 'content');
 
-const PRINCIPLE_DIR = '原理版';
-const OPERATION_DIR = '操作版';
-/** 重写稿的目录页，不导入（import-rewrite.mjs 的 TABLE_OF_CONTENTS）；双链指向首页 */
-const TABLE_OF_CONTENTS = ['如何订阅claude', '如何订阅claude（纯操作版）'];
+/** 参考页在重写稿里的子目录（导入脚本同样读这里） */
+const REFERENCE_DIR = 'reference';
 /** 指向博客其他文章的双链前缀，目标查 blog-links.yaml（Q-11） */
 const BLOG_PREFIX = '04技术/';
-
-const VIEWS = [
-  { view: 'principle', label: '原理视图', dir: PRINCIPLE_DIR, collection: 'principle' },
-  { view: 'operation', label: '操作视图', dir: OPERATION_DIR, collection: 'operation' },
-];
 
 // Markdown 链接连同前后各 LINK_CONTEXT 个字一起比较。重写稿原样导入，正文里的链接写法不用登记。
 const LINK_CONTEXT = 4;
 
 // 登记过的转换（ADR-0005、import-rewrite.mjs）。kind 说明差异是怎么来的，运行时逐条打印。
-// - footer-drop：手写页脚（`---` + “上一步：… ｜ 下一步：…”）由路线图生成，不进产物（FR-04）。
-// - frontmatter：frontmatter 是页面元数据，不是正文，导入时保留在站内文件里，不进正文（ADR-0005）。
-// - todo-label：`TODO：` 段落前面加“作者待补”标签，原文原样保留（FR-21）。
+// - footer-drop：手写页脚（`---` + “上一步/下一步/回到：…”）由页面生成，不进产物（FR-04）。
+// - frontmatter：重写稿的 frontmatter 是页面元数据，不进正文（ADR-0005）。
+// - title-rule：标题下面紧跟的 `---` 是作者的分隔写法，页面已经有标题样式，不渲染（V10）。
+// - link-rewrite：相对 Markdown 链接 `[文字](02-….md)` 导入时转成双链（V10）。
 // - code-lang：不做语法高亮，语言标记在 `<code class="language-…">` 上，没写语言的按 plaintext 比。
 // - autolink：正文里的裸地址按 GFM 渲染成链接，链接文字就是地址。
 // - diagram-inline：说明图内联成 `<svg data-diagram>`，按 `<title>` 对回附件里的原稿。
 const CONVERSIONS = [
   {
     kind: 'footer-drop',
-    what: '手写页脚不导入：正文末尾的 `---` + “上一步：… ｜ 下一步：…”，导航由 route.yaml 生成（FR-04）',
-    check: '每条记录都确认重写稿末尾有 `---` 和以“上一步：”开头的一段，产物里没有这一段（双链也在这一段里，不再解析）',
+    what: '手写页脚不导入：正文末尾的 `---` + “上一步/下一步/回到：…”，导航由页面生成（FR-04）',
+    check: '每条记录都确认重写稿末尾有 `---` 和以“上一步：/下一步：/回到：”开头的一段，产物里没有这一段',
   },
   {
     kind: 'frontmatter',
-    what: '原理版的 frontmatter（页面元数据：principleOnly、skippable、video、options 等）不进正文，导入时保留在站内文件里（ADR-0005）',
-    check: '站内 principle/<id>.md 的 frontmatter 与重写稿正文无关，脚本只核对正文',
+    what: '重写稿的 frontmatter（页面元数据）不进正文，导入时保留在站内文件里（ADR-0005）',
+    check: '站内文件的 frontmatter 与重写稿正文无关，脚本只核对正文',
+  },
+  {
+    kind: 'title-rule',
+    what: '标题下面紧跟的 `---` 是作者新稿的分隔写法（Obsidian），页面已经有标题样式，不渲染',
+    check: 'remark-obsidian 的 preparePage 去掉标题后面的 thematic break；这里只按正文文字比，不受影响',
+  },
+  {
+    kind: 'link-rewrite',
+    what: '相对 Markdown 链接 `[文字](02-….md)` 导入时换成双链 `[[目标页标题|文字]]`，产物里是站内链接',
+    check: '按文件名找重写稿的标题，再按页面标识算地址；链接文字原样保留',
   },
   {
     kind: 'code-lang',
-    what: '围栏代码块不做语法高亮（v2.2 W4c），语言标记写在 `<code class="language-…">` 上；没写语言的代码块没有这个类，代码本身逐字不变',
-    check: '重写稿里空的语言标记和产物里没有语言类都当成 `plaintext` 比较，写了语言的照原样比',
+    what: '围栏代码块不做语法高亮（v2.2 W4c），语言标记写在 `<code class="language-…">` 上；代码本身逐字不变',
+    check: '重写稿里空的语言标记和产物里没有语言类都当成 `plaintext` 比较',
   },
   {
     kind: 'autolink',
     what: '正文里的裸地址按 GFM 渲染成链接，链接文字就是地址本身',
-    check: '产物里链接文字等于地址的外链，要在重写稿的裸地址里找得到（裸地址本身另按“外链”核对）',
+    check: '产物里链接文字等于地址的外链，要在重写稿的裸地址里找得到',
   },
   {
     kind: 'diagram-inline',
     what: '说明图 `![[说明图-….svg]]` 由 diagram.ts 内联成 `<svg data-diagram>`（design §4.7），不是 `<img>`',
-    check: '该视图的产物里要有一张 `<title>` 和重写稿 `附件/` 里原稿相同的内联说明图',
+    check: '产物里要有一张 `<title>` 和重写稿 `附件/` 里原稿相同的内联说明图',
   },
   {
     kind: 'todo-label',
@@ -98,16 +101,10 @@ const CONVERSIONS = [
 
 // 登记的待补项：重写稿没有、产物也就没有的内容。补上后从这里删掉。
 const PENDING = {
-  // 重写稿里还没有操作版的步骤（非原理独有）：现在没有（构建没有“操作版缺失”提示），补上后从这里删掉
-  operations: {},
   // 参考页正文还没写的页面：现在没有（参考页的正文都在重写稿里），留在这里方便以后登记
   pages: {},
-  // 作者待补的 TODO 段落（构建提示“作者待补”的页面），按两种视图合计，和构建提示的处数一致。
-  // 重写稿里的 TODO 段数和这里对不上（多了、少了或已经补完）都报差异。
+  // 作者待补的 TODO 段落（构建提示“作者待补”的页面），按页面合计，和构建提示的处数一致。
   todos: {
-    'iphone-proxy': 2,
-    'google-appeal': 2,
-    'android-subscribe': 2,
     'reference/ip-tests/qsu-residential': 1,
   },
 };
@@ -147,7 +144,7 @@ function splitCode(text) {
     const body = [];
     let j = i + 1;
     while (j < lines.length && !close.test(lines[j])) body.push(lines[j++]);
-    const indent = Math.min(...body.filter((l) => l.trim()).map((l) => /^\s*/.exec(l)[0].length));
+    const indent = body.length === 0 ? 0 : Math.min(...body.filter((l) => l.trim()).map((l) => /^\s*/.exec(l)[0].length));
     const code = body.map((l) => l.slice(indent).trimEnd()).join('\n');
     // 没写语言的代码块按 plaintext 比（登记在 CONVERSIONS 的 code-lang）
     blocks.push({ line: i + 1, startLine: i + 1, endLine: j + 1, code: `${open[2].trim() || 'plaintext'}\n${code}` });
@@ -179,25 +176,33 @@ function extractRewrite(text) {
     .replace(/`[^`\n]*`/g, (m) => ' '.repeat(m.length));
   const urls = [...masked.matchAll(/https?:\/\/[^\s<>()\[\]"'`，。）|]+/g)].map((m) => ({ url: m[0], line: lineOf(masked, m.index) }));
   const mdLinks = [];
+  const relativeLinks = [];
+  const hashLinks = [];
   // 链接文字和上下文要用“渲染成文字”的样子：行内代码的 `` ` `` 在页面上不显示，去掉再取上下文。
-  // 外链判定要跳过围栏代码块（里面的地址是命令的一部分）。
   body.split('\n').forEach((rawLine, i) => {
     if (blocks.some((b) => i + 1 >= b.startLine && i + 1 <= b.endLine)) return;
     const line = rawLine
       .replace(/^([ \t]*>[ \t]?)+/, '')
       // 列表记号（`- `、`1. `）在产物里由 <ol>/<ul> 生成，正文文字里没有，两边都去掉
-      .replace(/^\s*(?:[-*]|\d+\.)\s+/, '')
+      .replace(/^\s*(?:[-*]|\d+[.)])\s+/, '')
       // 行内代码的反引号在页面上不显示
       .replace(/`([^`\n]*)`/g, '$1')
       // 双链在页面上显示成链接文字（`[[目标|文字]]` 显示“文字”，`[[文字]]` 显示“文字”）
       .replace(/\[\[([^\]|]*)\|([^\]]*)\]\]/g, '$2')
       .replace(/\[\[([^\]|]*)\]\]/g, '$1');
-    for (const m of line.matchAll(/(?<!!)\[([^\]\n]+)\]\((https?:\/\/[^)\s]+)\)/g)) {
+    // 链接文字前后的上下文（按页面上显示的文字算：Markdown 链接只显示链接文字，加粗、行内代码的记号不显示）
+    const shown = (s) =>
+      s
+        .replace(/(?<!!)\[([^\]\n]+)\]\((?:[^)\s]+)\)/g, '$1')
+        .replace(/(\*\*|__)/g, '');
+    for (const m of line.matchAll(/(?<!!)\[([^\]\n]+)\]\(([^)\s]+)\)/g)) {
       const end = m.index + m[0].length;
-      // 上下文里的其他 Markdown 链接在页面上只显示链接文字
-      const shown = (s) => s.replace(/(?<!!)\[([^\]\n]+)\]\((https?:\/\/[^)\s]+)\)/g, '$1');
       const before = shown(line.slice(0, m.index)).slice(-LINK_CONTEXT);
-      mdLinks.push({ key: `${before}⟦${m[0]}⟧${shown(line.slice(end)).slice(0, LINK_CONTEXT)}`, label: m[1], url: m[2], line: i + 1 });
+      const after = shown(line.slice(end)).slice(0, LINK_CONTEXT);
+      const item = { key: `${before}⟦[${m[1]}](${m[2]})⟧${after}`, label: m[1], url: m[2], line: i + 1 };
+      if (/^https?:\/\//.test(m[2])) mdLinks.push(item);
+      else if (m[2].startsWith('#')) hashLinks.push(item);
+      else relativeLinks.push(item);
     }
   });
   const wikilinks = [];
@@ -208,7 +213,7 @@ function extractRewrite(text) {
     if (m[1]) embeds.push({ ...item, name: raw.split('|')[0].trim(), width: raw.includes('|') ? raw.split('|')[1].trim() : undefined });
     else wikilinks.push(item);
   }
-  return { body, footer, blocks, inline, urls, mdLinks, wikilinks, embeds };
+  return { body, footer, blocks, inline, urls, mdLinks, relativeLinks, hashLinks, wikilinks, embeds };
 }
 
 // ---- 产物 ----
@@ -256,22 +261,11 @@ function stripTags(html) {
   return decode(html.replace(/<[^>]*>/g, ''));
 }
 
-/** 页面里两个视图的正文：`html` 是原始 HTML（链接、图片要从这里取），`text` 是去掉标签后的正文文字 */
-function readBodies(html) {
-  const out = {};
-  const open = /<div class="prose"[^>]*data-body="(principle|operation)"/g;
-  let m;
-  while ((m = open.exec(html))) {
-    const body = elementAt(html, m.index, 'div');
-    if (body) out[m[1]] = { html: html.slice(m.index, body.end), text: body.text };
-  }
-  // 只有一版的页面（原理独有步骤、参考页）只渲染一段不带 data-body 的正文，两种视图都显示它，按原理版比
-  if (Object.keys(out).length === 0) {
-    const single = /<div class="prose"(?![^>]*data-body)[^>]*>/.exec(html);
-    const body = single && elementAt(html, single.index, 'div');
-    if (body) out.principle = { html: html.slice(single.index, body.end), text: body.text };
-  }
-  return out;
+/** 页面里的正文：v3 只有一段不带 data-body 的 `<div class="prose">` */
+function readBody(html) {
+  const single = /<div class="prose"(?![^>]*data-body)[^>]*>/.exec(html);
+  const body = single && elementAt(html, single.index, 'div');
+  return body ? { html: html.slice(single.index, body.end), text: body.text } : undefined;
 }
 
 const CODE_BLOCK = /<pre(?:\s[^>]*)?>([\s\S]*?)<\/pre>/g;
@@ -305,7 +299,6 @@ function extractImages(html) {
     const attr = (name) => new RegExp(`\\b${name}="([^"]*)"`).exec(tag)?.[1];
     const src = attr('src') ?? '';
     images.push({
-      // alt 是去掉扩展名的文件名（remark-obsidian 的 convertEmbed 用 basename(name, extname(name))）
       file: decode(attr('alt') ?? ''),
       width: attr('width'),
       src: decode(src),
@@ -327,7 +320,6 @@ function extractDiagrams(html) {
  * 正文里的链接。站内链接和博客外链在 HTML 里都是 `<a href>`，靠这句区分：
  * 页面上每条站内链接都有一个 `data-astro-cid-…`（Astro 给 .astro 模板里的元素加的），
  * 由 Markdown 生成的链接没有；参考页的参考链接（rehype 建的）也没有。
- * 这样“正文里的站内链接”和“页面自己生成的导航和返回链接”能分开。
  */
 function extractLinks(html) {
   const external = [];
@@ -338,13 +330,15 @@ function extractLinks(html) {
     const target = elementAt(html, m.index, 'a');
     if (href === undefined || !target) continue;
     const url = decode(href);
+    const block = blockInfo(html, m.index);
     const item = {
       url,
       label: target.text,
       cid: /data-astro-cid-/.test(attrs),
       line: lineOf(html, m.index),
-      // 链接所在的块（<p>/<li>）的文字，用于比重写稿里的同一段前后文
-      block: blockText(html, m.index),
+      // 链接所在的块（<p>/<li>）的文字和链接在块里的偏移（按去掉标签后的文字算），用于比前后文
+      block: block?.text,
+      blockOffset: block === undefined ? undefined : stripTags(html.slice(block.start, m.index)).length,
     };
     if (url.startsWith('http')) external.push(item);
     else if (!item.cid) internal.push(item);
@@ -352,8 +346,8 @@ function extractLinks(html) {
   return { external, internal };
 }
 
-/** 链接所在的段落文字：向上找到最近的 <p>/<li>/<td>，取它的文字 */
-function blockText(html, at) {
+/** 链接所在的段落：向上找到最近的 <p>/<li>/<td>，取它的文字和内容起点（用于算链接在段落里的偏移） */
+function blockInfo(html, at) {
   const open = /<(p|li|td|th|h[1-6])(?:\s[^>]*)?>/g;
   let best;
   let m;
@@ -361,26 +355,25 @@ function blockText(html, at) {
   if (!best) return undefined;
   const el = elementAt(html, best.index, best[1]);
   if (!el || el.end < at) return undefined;
-  return el.text;
+  return { text: el.text, start: html.indexOf('>', best.index) + 1 };
 }
 
 /**
  * 产物里链接的上下文键：用链接所在块（<p>/<li>/<td>）的文字，取链接文字前后各 LINK_CONTEXT 个字。
- * 重写稿的一行通常就是产物里的一个块，块开头的列表记号在产物里由 <ol>/<ul> 生成，两边都去掉。
+ * 优先用链接在块里的偏移；同一段前面也提到过同样的文字（例如正文先写了 Chrome、后面才是链接）时，
+ * 仍然按偏移取，不会拿错位置。
  */
 function distLinkKey(body, link) {
   const text = (link.block ?? body).replace(/^\s*(?:[-*]|\d+\.)\s+/, '');
-  const at = text.indexOf(link.label);
+  const at = link.blockOffset !== undefined && text.slice(link.blockOffset, link.blockOffset + link.label.length) === link.label
+    ? link.blockOffset
+    : text.indexOf(link.label);
   if (at === -1) return undefined;
   const before = text.slice(Math.max(0, at - LINK_CONTEXT), at);
   return `${before}⟦[${link.label}](${link.url})⟧${text.slice(at + link.label.length, at + link.label.length + LINK_CONTEXT)}`;
 }
 
-/**
- * markdown 链接的上下文键：链接文字连同前后各 LINK_CONTEXT 个字。
- * 重写稿里的一行通常就是产物里的一个块（`<p>`、`<li>`、`<td>`），两边都去掉块开头的列表记号再比，
- * 这样互换地址、改链接文字、把链接挪到别的句子里都会报出来。
- */
+/** markdown 链接的上下文键：链接文字连同前后各 LINK_CONTEXT 个字 */
 function linkKey(line, label, url) {
   const text = line.replace(/^\s*(?:[-*]|\d+\.)\s+/, '');
   const at = text.indexOf(label);
@@ -398,11 +391,10 @@ function wikiLinkTarget(raw) {
   const [targetPart, headingPart] = splitOnce(splitOnce(raw, '|')[0], '#');
   const target = targetPart.trim();
   const heading = headingPart?.trim();
-  if (TABLE_OF_CONTENTS.includes(target)) return { kind: 'home' };
   if (target.startsWith(BLOG_PREFIX)) return undefined; // 博客外链走 blog-links.yaml，逐条登记
   const found = pagesByTitle.get(target);
   if (found === undefined) return undefined;
-  const base = `/${found.id.replace(/^reference\//, '')}/`;
+  const base = found.url;
   if (heading === undefined) return { kind: 'internal', url: base, pageId: found.id };
   const slug = headingAnchor(found.id, heading);
   if (slug === undefined) return { kind: 'internal', url: `${base}#（没有这个小标题）${heading}`, pageId: found.id, missing: heading };
@@ -414,10 +406,7 @@ function splitOnce(text, sep) {
   return i === -1 ? [text, undefined] : [text.slice(0, i), text.slice(i + 1)];
 }
 
-/**
- * 小标题在页面上的锚点：用和页面同一条 github-slugger 规则（去行内记号、重复的加 -1、-2）。
- * 找不到这个文字的小标题时返回 undefined。
- */
+/** 小标题在页面上的锚点：用和页面同一条 github-slugger 规则（去行内记号、重复的加 -1、-2）。 */
 function headingAnchor(id, heading) {
   const { body } = splitRewrite(readFileSync(contentFile(id), 'utf8'));
   const slugger = new GithubSlugger();
@@ -437,7 +426,7 @@ function headingAnchor(id, heading) {
     if (!m) continue;
     const plain = plainHeading(m[2]);
     const slug = slugger.slug(plain);
-    if (plain === heading && found === undefined) found = slug;
+    if (found === undefined && (plain === heading || slug === heading)) found = slug;
   }
   return found;
 }
@@ -450,8 +439,8 @@ function walk(dir) {
 
 // ---- 读取 ----
 
-if (!existsSync(join(rewriteDir, PRINCIPLE_DIR))) {
-  console.error(`找不到重写稿：${join(rewriteDir, PRINCIPLE_DIR)}\n用法：node scripts/compare-migration.mjs [重写稿目录]`);
+if (!existsSync(rewriteDir)) {
+  console.error(`找不到重写稿：${rewriteDir}\n用法：node scripts/compare-migration.mjs [重写稿目录]`);
   process.exit(1);
 }
 if (!existsSync(distDir)) {
@@ -461,11 +450,41 @@ if (!existsSync(distDir)) {
 
 const route = parseYaml(readFileSync(join(contentRoot, 'route.yaml'), 'utf8'));
 const blogLinks = parseYaml(readFileSync(join(contentRoot, 'blog-links.yaml'), 'utf8'));
-const listP = (dir) => readdirSync(dir).filter((n) => n.endsWith('.md')).sort();
-const rewriteFiles = { principle: listP(join(rewriteDir, PRINCIPLE_DIR)), operation: listP(join(rewriteDir, OPERATION_DIR)) };
-const rewriteFile = (view, title) => rewriteFiles[view].find((n) => n.slice(0, -3) === title);
 
-/** route.yaml 里的页面标识 → 标题（principle/<id>.md 正文第一行的 `# 标题`，参考页在 reference/ 下） */
+/** 重写稿：根目录的 11 页 + reference/ 下的参考页；按第一行的 # 标题对应 */
+const rewriteFiles = [
+  ...readdirSync(rewriteDir)
+    .filter((n) => n.endsWith('.md'))
+    .sort()
+    .map((n) => join(rewriteDir, n)),
+  ...(existsSync(join(rewriteDir, REFERENCE_DIR))
+    ? readdirSync(join(rewriteDir, REFERENCE_DIR))
+        .filter((n) => n.endsWith('.md'))
+        .sort()
+        .map((n) => join(rewriteDir, REFERENCE_DIR, n))
+    : []),
+];
+const rewriteByTitle = new Map();
+for (const file of rewriteFiles) {
+  const { body } = splitRewrite(readFileSync(file, 'utf8'));
+  const title = /^# +(.+?)[ \t]*$/m.exec(body.split('\n').find((l) => l.trim() !== '') ?? '')?.[1];
+  if (title !== undefined) rewriteByTitle.set(title, { file, body });
+}
+
+/** route.yaml 里的页面标识（步骤页、选择页） */
+const pageIds = new Set();
+for (const chapter of route.chapters) {
+  for (const item of chapter.items) {
+    if (typeof item === 'string') pageIds.add(item);
+    else if (item.page) pageIds.add(item.page);
+    else if (item.options) for (const list of Object.values(item.options)) for (const id of list) pageIds.add(id);
+  }
+}
+for (const id of Object.keys(route.side ?? {})) pageIds.add(id);
+/** 参考页的标识（相对 reference/，如 ip-tests、ip-tests/decodo） */
+const referenceIds = walk(join(contentRoot, 'reference')).map((p) =>
+  relative(join(contentRoot, 'reference'), p).split('\\').join('/').slice(0, -3),
+);
 const contentFile = (id) =>
   join(contentRoot, id.startsWith('reference/') ? 'reference' : 'principle', `${id.replace(/^reference\//, '')}.md`);
 
@@ -474,7 +493,49 @@ const titleOf = (id) => {
   return /^# +(.+?)[ \t]*$/m.exec(body.split('\n').find((l) => l.trim() !== '') ?? '')?.[1];
 };
 
-/** 页面里的小标题锚点：从站内文件的正文（导入后的快照）里算，和页面上生成的 id 一致 */
+const pages = [
+  ...[...pageIds].sort().map((id) => ({ id, title: titleOf(id), url: `/${id}/` })),
+  ...referenceIds.sort().map((id) => ({ id: `reference/${id}`, title: titleOf(`reference/${id}`), url: `/${id}/` })),
+];
+const pagesByTitle = new Map(pages.map((p) => [p.title, p]));
+
+/** 重写稿里的文件名（去掉 .md）→ 标题，用于相对 Markdown 链接 */
+const titleOfRewriteFile = new Map();
+for (const file of rewriteFiles) {
+  const { body } = splitRewrite(readFileSync(file, 'utf8'));
+  const title = /^# +(.+?)[ \t]*$/m.exec(body.split('\n').find((l) => l.trim() !== '') ?? '')?.[1];
+  if (title !== undefined) titleOfRewriteFile.set(file.split(/[\\/]/).pop().replace(/\.md$/, ''), title);
+}
+
+const differences = { 正文: [], 命令: [], 链接: [], 截图: [] };
+const pending = [];
+/** 每页的 TODO 段数，和 PENDING.todos 核对 */
+const todoCounts = new Map();
+const notes = [];
+
+// 登记过的双链去向：raw → { to, where }。普通双链（[[标题]]）走 wikiLinkTarget，不用逐条登记。
+const wikiTargets = new Map();
+const addTarget = (raw, to, where) => wikiTargets.set(raw, { to, where });
+
+for (const [target, url] of Object.entries(blogLinks ?? {})) {
+  if (url != null) addTarget(target, { kind: 'external', url }, `blog-links.yaml → ${url}（Q-11）`);
+  else addTarget(target, { kind: 'plainText', text: target.slice(BLOG_PREFIX.length) }, `blog-links.yaml 的地址待作者填（Q-11），页面上只显示链接文字`);
+}
+
+const printedConversions = [];
+const usedWiki = new Set();
+
+/** 产物里允许出现的站内链接地址：由页面标题算出（双链按标题解析，ADR-0005），带 ?from= 时只比路径部分 */
+const internalTargets = new Set(['/']);
+for (const page of pages) {
+  const url = page.url;
+  internalTargets.add(url);
+  for (const heading of headingsOf(page.id)) internalTargets.add(`${url}#${heading.slug}`);
+}
+// 产物里的站内链接地址：href 里是百分号编码（中文锚点），去掉 `?from=<步骤>`（FR-20）后 decode 再比
+const internalPath = (url) => decodeURIComponent(url.replace(/\?[^#]*/, ''));
+
+/** 页面正文里的小标题锚点（含文字），用于核对同页链接 */
 function headingsOf(id) {
   const { body } = splitRewrite(readFileSync(contentFile(id), 'utf8'));
   const slugger = new GithubSlugger();
@@ -491,7 +552,7 @@ function headingsOf(id) {
       continue;
     }
     const m = /^ {0,3}(#{2,6})[ \t]+(.*?)[ \t]*$/.exec(line);
-    if (m) out.push(slugger.slug(plainHeading(m[2])));
+    if (m) out.push({ slug: slugger.slug(plainHeading(m[2])), text: plainHeading(m[2]) });
   }
   return out;
 }
@@ -505,85 +566,87 @@ function plainHeading(text) {
     .trim();
 }
 
-const pageIds = new Set();
-for (const chapter of route.chapters) {
-  for (const item of chapter.items) {
-    if (typeof item === 'string') pageIds.add(item);
-    else if (item.page) pageIds.add(item.page);
-    else if (item.options) for (const list of Object.values(item.options)) for (const id of list) pageIds.add(id);
+/** 重写稿一行去掉 Markdown 记号后的正文文字（和产物里 stripTags 的文字比） */
+function normalizeText(line) {
+  return line
+    .replace(/^(\s*>\s?)+/, '')
+    .replace(/^\s*(?:[-*+]|\d+[.)])\s+/, '')
+    .replace(/^\[[ xX]\]\s+/, '')
+    .replace(/^\s*#{1,6}\s+/, '')
+    .replace(/!\[\[[^\]]*\]\]/g, '')
+    .replace(/\[\[([^\]|]*)\|([^\]]*)\]\]/g, '$2')
+    // 没写文字的 `[[页面#小节]]` 在页面上显示成“页面 > 小节”（remark-obsidian 的写法）
+    .replace(/\[\[([^\]|#]*)#([^\]|]*)\]\]/g, '$1 > $2')
+    .replace(/\[\[([^\]|]*)\]\]/g, '$1')
+    .replace(/(?<!!)\[([^\]\n]*)\]\([^)]*\)/g, '$1')
+    .replace(/<[^>]+>/g, '')
+    .replace(/(\*\*|__|`)/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** 一行重写稿要拆成几段文字来核对：表格按单元格，其余按整行 */
+function textPieces(line) {
+  const trimmed = line.trim();
+  if (trimmed === '' || /^---+$/.test(trimmed) || /^>?\s*\[!/.test(trimmed) || /^!\[\[/.test(trimmed)) return [];
+  if (/^\|?\s*:?-{3,}/.test(trimmed) && /-{3,}/.test(trimmed)) return []; // 表格分隔行
+  if (/^\s*\|/.test(trimmed)) {
+    const cells = trimmed.replace(/^\|/, '').replace(/\|$/, '').split(/(?<!\\)\|/);
+    return cells.map((cell) => normalizeText(unescapePipe(cell))).filter((text) => text !== '');
   }
+  const text = normalizeText(trimmed);
+  return text === '' ? [] : [text];
 }
-for (const id of Object.keys(route.side ?? {})) pageIds.add(id);
-const referenceIds = walk(join(contentRoot, 'reference')).map((p) => `reference/${relative(join(contentRoot, 'reference'), p).split('\\').join('/').slice(0, -3)}`);
-for (const id of referenceIds) pageIds.add(id);
-const pages = [...pageIds].sort().map((id) => ({ id, title: titleOf(id), url: `/${id.replace(/^reference\//, '')}/` }));
-const pagesByTitle = new Map(pages.map((p) => [p.title, p]));
 
-const differences = { 命令: [], 链接: [], 截图: [] };
-const pending = [];
-/** 每页两种视图合计的 TODO 段数，和 PENDING.todos 核对 */
-const todoCounts = new Map();
-const notes = [];
-
-// 登记过的双链去向：raw → { to, where }。普通双链（[[标题]]）走 wikiLinkTarget，不用逐条登记。
-const wikiTargets = new Map();
-const addTarget = (raw, to, where) => wikiTargets.set(raw, { to, where });
-
-for (const [target, url] of Object.entries(blogLinks ?? {})) {
-  if (url != null) addTarget(target, { kind: 'external', url }, `blog-links.yaml → ${url}（Q-11）`);
-  else addTarget(target, { kind: 'plainText', text: target.slice(BLOG_PREFIX.length) }, `blog-links.yaml 的地址待作者填（Q-11），页面上只显示链接文字`);
-}
-addTarget('如何订阅claude', { kind: 'home' }, '重写稿的目录页指向首页（ADR-0005）');
-addTarget('如何订阅claude（纯操作版）', { kind: 'home' }, '重写稿的目录页指向首页（ADR-0005）');
-addTarget('04技术/如何订阅claude（纯操作版）', { kind: 'home' }, '目录页的双链指向首页（ADR-0005）');
-
-const printedConversions = [];
-const usedWiki = new Set();
-
-// 产物里允许出现的站内链接地址：由页面标题算出（双链按标题解析，ADR-0005），
-// 参考页从步骤链过去时带 `?from=<步骤>`（FR-20），所以只比路径部分。
-const internalTargets = new Set(['/']);
-for (const page of pages) {
-  const url = `/${page.id.replace(/^reference\//, '')}/`;
-  internalTargets.add(url);
-  for (const hash of headingsOf(page.id)) internalTargets.add(`${url}#${hash}`);
-}
-// 产物里的站内链接地址：href 里是百分号编码（中文锚点），去掉 `?from=<步骤>`（FR-20）后 decode 再比
-const internalPath = (url) => decodeURIComponent(url.replace(/\?[^#]*/, ''));
-
-function compareView(page, view) {
-  const source = rewriteFile(view.view, page.title);
-  const html = readFileSync(join(distDir, page.id.replace(/^reference\//, ''), 'index.html'), 'utf8');
-  const bodies = readBodies(html);
-  const where = `${path(source)}·${page.id}`;
-
+/** 对比一页：命令、正文文字、外链、站内链接、截图和双链 */
+function comparePage(page) {
+  const source = rewriteByTitle.get(page.title);
+  const distFile = join(distDir, page.url.slice(1), 'index.html');
+  if (!existsSync(distFile)) {
+    differences.链接.push(`产物里没有页面 ${page.id}`);
+    return;
+  }
+  const html = readFileSync(distFile, 'utf8');
+  const body = readBody(html);
+  const where = `${source === undefined ? '（重写稿里没有这一页）' : relative(repoRoot, source.file).split('\\').join('/')}·${page.id}`;
   if (source === undefined) {
-    // 有视图没有重写稿：新建的页面（选择页、参考页等），正文不是从重写稿来的，登记在 notes 里
-    if (bodies[view.view] !== undefined) notes.push(`${page.id} · ${view.label} 没有对应的重写稿文件，正文由页面自己的内容组成（不在比对范围）`);
+    notes.push(`${page.id}（${page.title}）没有重写稿：正文由页面自己写，不在比对范围`);
     return;
   }
-  if (bodies[view.view] === undefined) {
-    // 重写稿有这一版，产物里却没有这个视图的正文：内容丢了
-    differences.命令.push(`产物里没有${view.label}的正文（${where}）：找不到 data-body="${view.view}"`);
+  if (body === undefined) {
+    differences.正文.push(`产物里没有正文（${where}）：找不到 <div class="prose">`);
     return;
   }
 
-  const rewrite = extractRewrite(readFileSync(join(rewriteDir, view.dir, source), 'utf8'));
-  const body = bodies[view.view].text;
-  const bodyHtml = bodies[view.view].html;
-  const code = extractCode(bodyHtml);
-  const images = extractImages(bodyHtml);
-  const diagrams = extractDiagrams(bodyHtml);
-  const links = extractLinks(bodyHtml);
+  const rewrite = extractRewrite(readFileSync(source.file, 'utf8'));
+  const code = extractCode(body.html);
+  const bodyText = body.text.replace(/\s+/g, ' ');
 
-  // ---- 登记过的转换：逐条核对两边都对得上 ----
-  if (rewrite.footer === undefined) {
-    differences.链接.push(`重写稿末尾没有手写页脚（${where}）：${join(PRINCIPLE_DIR, source)}`);
-  }
+  // ---- 登记的转换：逐条核对 ----
   const todo = todoParagraphs(rewrite.body).length;
-  const labelCount = (body.match(/作者待补/g) ?? []).length;
+  const labelCount = (body.text.match(/作者待补/g) ?? []).length;
   if (todo !== labelCount) differences.命令.push(`TODO 段落和“作者待补”标签对不上（${where}）：重写稿 ${todo} 段、产物 ${labelCount} 处`);
   todoCounts.set(page.id, (todoCounts.get(page.id) ?? 0) + todo);
+
+  // ---- 正文文字：每一行（表格按单元格）都要在产物正文里找到；第一行标题由布局输出，跳过 ----
+  const lines = rewrite.body.split('\n');
+  const titleLine = lines.findIndex((line) => line.trim() !== '');
+  let fence;
+  lines.forEach((line, i) => {
+    if (i === titleLine) return;
+    const f = /^ {0,3}(`{3,}|~{3,})/.exec(line);
+    if (fence !== undefined) {
+      if (f && f[1][0] === fence[0] && f[1].length >= fence.length && line.trim() === f[1]) fence = undefined;
+      return;
+    }
+    if (f) {
+      fence = f[1];
+      return;
+    }
+    for (const piece of textPieces(line)) {
+      if (!bodyText.includes(piece)) differences.正文.push(`产物正文里找不到重写稿这一行（${where}:${i + 1}）：${piece}`);
+    }
+  });
 
   // ---- 命令 ----
   // 代码块：围栏块不进表格，逐字比。行内代码：Markdown 段落里的 `x` 渲染成 `<code>x</code>`，
@@ -593,12 +656,14 @@ function compareView(page, view) {
   for (const b of rewrite.blocks) if (!distBlocks.includes(b.code)) differences.命令.push(`产物缺少代码块（${where}:${b.line}）：\n${b.code}`);
   for (const b of code.blocks) if (!sourceBlocks.includes(b.code)) differences.命令.push(`产物多出重写稿没有的代码块（${where}）：\n${b.code}`);
   for (const c of new Set(rewrite.inline)) {
-    if (!body.includes(c)) differences.命令.push(`产物的正文里找不到重写稿的行内代码（${where}）：\`${c}\``);
+    if (!body.text.includes(c)) differences.命令.push(`产物的正文里找不到重写稿的行内代码（${where}）：\`${c}\``);
   }
   const sourceInline = new Set(rewrite.inline);
   for (const c of new Set(code.inline)) {
     if (!sourceInline.has(c)) differences.命令.push(`产物多出重写稿没有的行内代码（${where}）：\`${c}\``);
   }
+
+  const links = extractLinks(body.html);
 
   // ---- 外链 ----
   const sourceUrls = new Set(rewrite.urls.map((u) => u.url));
@@ -621,18 +686,14 @@ function compareView(page, view) {
     if (sourceUrls.has(url) || convertedUrls.has(url)) continue;
     differences.链接.push(`产物多出重写稿没有的外链（${where}:${l.line}）：${url}`);
   }
+  const autolinked = (l) => l.label === l.url && rewrite.urls.some((u) => u.url === l.url);
 
-  // Markdown 链接：地址和链接文字都要原样（重写稿原样导入）。
-  // 上下文按“链接所在的块”比：产物里的段落是 <p>/<li>/<td>，重写稿里的一行就是一个块，
-  // 两边都把块开头的列表记号去掉，取链接文字前后各 LINK_CONTEXT 个字。
+  // ---- Markdown 外链的上下文 ----
   const sourceKeys = new Set(rewrite.mdLinks.map((l) => l.key));
   const distKeys = new Set();
-  // 裸地址按 GFM 渲染成的链接（登记在 CONVERSIONS 的 autolink）：链接文字就是地址，裸地址已在上面核对过
-  const autolinked = (l) => l.label === l.url && rewrite.urls.some((u) => u.url === l.url);
   for (const l of links.external) {
-    if (convertedUrls.has(l.url)) continue; // 双链转换出来的外链，链接文字由重写稿的双链决定
-    if (autolinked(l)) continue;
-    const key = distLinkKey(body, l);
+    if (convertedUrls.has(l.url) || autolinked(l)) continue;
+    const key = distLinkKey(body.text, l);
     if (key === undefined) {
       differences.链接.push(`产物的链接文字没在正文里找到（${where}:${l.line}）：[${l.label}](${l.url})`);
       continue;
@@ -652,18 +713,55 @@ function compareView(page, view) {
     }
   }
 
+  // ---- 相对 Markdown 链接（导入时转成双链，V10）：按文件名找标题 → 页面地址 ----
+  const headingList = headingsOf(page.id);
+  for (const l of rewrite.relativeLinks) {
+    const file = l.url.split('#')[0];
+    const fragment = l.url.includes('#') ? l.url.split('#').slice(1).join('#') : undefined;
+    const title = titleOfRewriteFile.get(file.replace(/\.md$/, ''));
+    const target = title === undefined ? undefined : pagesByTitle.get(title);
+    if (target === undefined) {
+      differences.链接.push(`产物的站内链接找不到目标页（${where}:${l.line}）：[${l.label}](${l.url})，重写稿里没有标题对应的页面`);
+      continue;
+    }
+    const slug = fragment === undefined ? undefined : headingAnchor(target.id, decodeURIComponent(fragment));
+    if (fragment !== undefined && slug === undefined) {
+      differences.链接.push(`相对链接的目标页里没有小标题“${fragment}”（${where}:${l.line}）：[${l.label}](${l.url})`);
+      continue;
+    }
+    const expected = `${target.url}${slug === undefined ? '' : `#${slug}`}`;
+    const candidates = links.internal.filter((x) => internalPath(x.url) === decodeURIComponent(expected));
+    const found = candidates.find((x) => x.label === l.label) ?? candidates[0];
+    if (!found) differences.链接.push(`产物缺少重写稿的站内链接（${where}:${l.line}）：[${l.label}](${l.url}) → ${expected}`);
+    else if (found.label !== l.label) differences.链接.push(`站内链接的文字变了（${where}:${l.line}）：[${l.label}](${l.url}) 产物里是“${found.label}”`);
+    printedConversions.push(`${where}:${l.line} [${l.label}](${l.url}) → ${expected}（相对链接转双链，V10）`);
+  }
+
+  // ---- 同页小节链接 ----
+  for (const l of rewrite.hashLinks) {
+    const fragment = l.url.slice(1);
+    const slug =
+      (headingList.find((h) => h.text === fragment) ?? headingList.find((h) => h.slug === fragment))?.slug ?? undefined;
+    if (slug === undefined) {
+      differences.链接.push(`同页链接找不到小标题（${where}:${l.line}）：[${l.label}](${l.url})`);
+      continue;
+    }
+    const found = links.internal.find((x) => decodeURIComponent(x.url) === `#${slug}`);
+    if (!found) differences.链接.push(`产物缺少同页小节链接（${where}:${l.line}）：[${l.label}](${l.url}) → #${slug}`);
+    else if (found.label !== l.label) differences.链接.push(`同页链接的文字变了（${where}:${l.line}）：产物里是“${found.label}”`);
+  }
+
   // ---- 截图 ----
-  // 产物里的文件名是 alt（去掉扩展名），重写稿写的是带扩展名的裸文件名，两边按去扩展名比较
   const stem = (name) => name.replace(/\.[^.]+$/, '');
   const distImages = new Map();
-  for (const img of images) if (!distImages.has(img.file)) distImages.set(img.file, img);
+  for (const img of extractImages(body.html)) if (!distImages.has(img.file)) distImages.set(img.file, img);
   for (const e of rewrite.embeds) {
     if (isDiagram(e.name)) {
       // 说明图内联成 <svg data-diagram>（登记在 CONVERSIONS 的 diagram-inline），按 <title> 对回附件里的原稿；
       // 附件/ 不入库（.gitignore），没有时用导入后的副本 src/assets/diagrams/（导入脚本让它跟着原稿更新）
       const source = [join(rewriteDir, '附件', e.name), join(repoRoot, 'src', 'assets', 'diagrams', e.name)].find((f) => existsSync(f));
       const title = source ? svgTitle(readFileSync(source, 'utf8')) : undefined;
-      if (title === undefined || !diagrams.includes(title)) {
+      if (title === undefined || !extractDiagrams(body.html).includes(title)) {
         differences.截图.push(`产物缺少说明图（${where}:${e.line}）：![[${e.raw}]]`);
       }
       continue;
@@ -682,22 +780,20 @@ function compareView(page, view) {
     }
   }
   const diagramEmbeds = rewrite.embeds.filter((e) => isDiagram(e.name)).length;
-  if (diagrams.length !== diagramEmbeds) {
-    differences.截图.push(`说明图数量不一致（${where}）：重写稿 ${diagramEmbeds} 张、产物 ${diagrams.length} 张`);
+  if (extractDiagrams(body.html).length !== diagramEmbeds) {
+    differences.截图.push(`说明图数量不一致（${where}）：重写稿 ${diagramEmbeds} 张、产物 ${extractDiagrams(body.html).length} 张`);
   }
   const sourceNames = new Set(rewrite.embeds.map((e) => stem(e.name)));
-  for (const img of images) {
+  for (const img of extractImages(body.html)) {
     if (!sourceNames.has(img.file)) differences.截图.push(`产物多出重写稿没有的截图（${where}:${img.line}）：${img.file}`);
   }
 
   // ---- 双链（ADR-0005）----
-  // 站内链接和链接文字都从重写稿的双链来：普通双链按标题解析，`[[04技术/…]]` 查 blog-links.yaml，
-  // 目录页指向首页。登记过的一律打印；对不上的报差异。
   for (const w of rewrite.wikilinks) {
     const [targetPart, rest] = splitOnce(w.raw, '|');
     const [title] = splitOnce(targetPart, '#');
     const registered = wikiTargets.get(title.trim());
-    const to = registered?.to ?? wikiLinkTarget(w.raw, page);
+    const to = registered?.to ?? wikiLinkTarget(w.raw);
     if (to === undefined) {
       differences.链接.push(`重写稿的双链没有登记去向，也不是能按标题解析的站内链接（${where}:${w.line}）：[[${w.raw}]]`);
       continue;
@@ -709,87 +805,63 @@ function compareView(page, view) {
       if (!found) differences.链接.push(`双链转换后不在产物里（${where}:${w.line}）：[[${w.raw}]] → ${to.url}`);
       else if (label !== undefined && found.label !== label) differences.链接.push(`双链的链接文字变了（${where}:${w.line}）：[[${w.raw}]] 产物里是“${found.label}”`);
     } else if (to.kind === 'plainText') {
-      // 博客地址待作者填（Q-11）：产物里只有链接文字，没有 <a>
-      if (!body.includes(label ?? to.text)) differences.链接.push(`待填的博客双链在产物里找不到链接文字（${where}:${w.line}）：[[${w.raw}]]`);
-    } else if (to.kind === 'home') {
-      const found = links.internal.find((l) => l.url === '/');
-      if (!found) differences.链接.push(`双链转换后不在产物里（${where}:${w.line}）：[[${w.raw}]] → 首页`);
-      else if (label !== undefined && found.label !== label) differences.链接.push(`双链的链接文字变了（${where}:${w.line}）：[[${w.raw}]] 产物里是“${found.label}”`);
-      printedConversions.push(`${where}:${w.line} [[${w.raw}]] → /（重写稿的目录页指向首页，ADR-0005）`);
+      if (!body.text.includes(label ?? to.text)) differences.链接.push(`待填的博客双链在产物里找不到链接文字（${where}:${w.line}）：[[${w.raw}]]`);
     } else {
       if (to.missing !== undefined) {
         differences.链接.push(`目标页里没有小标题“${to.missing}”（${where}:${w.line}）：[[${w.raw}]]`);
       } else {
-        const found = links.internal.find((l) => internalPath(l.url) === to.url);
+        const expected = label ?? (targetPart.includes('#') ? `${title} > ${targetPart.split('#')[1]}` : title);
+        const candidates = links.internal.filter((l) => internalPath(l.url) === to.url);
+        const found = candidates.find((l) => l.label === expected) ?? candidates[0];
         if (!found) differences.链接.push(`双链转换后不在产物里（${where}:${w.line}）：[[${w.raw}]] → ${to.url}`);
-        else {
-          // 链接文字：写了 `|文字` 就是它，没写就是标题（带小标题时是“标题 > 小标题”）
-          const expected = label ?? (targetPart.includes('#') ? `${title} > ${targetPart.split('#')[1]}` : title);
-          if (found.label !== expected) differences.链接.push(`双链的链接文字变了（${where}:${w.line}）：[[${w.raw}]] 产物里是“${found.label}”，应为“${expected}”`);
-        }
+        else if (found.label !== expected) differences.链接.push(`双链的链接文字变了（${where}:${w.line}）：[[${w.raw}]] 产物里是“${found.label}”，应为“${expected}”`);
       }
       printedConversions.push(`${where}:${w.line} [[${w.raw}]] → ${to.url}（按标题解析的站内链接，ADR-0005）`);
     }
   }
-  if (/\[\[/.test(body)) differences.链接.push(`产物里还留着双链写法（${where}）`);
+  if (/\[\[/.test(body.text)) differences.链接.push(`产物里还留着双链写法（${where}）`);
 
-  // ---- 产物里的站内链接都要有出处 ----
+  // ---- 产物里的站内链接都要有出处：路线图里的页面/小节，或本页的小节锚点 ----
+  const localAnchors = new Set(headingList.map((h) => h.slug));
   const internalPaths = new Set([...internalTargets].map(internalPath));
   for (const l of links.internal) {
-    if (internalPaths.has(internalPath(l.url))) continue;
+    const path = internalPath(l.url);
+    if (internalPaths.has(path)) continue;
+    if (l.url.startsWith('#') && localAnchors.has(decodeURIComponent(l.url.slice(1)))) continue;
     differences.链接.push(`产物的站内链接不在路线图里（${where}:${l.line}）：${l.url}`);
   }
 }
 
-function path(name) {
-  return name ?? '（重写稿里没有这一页）';
-}
-
-// 每个页面分别比对两种视图
 for (const page of pages) {
-  const has = {
-    principle: rewriteFile('principle', page.title) !== undefined,
-    operation: rewriteFile('operation', page.title) !== undefined,
-  };
-  if (!has.principle && !has.operation) {
-    notes.push(`${page.id} 没有重写稿（${page.title}）：正文由页面自己写，不在比对范围`);
+  if (!rewriteByTitle.has(page.title) && PENDING.pages[page.id] !== undefined) {
+    pending.push(`正文还没写：${page.id} ${page.title}`);
+    continue;
   }
-  for (const view of VIEWS) {
-    if (view.view === 'operation' && !has.operation) {
-      if (PENDING.operations[page.id] !== undefined) pending.push(`操作版缺失：${page.id} ${page.title}`);
-      else notes.push(`${page.id} · 操作视图：重写稿里没有“${OPERATION_DIR}/${page.title}.md”，产物显示原理版（原理独有步骤）`);
-      continue;
-    }
-    if (!existsSync(join(distDir, page.id.replace(/^reference\//, ''), 'index.html'))) {
-      differences.链接.push(`产物里没有页面 ${page.id}`);
-      continue;
-    }
-    compareView(page, view);
-  }
+  comparePage(page);
 }
 
-// TODO 段落：两种视图合计的段数要和登记的一致；重写稿里补完了的也要报，提醒删掉登记
+// TODO 段落：和登记的一致；重写稿里补完了的也要报，提醒删掉登记
 for (const id of new Set([...todoCounts.keys(), ...Object.keys(PENDING.todos)])) {
   const count = todoCounts.get(id) ?? 0;
   const registered = PENDING.todos[id] ?? 0;
   if (count !== registered) {
-    differences.命令.push(`TODO 段落数和登记的待补数对不上（${id}）：重写稿两种视图合计 ${count} 段、登记 ${registered} 段，改脚本的 PENDING.todos`);
+    differences.命令.push(`TODO 段落数和登记的待补数对不上（${id}）：重写稿 ${count} 段、登记 ${registered} 段，改脚本的 PENDING.todos`);
   } else if (count > 0) {
     pending.push(`作者待补：${id} ${count} 处`);
   }
 }
 
-// 登记过、但重写稿里没再出现的双链
+// 登记过、但重写稿里没再出现的博客双链：只是说明（新稿可能暂时没引用，Q-11 的地址留着以后用）
 for (const [raw, entry] of wikiTargets) {
-  if (entry.to.kind !== 'external') continue; // 目录页指向首页的登记只在出现时核对
-  if (!usedWiki.has(raw)) differences.链接.push(`登记的双链在重写稿里找不到：[[${raw}]]（${entry.where}）`);
+  if (entry.to.kind !== 'external' || usedWiki.has(raw)) continue;
+  notes.push(`blog-links.yaml 的 [[${raw}]] 在这一版重写稿里没有用到（地址留着）`);
 }
 
 // ---- 报告 ----
 
 console.log('重写稿：');
-for (const view of VIEWS) console.log(`  ${view.label}（${view.dir}）${rewriteFiles[view.view].length} 个文件`);
-console.log(`产物：dist/，比对 ${pages.length} 个页面（步骤页、选择页、旁支页和参考页，不含首页）\n`);
+console.log(`  ${rewriteFiles.length} 个文件（根目录 ${rewriteFiles.filter((f) => !f.includes(`${REFERENCE_DIR}/`)).length} 页 + 参考页 ${rewriteFiles.filter((f) => f.includes(`${REFERENCE_DIR}/`)).length} 个）`);
+console.log(`产物：dist/，比对 ${pages.length} 个页面（11 页 + 参考页）\n`);
 
 const section = (title, items) => {
   if (items.length === 0) return;
@@ -802,17 +874,16 @@ section('登记过的转换（ADR-0005、import-rewrite.mjs）', CONVERSIONS.map
 section('本次比对里实际发生的转换', [...new Set(printedConversions)].sort());
 const pendingPages = Object.entries(PENDING.pages);
 section('登记的待补项（重写稿没有、产物也没有）', [
-  `操作版缺失 ${Object.keys(PENDING.operations).length} 页：${Object.entries(PENDING.operations).map(([id, t]) => `${id} ${t}`).join('、')}`,
   ...(pendingPages.length ? [`正文还没写的页面 ${pendingPages.length} 页：${pendingPages.map(([id, t]) => `${id} ${t}`).join('、')}`] : []),
   `作者待补的 TODO 段落 ${Object.entries(PENDING.todos).map(([id, n]) => `${id} ${n} 处`).join('、')}`,
 ]);
 section('说明（不进差异）', [...new Set(notes)]);
 for (const [kind, items] of Object.entries(differences)) section(`${kind}差异`, items);
 
-const total = differences.命令.length + differences.链接.length + differences.截图.length;
+const total = Object.values(differences).reduce((n, items) => n + items.length, 0);
 console.log(
-  `比对范围：页面 ${pages.length} 个、两种视图各一遍；命令差异 ${differences.命令.length}、` +
+  `比对范围：页面 ${pages.length} 个；正文差异 ${differences.正文.length}、命令差异 ${differences.命令.length}、` +
     `链接差异 ${differences.链接.length}、截图差异 ${differences.截图.length}；` +
-    `登记的待补项：操作版 ${Object.keys(PENDING.operations).length} 页、参考页 ${pendingPages.length} 页、作者待补 ${Object.keys(PENDING.todos).length} 页`,
+    `登记的待补项：参考页 ${pendingPages.length} 页、作者待补 ${Object.keys(PENDING.todos).length} 页`,
 );
 process.exit(total ? 1 : pending.length ? 2 : 0);

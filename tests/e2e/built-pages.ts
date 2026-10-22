@@ -23,7 +23,23 @@ export function builtPages(dist = 'dist'): string[] {
     .filter((path) => !/^google[0-9a-f]+\.html$/.test(path))
     .sort();
   // 防止拿到空的或残缺的产物，逐页用例悄悄变少
-  for (const must of ['', '404.html', 'preface/', 'choose-plan/', 'google-appeal/', 'afterword/', 'appendix/', 'faq/', 'faq/split-routing/', 'ip-tests/', 'ip-tests/decodo/']) {
+  for (const must of [
+    '',
+    '404.html',
+    'preface/',
+    'overview/',
+    'plan1/',
+    'plan2-residential-server/',
+    'client-desktop/',
+    'iphone-prepare/',
+    'iphone-subscription/',
+    'android-prepare/',
+    'android-subscription/',
+    'maintenance/',
+    'afterword/',
+    'ip-tests/',
+    'ip-tests/decodo/',
+  ]) {
     if (!pages.includes(must)) throw new Error(`${dist}/ 里缺少 /${must}，产物不完整`);
   }
   return pages;

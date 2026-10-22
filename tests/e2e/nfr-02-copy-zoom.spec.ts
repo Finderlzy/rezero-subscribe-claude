@@ -1,5 +1,4 @@
 import { expect, test } from '@playwright/test';
-import { expectScriptRan } from './route-helpers';
 
 // NFR-02（design §4.7）：命令和代码块一键复制，复制成功后在按钮上显示“已复制”并用 aria-live 播报，
 // 2 秒后复位；长行在代码块内部横向滚动、不折行。截图点击后用 <dialog> 看大图，Esc 或点背景关闭。
@@ -15,7 +14,7 @@ async function readClipboard(page: import('@playwright/test').Page): Promise<str
 
 test.describe('代码块复制', () => {
   test('复制后剪贴板内容与代码块原文一致，按钮显示“已复制”并播报', async ({ page }) => {
-    await page.goto('./plan1-make-node/');
+    await page.goto('./plan1/');
 
     // 代码块由 Markdown 渲染，复制按钮由页面脚本挂上（没有 JS 时正文照常可读）。
     const block = page.locator('.code-block').filter({ visible: true, hasText: 'bash <(curl -fsSL' }).first();
@@ -41,7 +40,7 @@ test.describe('代码块复制', () => {
   });
 
   test('“已复制”保持约 2 秒后回到“复制”', async ({ page }) => {
-    await page.goto('./plan1-make-node/');
+    await page.goto('./plan1/');
     const block = page.locator('.code-block').filter({ visible: true, hasText: 'bash <(curl -fsSL' }).first();
     // exact: '复制' 是 '已复制' 的子串，用子串匹配会立刻命中仍是“已复制”的按钮，
     // 断言就永远看不到复位（这条用例本身踩过这个坑）。
@@ -65,7 +64,7 @@ test.describe('代码块复制', () => {
   });
 
   test('复制按钮的可点区域至少 44×44px（design §5）', async ({ page }) => {
-    await page.goto('./plan1-make-node/');
+    await page.goto('./plan1/');
     // 原理版的第一个代码块在 360 宽时落在首屏以下，先滚进视口中间再量（elementFromPoint 只看视口内）
     const copy = page.locator('.code-copy').filter({ visible: true }).first();
     await copy.evaluate((el) => el.scrollIntoView({ block: 'center' }));
@@ -83,7 +82,7 @@ test.describe('代码块复制', () => {
   });
 
   test('复制按钮不随长行横向滚动移出视野', async ({ page }) => {
-    await page.goto('./plan1-make-node/');
+    await page.goto('./plan1/');
     const block = page.locator('.code-block').filter({ visible: true, hasText: 'bash <(curl -fsSL' }).first();
     const pre = block.locator('pre');
 
@@ -108,7 +107,7 @@ test.describe('剪贴板接口不可用时的兜底', () => {
     await page.addInitScript(() => {
       Object.defineProperty(Navigator.prototype, 'clipboard', { get: () => undefined });
     });
-    await page.goto('./plan1-make-node/');
+    await page.goto('./plan1/');
     const button = page.locator('.code-copy').filter({ visible: true }).first();
     await button.focus();
     await page.keyboard.press('Enter');
@@ -120,7 +119,7 @@ test.describe('剪贴板接口不可用时的兜底', () => {
 
 test.describe('代码块长行不折行（NFR-02）', () => {
   test('长行在代码块内部横向滚动，white-space 保持 pre', async ({ page }) => {
-    await page.goto('./plan1-make-node/');
+    await page.goto('./plan1/');
     const pre = page.locator('.code-block').filter({ visible: true, hasText: 'bash <(curl -fsSL' }).locator('pre').first();
     const styles = await pre.evaluate((el) => {
       const computed = getComputedStyle(el);
@@ -244,7 +243,7 @@ test.describe('截图看大图', () => {
 });
 
 // 截图图版（design §4.7）：统一边框，编号“图 02-1”（本页步骤号-序号）；三种宽度都写在截图下方
-// （v2.2 去掉了桌面页边栏）。参考页只用序号“图 1”（常见问题没有截图，用实测页）。
+// （v2.2 去掉了桌面页边栏）。参考页只用序号“图 1”（用实测页核对）。
 test.describe('截图图版', () => {
   /**
    * 当前可见正文里第 n 个图版的编号文字和位置。说明图（figure.plate.diagram，和截图一起编号）里是内联 SVG、没有 <img>，
@@ -269,75 +268,11 @@ test.describe('截图图版', () => {
     });
   }
 
-  /** 步骤页的图版：编号是“步骤号-序号”，写在截图下方 */
-  async function expectStepPlates(page: import('@playwright/test').Page) {
-    // clean-up 的截图在列表项里（有缩进），iphone-apple-id 的在正文里（打开分支页会记下选项，能数清第几步）
-    for (const path of ['./clean-up/', './iphone-apple-id/']) {
-      await page.goto(path);
-      await expectScriptRan(page);
-      const box = await plate(page);
-      expect(box.stepNo, path).toMatch(/^\d+$/);
-      expect(box.text, path).toBe(`图 ${box.stepNo!.padStart(2, '0')}-1`);
-      expect(box.border, path).toBe('1px');
-      // 三种宽度的编号都在截图下方（v2.2 去掉了桌面页边栏，见下一项工作 W3 的侧边栏）
-      expect(box.caption.top, path).toBeGreaterThanOrEqual(box.img.bottom);
-      expect(box.caption.left, path).toBeCloseTo(box.img.left, 0);
-    }
-  }
-
-  test('步骤页：编号是“步骤号-序号”，写在截图下方', async ({ page }) => {
-    await expectStepPlates(page);
-  });
-
-  test.describe('没有 JS', () => {
-    test.use({ javaScriptEnabled: false });
-    test('编号按构建时的原理视图写好步骤号', async ({ page }) => {
-      await page.goto('./clean-up/');
-      const caption = page.locator('.prose figure.plate .plate-no').first();
-      await expect(caption).toBeVisible();
-      // 构建时按原理视图写好的眉题里就有步骤号（补足两位进“图 02-1”）
-      const no = /第 (\d+) 步，共 \d+ 步/.exec((await page.locator('[data-route-eyebrow]').textContent()) ?? '')?.[1];
-      expect(no).toMatch(/^\d+$/);
-      await expect(caption).toHaveText(`图 ${no!.padStart(2, '0')}-1`);
-    });
-  });
-
-  test('第二张截图是“-2”', async ({ page }) => {
-    await page.goto('./iphone-apple-id/');
-    await expectScriptRan(page);
-    expect((await plate(page, 1)).text).toBe(`图 ${(await plate(page)).stepNo!.padStart(2, '0')}-2`);
-  });
-
-  test('节点方案没选时按默认的方案二数步骤（FR-13 v0.6）', async ({ page }) => {
-    // 数不清第几步时只用序号（架构 §11.4 W-4）：真实内容里已没有带截图、又在没选的分叉点之后的页面，
-    // 这一条由 src/scripts/route-enhance.test.ts 用没有 default 的夹具覆盖
-    await page.goto('./check-ip/');
-    await expectScriptRan(page);
-    const first = await plate(page);
-    expect(first.stepNo).toMatch(/^\d+$/);
-    expect(first.text).toBe(`图 ${first.stepNo!.padStart(2, '0')}-1`);
-    expect((await plate(page, 1)).text).toBe(`图 ${first.stepNo!.padStart(2, '0')}-2`);
-  });
-
-  // 原来是“切到原理视图后编号跟着变”；用户 2026-10-22 决定去掉视图切换、固定原理视图，改成核对编号就是原理视图的步骤号
-  test('编号是原理视图的步骤号（清理旧账号前面有原理独有的整体思路，是第 4 步）', async ({ page }) => {
-    await page.goto('./clean-up/');
-    await expectScriptRan(page);
-    const principle = await plate(page);
-    expect(principle.stepNo).toBe('4');
-    expect(principle.text).toBe('图 04-1');
-  });
-
+  // v3 新稿把正文里的截图换成了视频占位行，截图只在参考页里（步骤页的“图 02-1”编号由
+  // rehype-figures 的单元测试覆盖；等作者把截图放回正文，再在这里按步骤号核对）。
   test('参考页只用序号“图 1”', async ({ page }) => {
     await page.goto('./ip-tests/voyracloud/');
     expect((await plate(page)).text).toBe('图 1');
     expect((await plate(page, 1)).text).toBe('图 2');
-  });
-
-  test('点步骤页的截图仍能看大图', async ({ page }) => {
-    await page.goto('./clean-up/');
-    await expectScriptRan(page);
-    await page.locator('.prose').filter({ visible: true }).locator('figure.plate [data-image-zoom-opener]').first().click();
-    await expect(page.locator('dialog[data-image-zoom]')).toBeVisible();
   });
 });

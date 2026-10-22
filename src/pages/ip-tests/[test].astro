@@ -21,7 +21,7 @@ const { Content, headings } = await render(report.entry);
 
 <ReferenceLayout
   title={report.title}
-  eyebrow={`附录 · ${collection.title}`}
+  eyebrow={`${site.referenceChapter.title} · ${collection.title}`}
   back={{ href: '/ip-tests/', title: collection.title }}
   currentReference="ip-tests"
   sections={tocSections(headings)}

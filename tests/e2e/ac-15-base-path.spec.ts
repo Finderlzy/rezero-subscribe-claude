@@ -63,30 +63,35 @@ test('从首页点进去，沿“下一步”和选择页走几步，地址一�
   await expectAt('./');
   await page.getByRole('link', { name: '从第 00 章开始' }).click();
   await expectAt('./preface/');
-  await nav.getByRole('link', { name: /下一步/ }).click();
-  await expectAt('./disclaimer/');
-  // 固定原理视图（用户 2026-10-22 决定去掉视图切换、固定原理视图）：经过原理独有的整体思路
+  // 新稿的“开始”只有前言一页，下一步是“准备节点和住宅 IP”的选择页
   await nav.getByRole('link', { name: /下一步/ }).click();
   await expectAt('./overview/');
+  // 选择页没选时按路线图的默认选项（方案二）写出下一步
   await nav.getByRole('link', { name: /下一步/ }).click();
-  await expectAt('./clean-up/');
-  await nav.getByRole('link', { name: /下一步/ }).click();
-  await expectAt('./choose-plan/');
-
-  // 选择页的正文链接进入方案二；方案二只属于这个选项，导航按它计算，页面脚本记下这个选项（FR-17）
-  await page.locator('.prose').filter({ visible: true }).getByRole('link', { name: '方案二：住宅 IP 服务器', exact: true }).click();
   await expectAt('./plan2-residential-server/');
   await nav.getByRole('link', { name: /下一步/ }).click();
-  await expectAt('./import-proxy/');
+  await expectAt('./client-desktop/');
+
+  // 没有默认选项的选择页：点正文末尾的选项卡片进入 iOS 分支，页面脚本记下这个选项（FR-12、FR-17）
+  await page.locator('.prose').getByRole('link', { name: 'iPhone / iPad', exact: true }).click();
+  await expectAt('./iphone-prepare/');
+  await nav.getByRole('link', { name: /下一步/ }).click();
+  await expectAt('./iphone-subscription/');
+  await nav.getByRole('link', { name: /下一步/ }).click();
+  await expectAt('./maintenance/');
   // 汇合点的上一步是所选分支的最后一步（FR-13），由页面脚本按本机选择改写，地址同样要带 base
   await expect(page.locator('main[data-route-ready]')).toHaveCount(1);
-  await nav.getByRole('link', { name: /上一步/ }).click();
-  await expectAt('./plan2-residential-server/');
+  await expect(nav.getByRole('link', { name: /上一步/ })).toHaveAttribute('href', new URL('./iphone-subscription/', baseURL).pathname);
+  await nav.getByRole('link', { name: /下一步/ }).click();
+  await expectAt('./afterword/');
+  await nav.getByRole('link', { name: /下一步.*回到首页/ }).click();
+  await expectAt('./');
 });
 
 test('截图在 base 下加载出来', async ({ page, baseURL }) => {
   const base = new URL(baseURL!).pathname;
-  await page.goto('./iphone-apple-id/');
+  // V10 的步骤页没有截图（新稿换成了加粗的视频占位行），截图只在参考页（实施计划 §3.1）
+  await page.goto('./ip-tests/voyracloud/');
   const images = page.locator('.prose').filter({ visible: true }).locator('img');
   const count = await images.count();
   expect(count).toBeGreaterThan(0);
@@ -108,21 +113,21 @@ test('截图在 base 下加载出来', async ({ page, baseURL }) => {
 test('站内搜索在 base 下取到索引，结果地址也在 base 下', async ({ page, baseURL }) => {
   test.skip(test.info().project.name !== 'sub-path', '根路径的搜索由 AC-28 覆盖，这里只核对子路径');
   const base = new URL(baseURL!).pathname;
-  await page.goto('./import-proxy/');
+  await page.goto('./maintenance/');
   const input = page.getByRole('combobox', { name: '搜索页面和小标题' });
   const button = page.getByRole('button', { name: '搜索', exact: true });
   if (await input.isVisible()) await input.click();
   else await button.click();
-  await input.fill('时区');
+  await input.fill('后记与致谢');
 
-  const option = page.getByRole('listbox', { name: '搜索结果' }).getByRole('option').filter({ hasText: '改时区' }).first();
+  const option = page.getByRole('listbox', { name: '搜索结果' }).getByRole('option').filter({ hasText: '后记与致谢' }).first();
   await expect(option).toBeVisible();
   const href = await option.getAttribute('href');
   expect(href).toBeTruthy();
   expect(new URL(href!, baseURL).pathname.startsWith(base)).toBe(true);
 
   await option.click();
-  await expect(page).toHaveURL(new URL('./timezone/', baseURL).href);
+  await expect(page).toHaveURL(new URL('./afterword/', baseURL).href);
 });
 
 test('不存在的页面显示“找不到这一页”，“回到首页”回到 base 下的首页', async ({ page, baseURL }) => {
@@ -137,8 +142,17 @@ test('不存在的页面显示“找不到这一页”，“回到首页”回�
 // ADR-0002、ADR-0006：已经发布的地址不能失效。删掉或合并掉的页面留一个跳转页，
 // 在 base 下跳到 route.yaml 的 moved: 登记的目标页（有 section 时还带原理版小节锚点）。
 test('旧网址的跳转页在 base 下跳到登记的目标页', async ({ page, baseURL }) => {
+  test.skip(['mobile-360', 'tablet-768'].includes(test.info().project.name), '和 desktop-1280 的根路径检查相同，子路径另跑一次');
   const entries = movedPages();
   expect(entries.length).toBeGreaterThan(0);
+  // 同一个页面上下文会在循环里累积路线脚本写下的本机选择；每次导航前都清掉，让 choice 条目按 fallback 核对
+  await page.addInitScript(() => {
+    try {
+      localStorage.clear();
+    } catch {
+      // about:blank 等拿不到 localStorage 的文档不用清
+    }
+  });
   for (const { from, to, section } of entries) {
     const response = await page.goto(`./${from}/`);
     expect(response?.status(), `/${from}/`).toBe(200);
@@ -146,6 +160,13 @@ test('旧网址的跳转页在 base 下跳到登记的目标页', async ({ page,
     await expect(page).toHaveURL(
       (url) => url.origin === expected.origin && url.pathname === expected.pathname && (section === undefined ? url.hash === '' : url.hash.length > 1),
     );
+    // section 也必须是登记的那一小节；hash 是渲染后的 slug，不一定等于标题原文（如“打开面板（可选）” → “打开面板可选”），
+    // 所以按 id 找元素，而不是拿标题原文拼 hash。
+    if (section !== undefined) {
+      const anchor = decodeURIComponent(new URL(page.url()).hash.slice(1));
+      expect(anchor, `/${from}/ 的跳转目标小节`).not.toBe('');
+      await expect(page.locator(`[id="${anchor.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"]`)).toBeVisible();
+    }
     await expect(page.locator('main[data-route-ready]')).toHaveCount(1);
   }
 });
@@ -156,6 +177,7 @@ test.describe('没有 JS 时跳转页的 meta refresh 也在 base 下', () => {
   test.use({ javaScriptEnabled: false });
 
   test('meta refresh 的地址以 base 开头，指向登记的目标页', async ({ page, baseURL }) => {
+    test.skip(['mobile-360', 'tablet-768'].includes(test.info().project.name), '和 desktop-1280 的根路径检查相同，子路径另跑一次');
     const base = new URL(baseURL!).pathname;
     const entries = movedPages();
     expect(entries.length).toBeGreaterThan(0);

@@ -6,17 +6,19 @@ import TocItems from './TocItems.astro';
 
 /**
  * 目录的列表本身：页面上的侧边栏/抽屉（Toc.astro）和找不到页的目录都用它；标记契约见 Toc.astro。
- * 章节号一律写成文字“第 n 章”（design v3 §3.2、D10）；参考页（常见问题、IP 质量实测合集）
- * 列在最后一章“附录”的附录页下面（design §4.5）。
- * 没有已读标记和“清除进度”（FR-16）。原理独有步骤标“原理”。
+ * 章节名只写名字、不写“第 n 章”（作者 2026-10-22，V10，design §4.5）；参考页（IP 质量实测合集）
+ * 列在“日常维护”这一章的末尾（实施计划 §3.1）。
+ * 没有已读标记和“清除进度”（FR-16）。
  *
  * 侧边栏和抽屉里每章是一个 `<details>`（design v3 §4.5，FR-16）：当前页所在的章 `open`，其余折叠；
  * 点章名开合，不写本机。找不到页的目录用不折叠的变体（`collapsible` 不传）。
  */
 interface Props {
   outline: OutlineChapter[];
-  /** 列在最后一章（附录）末尾的参考页（`site.tocReferences`） */
+  /** 列在参考页所属章末尾的参考页（`site.tocReferences`） */
   references: TocReference[];
+  /** 参考页挂在目录里的哪一章（`site.referenceChapter.id`，实施计划 §3.1） */
+  referencesChapter?: string;
   /** 无障碍名称；一页里有两个目录时用来区分 */
   label?: string;
   /** 侧边栏里的那一份（toc.css 的 .toc-sidebar） */
@@ -34,6 +36,7 @@ interface Props {
 const {
   outline,
   references,
+  referencesChapter,
   label = '步骤目录',
   sidebar = false,
   collapsible = false,
@@ -58,10 +61,10 @@ function currentPageOf(items: OutlineItem[]): string | null {
 }
 
 const currentPageId = outline.map((chapter) => currentPageOf(chapter.items)).find((id): id is string => id !== null) ?? null;
-/** 参考页不属于路线图：当前参考页所在的章（附录）也展开；旁支页用调用方给的章 */
+/** 参考页不属于路线图：当前参考页所在的章（日常维护）也展开；旁支页用调用方给的章 */
 const chapterOpen = (chapterIndex: number) => {
   if (!collapsible) return false;
-  if (currentReference !== undefined) return chapterIndex === outline.length - 1;
+  if (currentReference !== undefined) return outline[chapterIndex]!.id === referencesChapter;
   if (openChapterId !== undefined) return outline[chapterIndex]!.id === openChapterId;
   return currentPageOf(outline[chapterIndex]!.items) !== null;
 };
@@ -83,13 +86,13 @@ const chapterOpen = (chapterIndex: number) => {
                 sections={sections}
                 currentPageId={currentPageId}
                 currentReference={currentReference}
-                showReferences={chapterIndex === outline.length - 1}
+                showReferences={chapter.id === referencesChapter}
+                allRoutes={!collapsible}
               />
             </details>
           ) : (
             <>
               <p class="toc-chapter-head">
-                <span class="toc-chapter-no">第 {chapterIndex} 章</span>
                 <span class="toc-chapter-title">{chapter.title}</span>
               </p>
               <TocItems
@@ -98,7 +101,8 @@ const chapterOpen = (chapterIndex: number) => {
                 sections={sections}
                 currentPageId={currentPageId}
                 currentReference={currentReference}
-                showReferences={chapterIndex === outline.length - 1}
+                showReferences={chapter.id === referencesChapter}
+                allRoutes={!collapsible}
               />
             </>
           )}

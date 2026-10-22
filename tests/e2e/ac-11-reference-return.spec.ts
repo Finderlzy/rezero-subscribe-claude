@@ -1,10 +1,17 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { expectScriptRan, stepNav } from './route-helpers';
+import { expectScriptRan } from './route-helpers';
+import { openToc } from './toc-helpers';
 
-// AC-11（FR-20）：在“方案三：直接买住宅节点”点“分流规则具体怎么写？” → 打开常见问题的对应那一页（一问一页）；
-// 点“返回刚才的步骤” → 回到方案三；参考页没有上一步/下一步。目录由常驻侧边栏或页眉的“目录”提供，
-// 参考页上不再有“打开目录”按钮（v2.2 W4c）；各条问题另有“回到：常见问题”，实测页另有“回到：IP 质量实测合集”。
-// v3（V04）：这两块和步骤页的翻页一样是两行文字链接（design §4.6），不是实心按钮。
+// AC-11（FR-20）：参考页没有上一步/下一步，页脚“回到：<上级>”，从步骤链接进来时还有“返回刚才的步骤”。
+// 目录由常驻侧边栏或页眉的目录提供，参考页上没有“打开目录”按钮（v2.2 W4c）；v3（V04）这两块和步骤页的翻页一样
+// 是两行文字链接（design §4.6），不是实心按钮。
+//
+// V10（作者新稿）只剩 IP 实测这一组参考页：/ip-tests/ 和 6 篇 /ip-tests/<id>/；眉题“日常维护 · …”，
+// 合集页脚回“日常维护、风控应对与常见故障”，各篇实测页脚回“IP 质量实测合集”；目录把它挂在“日常维护”章末尾。
+// 步骤页正文不再链到参考页，也没有常见问题、附录、旁支页（google-appeal）和方案三：原来“从方案三进入常见问题/
+// 实测页”“从后记进入附录”等依赖这些页面和正文链接的用例随 V10 删除，参考页改为从目录或直接地址进入。
+// `?from=` 的机制由 src/lib/reference-return.test.ts 和组件测试覆盖；e2e 没有正文入口，只保留直接带 ?from=
+// 打开参考页时“返回刚才的步骤”的核对。
 const returnLinks = (page: Page) => page.getByRole('link', { name: /返回刚才的步骤/ });
 
 /** “返回刚才的步骤”两行：上面一行灰色方向文字，下面是步骤标题；读屏读整句 */
@@ -17,64 +24,64 @@ const expectReturnLink = async (link: Locator, title: string) => {
 /** 参考页上没有“打开目录”按钮（v2.2 W4c），也没有上一步/下一步和实心按钮 */
 const noBrowseButtons = async (page: Page) => {
   await expect(page.getByRole('link', { name: '打开目录' })).toHaveCount(0);
-  await expect(stepNav(page)).toHaveCount(0);
+  await expect(page.getByRole('navigation', { name: '上一步和下一步' })).toHaveCount(0);
   await expect(page.locator('main .button')).toHaveCount(0);
 };
 const expectReady = (page: Page) => expect(page.locator('main[data-reference-ready]')).toHaveCount(1);
 
-test('从方案三进入常见问题的对应那一页，“返回刚才的步骤”回到方案三', async ({ page }) => {
-  await page.goto('./plan3-residential-node/');
+test('从目录进入 IP 质量实测合集：页脚回到日常维护，没有上一步/下一步', async ({ page }) => {
+  await page.goto('./maintenance/');
   await expectScriptRan(page);
-  await page.locator('.prose').filter({ visible: true }).getByRole('link', { name: '分流规则具体怎么写？' }).click();
+  const toc = await openToc(page);
+  await toc.getByRole('link', { name: 'IP 质量实测合集' }).click();
 
-  await expect(page).toHaveURL(/\/faq\/split-routing\/\?from=plan3-residential-node$/);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('分流规则具体怎么写？');
-  // 标题上方和正文末尾各一个，都写出步骤标题；没有上一步/下一步，也不显示“打开目录”
-  await expect(returnLinks(page)).toHaveCount(2);
-  for (const link of await returnLinks(page).all()) {
-    await expect(link).toHaveAttribute('href', /\/plan3-residential-node\/$/);
-    await expectReturnLink(link, '方案三：直接买住宅节点');
-  }
-  // design §4.6：标题上方那块在 h1 上方
-  const topReturn = (await page.locator('.reference-return-top').boundingBox())!;
-  const heading = (await page.getByRole('heading', { level: 1 }).boundingBox())!;
-  expect(topReturn.y + topReturn.height).toBeLessThanOrEqual(heading.y + 1);
+  await expect(page).toHaveURL(/\/ip-tests\/$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('IP 质量实测合集');
+  await expect(page.locator('.page-body .eyebrow')).toHaveText('日常维护 · IP 质量实测合集');
+  await expectReady(page);
   await noBrowseButtons(page);
-  // design §5：翻页、跳过和这两块的可点区域 ≥44px
-  for (const link of await returnLinks(page).all()) expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44);
-  const back = page.getByRole('link', { name: /^回到 常见问题$/ });
+  // design §4.6：页脚“← 回到”，写出上级页面的标题
+  const back = page.getByRole('link', { name: /^回到 日常维护、风控应对与常见故障$/ });
+  await expect(back).toHaveAttribute('href', /\/maintenance\/$/);
+  // design §5：可点区域 ≥44px
   expect((await back.boundingBox())!.height).toBeGreaterThanOrEqual(44);
-
-  await returnLinks(page).first().click();
-  await expect(page).toHaveURL(/\/plan3-residential-node\/$/);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('方案三：直接买住宅节点');
 });
 
-test('从方案三进入实测页：有“返回刚才的步骤”和“回到：IP 质量实测合集”', async ({ page }) => {
-  await page.goto('./plan3-residential-node/');
-  await expectScriptRan(page);
-  await page.locator('.prose').filter({ visible: true }).getByRole('link', { name: '它的实测' }).click();
+test('从实测合集的表格进入一篇实测：页脚回到实测合集', async ({ page }) => {
+  await page.goto('./ip-tests/');
+  await expectReady(page);
+  await page.locator('.prose').getByRole('link', { name: '实测：VoyraCloud 住宅服务器' }).click();
 
-  await expect(page).toHaveURL(/\/ip-tests\/ipequal\/\?from=plan3-residential-node$/);
-  await expect(returnLinks(page)).toHaveCount(2);
-  for (const link of await returnLinks(page).all()) {
-    await expect(link).toHaveAttribute('href', /\/plan3-residential-node\/$/);
-    await expectReturnLink(link, '方案三：直接买住宅节点');
-  }
+  await expect(page).toHaveURL(/\/ip-tests\/voyracloud\/$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('实测：VoyraCloud 住宅服务器');
+  await expect(page.locator('.page-body .eyebrow')).toHaveText('日常维护 · IP 质量实测合集');
+  await expectReady(page);
   await noBrowseButtons(page);
-  await page.getByRole('link', { name: /^回到 IP 质量实测合集$/ }).click();
+  const back = page.getByRole('link', { name: /^回到 IP 质量实测合集$/ });
+  await expect(back).toHaveAttribute('href', /\/ip-tests\/$/);
+  expect((await back.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+
+  await back.click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('IP 质量实测合集');
 });
 
-test('带 ?from= 打开 IP 质量实测合集：有“返回刚才的步骤”，正文末尾是“回到 附录”', async ({ page }) => {
-  await page.goto('./ip-tests/?from=check-ip');
-  await expectReady(page);
-  await expect(returnLinks(page)).toHaveCount(2);
-  await expect(returnLinks(page).first()).toHaveAttribute('href', /\/check-ip\/$/);
-  await expect(page.getByRole('link', { name: /^回到 附录$/ })).toHaveAttribute('href', /\/appendix\/$/);
-});
+// 步骤页没有链到参考页的正文链接（V10），这里直接带 ?from= 打开，核对返回块本身
+for (const { path, href, title } of [
+  { path: './ip-tests/?from=maintenance', href: /\/maintenance\/$/, title: '日常维护、风控应对与常见故障' },
+  { path: './ip-tests/voyracloud/?from=client-desktop', href: /\/client-desktop\/$/, title: '客户端配置与环境验证：电脑端' },
+]) {
+  test(`直接带 ?from= 打开 ${path}：有两块“返回刚才的步骤”`, async ({ page }) => {
+    await page.goto(path);
+    await expectReady(page);
+    await expect(returnLinks(page)).toHaveCount(2);
+    for (const link of await returnLinks(page).all()) {
+      await expect(link).toHaveAttribute('href', href);
+      await expectReturnLink(link, title);
+    }
+  });
+}
 
-for (const path of ['./faq/', './faq/split-routing/', './ip-tests/', './ip-tests/ipequal/', './faq/?from=no-such-page', './faq/?from=faq']) {
+for (const path of ['./ip-tests/', './ip-tests/voyracloud/', './ip-tests/?from=no-such-page', './ip-tests/?from=ip-tests']) {
   test(`直接打开 ${path}：没有“返回刚才的步骤”，也没有“打开目录”按钮`, async ({ page }) => {
     await page.goto(path);
     await expectReady(page);
@@ -83,31 +90,11 @@ for (const path of ['./faq/', './faq/split-routing/', './ip-tests/', './ip-tests
   });
 }
 
-test('常见问题是各条问题的目录（一问一页见 ac-23）：点进一条，“回到 常见问题”回来', async ({ page }) => {
-  await page.goto('./faq/');
-  await expectReady(page);
-  await page.locator('.prose').getByRole('link', { name: '装过了，想重装？' }).click();
-  await expect(page).toHaveURL(/\/faq\/reinstall\/$/);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('装过了，想重装？');
-  await page.getByRole('link', { name: /^回到 常见问题$/ }).click();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('常见问题');
-});
-
-test('从后记进入附录，附录链到常见问题和 IP 质量实测合集', async ({ page }) => {
-  await page.goto('./afterword/');
-  await expectScriptRan(page);
-  await stepNav(page).getByRole('link', { name: /下一步.*附录/ }).click();
-  await expect(page).toHaveURL(/\/appendix\/$/);
-  const prose = page.locator('.prose').filter({ visible: true });
-  await expect(prose.getByRole('link', { name: '常见问题' })).toHaveAttribute('href', /\/faq\/\?from=appendix$/);
-  await expect(prose.getByRole('link', { name: 'IP 质量实测合集' })).toHaveAttribute('href', /\/ip-tests\/\?from=appendix$/);
-});
-
 test.describe('关掉 JS', () => {
   test.use({ javaScriptEnabled: false });
 
-  test('带 ?from= 打开常见问题：保持构建时的样子（构建时返回链接是隐藏的）', async ({ page }) => {
-    await page.goto('./faq/?from=plan3-residential-node');
+  test('带 ?from= 打开 IP 质量实测合集：保持构建时的样子（构建时返回链接是隐藏的）', async ({ page }) => {
+    await page.goto('./ip-tests/?from=maintenance');
     await expect(returnLinks(page)).toHaveCount(0);
     // 没有 JS 时参考页也有目录：≥720px 是常驻侧边栏，<720px 是链到首页章节简介的“目录”（FR-16）
     const sidebar = page.locator('aside[data-toc-sidebar]');

@@ -535,12 +535,14 @@ describe('跳转表 moved（FR-25、ADR-0006）', () => {
     expectError(errorsOf(withMoved({ old: { choice: {}, to: 'preface' } as never })), 'route.yaml', /moved\.old 是 \{ choice: … \} 时不能再写 to/);
   });
 
-  it('目标页要存在、不能串联、旧标识不能用保留路径', () => {
-    const errors = errorsOf(withMoved({ old: { to: 'ghost' }, 'old-two': { to: 'old' }, faq: { to: 'preface' } }));
+  it('目标页要存在、不能串联、旧标识不能用保留路径（faq 这个旧目录除外）', () => {
+    const errors = errorsOf(withMoved({ old: { to: 'ghost' }, 'old-two': { to: 'old' }, faq: { to: 'preface' }, 'ip-tests': { to: 'preface' } }));
 
     expectError(errors, 'route.yaml', /moved\.old 的 to（ghost）不是路线图里的页面/);
     expectError(errors, 'route.yaml', /moved\.old-two 的 to（old）也是旧标识：跳转表不能串联/);
-    expectError(errors, 'route.yaml', /moved\.faq 用了保留路径/);
+    // V11：旧常见问题目录 /faq/ 作为旧网址保留，跳到日常维护；仍不能用作页面标识（下面另有断言）
+    expect(errors.join('\n')).not.toContain('moved.faq 用了保留路径');
+    expectError(errors, 'route.yaml', /moved\.ip-tests 用了保留路径/);
   });
 });
 

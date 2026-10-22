@@ -119,11 +119,11 @@ test('首屏居中：logo、中英文站名、一句话、紫色主按钮、QQ �
   await expect(chapters.getByRole('heading', { level: 2 })).toHaveText([
     '开始',
     '准备节点和住宅 IP',
-    '注册和订阅',
+    '客户端配置与订阅',
+    '日常维护',
     '结尾',
-    '附录',
   ]);
   await expect(chapters).not.toContainText('第 0 章');
   await expect(chapters.locator('.home-chapter-summary')).toHaveCount(5);
-  await expect(chapters.locator('.home-chapter-summary').first()).toHaveText('先看这份教程怎么用，再清掉旧账号和环境里可能露馅的地方。');
+  await expect(chapters.locator('.home-chapter-summary').first()).toHaveText('先弄清这份教程怎么用、要准备什么，再决定走哪条路。');
 });

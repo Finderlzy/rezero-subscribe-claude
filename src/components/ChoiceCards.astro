@@ -1,0 +1,46 @@
+---
+import type { OptionId } from '../lib/route/types';
+import { withBase } from '../lib/with-base';
+
+/**
+ * 选择页的选项卡片（FR-12、design §4.2；V10 起由 frontmatter 的 `options` 生成，不再要求在正文里写加粗的选项块标题）：
+ * 挂在正文末尾，每个选项是一张细边框卡片，整块可点（卡片里第一个链接的伪元素撑满整块，样式见 prose.css 的
+ * `.option-block`），点进去就是这个选项的第一步。路线图的 `default` 标“推荐”；本机选过的选项由
+ * route-enhance 标 `aria-current` 和“已选”。
+ *
+ * 选项的顺序、标题来自页面 frontmatter；第一步由调用方用 M2 的 `view(选择页, { 分叉点: 选项 })` 算好传进来。
+ * 整块带 `id="下一步"`：旧“选择手机系统”和手机旧页的兜底都跳到这个锚点（V11、实施计划 §3.1），
+ * 它不是导入正文里的标题，锚点由 `site.ts` 的 `resolveMovedTarget` 单独认。
+ */
+interface Props {
+  /** 选择页的页面标识，写进 `data-option-page` 方便测试和排查 */
+  pageId: string;
+  options: { id: OptionId; title: string }[];
+  /** 选项 → 这个选项的第一步（路线图保证每个选项都有页面） */
+  starts: Record<OptionId, { id: string; title: string } | null>;
+  /** 路线图里这个分叉点的 default：标“推荐”，导航也按它算（FR-12） */
+  recommended?: OptionId | undefined;
+}
+
+const { pageId, options, starts, recommended } = Astro.props;
+---
+
+<div class="choice-cards" id="下一步" data-option-page={pageId}>
+  {
+    options.map((option) => {
+      const start = starts[option.id];
+      if (start === null) return null;
+      return (
+        <section class="option-block" data-option={option.id} data-recommended={option.id === recommended ? '' : undefined}>
+          <p class="option-title">
+            <a href={withBase(`/${start.id}/`)} data-option-start>
+              {option.title}
+            </a>
+            {option.id === recommended && <span class="option-tag">推荐</span>}
+          </p>
+          <p class="option-desc">从《{start.title}》开始</p>
+        </section>
+      );
+    })
+  }
+</div>

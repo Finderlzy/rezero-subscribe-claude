@@ -20,9 +20,9 @@ test.describe('首页冒烟', () => {
     await expect(page.locator('#home-chapters').getByRole('heading', { level: 2 })).toHaveText([
       '开始',
       '准备节点和住宅 IP',
-      '注册和订阅',
+      '客户端配置与订阅',
+      '日常维护',
       '结尾',
-      '附录',
     ]);
     await expect(page.getByText('继续上次')).toHaveCount(0);
 

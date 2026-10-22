@@ -1,19 +1,16 @@
 #!/usr/bin/env node
-// 开发脚本（#23，ADR-0005、架构 §3 M1）：把重写稿的正文原样导入 src/content/ 的 v2 内容集合。
+// 开发脚本（#23 建立，ADR-0005、架构 §3 M1；V10 改成 v3 单版本）：把重写稿的正文原样导入 src/content/。
 //
-// 用法：node scripts/import-rewrite.mjs [重写稿目录，默认 docs/rewrite]
+// 用法：node scripts/import-rewrite.mjs [重写稿目录，默认 docs/v3-rewrite]
 //
-// 规则：
-// - 按标题匹配：站内 principle/*.md、reference/**/*.md 正文第一行的 `# 标题` 对应重写稿 `原理版/<标题>.md`。
-//   保留站内文件的 frontmatter，正文整段换成重写稿原文（只把 Windows 换行统一成 \n）。
-// - 操作版跟随原理版：重写稿有 `操作版/<标题>.md` 时写入 operation/<同一标识>.md（操作版不写 frontmatter，
-//   标识由原理版决定，所以缺的操作版文件直接新建）。
-// - 重写稿有、站内没有的页面（新页面）和站内有、重写稿没有的页面只报告：新页面要先手建
-//   principle/<id>.md（frontmatter + `# 标题`）并在 route.yaml 放好位置，再重跑脚本。
-// - 常见问题一问一页（FR-20）：《常见问题》是目录，每条问题是原理版里的一个文件，导入到 reference/faq/<id>.md
-//   （和别的参考页一样按标题匹配）。文件名是标识（URL /faq/<id>/，ADR-0002），第一行的 # 标题对应重写稿文件名，
-//   这就是标题和标识的唯一对应；构建时 link-index 的 checkFaqItems 核对每条都列在常见问题里。
-//   《常见问题》链到、站内还没有的条目单独报告：先手建 reference/faq/<英文标识>.md（只写 `# 标题`），再重跑。
+// 规则（v3，实施计划 §3.1）：
+// - 一章一页、只有一版：重写稿目录下的 `*.md`（不含 `reference/`）按第一行 `# 标题` 对应站内
+//   `principle/<id>.md`。参考页在 `reference/` 子目录，按标题对应站内 `reference/**/*.md`。
+// - 保留站内文件的 frontmatter，正文整段换成重写稿原文，只做三件事：统一换行、去掉重写稿的 frontmatter（报告出来）、
+//   把指向同目录其他 `.md` 的相对 Markdown 链接换成双链（`[文字](02-….md)` → `[[目标页标题|文字]]`，
+//   文字与标题相同时省略 `|`，`#小节` 原样保留）。同页的 `[文字](#小节)` 不动。
+// - 重写稿有、站内没有的页面只报告：新页面要先手建 principle/<id>.md（frontmatter + `# 标题`），
+//   放进 route.yaml，再重跑脚本。
 // - 正文嵌入的图片，src/assets/screenshots/ 里没有的从重写稿的 `附件/` 复制过去；不判断是否打码，
 //   新复制的截图要逐张核对（三级边界 Never）。说明图（`.svg`，design §4.7）复制到 src/assets/diagrams/，
 //   附件里的就是原稿，所以内容变了也覆盖。
@@ -23,13 +20,8 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFi
 import { basename, dirname, extname, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-/** 重写稿的目录页，不导入（原理版目录变成首页，纯操作版目录不单独成页） */
-export const TABLE_OF_CONTENTS = ['如何订阅claude', '如何订阅claude（纯操作版）'];
-
-/** 常见问题首页的标题：它是各条问题的目录（FR-20） */
-const FAQ_TITLE = '常见问题';
-/** 双链的目标标题（去掉 `#小标题` 和 `|显示文字`），不含嵌入 `![[…]]` */
-const WIKI_LINK = /(?<!!)\[\[([^[\]|#\n]+)(?:#[^[\]|\n]*)?(?:\|[^[\]\n]*)?\]\]/g;
+/** 重写稿里指向同目录文件的相对 Markdown 链接；`!` 开头的是图片嵌入，不算 */
+const RELATIVE_LINK = /(?<!!)\[([^\]\n]*)\]\(([^)\s]+\.md)(#[^)\s]*)?\)/g;
 const FRONTMATTER = /^---\n[\s\S]*?\n---(?:\n|$)/;
 const EMBED = /!\[\[([^[\]|\n]+)(?:\|[^[\]\n]*)?\]\]/g;
 
@@ -47,14 +39,11 @@ export function readTitle(text) {
   return first === undefined ? undefined : /^# +(.+?)[ \t]*$/.exec(first)?.[1];
 }
 
-function listMarkdown(dir, prefix = '') {
+function listMarkdown(dir) {
   if (!existsSync(dir)) return [];
   return readdirSync(dir, { withFileTypes: true })
-    .filter((entry) => !entry.name.startsWith('.'))
-    .flatMap((entry) => {
-      if (entry.isDirectory()) return listMarkdown(join(dir, entry.name), `${prefix}${entry.name}/`);
-      return entry.isFile() && extname(entry.name) === '.md' ? [`${prefix}${entry.name}`] : [];
-    })
+    .filter((entry) => !entry.name.startsWith('.') && entry.isFile() && extname(entry.name) === '.md')
+    .map((entry) => entry.name)
     .sort();
 }
 
@@ -67,6 +56,55 @@ function writeIfChanged(file, text) {
 }
 
 /**
+ * 把一段正文里的相对 Markdown 链接换成双链（V10）：目标按文件名查重写稿的标题。
+ * 跳过围栏代码块和行内代码；查不到目标时不改这一处，交给 `badLinks` 报告。
+ * @param {string} body
+ * @param {Map<string, string>} titleOfFile 文件名（去掉 .md）→ 重写稿里的标题
+ * @param {(link: { whole: string, label: string, file: string, ok: boolean }) => void} [onLink]
+ */
+export function convertRelativeLinks(body, titleOfFile, onLink = (_link) => {}) {
+  const lines = body.split('\n');
+  const out = [];
+  let fence;
+  for (const [lineNo, line] of lines.entries()) {
+    const open = /^\s*(`{3,}|~{3,})/.exec(line);
+    if (fence !== undefined) {
+      out.push(line);
+      if (open && open[1][0] === fence[0] && open[1].length >= fence.length && line.trim() === open[1]) fence = undefined;
+      continue;
+    }
+    if (open) {
+      fence = open[1];
+      out.push(line);
+      continue;
+    }
+    // 表格行里的 `|` 会切开单元格，双链的竖线要写成 `\|`（remark-obsidian 支持，见表格用例）
+    const inTable = /^\s*\|/.test(line);
+    // 行内代码里的链接不转换：按反引号切开，只处理代码以外的片段
+    out.push(
+      line
+        .split(/(`[^`\n]*`)/)
+        .map((part, i) => {
+          if (i % 2 === 1) return part;
+          return part.replace(RELATIVE_LINK, (whole, label, file, fragment = '') => {
+            const title = titleOfFile.get(basename(file, '.md'));
+            if (title === undefined) {
+              onLink({ whole, label, file, ok: false, line: lineNo + 1 });
+              return whole;
+            }
+            onLink({ whole, label, file, ok: true, line: lineNo + 1 });
+            const target = `${title}${fragment}`;
+            const pipe = inTable ? '\\|' : '|';
+            return label.trim() === title ? `[[${target}]]` : `[[${target}${pipe}${label}]]`;
+          });
+        })
+        .join(''),
+    );
+  }
+  return out.join('\n');
+}
+
+/**
  * 执行导入，返回报告（路径都相对 repoRoot）。
  * @param {{ repoRoot: string, rewriteDir: string }} options
  */
@@ -74,18 +112,38 @@ export function importRewrite({ repoRoot, rewriteDir }) {
   const contentRoot = join(repoRoot, 'src', 'content');
   const screenshotsDir = join(repoRoot, 'src', 'assets', 'screenshots');
   const diagramsDir = join(repoRoot, 'src', 'assets', 'diagrams');
-  const principleSrc = join(rewriteDir, '原理版');
-  const operationSrc = join(rewriteDir, '操作版');
   const attachments = join(rewriteDir, '附件');
+  const referenceSrc = join(rewriteDir, 'reference');
   const rel = (file) => relative(repoRoot, file).split('\\').join('/');
-  /** @type {{ written: string[], unchanged: number, newPages: string[], newFaqItems: string[], orphans: string[], untitled: string[], copied: string[], missingImages: string[], droppedFrontmatter: string[] }} */
-  const report = { written: [], unchanged: 0, newPages: [], newFaqItems: [], orphans: [], untitled: [], copied: [], missingImages: [], droppedFrontmatter: [] };
+  /** @type {{ written: string[], unchanged: number, newPages: string[], orphans: string[], untitled: string[], copied: string[], missingImages: string[], droppedFrontmatter: string[], badLinks: string[] }} */
+  const report = { written: [], unchanged: 0, newPages: [], orphans: [], untitled: [], copied: [], missingImages: [], droppedFrontmatter: [], badLinks: [] };
 
-  /** 重写稿正文：去掉 Obsidian 属性（frontmatter 不属于正文，报告出来） */
+  // 重写稿：新稿的文件名带编号（`00-前言.md`），所以按正文第一行的 # 标题对应站内页面；
+  // 相对链接按文件名找标题，另记一份 文件名 → 标题。
+  const sourceFiles = [...listMarkdown(rewriteDir).map((n) => join(rewriteDir, n)), ...listMarkdown(referenceSrc).map((n) => join(referenceSrc, n))];
+  const sourceByTitle = new Map();
+  const titleOfFile = new Map();
+  for (const file of sourceFiles) {
+    const title = readTitle(readFileSync(file, 'utf8'));
+    if (title === undefined) continue;
+    titleOfFile.set(basename(file, '.md'), title);
+    sourceByTitle.set(title, file);
+  }
+
+  /** 重写稿正文：去掉 Obsidian 属性（frontmatter 不属于正文，报告出来），转换相对链接 */
   const rewriteBody = (file) => {
     const { frontmatter, body } = splitFrontmatter(readFileSync(file, 'utf8'));
     if (frontmatter !== '') report.droppedFrontmatter.push(rel(file));
-    return body;
+    const converted = convertRelativeLinks(body, titleOfFile, ({ whole, file: target, ok, line }) => {
+      if (!ok) report.badLinks.push(`${rel(file)}:${line} 链接目标没有对应的重写稿文件 ${target}（${whole}）`);
+    });
+    // 带空格的相对链接（`实测：Decodo ISP.md`）不匹配上面的规则，原样保留：明确报出来，别让它悄悄留在正文里
+    converted.split('\n').forEach((line, i) => {
+      for (const m of line.matchAll(/(?<!!)\]\(([^)]*\s[^)]*\.md)(?:#[^)]*)?\)/g)) {
+        report.badLinks.push(`${rel(file)}:${i + 1} 相对链接的目标里有空格，Markdown 里要写成 <…> 或百分号编码：${m[1]}`);
+      }
+    });
+    return converted;
   };
   const embeds = new Set();
   const importBody = (target, body) => {
@@ -95,58 +153,32 @@ export function importRewrite({ repoRoot, rewriteDir }) {
     else report.unchanged += 1;
   };
 
-  // 站内页面：原理版和参考页按标题对应重写稿的原理版文件
+  // 站内页面：principle/ 和 reference/ 按标题对应重写稿（reference/ 取子目录，principle/ 取根目录）
   const matched = new Set();
-  const principleIds = new Map(); // 标题 → 原理版标识（操作版跟随）
-  for (const kind of ['principle', 'reference']) {
-    for (const name of listMarkdown(join(contentRoot, kind))) {
-      const target = join(contentRoot, kind, name);
+  for (const [kind, sourceDir] of [
+    ['principle', rewriteDir],
+    ['reference', referenceSrc],
+  ]) {
+    for (const name of listMarkdownDeep(join(contentRoot, kind))) {
+      const target = join(contentRoot, kind, `${name}.md`);
       const title = readTitle(readFileSync(target, 'utf8'));
       if (title === undefined) {
         report.untitled.push(rel(target));
         continue;
       }
-      const source = join(principleSrc, `${title}.md`);
-      if (!existsSync(source)) {
-        report.orphans.push(`${rel(target)}（重写稿里没有“原理版/${title}.md”）`);
+      const source = sourceByTitle.get(title);
+      if (source === undefined || !source.startsWith(sourceDir)) {
+        report.orphans.push(`${rel(target)}（重写稿里没有标题是“${title}”的页面）`);
         continue;
       }
-      matched.add(title);
-      if (kind === 'principle') principleIds.set(title, name.slice(0, -'.md'.length));
+      matched.add(source);
       importBody(target, rewriteBody(source));
     }
   }
 
-  // 操作版：跟随同标题的原理版
-  const operationMatched = new Set();
-  for (const [title, id] of principleIds) {
-    const source = join(operationSrc, `${title}.md`);
-    const target = join(contentRoot, 'operation', `${id}.md`);
-    if (existsSync(source)) {
-      operationMatched.add(title);
-      importBody(target, rewriteBody(source));
-    } else if (existsSync(target)) {
-      report.orphans.push(`${rel(target)}（重写稿里没有“操作版/${title}.md”）`);
-    }
-  }
-  const operationIds = new Set(principleIds.values());
-  for (const name of listMarkdown(join(contentRoot, 'operation'))) {
-    if (!operationIds.has(name.slice(0, -'.md'.length))) report.orphans.push(`${rel(join(contentRoot, 'operation', name))}（没有对应的原理版页面）`);
-  }
-
-  // 重写稿里的新页面；《常见问题》链到的新条目单列（它们进 reference/faq/，不进 route.yaml）
-  const faqIndex = join(principleSrc, `${FAQ_TITLE}.md`);
-  const faqTitles = new Set(existsSync(faqIndex) ? [...readFileSync(faqIndex, 'utf8').matchAll(WIKI_LINK)].map((m) => m[1].trim()) : []);
-  for (const [dir, seen] of [
-    [principleSrc, matched],
-    [operationSrc, operationMatched],
-  ]) {
-    for (const name of listMarkdown(dir)) {
-      const title = basename(name, '.md');
-      if (TABLE_OF_CONTENTS.includes(title) || seen.has(title)) continue;
-      if (dir === principleSrc && faqTitles.has(title)) report.newFaqItems.push(rel(join(dir, name)));
-      else report.newPages.push(rel(join(dir, name)));
-    }
+  // 重写稿有、站内没有的页面：只报告
+  for (const file of sourceFiles) {
+    if (!matched.has(file)) report.newPages.push(rel(file));
   }
 
   // 截图只复制缺的（站内的可能是打码后的版本）；说明图跟着附件里的原稿更新
@@ -170,6 +202,18 @@ export function importRewrite({ repoRoot, rewriteDir }) {
   return report;
 }
 
+/** 目录下全部 .md 的相对路径（去掉 .md，用 / 分隔，已排序）；目录不存在时为空 */
+function listMarkdownDeep(dir, prefix = '') {
+  if (!existsSync(dir)) return [];
+  const out = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name.startsWith('.')) continue;
+    if (entry.isDirectory()) out.push(...listMarkdownDeep(join(dir, entry.name), `${prefix}${entry.name}/`));
+    else if (entry.isFile() && extname(entry.name) === '.md') out.push(prefix + basename(entry.name, '.md'));
+  }
+  return out.sort();
+}
+
 function printReport(report) {
   const section = (title, items) => {
     if (items.length === 0) return;
@@ -178,21 +222,24 @@ function printReport(report) {
   };
   console.log(`导入完成：写入 ${report.written.length} 个文件，${report.unchanged} 个没有变化。`);
   section('写入', report.written);
-  section('重写稿里的新页面（先手建 principle/<id>.md 并放进 route.yaml，再重跑）', report.newPages);
-  section('《常见问题》里的新条目（先手建 src/content/reference/faq/<英文标识>.md，只写一行 # 标题，再重跑；标识也是 URL，发布后不能改）', report.newFaqItems);
+  section('重写稿里的新页面（先手建 principle/<id>.md、放进 route.yaml，再重跑）', report.newPages);
   section('站内有、重写稿里没有的页面（由作者决定是否删除）', report.orphans);
   section('站内文件缺少第一行的 # 标题，无法匹配', report.untitled);
   section('重写稿文件带 frontmatter，导入时已去掉', report.droppedFrontmatter);
+  section('相对链接的目标找不到，按原样保留（要改重写稿的链接）', report.badLinks);
   section('新复制的截图和更新的说明图：截图请逐张核对打码，记进 docs/migration-checklist.md', report.copied);
   section('附件里也找不到的图：截图请作者提供打码后的文件，放进 src/assets/screenshots/；说明图放进重写稿的附件/', report.missingImages);
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const repoRoot = resolve(import.meta.dirname, '..');
-  const rewriteDir = resolve(process.argv[2] ?? join(repoRoot, 'docs', 'rewrite'));
-  if (!existsSync(join(rewriteDir, '原理版'))) {
-    console.error(`找不到重写稿：${join(rewriteDir, '原理版')}`);
+  const rewriteDir = resolve(process.argv[2] ?? join(repoRoot, 'docs', 'v3-rewrite'));
+  if (!existsSync(rewriteDir)) {
+    console.error(`找不到重写稿：${rewriteDir}`);
     process.exit(1);
   }
-  printReport(importRewrite({ repoRoot, rewriteDir }));
+  const report = importRewrite({ repoRoot, rewriteDir });
+  printReport(report);
+  // 相对链接找不到目标时正文里会留下坏链接：让脚本失败，别让它悄悄进站点（FR-61）
+  if (report.badLinks.length > 0) process.exit(1);
 }

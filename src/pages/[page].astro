@@ -1,16 +1,19 @@
 ---
 import { render } from 'astro:content';
-import GroupInvite from '../components/GroupInvite.astro';
+import ChoiceCards from '../components/ChoiceCards.astro';
 import MovedPage from '../components/MovedPage.astro';
 import VideoFacade from '../components/VideoFacade.astro';
 import PageLayout from '../layouts/PageLayout.astro';
-import { loadSite } from '../lib/site';
+import { loadSite, type Site } from '../lib/site';
 import { tocSections } from '../lib/toc-sections';
 
 /**
- * 步骤页、选择页、旁支页共用一个标识空间：/<id>/（ADR-0002）。只输出原理版正文（用户 2026-10-22 决定：
- * 去掉视图切换、固定原理视图；内容集合里的操作版条目暂不删，等单版本重写统一处理）；
- * 导航按“原理视图 + 未选”在构建时写好，打开只属于一个分支的页面时按它所属的选项计算（架构 §3 M3）。
+ * 步骤页、选择页共用一个标识空间：/<id>/（ADR-0002）。v3 起只有一版正文（实施计划 §3.1、V10），
+ * 页面固定原理视图（用户 2026-10-22 决定）；导航按“未选”在构建时写好，打开只属于一个分支的页面时
+ * 按它所属的选项计算（架构 §3 M3）。
+ *
+ * 选择页的选项卡片由 frontmatter 的 `options` 生成，挂在正文末尾（V10）：每个选项的第一步由 M2 的
+ * `view(选择页, { 分叉点: 选项 })` 算出来，卡片链接和“推荐”标记都来自路线图。
  *
  * 同一个路由还生成跳转页（V09，FR-25、ADR-0006）：`route.yaml` 的 `moved:` 里每个单段旧标识仍然是一个地址，
  * 打开后由 MovedPage 立即跳到目标页（可带小节）；旧标识不进目录、搜索和 sitemap。
@@ -25,6 +28,20 @@ export async function getStaticPaths() {
   ];
 }
 
+/** 选择页的选项卡片数据：分叉点的选项、每个选项的第一步、路线图的默认选项（标“推荐”） */
+function choiceCardsOf(site: Site, pageId: string) {
+  const entry = Object.entries(site.route.data.forks).find(([, fork]) => fork.page === pageId);
+  if (entry === undefined) return undefined;
+  const [fork, { options, default: recommended }] = entry;
+  const starts = Object.fromEntries(
+    options.map((option) => {
+      const next = site.route.view(pageId, { [fork]: option.id }, 'principle').next;
+      return [option.id, next !== null && next.kind !== 'home' ? { id: next.id, title: next.title } : null];
+    }),
+  );
+  return { options, starts, recommended };
+}
+
 const { page: id } = Astro.params;
 const site = await loadSite();
 const moved = site.moved.find((entry) => entry.from === id);
@@ -33,8 +50,7 @@ if (page === undefined && moved === undefined) throw new Error(`没有这一页�
 const view = page === undefined ? undefined : site.route.view(id, {}, 'principle');
 const rendered = page === undefined ? undefined : await render(page.principle);
 const Principle = rendered?.Content;
-/** 附录页正文末尾放 QQ 群入口（FR-22）：卡住了来查的地方，也是问人的地方 */
-const GROUP_INVITE_PAGE = 'appendix';
+const cards = page === undefined ? undefined : choiceCardsOf(site, page.id);
 ---
 
 {moved && <MovedPage moved={moved} />}
@@ -46,12 +62,13 @@ const GROUP_INVITE_PAGE = 'appendix';
       view={view}
       routeData={site.route.data}
       tocReferences={site.tocReferences}
+      referencesChapter={site.referenceChapter.id}
       sections={tocSections(rendered.headings)}
       skipLabel={page.principle.data.skipLabel}
     >
       <VideoFacade slot="video" video={page.principle.data.video} stepTitle={page.title} />
       <Principle slot="principle" />
-      {id === GROUP_INVITE_PAGE && <GroupInvite slot="after" />}
+      {cards && <ChoiceCards slot="principle" pageId={page.id} options={cards.options} starts={cards.starts} recommended={cards.recommended} />}
     </PageLayout>
   )
 }

@@ -1,14 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
 import { expectScriptRan } from './route-helpers';
 
-// 说明图（design v2.1 §4.7、§9）：整体思路、小结、测 IP 质量三页的原理版各有一张单色线稿，
+// 说明图（design v2.1 §4.7、§9）：v3 新稿只在两页里放了单色线稿（整体思路、电脑端的“先看一眼整条链路”），
 // 内联的 SVG 有读屏名字，编号同截图；按 1:1 显示，手机上图中文字也是 14px，不撑出横向滚动；
-// 线条跟着 --text，强调的那一环是 --accent；桌面编号在页边栏。
+// 线条跟着 --text，强调的那一环是 --accent；编号在图的下面。
 
 const PAGES = [
   { path: './overview/', name: '几个账号和环节的关系' },
-  { path: './recap/', name: '方案一：请求从你的设备到 claude 的路线' },
-  { path: './check-ip/', name: '方案一：为什么只有 ipinfo.io 看得到 ISP 的 IP' },
+  { path: './client-desktop/', name: '方案一：请求从你的设备到 claude 的路线' },
 ];
 
 /** 页面固定原理视图（用户 2026-10-22 决定去掉视图切换、固定原理视图），等页面脚本跑完即可 */
@@ -74,7 +73,7 @@ for (const { path, name } of PAGES) {
 
 // 原来核对“操作版没有说明图”；用户 2026-10-22 决定去掉视图切换、固定原理视图，页面上不再输出操作版，改成核对整页只有原理版的那一张
 test('页面只输出原理版，说明图只有一张（测 IP 质量）', async ({ page }) => {
-  await page.goto('./check-ip/');
+  await page.goto('./client-desktop/');
   await expectScriptRan(page);
   await expect(page.locator('[data-body]')).toHaveCount(0);
   await expect(page.locator('figure.diagram')).toHaveCount(1);
