@@ -1,9 +1,5 @@
-import { execFile } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, symlinkSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { afterAll, describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vitest';
+import { buildProject } from './build-project';
 
 /**
  * AC-14 构建级用例（架构 §8）：把仓库的构建输入复制到临时目录，用 tests/fixtures/<用例>/ 覆盖 src/content/，
@@ -11,65 +7,14 @@ import { afterAll, describe, expect, test } from 'vitest';
  * 证明失败来自坏内容，而不是复制出来的工程本身就构建不了。
  */
 
-const repo = fileURLToPath(new URL('../../', import.meta.url));
-const fixtures = join(repo, 'tests/fixtures');
-/** 构建需要的全部输入（不存在的跳过）；新增构建输入时同步这里。node_modules 另行链接，见 linkPackages */
-const BUILD_INPUTS = ['src', 'public', 'astro.config.mjs', 'tsconfig.json', 'package.json'];
-/** 略小于 vitest.build.config.ts 的 testTimeout，测试超时前先结束构建进程，不留下仍在写临时目录的子进程 */
-const BUILD_TIMEOUT = 110_000;
-
-const workRoot = mkdtempSync(join(tmpdir(), 'rezero-build-'));
-afterAll(() => rmSync(workRoot, { recursive: true, force: true }));
-
-interface BuildResult {
-  code: number;
-  output: string;
-}
-
-/**
- * 逐个链接依赖包，不链接整个 node_modules：Astro 的缓存（`node_modules/.astro`，含内容数据）和 Vite 的缓存
- * 都在 node_modules 下的点目录里，共用时并行的构建会读到彼此的内容，也会污染仓库自己的缓存。
- */
-function linkPackages(dir: string): void {
-  const target = join(dir, 'node_modules');
-  mkdirSync(target);
-  for (const name of readdirSync(join(repo, 'node_modules'))) {
-    if (name.startsWith('.')) continue;
-    // junction 在 Windows 上不需要管理员权限，其他系统忽略这个参数
-    symlinkSync(join(repo, 'node_modules', name), join(target, name), 'junction');
-  }
-}
-
-/** 复制一份工程，套上坏内容（不传则原样），执行 astro build。 */
-function buildWith(fixture?: string): Promise<BuildResult> {
-  const dir = join(workRoot, fixture ?? 'control');
-  for (const input of BUILD_INPUTS) {
-    if (existsSync(join(repo, input))) cpSync(join(repo, input), join(dir, input), { recursive: true });
-  }
-  linkPackages(dir);
-  if (fixture) cpSync(join(fixtures, fixture), join(dir, 'src/content'), { recursive: true });
-
-  const env = { ...process.env, BASE_PATH: '/' };
-  return new Promise((resolve) => {
-    execFile(
-      process.execPath,
-      [join(repo, 'node_modules/astro/bin/astro.mjs'), 'build'],
-      { cwd: dir, env, maxBuffer: 16 * 1024 * 1024, timeout: BUILD_TIMEOUT },
-      (error, stdout, stderr) => {
-        const code = error ? (typeof error.code === 'number' ? error.code : 1) : 0;
-        resolve({ code, output: `${stdout}\n${stderr}` });
-      },
-    );
-  });
-}
-
 describe('AC-14 坏内容让构建失败并报出文件', () => {
   test.concurrent('对照：不加坏内容时构建成功', async () => {
-    const { code, output } = await buildWith();
+    const { code, output } = await buildProject();
     expect(code, output).toBe(0);
   });
 
-  // 每个用例只覆盖一个现有文件（致谢页、选择页或 route.yaml），其余内容不变，所以只会因为这一处坏内容失败
+  // 每个用例只覆盖一个现有文件（致谢页、选择页或 route.yaml），其余内容不变，所以只会因为这一处坏内容失败。
+  // moved-* 的 route.yaml 是真实路线图的副本：真实路线图增删页面后这几份副本要跟着同步（missing-merge 同理）。
   test.concurrent.each([
     {
       fixture: 'missing-image',
@@ -102,6 +47,31 @@ describe('AC-14 坏内容让构建失败并报出文件', () => {
         'route.yaml：分叉点 phone 的分支段（章节 ending）之后没有汇合点',
         'route.yaml：路线的最后一项必须是普通页面',
       ],
+    },
+    {
+      // 跳转表（FR-25、ADR-0006）：旧标识跳到不存在的页面
+      fixture: 'moved-target-missing',
+      file: 'route.yaml',
+      messages: ['route.yaml：moved.plan1-free-isp 的 to（no-such-page）不是路线图里的页面'],
+    },
+    {
+      // 跳转表写了目标页正文里没有的小节
+      fixture: 'moved-section-missing',
+      file: 'route.yaml',
+      messages: ['route.yaml：moved.plan1-free-isp.section 写的“没有这个小节”在 choose-plan 的原理版正文里找不到唯一的小标题'],
+    },
+    {
+      // 跳转表的目标是另一个旧标识：不串联
+      fixture: 'moved-chain',
+      file: 'route.yaml',
+      messages: ['route.yaml：moved.old-page 的 to（plan1-free-isp）也是旧标识'],
+    },
+    {
+      // 旧标识被现有页面占用（原理版文件里有这个标识）
+      fixture: 'moved-id-reused',
+      // 路线图校验按 src/content/ 内的相对路径报文件（src/lib/site.ts 的“文件：说明”）
+      file: 'principle/preface.md',
+      messages: ['页面标识 preface 是跳转表的旧标识（旧地址跳到 choose-plan），不能再分给新页面'],
     },
     {
       fixture: 'title-mismatch',
@@ -162,7 +132,7 @@ describe('AC-14 坏内容让构建失败并报出文件', () => {
       messages: ['principle → thanks data does not match collection schema', 'Unrecognized key: "skipable"'],
     },
   ])('$fixture：报出 $file', async ({ fixture, file, messages }) => {
-    const { code, output } = await buildWith(fixture);
+    const { code, output } = await buildProject({ fixture });
     expect(code, output).not.toBe(0);
     expect(output).toContain(file);
     for (const message of messages) expect(output).toContain(message);

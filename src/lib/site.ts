@@ -1,8 +1,10 @@
 import { getCollection, type CollectionEntry } from 'astro:content';
-import { parseDocument } from 'yaml';
 import routeText from '../content/route.yaml?raw';
-import { buildRouteMap, RouteValidationError } from './route/route-map';
+import { scanHeadings } from './content/headings';
+import { buildRouteMap, movedEntries, RouteValidationError } from './route/route-map';
+import { parseRouteYaml } from './route/route-yaml';
 import type { PageId, PageMeta, RouteMap, Stop } from './route/types';
+import { sectionAnchor, type AnchorHeading } from './section-anchor';
 
 /**
  * 构建时装配（架构 §3 M3）：读取 M1 的三个内容集合和 route.yaml，交给 M2 编译成 RouteMap。
@@ -36,6 +38,21 @@ export interface Site {
   references: ReadonlyMap<string, SiteReference>;
   /** 目录里列在附录页下面的参考页：常见问题、IP 质量实测合集（design §4.5） */
   tocReferences: TocReference[];
+  /** 跳转表的旧网址（FR-25、ADR-0006）：每个旧标识生成一页，不进目录、搜索和 sitemap */
+  moved: MovedPage[];
+}
+
+/** 一个旧网址的跳转页（FR-25、ADR-0006）：构建时算好目标页和原理版小节锚点。 */
+export interface MovedPage {
+  /** 旧标识：仍然生成 `/<from>/`，但不能分给新页面 */
+  from: PageId;
+  to: PageId;
+  /** 目标页标题，写进“这一页已经并入《…》” */
+  toTitle: string;
+  /** `route.yaml` 里写的小节标题原文 */
+  section?: string;
+  /** 小节在目标页原理版正文里的 slug；没有 `section` 时跳到页顶 */
+  anchor?: string;
 }
 
 export interface TocReference {
@@ -50,17 +67,6 @@ const TOC_REFERENCES = ['faq', 'ip-tests'];
 export type PrincipleEntry = Pick<CollectionEntry<'principle'>, 'id' | 'body'> & {
   data: Pick<CollectionEntry<'principle'>['data'], 'principleOnly' | 'skippable' | 'skipLabel' | 'options'>;
 };
-
-/** 解析 route.yaml 的文本。YAML 语法错误时报出文件和行号，形状交给 M2 校验。 */
-export function parseRouteYaml(text: string): unknown {
-  const doc = parseDocument(text, { prettyErrors: true });
-  const [first] = doc.errors;
-  if (first) {
-    const line = first.linePos?.[0].line;
-    throw new Error(`route.yaml${line ? ` 第 ${line} 行` : ''}：YAML 写法有误：${first.message}`);
-  }
-  return doc.toJS();
-}
 
 /**
  * 页面标题：正文第一个非空行的 `# 标题`（架构 §3 M1）。缺标题由构建开始时的内容校验（checkPages）报错，
@@ -95,6 +101,29 @@ export function startOf(route: RouteMap): Stop {
   const first = route.data.chapters[0]?.items[0];
   if (first?.kind !== 'step') throw new Error('route.yaml：路线图的第一项必须是普通页面');
   return route.view(first.id, {}, 'principle').current;
+}
+
+/**
+ * 把 `route.yaml` 的跳转表编译成跳转页（FR-25、ADR-0006）：`to` 的页面标题取自路线图，
+ * `section` 用 M1 的小标题扫描按标题文字找 slug（V07 的 `sectionAnchor`），只认 h2。
+ * 目标页或小节不存在时构建失败。
+ */
+export function buildMovedPages(
+  spec: unknown,
+  route: RouteMap,
+  headingsOf: (id: PageId) => readonly AnchorHeading[] | undefined,
+): MovedPage[] {
+  return movedEntries(spec).map(({ from, to, section }): MovedPage => {
+    const target = route.data.pages[to];
+    if (target === undefined) throw new Error(`route.yaml：moved.${from} 的 to（${to}）不是路线图里的页面`);
+    if (section === undefined) return { from, to, toTitle: target.title };
+    const h2 = (headingsOf(to) ?? []).filter((heading) => heading.depth === 2);
+    const anchor = sectionAnchor(h2, section);
+    if (anchor === undefined) {
+      throw new Error(`route.yaml：moved.${from}.section 写的“${section}”在 ${to} 的原理版正文里找不到唯一的小标题（h2）`);
+    }
+    return { from, to, toTitle: target.title, section, anchor };
+  });
 }
 
 /**
@@ -157,9 +186,11 @@ async function readSite(): Promise<Site> {
     getCollection('reference'),
   ]);
 
+  let spec: unknown;
   let route: RouteMap;
   try {
-    route = assembleRoute(parseRouteYaml(routeText), principles);
+    spec = parseRouteYaml(routeText);
+    route = assembleRoute(spec, principles);
   } catch (error) {
     // Astro 打印带 `errors` 数组的异常时只输出每项的 message，会丢掉“文件：”前缀，所以换成普通 Error 抛出。
     if (error instanceof RouteValidationError) throw new Error(error.message);
@@ -169,9 +200,13 @@ async function readSite(): Promise<Site> {
   const referenceById = new Map(
     references.map((entry) => [entry.id, { id: entry.id, title: pageTitle(entry.body, `src/content/reference/${entry.id}.md`), entry }]),
   );
+  // 跳转表的 section 用 M1 的小标题扫描（和双链解析同一套规则，架构 §13.4）。直接扫内容集合里的正文：
+  // Astro 构建把页面代码打包到 <outDir>/.prerender/ 再执行，不能靠 import.meta.url 找 src/content。
+  const principleHeadings = new Map(principles.map((entry) => [entry.id, scanHeadings(entry.body)]));
   return {
     route,
     start: startOf(route),
+    moved: buildMovedPages(spec, route, (id) => principleHeadings.get(id)),
     pages: new Map(
       principles.map((entry) => [
         entry.id,

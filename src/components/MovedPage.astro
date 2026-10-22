@@ -1,0 +1,44 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import type { MovedPage as MovedPageData } from '../lib/site';
+import { withBase } from '../lib/with-base';
+import SiteHeader from './SiteHeader.astro';
+
+/**
+ * 跳转页（FR-25、ADR-0006，design §4.6）：旧网址 → 目标页，可以带目标页里的一个小节。
+ *
+ * - 有 JS：`<head>` 里的内联脚本立即 `location.replace`（不留在历史记录里）。
+ * - 没有 JS：先看到“这一页已经并入《…》”和链接，`meta refresh` 5 秒后再自动前往。AC-33 要求禁用 JS 时
+ *   也看得到说明和链接，所以刷新不能是 0 秒；ADR-0006 的“meta refresh 作退路”由此两者都成立。
+ * - 顶栏照常输出、没有侧边栏（design §4.6：避免跳转前闪一下目录）；noindex、canonical 指向目标页。
+ *   <720px 的“目录”保留成链接（首页章节简介）：这一页没有页面脚本，抽屉打不开，但链接本身有去处。
+ *
+ * 构建时的锚点固定用原理版（页面固定原理视图，架构 §13.12），由 `buildMovedPages` 算好（site.ts）。
+ */
+interface Props {
+  moved: MovedPageData;
+}
+
+const { moved } = Astro.props;
+const { to, toTitle, section, anchor } = moved;
+const href = withBase(`/${to}/${anchor === undefined ? '' : `#${anchor}`}`);
+// 规范网址指向目标页本身，不带小节
+const canonical = Astro.site === undefined ? undefined : new URL(withBase(`/${to}/`), Astro.site).href;
+const title = `这一页已经并入《${toTitle}》`;
+const linkText = section === undefined ? `打开《${toTitle}》→` : `打开《${toTitle} › ${section}》→`;
+const refresh = `5; url=${href}`;
+// 内嵌在 <script> 里的字符串不能出现 `</script>`：和 PageLayout 的 RouteData 一样把 `<` 转义掉
+const script = `location.replace(${JSON.stringify(href).replace(/</g, '\\u003c')});`;
+---
+
+<BaseLayout title={title} noindex>
+  <script is:inline slot="head" set:html={script} />
+  <meta slot="head" http-equiv="refresh" content={refresh} />
+  {canonical && <link slot="head" rel="canonical" href={canonical} />}
+  <SiteHeader toc />
+  <main id="main" class="page">
+    <h1 class="page-title">{title}</h1>
+    <p>正在跳转到《{toTitle}》{section === undefined ? '' : `的“${section}”`}……如果没有自动跳转，请点下面的链接。</p>
+    <p><a href={href}>{linkText}</a></p>
+  </main>
+</BaseLayout>

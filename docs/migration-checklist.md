@@ -82,7 +82,7 @@ v2.0 的素材换成作者的重写稿 `docs/rewrite/原理版/`、`docs/rewrite
 | 实测：ipequal 住宅节点 | `ip-tests/ipequal` | 参考页 |
 | 实测：Decodo ISP | `ip-tests/decodo` | 参考页 |
 
-**已删除的页面**（ADR-0002：标识不复用，旧地址留跳转页，登记在 `src/lib/route/route-map.ts` 的 `REMOVED_PAGES`，由 `astro.config.mjs` 的 `redirects` 生成）：
+**已删除和合并掉的页面**（ADR-0002：标识不复用，旧地址留跳转页，登记在 `src/content/route.yaml` 的 `moved:` 段，由 `src/pages/[page].astro` 生成跳转页；V09 起 `REMOVED_PAGES` 和 Astro `redirects` 已删除）：
 
 | 原重写稿文件名 | 标识 | 删除日期 | 旧地址跳到 |
 | --- | --- | --- | --- |

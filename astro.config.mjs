@@ -1,4 +1,5 @@
 // @ts-check
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
@@ -6,13 +7,18 @@ import { unified } from '@astrojs/markdown-remark';
 import { contentValidation } from './src/lib/content/integration';
 import { createLinkIndex } from './src/lib/content/link-index';
 import { markdownPipeline } from './src/lib/content/markdown';
-import { REMOVED_PAGES } from './src/lib/route/route-map';
+import { movedEntries } from './src/lib/route/route-map';
+import { parseRouteYaml } from './src/lib/route/route-yaml';
 import { joinBase } from './src/lib/with-base';
 
 const base = process.env.BASE_PATH ?? '/';
 const contentRoot = fileURLToPath(new URL('./src/content/', import.meta.url));
 // 每篇文档处理前重新扫描文件名（几十个文件，开销很小），开发时新增的步骤或截图不用重启就能被找到。
 const linkIndex = () => createLinkIndex(contentRoot);
+// 跳转表的旧地址（FR-25、ADR-0006）：旧网址仍然由 [page].astro 生成跳转页，但不进 sitemap。
+// 这里只为过滤读一遍 route.yaml，解析和报错和构建期共用 route-yaml.ts；moved 的形状、目标页和小节由 M2、site.ts 校验。
+const routeSpec = parseRouteYaml(readFileSync(fileURLToPath(new URL('./src/content/route.yaml', import.meta.url)), 'utf8'));
+const movedPaths = new Set(movedEntries(routeSpec).map((entry) => joinBase(base, `${entry.from}/`)));
 
 // M5 构建配置（架构 §3 M5）。站内链接一律用 src/lib/with-base.ts 生成。
 export default defineConfig({
@@ -20,19 +26,21 @@ export default defineConfig({
   base,
   site: process.env.SITE_URL,
   trailingSlash: 'always',
-  // 已删除页面的旧地址（ADR-0002：已发布的 URL 不能失效）生成跳转页。Astro 不给跳转目标拼 base，所以这里自己拼。
-  redirects: Object.fromEntries(
-    Object.entries(REMOVED_PAGES).map(([from, to]) => [`/${from}/`, joinBase(base, `${to}/`)]),
-  ),
   build: {
     format: 'directory',
   },
   // 构建开始时检查全部内容的双链、嵌入和 Callout，有问题就终止构建（FR-61）；
   // 路线图在页面调用 loadSite() 时校验（src/lib/site.ts）。构建结束时列出内容提示（FR-21）。
-  // sitemap 要有 site 才生成（部署时由 SITE_URL 给出）；找不到页不进 sitemap。
+  // sitemap 要有 site 才生成（部署时由 SITE_URL 给出）；找不到页和跳转页不进 sitemap。
   integrations: [
     contentValidation({ base, linkIndex }),
-    sitemap({ filter: (page) => !new URL(page).pathname.endsWith('/404/') }),
+    sitemap({
+      filter: (page) => {
+        const { pathname } = new URL(page);
+        // 整条路径比较（含 base），不用 endsWith：否则 /ip-tests/<旧标识>/ 这类地址会被误伤
+        return !pathname.endsWith('/404/') && !movedPaths.has(pathname);
+      },
+    }),
   ],
   markdown: {
     // 默认的 Sätteri 不兼容 remark/rehype 插件，所以用 unified 处理器（reuse-research §4.1）。
