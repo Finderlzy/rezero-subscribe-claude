@@ -1,0 +1,106 @@
+---
+import { pathOf } from '../lib/route/route-map';
+import type { OutlineBranch, OutlineChapter, OutlineStep } from '../lib/route/types';
+import type { TocReference } from '../lib/site';
+import type { TocSection } from '../lib/toc-sections';
+import { withBase } from '../lib/with-base';
+import TocSections from './TocSections.astro';
+
+/**
+ * 一章下面的目录项（TocNav.astro 的正文）：页面、分叉点的“或”分组和参考页。
+ * 当前页下面列出它的小节（design v3 §4.5，FR-16）；页面固定原理视图，只有一份小节列表（用户 2026-10-22 决定）。
+ */
+interface Props {
+  items: OutlineChapter['items'];
+  references: TocReference[];
+  /** 当前页正文里的 h2；没有 h2 时不输出小节列表 */
+  sections: TocSection[];
+  /** 当前路线上的页面标识（参考页没有） */
+  currentPageId: string | null;
+  /** 参考页的当前项：常见问题、IP 质量实测合集；各条问题、各篇实测高亮它们的上级 */
+  currentReference?: string | undefined;
+  /** 最后一个（附录）章末尾列参考页 */
+  showReferences: boolean;
+}
+
+const { items, references, sections, currentPageId, currentReference, showReferences } = Astro.props;
+const stepHref = (step: OutlineStep) => withBase(pathOf({ kind: 'step', id: step.id, title: step.title }));
+/** 分叉点选了别的选项时，这个选项下的步骤标“其他路线”；没选时不标 */
+const otherRoute = (branch: OutlineBranch, option: OutlineBranch['options'][number]) =>
+  !option.selected && branch.options.some((o) => o.selected);
+/** 小节列表只挂在当前项（共享步骤在每个选项下各一份，只有一份是当前项）或当前参考页 */
+const sectionsFor = (id: string, current: boolean) => current && sections.length > 0 && id === (currentReference ?? currentPageId);
+---
+
+<ol>
+  {
+    items.map((item) =>
+      item.kind === 'step' ? (
+        <li class="toc-step" data-toc-step={item.id} data-off-route={item.onRoute ? undefined : ''}>
+          <a href={stepHref(item)} aria-current={item.current ? 'page' : undefined}>
+            <span class="toc-label">{item.title}</span>
+            {item.principleOnly && <span class="toc-tag">原理</span>}
+            {item.skippable && <span class="toc-tag">可跳过</span>}
+          </a>
+          <TocSections sections={sectionsFor(item.id, item.current) ? sections : []} />
+        </li>
+      ) : item.kind === 'choose' ? (
+        <li class="toc-step" data-toc-choose={item.fork}>
+          <a href={withBase(pathOf({ kind: 'choose', id: item.id, title: item.title }))} aria-current={item.current ? 'page' : undefined}>
+            <span class="toc-label">{item.title}</span>
+          </a>
+          <TocSections sections={sectionsFor(item.id, item.current) ? sections : []} />
+        </li>
+      ) : (
+        <li>
+          <ul>
+            {item.options.map((option, i) => (
+              <li class="toc-option" data-toc-option={option.id} data-selected={option.selected ? '' : undefined}>
+                <div class="toc-option-head">
+                  <span class="toc-option-title">
+                    {i > 0 && '或：'}
+                    {option.title}
+                  </span>
+                  <button type="button" class="toc-switch" data-toc-switch={item.fork} value={option.id} aria-label={`切换到${option.title}`} hidden>
+                    切换
+                  </button>
+                </div>
+                <ol>
+                  {option.steps.map((step) => (
+                    <li class="toc-step" data-toc-step={step.id} data-off-route={step.onRoute ? undefined : ''}>
+                      <a href={stepHref(step)} aria-current={step.current ? 'page' : undefined}>
+                        <span class="toc-label">{step.title}</span>
+                        <span class="toc-tag" data-toc-other hidden={!otherRoute(item, option)}>
+                          其他路线
+                        </span>
+                        {step.principleOnly && <span class="toc-tag">原理</span>}
+                        {step.skippable && <span class="toc-tag">可跳过</span>}
+                      </a>
+                      <TocSections sections={sectionsFor(step.id, step.current) ? sections : []} />
+                    </li>
+                  ))}
+                </ol>
+              </li>
+            ))}
+          </ul>
+        </li>
+      ),
+    )
+  }
+  {
+    showReferences && references.length > 0 && (
+      <li>
+        <ol class="toc-reference">
+          {references.map((reference) => (
+            <li class="toc-step">
+              <a href={withBase(`/${reference.id}/`)} aria-current={reference.id === currentReference ? 'page' : undefined}>
+                <span class="toc-label">{reference.title}</span>
+              </a>
+              <TocSections sections={sectionsFor(reference.id, reference.id === currentReference) ? sections : []} />
+            </li>
+          ))}
+        </ol>
+      </li>
+    )
+  }
+</ol>

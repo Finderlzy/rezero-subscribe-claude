@@ -6,6 +6,7 @@ import SiteHeader from '../components/SiteHeader.astro';
 import Toc from '../components/Toc.astro';
 import { hasZoomableImage } from '../lib/code-zoom/labels';
 import { loadSite } from '../lib/site';
+import type { TocSection } from '../lib/toc-sections';
 import { withBase } from '../lib/with-base';
 import BaseLayout from './BaseLayout.astro';
 import '../styles/prose.css';
@@ -22,16 +23,20 @@ import '../styles/prose.css';
  * 参考页不进入上一步/下一步序列（requirements FR-20，取代 v2.2 计划 W5 第 2、3 条的“上一条 / 下一条”）。
  *
  * 目录（design §4.5）：和步骤页一样内嵌 #route-data 和 Toc——≥720px 左侧常驻，<720px 是抽屉。
- * 参考页不上路线图，只按本机选择画目录、不标当前项。
+ * 参考页不上路线图，只按本机选择画目录；当前参考页高亮在附录章下面，各条问题、各篇实测高亮它们的上级。
  */
 interface Props {
   title: string;
   /** h1 上方的眉题，例如“附录 · 常见问题”；不传时只写“附录” */
   eyebrow?: string | undefined;
   back?: { href: string; title: string } | undefined;
+  /** 侧边栏里要高亮的参考页：常见问题、IP 质量实测合集；各条问题、各篇实测填它们的上级 */
+  currentReference: string;
+  /** 这一页自己的 h2；各条问题、各篇实测也传，小节挂在上级参考项下面 */
+  sections?: TocSection[] | undefined;
 }
 
-const { title, eyebrow = '附录', back } = Astro.props;
+const { title, eyebrow = '附录', back, currentReference, sections = [] } = Astro.props;
 const body = await Astro.slots.render('default');
 const hasZoom = hasZoomableImage(body);
 const site = await loadSite();
@@ -44,7 +49,7 @@ const routeJson = JSON.stringify(site.route.data).replace(/</g, '\\u003c');
 
 <BaseLayout title={title}>
   <SiteHeader toc />
-  <Toc outline={site.route.outline({}, null, 'principle')} references={site.tocReferences} />
+  <Toc outline={site.route.outline({}, null, 'principle')} references={site.tocReferences} sections={sections} currentReference={currentReference} />
   <div class="page-view">
     <main id="main" class="reference-page">
       <div class="page-body">

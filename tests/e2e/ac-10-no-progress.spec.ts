@@ -37,7 +37,8 @@ test('读过几页、选过方案之后，首页和目录里仍然没有进度�
   await expectScriptRan(page);
 
   const toc = await openToc(page);
-  const tocText = await toc.innerText();
+  // 章折叠后 innerText 看不到其他章；用 textContent 检查整份目录（FR-16 没有进度字样，AC-10）
+  const tocText = await toc.textContent();
   for (const word of BANNED) expect(tocText).not.toContain(word);
 
   await page.goto('./');

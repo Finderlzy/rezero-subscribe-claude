@@ -1,0 +1,27 @@
+---
+import type { TocSection } from '../lib/toc-sections';
+
+/**
+ * 当前页的小节列表（design v3 §4.5，FR-16）：14px --text-muted，缩进比页面项再深一级。
+ * 锚点直接用正文的 h2 slug；页面固定原理视图，只有一份（用户 2026-10-22 决定）。
+ */
+interface Props {
+  sections: TocSection[];
+}
+
+const { sections } = Astro.props;
+---
+
+{
+  sections.length > 0 && (
+    <ol class="toc-sections">
+      {sections.map((section) => (
+        <li>
+          <a href={`#${section.slug}`}>
+            <span class="toc-label">{section.text}</span>
+          </a>
+        </li>
+      ))}
+    </ol>
+  )
+}

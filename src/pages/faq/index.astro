@@ -2,14 +2,21 @@
 import { render } from 'astro:content';
 import ReferenceLayout from '../../layouts/ReferenceLayout.astro';
 import { loadSite } from '../../lib/site';
+import { tocSections } from '../../lib/toc-sections';
 
 /** 常见问题：/faq/，各条问题的目录（正文原样取重写稿《常见问题》），每条一页（/faq/<id>/，FR-20）。页脚回附录。 */
 const site = await loadSite();
 const faq = site.references.get('faq')!;
 const appendix = site.route.data.pages.appendix;
-const { Content } = await render(faq.entry);
+const { Content, headings } = await render(faq.entry);
 ---
 
-<ReferenceLayout title={faq.title} eyebrow={`附录 · ${faq.title}`} back={appendix && { href: '/appendix/', title: appendix.title }}>
+<ReferenceLayout
+  title={faq.title}
+  eyebrow={`附录 · ${faq.title}`}
+  back={appendix && { href: '/appendix/', title: appendix.title }}
+  currentReference="faq"
+  sections={tocSections(headings)}
+>
   <Content />
 </ReferenceLayout>

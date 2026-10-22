@@ -119,11 +119,12 @@ function setCurrent(link: HTMLAnchorElement | null, current: boolean): void {
 }
 
 /**
- * 抽屉（design v2.1 §4.5、§5）：所有宽度都是抽屉。Esc 由 `<dialog>` 原生支持，点遮罩或“关闭”关闭；
+ * 抽屉（design v3 §4.5、§5）：<720px 时目录在这里。Esc 由 `<dialog>` 原生支持，点遮罩或“关闭”关闭；
  * 关闭后把焦点还给打开它的按钮（不只靠 `<dialog>` 原生的恢复：Safari 点按钮时按钮不拿焦点，原生会落到 body）。滑入、滑出的过渡全在 toc.css（`allow-discrete`），脚本照常 `close()`。
  *
  * 顶栏的 `[data-toc-open]` 没有 JS 时是指向首页目录的链接（FR-16）；这里换成同样外观的 `<button>`（保留除 href
  * 以外的属性，组件样式照样选得中），读屏听到的是“按钮，打开对话框”，而不是一个会跳走的链接。
+ * 章的开合是原生 `<details>`（V02），脚本不参与。
  */
 function initDrawer(doc: Document, nav: HTMLElement): void {
   const dialog = doc.querySelector<HTMLDialogElement>('dialog[data-toc-dialog]');
@@ -134,6 +135,10 @@ function initDrawer(doc: Document, nav: HTMLElement): void {
     if (event.target === dialog) dialog.close();
   });
   dialog.querySelector('[data-toc-close]')?.addEventListener('click', () => dialog.close());
+  // 点当前页的小节是页内跳转，抽屉不会因导航自己关掉：先关抽屉，再让浏览器滚到锚点（V02）
+  nav.addEventListener('click', (event) => {
+    if ((event.target as Element | null)?.closest?.('a[href^="#"]')) dialog.close();
+  });
   let opener: HTMLElement | null = null;
   dialog.addEventListener('close', () => {
     opener?.focus();

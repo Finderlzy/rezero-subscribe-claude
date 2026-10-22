@@ -515,7 +515,7 @@ function search(index: SearchEntry[], query: string, view: ViewMode, limit = 10)
 - **断点**：`720px` 一档取代 `1100px` 的“常驻目录”档；具体令牌由 design 定，`tokens.css` 和 `tokens.test.ts` 同步。
 - **顶栏**（V01 现状）：`SiteHeader.astro` 改为文档站顶栏，左边 `Logo`（“Re:”标记）+ 站名 + `Mascot`，右边搜索挂载点 `[data-search-slot]`（V08 填 `SiteSearch`）、`ThemeToggle`（昼夜切换，用户 2026-10-22 决定取代 `ViewToggle`，见 13.12）、`ContactLinks`；<720px 左边多“目录”按钮。不吸顶。首页不用顶栏（FR-18）。
 - **页面骨架**（V01 现状）：`PageLayout`、`ReferenceLayout` 改成“顶栏 + 两栏（侧边栏 | 正文栏）”，≥720px 侧边栏 `position: sticky`、独立滚动，<720px 只有正文栏、目录在抽屉里。页头色带、`ChapterSubtitle`、章节标题卡、`.step-heading` 的编号挂栏删除；眉题改为 h1 上方一行灰色小字，进度文字仍由 `nav-text.ts` 和 `route-enhance` 的 `renderProgress` 给出（挂载点名字不变）。`Numeral`、`numerals/` 只在 design v3 还用到时保留，不用就连同 `build-logo.mjs` 的对应输出一起删。
-- **目录 / 侧边栏**（FR-16）：`TocNav` 每章是一个 `<details>`，当前页所在章 `open`，其余折叠；折叠只在 DOM 里，不写本机。当前页下面列出它两版正文的 h2，构建时写成两个列表，分别带 `data-view-only="principle|operation"`，由 `<html data-view>` 的 CSS 决定显示哪一个（不需要脚本，切视图后自动跟着换）；链接锚点用各自视图的 id。`toc.ts` 照旧按本机选择改写弱化和当前项。首页的目录用不折叠的变体。抽屉和侧边栏仍是同一套 `TocNav` 标记（v2.2 的做法）。
+- **目录 / 侧边栏**（V02 现状，FR-16）：`TocNav` 每章是一个 `<details>`，当前页所在章 `open`，其余折叠；折叠只在 DOM 里，不写本机。当前页下面列出它正文的 h2（固定原理视图，只有一份，用户 2026-10-22 决定），由 `[page].astro`、`faq/*.astro`、`ip-tests/*.astro` 把 `render()` 的 `headings` 经 `tocSections()` 取 `depth === 2` 传给 `PageLayout`/`ReferenceLayout` 的新参数 `sections`，再交给 `Toc`；参考页的当前项由 `ReferenceLayout` 的 `currentReference` 指定（各条问题、各篇实测高亮上级），附录章跟着展开；子页也把 `headings` 传下去，小节挂在上级项下面，链接锚点仍是子页正文的 h2。旁支页用 `openChapterId`（`PageLayout` 传 `view.progress.chapterId`）展开它所属的章。`TocItems.astro` 写一章的页面项和参考页，`TocSections.astro` 写小节列表。链接锚点直接用正文 h2 的 `slug`。当前项 600 `--accent` + 4px 左边线。`toc.ts` 仍按本机选择改写弱化和当前项，不碰 `<details>` 的开合。首页和找不到页的目录用不折叠的变体（`collapsible` 不传）。抽屉和侧边栏仍是同一套 `TocNav` 标记（v2.2 的做法）。
 - **翻页** `StepNav`：正文末尾细线下，左“← 标题”、右“标题 →”，“跳过”在“下一步”下面一行；参考页、旁支页的“回到：……”用同样的链接样式。导航数据和改写逻辑不变。
 - **首页** `index.astro`：VuePress 首页的 hero（居中 logo、站名、英文副标题、主按钮、QQ 群小字）+ 按章目录，没有顶栏的搜索、没有侧边栏。首屏“一句话摘自整体思路”的构建核对随首屏改版是否保留由 design v3 定；保留就照旧核对。
 - **选择页**：选项块改细边框卡片，“推荐”“当前选择”的标记和交互不变（`option-blocks.ts` 只改输出的类名和装饰，不改结构）。
@@ -569,7 +569,7 @@ tests/fixtures/moved-*/         跳转表的坏内容用例（目标不存在、
 | 验收 | 验证方式 |
 | --- | --- |
 | AC-26 | Playwright（1280）：顶栏元素顺序、细线、没有 `.page-band` 一类色带元素；`tokens.test.ts` 核对紫色令牌和对比度 |
-| AC-27 | Playwright（768、1280，另在用例里设 719 宽）：`<details open>` 只有第 1 章；点章名展开；小标题列表随 `data-view` 切换；719 宽没有侧边栏、“目录”打开抽屉 |
+| AC-27 | Playwright（768、1280，另在用例里设 719 宽）：`<details open>` 只有第 1 章；点章名展开；当前页的小标题列表（固定原理视图只有一份）；719 宽没有侧边栏、“目录”打开抽屉；参考页子页的小节列在上级下面 |
 | AC-28 | `src/lib/search/index.test.ts`（规范化、排序、锚点选择、上限 10 条、“没有找到”）；Playwright：键盘操作、原理独有小标题切视图并滚动、`page.on('request')` 断言没有站外请求、没有带查询文字的请求；360 下先点图标才有输入框、无横向滚动 |
 | AC-29 | Playwright：首页 hero 元素、五章目录、没有侧边栏 |
 | AC-30 | Playwright：翻页文字链接、没有主按钮、“跳过”结果同 AC-05；360 下两个链接 `boundingBox().height ≥ 44` |

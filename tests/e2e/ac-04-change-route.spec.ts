@@ -49,7 +49,8 @@ test('目录区分当前路线、其他路线、当前页和原理独有步骤�
   await expect(plan1).toHaveAccessibleName(/其他路线/);
   await expect(toc.locator('[data-toc-step="plan1-buy-server"]')).toHaveAttribute('data-off-route', '');
   await expect(toc.getByRole('link', { name: /方案二：住宅 IP 服务器/ })).not.toHaveAccessibleName(/其他路线/);
-  // 还没选手机系统：两个选项都在路线上，都不标“其他路线”
+  // 还没选手机系统：两个选项都在路线上，都不标“其他路线”（V02：先展开“注册和订阅”章）
+  await toc.locator('summary').filter({ hasText: '注册和订阅' }).click();
   await expect(toc.locator('[data-toc-option="android"] [data-toc-step]').first()).not.toHaveAttribute('data-off-route');
   await expect(toc.getByRole('button', { name: '切换到iPhone' }).first()).toBeVisible();
 
@@ -59,6 +60,8 @@ test('目录区分当前路线、其他路线、当前页和原理独有步骤�
   await expect(recap).not.toContainText('其他路线');
   await expect(recap).not.toHaveAttribute('data-off-route');
   await expect(toc.getByRole('link', { name: /四、打开面板/ })).toContainText('可跳过');
+  // V02：侧边栏每章一个 <details>，默认只展开当前章；先展开附录章再核对参考页（design §4.5，FR-16）
+  await toc.locator('summary').filter({ hasText: '附录' }).click();
   await expect(toc.locator('.toc-reference').getByRole('link')).toHaveText(['常见问题', 'IP 质量实测合集']);
   await expect(toc.locator('[data-toc-step="appendix"]')).toBeVisible();
 

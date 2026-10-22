@@ -2,6 +2,7 @@
 import { render } from 'astro:content';
 import ReferenceLayout from '../../layouts/ReferenceLayout.astro';
 import { loadSite } from '../../lib/site';
+import { tocSections } from '../../lib/toc-sections';
 
 /** 各篇实测：/ip-tests/<id>/，页脚有“回到：IP 质量实测合集”（FR-20）。 */
 export async function getStaticPaths() {
@@ -15,9 +16,15 @@ const { test } = Astro.params;
 const site = await loadSite();
 const report = site.references.get(`ip-tests/${test}`)!;
 const collection = site.references.get('ip-tests')!;
-const { Content } = await render(report.entry);
+const { Content, headings } = await render(report.entry);
 ---
 
-<ReferenceLayout title={report.title} eyebrow={`附录 · ${collection.title}`} back={{ href: '/ip-tests/', title: collection.title }}>
+<ReferenceLayout
+  title={report.title}
+  eyebrow={`附录 · ${collection.title}`}
+  back={{ href: '/ip-tests/', title: collection.title }}
+  currentReference="ip-tests"
+  sections={tocSections(headings)}
+>
   <Content />
 </ReferenceLayout>

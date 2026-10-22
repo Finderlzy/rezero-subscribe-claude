@@ -1,16 +1,19 @@
 ---
 import { chapterNoText } from '../lib/nav-text';
-import { pathOf } from '../lib/route/route-map';
-import type { OutlineBranch, OutlineChapter, OutlineStep } from '../lib/route/types';
+import type { OutlineChapter, OutlineItem } from '../lib/route/types';
 import type { TocReference } from '../lib/site';
-import { withBase } from '../lib/with-base';
+import type { TocSection } from '../lib/toc-sections';
 import Numeral from './Numeral.astro';
+import TocItems from './TocItems.astro';
 
 /**
- * 目录的列表本身：页面上的抽屉（Toc.astro）、首页和找不到页的目录都用它；标记契约见 Toc.astro。
- * 章名前是从 00 开始的章节号（固定字形 Numeral，读屏读“第 n 章”）；参考页（常见问题、IP 质量实测合集）列在最后一章“附录”的
- * 附录页下面（design §4.5）。
- * 没有已读标记和“清除进度”（FR-16）。原理独有步骤标“原理”（不在当前视图的路线上时弱化）。
+ * 目录的列表本身：页面上的侧边栏/抽屉（Toc.astro）、首页和找不到页的目录都用它；标记契约见 Toc.astro。
+ * 首页和找不到页的目录章名前是从 00 开始的章节号（固定字形 Numeral，读屏读“第 n 章”）；参考页（常见问题、
+ * IP 质量实测合集）列在最后一章“附录”的附录页下面（design §4.5）。
+ * 没有已读标记和“清除进度”（FR-16）。原理独有步骤标“原理”。
+ *
+ * 侧边栏和抽屉里每章是一个 `<details>`（design v3 §4.5，FR-16）：当前页所在的章 `open`，其余折叠；
+ * 点章名开合，不写本机。首页和找不到页的目录用不折叠的变体（`collapsible` 不传）。
  */
 interface Props {
   outline: OutlineChapter[];
@@ -20,15 +23,53 @@ interface Props {
   label?: string;
   /** 首页的放大样式（toc.css 的 .toc-home）；每章带锚点 `#chapter-<章节标识>`，首页的章级索引链到这里 */
   home?: boolean;
-  /** 桌面侧边栏里的那一份（toc.css 的 .toc-sidebar）：当前项用 --accent 字 + --accent-soft 底，不加左侧色条 */
+  /** 侧边栏里的那一份（toc.css 的 .toc-sidebar） */
   sidebar?: boolean;
+  /** 侧边栏和抽屉：每章一个可开合的 `<details>`；首页和找不到页不传 */
+  collapsible?: boolean;
+  /** 当前页正文的 h2，列在当前项下面（design §4.5，FR-16） */
+  sections?: TocSection[];
+  /** 参考页的当前项：常见问题、IP 质量实测合集；各条问题、各篇实测高亮它们的上级 */
+  currentReference?: string;
+  /** 要展开的章（旁支页不在 outline 里，用 progress.chapterId）；不传时按当前页推断 */
+  openChapterId?: string;
 }
 
-const { outline, references, label = '步骤目录', home = false, sidebar = false } = Astro.props;
-const stepHref = (step: OutlineStep) => withBase(pathOf({ kind: 'step', id: step.id, title: step.title }));
-/** 分叉点选了别的选项时，这个选项下的步骤标“其他路线”；没选时不标 */
-const otherRoute = (branch: OutlineBranch, option: OutlineBranch['options'][number]) =>
-  !option.selected && branch.options.some((o) => o.selected);
+const {
+  outline,
+  references,
+  label = '步骤目录',
+  home = false,
+  sidebar = false,
+  collapsible = false,
+  sections = [],
+  currentReference,
+  openChapterId,
+} = Astro.props;
+
+/** 当前路线上的页面标识：当前页（参考页没有） */
+function currentPageOf(items: OutlineItem[]): string | null {
+  for (const item of items) {
+    if (item.kind === 'step' || item.kind === 'choose') {
+      if (item.current) return item.id;
+      continue;
+    }
+    for (const option of item.options) {
+      const current = option.steps.find((step) => step.current);
+      if (current) return current.id;
+    }
+  }
+  return null;
+}
+
+const currentPageId = outline.map((chapter) => currentPageOf(chapter.items)).find((id): id is string => id !== null) ?? null;
+/** 参考页不属于路线图：当前参考页所在的章（附录）也展开；旁支页用调用方给的章 */
+const chapterOpen = (chapterIndex: number) => {
+  if (!collapsible) return false;
+  if (currentReference !== undefined) return chapterIndex === outline.length - 1;
+  if (openChapterId !== undefined) return outline[chapterIndex]!.id === openChapterId;
+  return currentPageOf(outline[chapterIndex]!.items) !== null;
+};
 ---
 
 <nav class:list={['toc', { 'toc-home': home, 'toc-sidebar': sidebar }]} aria-label={label} data-toc>
@@ -36,87 +77,42 @@ const otherRoute = (branch: OutlineBranch, option: OutlineBranch['options'][numb
     {
       outline.map((chapter, chapterIndex) => (
         <li class="toc-chapter" id={home ? `chapter-${chapter.id}` : undefined}>
-          <p class="toc-chapter-head">
-            {home ? (
-              <span class="toc-chapter-no">
-                <Numeral text={chapterNoText(chapterIndex)} label={`第 ${chapterIndex} 章`} />
-              </span>
-            ) : (
-              <span class="toc-chapter-no">第 {chapterIndex} 章</span>
-            )}
-            <span class="toc-chapter-title">{chapter.title}</span>
-          </p>
-          <ol>
-            {chapter.items.map((item) =>
-              item.kind === 'step' ? (
-                <li class="toc-step" data-toc-step={item.id} data-off-route={item.onRoute ? undefined : ''}>
-                  <a href={stepHref(item)} aria-current={item.current ? 'page' : undefined}>
-                    <span class="toc-label">{item.title}</span>
-                    {item.principleOnly && <span class="toc-tag">原理</span>}
-                    {item.skippable && <span class="toc-tag">可跳过</span>}
-                  </a>
-                </li>
-              ) : item.kind === 'choose' ? (
-                <li class="toc-step" data-toc-choose={item.fork}>
-                  <a href={withBase(pathOf({ kind: 'choose', id: item.id, title: item.title }))} aria-current={item.current ? 'page' : undefined}>
-                    <span class="toc-label">{item.title}</span>
-                  </a>
-                </li>
-              ) : (
-                <li>
-                  <ul>
-                    {item.options.map((option, i) => (
-                      <li class="toc-option" data-toc-option={option.id} data-selected={option.selected ? '' : undefined}>
-                        <div class="toc-option-head">
-                          <span class="toc-option-title">
-                            {i > 0 && '或：'}
-                            {option.title}
-                          </span>
-                          <button
-                            type="button"
-                            class="toc-switch"
-                            data-toc-switch={item.fork}
-                            value={option.id}
-                            aria-label={`切换到${option.title}`}
-                            hidden
-                          >
-                            切换
-                          </button>
-                        </div>
-                        <ol>
-                          {option.steps.map((step) => (
-                            <li class="toc-step" data-toc-step={step.id} data-off-route={step.onRoute ? undefined : ''}>
-                              <a href={stepHref(step)} aria-current={step.current ? 'page' : undefined}>
-                                <span class="toc-label">{step.title}</span>
-                                <span class="toc-tag" data-toc-other hidden={!otherRoute(item, option)}>
-                                  其他路线
-                                </span>
-                                {step.principleOnly && <span class="toc-tag">原理</span>}
-                                {step.skippable && <span class="toc-tag">可跳过</span>}
-                              </a>
-                            </li>
-                          ))}
-                        </ol>
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-              ),
-            )}
-            {chapterIndex === outline.length - 1 && references.length > 0 && (
-              <li>
-                <ol class="toc-reference">
-                  {references.map((reference) => (
-                    <li class="toc-step">
-                      <a href={withBase(`/${reference.id}/`)}>
-                        <span class="toc-label">{reference.title}</span>
-                      </a>
-                    </li>
-                  ))}
-                </ol>
-              </li>
-            )}
-          </ol>
+          {collapsible ? (
+            <details class="toc-chapter-details" open={chapterOpen(chapterIndex)}>
+              <summary class="toc-chapter-head">
+                <span class="toc-chapter-title">{chapter.title}</span>
+              </summary>
+              <TocItems
+                items={chapter.items}
+                references={references}
+                sections={sections}
+                currentPageId={currentPageId}
+                currentReference={currentReference}
+                showReferences={chapterIndex === outline.length - 1}
+              />
+            </details>
+          ) : (
+            <>
+              <p class="toc-chapter-head">
+                {home ? (
+                  <span class="toc-chapter-no">
+                    <Numeral text={chapterNoText(chapterIndex)} label={`第 ${chapterIndex} 章`} />
+                  </span>
+                ) : (
+                  <span class="toc-chapter-no">第 {chapterIndex} 章</span>
+                )}
+                <span class="toc-chapter-title">{chapter.title}</span>
+              </p>
+              <TocItems
+                items={chapter.items}
+                references={references}
+                sections={sections}
+                currentPageId={currentPageId}
+                currentReference={currentReference}
+                showReferences={chapterIndex === outline.length - 1}
+              />
+            </>
+          )}
         </li>
       ))
     }

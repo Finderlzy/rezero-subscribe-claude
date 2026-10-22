@@ -10,6 +10,7 @@ import { eyebrowText, figurePrefix, progressText } from '../lib/nav-text';
 import { VIEW_BOOT_SCRIPT } from '../lib/reader-state/view-boot';
 import type { RouteData, RouteView } from '../lib/route/types';
 import type { TocReference } from '../lib/site';
+import type { TocSection } from '../lib/toc-sections';
 import BaseLayout from './BaseLayout.astro';
 import '../styles/prose.css';
 
@@ -31,6 +32,7 @@ import '../styles/prose.css';
  * 按本机选择改写导航。
  * 目录（design §4.5）：≥720px 是左侧常驻的侧边栏（Toc.astro 的 aside），sticky、独立滚动；
  * <720px 是抽屉，由顶栏的“目录”打开（toc.ts）。没有 JS 时侧边栏是静态 HTML，照样能点。
+ * 当前页正文的 h2 由调用方经 `sections` 传进来，列在侧边栏当前项下面（FR-16）。
  */
 interface Props {
   title: string;
@@ -40,10 +42,12 @@ interface Props {
   routeData: RouteData;
   /** `site.tocReferences`：目录末尾附录分组里的参考页 */
   tocReferences: TocReference[];
+  /** 当前页正文的 h2：列在侧边栏当前项下面（design §4.5，FR-16） */
+  sections?: TocSection[];
   skipLabel?: string | undefined;
 }
 
-const { title, view, routeData, tocReferences, skipLabel } = Astro.props;
+const { title, view, routeData, tocReferences, sections = [], skipLabel } = Astro.props;
 // 内嵌在 <script> 里的 JSON 不能出现 `</script>`，把 `<` 转义掉。
 const routeJson = JSON.stringify(routeData).replace(/</g, '\\u003c');
 // 截图编号的步骤号（design §4.7）：构建时按原理视图写，没有 JS 时就是它；route-enhance 按当前选择改写
@@ -54,7 +58,7 @@ const hasZoom = hasZoomableImage(principle);
 <BaseLayout title={title}>
   <script is:inline slot="head" set:html={VIEW_BOOT_SCRIPT} />
   <SiteHeader toc />
-  <Toc outline={view.outline} references={tocReferences} />
+  <Toc outline={view.outline} references={tocReferences} sections={sections} openChapterId={view.progress.chapterId} />
   <div class="page-view">
     <main id="main" class="step" data-route-at={view.current.kind === 'home' ? undefined : view.current.id}>
       <div class="step-body">

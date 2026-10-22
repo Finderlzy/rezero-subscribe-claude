@@ -2,14 +2,21 @@
 import { render } from 'astro:content';
 import ReferenceLayout from '../../layouts/ReferenceLayout.astro';
 import { loadSite } from '../../lib/site';
+import { tocSections } from '../../lib/toc-sections';
 
 /** IP 质量实测合集：/ip-tests/（FR-20）。眉题“附录 · IP 质量实测合集”，页脚回附录。 */
 const site = await loadSite();
 const collection = site.references.get('ip-tests')!;
 const appendix = site.route.data.pages.appendix;
-const { Content } = await render(collection.entry);
+const { Content, headings } = await render(collection.entry);
 ---
 
-<ReferenceLayout title={collection.title} eyebrow={`附录 · ${collection.title}`} back={appendix && { href: '/appendix/', title: appendix.title }}>
+<ReferenceLayout
+  title={collection.title}
+  eyebrow={`附录 · ${collection.title}`}
+  back={appendix && { href: '/appendix/', title: appendix.title }}
+  currentReference="ip-tests"
+  sections={tocSections(headings)}
+>
   <Content />
 </ReferenceLayout>

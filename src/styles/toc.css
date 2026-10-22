@@ -1,6 +1,6 @@
 /*
- * 步骤目录（design v2.1 §4.5）：Toc.astro / TocNav.astro 的样式。TocNav 也用在首页和找不到页（Toc.astro 之外），
- * 所以样式写成全局的，不用组件作用域。
+ * 步骤目录（design v3 §4.5）：Toc.astro / TocNav.astro 的样式。TocNav 也用在首页和找不到页（Toc.astro 之外），
+ * 所以样式写成全局的，不用组件作用域。侧边栏和抽屉的章可以开合（`<details>`），当前页下面列出它的小节。
  */
 
 /*
@@ -153,8 +153,84 @@
   margin-left: var(--space-5);
 }
 
+/*
+ * 章折叠（design v3 §4.5，FR-16）：侧边栏和抽屉里每章一个 <details>，章名是 <summary>，
+ * 右边一个 6px 的实心小三角，展开时朝下（没有动画）。点章名开合只发生在 DOM 里，不写本机。
+ */
+.toc-chapter-details > summary.toc-chapter-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-2) var(--space-1);
+  min-height: 44px;
+  box-sizing: border-box;
+  color: var(--text);
+  font-size: 16px;
+  line-height: var(--lh-heading);
+  font-weight: var(--fw-heading);
+  letter-spacing: normal;
+  cursor: pointer;
+  list-style: none;
+}
+
+.toc-chapter-details > summary.toc-chapter-head::-webkit-details-marker {
+  display: none;
+}
+
+.toc-chapter-details > summary.toc-chapter-head::after {
+  content: '';
+  flex: none;
+  width: 0;
+  height: 0;
+  margin-left: auto;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 6px solid var(--text-muted);
+}
+
+/* 展开时三角朝下（design §4.5） */
+.toc-chapter-details[open] > summary.toc-chapter-head::after {
+  transform: rotate(90deg);
+}
+
+/* 平板起章名 17px（design §3.2） */
+@media (min-width: 720px) {
+  .toc-sidebar .toc-chapter-details > summary.toc-chapter-head {
+    font-size: 17px;
+  }
+}
+
+/*
+ * 当前页的小节（design v3 §4.5）：14px --text-muted，缩进比页面项再深一级，悬停变 --accent。
+ * 锚点直接用正文 h2 的 slug。
+ */
+.toc-sections {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.toc-sections > li > a {
+  display: block;
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-6);
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: var(--lh-heading);
+  text-decoration: none;
+}
+
+.toc-sections > li > a:hover,
+.toc-sections > li > a:focus-visible {
+  color: var(--accent);
+}
+
+.toc-sections > li > a:hover .toc-label {
+  text-decoration: underline;
+}
+
 /* 页面项：15px，行高 1.5，上下内边距 6px，左内边距 12px（design §4.5） */
-.toc-step a {
+.toc-step > a {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -170,15 +246,21 @@
   position: relative;
 }
 
-.toc-step a:hover .toc-label {
+.toc-step > a:hover {
+  color: var(--accent);
+}
+
+.toc-step > a:hover .toc-label {
   text-decoration: underline;
 }
 
-/* 当前项：加粗、--accent-soft 底，左侧一条强调色竖线（不只靠颜色，另有 aria-current）。 */
-.toc-step a[aria-current='page'] {
+/* 当前项：600、--accent 字，左边 4px --accent 竖线（design v3 §4.5；另有 aria-current，不只靠颜色）。 */
+.toc-step > a[aria-current='page'] {
+  color: var(--accent);
   font-weight: var(--fw-heading);
-  background: var(--accent-soft);
-  box-shadow: inset 3px 0 0 var(--accent);
+  background: transparent;
+  border-radius: 0;
+  box-shadow: inset 4px 0 0 var(--accent);
 }
 
 .toc-tag {
@@ -191,8 +273,8 @@
 }
 
 /* 其他路线：弱化色，并带“其他路线”文字（design §4.5）。 */
-.toc-step[data-off-route] a {
-  color: var(--text-muted);
+.toc-step[data-off-route] > a {
+  color: var(--text-faint);
 }
 
 /* “或”分组：各选项用左侧短竖线连起来；选项名 13px --text-faint（design §4.5，v2.2） */
@@ -279,34 +361,12 @@ aside.toc-sidebar:focus-within {
 }
 
 .toc-sidebar-inner {
-  padding: var(--space-5) var(--space-4) var(--space-5) var(--space-5);
+  padding: var(--space-5) var(--space-4);
 }
 
-/* 侧边栏里的目录列表：章标题两行（13px --text-faint 的“第 1 章”，下面 15px 600 的章名） */
+/* 侧边栏里的目录列表：页面 15px，小节 14px（design §3.2） */
 .toc-sidebar {
   font-size: 15px;
-  letter-spacing: normal;
-}
-
-.toc-sidebar .toc-chapter-head {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0;
-  margin-bottom: var(--space-2);
-}
-
-.toc-sidebar .toc-chapter-no {
-  color: var(--text-faint);
-  font-size: var(--fs-caption);
-  line-height: var(--lh-meta);
-  font-weight: 400;
-}
-
-.toc-sidebar .toc-chapter-title {
-  color: var(--text);
-  font-size: 15px;
-  line-height: var(--lh-meta);
-  font-weight: var(--fw-heading);
   letter-spacing: normal;
 }
 
@@ -314,30 +374,15 @@ aside.toc-sidebar:focus-within {
   margin-top: var(--space-5);
 }
 
-/* 页面项：15px，上下内边距 6px，左内边距 12px */
-.toc-sidebar .toc-step a {
-  padding: 6px 6px 6px var(--space-3);
+/* 页面项：15px，上下内边距 6px，从侧边栏边缘缩进 32px（design §4.5） */
+.toc-sidebar .toc-step > a {
+  padding: 6px var(--space-2) 6px var(--space-4);
   font-size: 15px;
 }
 
-/* 当前页：--accent 字色 + --accent-soft 底 + 圆角 8px，不用左侧色条（v2.2 D8） */
-.toc-sidebar .toc-step a[aria-current='page'] {
-  color: var(--accent);
-  background: var(--accent-soft);
-  box-shadow: none;
-}
-
-/* 悬停：--surface-muted 底 */
-.toc-sidebar .toc-step a:hover {
-  background: var(--surface-muted);
-}
-
-.toc-sidebar .toc-step a[aria-current='page']:hover {
-  background: var(--accent-soft);
-}
-
-.toc-sidebar .toc-step a:hover .toc-label {
-  text-decoration: none;
+/* 抽屉里的页面项从抽屉边缘缩进 32px（.toc-dialog-body 自身有 16px 内边距，design §4.5） */
+.toc-dialog-body .toc-step > a {
+  padding-left: var(--space-4);
 }
 
 /* “或”分组：保留下面的短竖线；256px 宽的侧边栏里选项名和“切换”按钮要能并排（按钮还没按过时是本机没选，见 toc.ts） */

@@ -16,7 +16,7 @@
 | 里程碑 | 任务 | 交付的可用能力 | 覆盖 |
 | --- | --- | --- | --- |
 | MS11 骨架 | V01 | 全站换成 v3 令牌；顶栏（logo、站名、小形象、昼夜切换（用户 2026-10-22 决定取代视图切换）、联系方式）；≥720px 常驻侧边栏、<720px 抽屉；页头色带和章首页一组去掉，眉题 + 纯文字 h1；页脚 | FR-72（顶栏、正文栏、主色）、FR-16（断点）、FR-23；AC-26（搜索框除外） |
-| MS12 侧边栏 | V02 | 只展开当前章、点章名开合；当前页下列出当前视图的 h2，切视图跟着换；当前项紫字 + 左边线 | FR-16；AC-27 |
+| MS12 侧边栏 | V02 | 只展开当前章、点章名开合；当前页下列出原理版正文的 h2；当前项紫字 + 左边线 | FR-16；AC-27 |
 | MS13 正文排版 | V03 | h1–h4、链接、代码、表格、提示块、截图按 design §3.2、§4.7 | FR-72（正文栏）、FR-21 |
 | MS14 翻页和选择页 | V04 | 文字链接翻页（≥44px）、跳过小字、回到/返回刚才的步骤；手机不再吸底；选项卡片 | FR-72、FR-10、FR-15、FR-12、FR-19、FR-20；AC-30 |
 | MS15 首页和找不到页 | V05 | VuePress 式首屏 + 按章目录；找不到页换外壳；删掉章节副标题和多余的编号字形 | FR-18、FR-72；AC-29 |
@@ -55,7 +55,7 @@ V02 ─────────────────────────�
 | 任务 | 标题 | 依赖 | 档位 | 细化 | Issue |
 | --- | --- | --- | --- | --- | --- |
 | V01 | 换成文档站的令牌、顶栏和两栏骨架 | 无 | 强 | 已实施（2026-10-22，分支未合并） | 待发布 |
-| V02 | 侧边栏按章折叠并列出当前页小节 | V01 | 标准 | 已细化 | 待发布 |
+| V02 | 侧边栏按章折叠并列出当前页小节 | V01 | 标准 | 已实施（2026-10-22，分支未合并） | 待发布 |
 | V03 | 按 design v3 重排正文和内容组件 | V01 | 标准 | 已细化 | 待发布 |
 | V04 | 文字链接翻页和选择页卡片 | V03 | 标准 | 已细化 | 待发布 |
 | V05 | VuePress 式首页和找不到页 | V01 | 标准 | 已细化 | 待发布 |
@@ -99,23 +99,24 @@ V02 ─────────────────────────�
 
 ### V02 侧边栏按章折叠并列出当前页小节
 
-**目标**：FR-16 的 v3 行为（AC-27）：每章一个 `<details>`，只展开当前页所在的章，点章名开合（不写本机）；当前页下面列出它当前视图正文的 h2，切换视图后跟着换；当前项 600 `--accent` + 4px 左边线；分叉点、其他路线、原理、可跳过的标记按 design §4.5。
+**目标**：FR-16 的 v3 行为（AC-27）：每章一个 `<details>`，只展开当前页所在的章，点章名开合（不写本机）；当前页下面列出它原理版正文的 h2（用户 2026-10-22 决定去掉视图切换、页面固定原理视图，架构 §13.12，不再按视图切换）；当前项 600 `--accent` + 4px 左边线；分叉点、其他路线、原理、可跳过的标记按 design §4.5。
 
-**涉及范围**：`src/pages/[page].astro`、`src/pages/faq/*.astro`、`src/pages/ip-tests/*.astro`（把 `render()` 的 `headings` 传下去）、`src/layouts/PageLayout.astro`、`ReferenceLayout.astro`（新参数 `sections`）、`src/components/Toc.astro`、`TocNav.astro`、`src/styles/toc.css`、`src/scripts/toc.ts`（只在需要时调整对 `<details>` 的重画）；`tests/e2e/ac-27-sidebar.spec.ts`（新）、`toc-helpers.ts`。
+**涉及范围**：`src/pages/[page].astro`、`src/pages/faq/*.astro`、`src/pages/ip-tests/*.astro`（把 `render()` 的 `headings` 传下去，参考页记下要高亮的上级）、`src/layouts/PageLayout.astro`、`ReferenceLayout.astro`（新参数 `sections`、`currentReference`）、`src/components/Toc.astro`、`TocNav.astro`、新建 `TocItems.astro`、`TocSections.astro`、`src/lib/toc-sections.ts`、`src/styles/toc.css`、`src/scripts/toc.ts`（只在需要时调整对 `<details>` 的重画）；`tests/e2e/ac-27-sidebar.spec.ts`（新）、`src/components/TocNav.test.ts`（新）、`toc-helpers.ts`。
 
 **依赖**：依赖 V01
 
 **建议档位**：`标准` — 结构和接口在架构 §13.3、§13.11 R-1 已定，沿用 `TocNav` 的标记契约。
 
 **参照**：
-- 接口：`PageLayout` 新参数 `sections: { principle: { slug: string; text: string }[]; operation?: { slug: string; text: string }[] }`，只取 `depth === 2`；两份列表写成 `<ol data-view-only="principle|operation">`，CSS 按 `<html data-view>` 显示（没有 `data-view` 时显示操作版），参考页只有一份、不带 `data-view-only`。
-- 链接锚点直接用 `headings` 的 `slug`（操作版已是 `op-` 前缀，`rehype-operation-ids.ts`）。
-- `toc.ts` 按 `outline()` 改写弱化和当前项的逻辑不变；首页目录（`TocNav` 首页变体）不折叠（V05 再改样式）。
-- 边界：没有 h2 的页面不输出列表；原理独有页在操作视图下列原理版的 h2（它只有原理版正文）；当前章是附录时参考页也展开附录章。
+- 接口：`tocSections(headings)` 只取 `depth === 2`，`PageLayout` 和 `ReferenceLayout` 的新参数 `sections: { slug: string; text: string }[]`；固定原理视图，所以只有一份列表、没有 `data-view-only`。
+- 参考页：`ReferenceLayout` 的 `currentReference` 是常见问题或 IP 质量实测合集的标识；各条问题、各篇实测高亮上级，附录章跟着展开；子页也把 `headings` 传下去，小节挂在上级项下面，锚点仍落在子页正文。
+- 链接锚点直接用 `headings` 的 `slug`；`toc.ts` 按 `outline()` 改写弱化和当前项的逻辑不变，不碰 `<details>` 的开合；首页和找不到页的目录（`TocNav` 不传 `collapsible`）不折叠。
+- 边界：没有 h2 的页面不输出列表；当前章是附录时参考页也展开附录章；旁支页不在目录里，不标当前项，但用 `openChapterId` 展开它所属的章。
 
 **验收**：
+- [ ] 测试：`npx vitest run src/components/TocNav.test.ts`
 - [ ] e2e：`npx playwright test tests/e2e/ac-27-sidebar.spec.ts`（768、1280；用例里另设 719 宽）
-- [ ] 手工验证：1280 打开 `/import-proxy/` → 只有第 1 章展开；点“注册和订阅”展开它；切到原理视图 → 当前页下的小节换成原理版的（Q-18 之前用有 h2 的页面，例如 `/overview/`）；禁用 JS → 章仍能开合
+- [ ] 手工验证：1280 打开 `/import-proxy/` → 只有第 1 章展开；点“注册和订阅”展开它；`/faq/reinstall/` → 附录章展开、“常见问题”高亮；`/ip-tests/voyracloud/` → “IP 质量实测合集”下列出两个 h2，点一个滚到正文；禁用 JS → 章仍能开合
 
 ### V03 按 design v3 重排正文和内容组件
 

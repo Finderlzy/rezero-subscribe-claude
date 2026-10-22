@@ -87,6 +87,10 @@ test('≥720 宽：左侧目录常驻、当前页高亮、能独立滚动，页�
     return current.top >= box.top && current.bottom <= Math.min(box.bottom, innerHeight);
   });
   expect(inAside).toBe(true);
+  // V02：默认只展开当前章，内容可能比视口短；验证独立滚动前先展开其余章（design §4.5，FR-16）
+  while ((await aside.locator('details:not([open]) > summary').count()) > 0) {
+    await aside.locator('details:not([open]) > summary').first().click();
+  }
   const box = await aside.evaluate((el) => {
     const style = getComputedStyle(el);
     const rect = el.getBoundingClientRect();
@@ -117,7 +121,7 @@ test('≥720 宽：左侧目录常驻、当前页高亮、能独立滚动，页�
   );
   expect(nestedScrollers).toBe(0);
 
-  // 当前页高亮：--accent 字 + --accent-soft 底，只有一个
+  // 当前页高亮：600 --accent 字 + 4px --accent 左边线，没有底色块（design v3 §4.5），只有一个
   const current = aside.locator('a[aria-current="page"]');
   await expect(current).toHaveCount(1);
   await expect(current).toHaveAccessibleName(/^测 IP 质量/);
@@ -130,10 +134,19 @@ test('≥720 宽：左侧目录常驻、当前页高亮、能独立滚动，页�
       d.remove();
       return v;
     };
-    return { color: getComputedStyle(el).color, background: getComputedStyle(el).backgroundColor, accent: probe('--accent', 'color'), soft: probe('--accent-soft', 'background-color') };
+    const style = getComputedStyle(el);
+    return {
+      color: style.color,
+      background: style.backgroundColor,
+      shadow: style.boxShadow,
+      weight: style.fontWeight,
+      accent: probe('--accent', 'color'),
+    };
   });
   expect(colors.color).toBe(colors.accent);
-  expect(colors.background).toBe(colors.soft);
+  expect(colors.background).toBe('rgba(0, 0, 0, 0)');
+  expect(colors.shadow).toContain('4px');
+  expect(colors.weight).toBe('600');
 
   // 侧边栏自己滚：滚到底后页面本身没动，侧边栏滚了
   const scroll = await aside.evaluate((el) => {

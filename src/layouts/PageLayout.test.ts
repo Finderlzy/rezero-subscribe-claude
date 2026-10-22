@@ -79,11 +79,30 @@ describe('PageLayout', () => {
     // 没有 JS 时就是指向首页完整目录的链接，不隐藏
     expect(html).toMatch(/<a[^>]*href="\/#home-chapters"[^>]*data-toc-open/);
     expect(html).not.toMatch(/data-toc-open[^>]*hidden/);
-    // 侧边栏里章标题写“第 0 章”（和首页、目录的 00 一样从 0 起，不补零），不再是补零的章节号字形
-    expect(html).toMatch(/<span class="toc-chapter-no"[^>]*>第 0 章<\/span>/);
+    // 侧边栏和抽屉里每章一个 <details>，<summary> 只写章名（design v3 §4.5，FR-16）
+    expect(html).toMatch(/<details class="toc-chapter-details"[^>]*>\s*<summary class="toc-chapter-head"[^>]*>\s*<span class="toc-chapter-title"[^>]*>开始<\/span>/);
+    expect(html).not.toMatch(/<span class="toc-chapter-no"[^>]*>第 0 章<\/span>/);
     expect(html).not.toMatch(/<span class="toc-chapter-no"[^>]*>\s*<svg class="numeral"[^>]*aria-label="第 0 章"/);
     expect(html).toMatch(/href="[^"]*\/faq\/"[^>]*>\s*<span class="toc-label"[^>]*>常见问题/);
     expect(html).toMatch(/href="[^"]*\/ip-tests\/"[^>]*>\s*<span class="toc-label"[^>]*>IP 质量实测合集/);
+  });
+
+  it('sections 传到侧边栏当前项下面，当前章展开（V02，FR-16）', async () => {
+    const outline = [
+      {
+        id: 'register-and-subscribe',
+        title: '注册和订阅',
+        items: [
+          { kind: 'step' as const, id: 'android-subscribe', title: '安卓：订阅', skippable: false, principleOnly: false, onRoute: true, current: true },
+        ],
+      },
+    ];
+    const html = await render(
+      { view: { ...view, outline }, sections: [{ slug: '一-购买服务器', text: '一、购买服务器' }] },
+      { principle: '<p>原理正文</p>' },
+    );
+    expect(html).toMatch(/<details class="toc-chapter-details" open>/);
+    expect(html).toMatch(/<li class="toc-step" data-toc-step="android-subscribe"[\s\S]*?<ol class="toc-sections">[\s\S]*?href="#一-购买服务器"/);
   });
 
   it('顶栏：链到首页的 logo 标记和站名，小形象紧跟在链接后面、不在链接里；顶栏在正文之前（design §4.0）', async () => {
