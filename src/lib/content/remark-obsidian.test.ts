@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { relative } from 'node:path';
+import { relative, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createMarkdownProcessor, parseFrontmatter } from '@astrojs/markdown-remark';
 import type { Image, Node, Parent, Root } from 'mdast';
@@ -220,7 +220,8 @@ describe('不转换与无法识别的写法', () => {
       (e: unknown) => e,
     );
     expect(error).toBeInstanceOf(ContentError);
-    expect((error as Error).message).toContain(`${relative(process.cwd(), file)}:5:1 找不到标题为“not-exist”的页面`);
+    // 报错里的文件路径统一用 `/`（remark-obsidian.ts）：Windows 下 relative() 给反斜杠，先换掉再比
+    expect((error as Error).message).toContain(`${relative(process.cwd(), file).split(sep).join('/')}:5:1 找不到标题为“not-exist”的页面`);
   });
 
   it('Astro 内容集合传入去掉 frontmatter 并 trim 过的正文时，行号仍换算回源文件', async () => {
