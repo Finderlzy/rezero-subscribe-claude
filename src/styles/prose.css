@@ -308,6 +308,13 @@
   font-weight: var(--fw-heading);
 }
 
+/* 选项卡片选中时只靠边框、底色和文字变色，不加下划线（用户 2026-10-24） */
+.prose .option-title a,
+.prose .option-title a:hover,
+.prose .option-title a:focus-visible {
+  text-decoration: none;
+}
+
 /* 说明段落：15px --text-muted */
 .prose .option-block > p:not(.option-title) {
   margin: var(--space-2) 0;

@@ -1,65 +1,100 @@
 import { expect, test } from '@playwright/test';
 import { openToc } from './toc-helpers';
 
-// AC-04（FR-14、FR-16）：目录只画当前路线；另一条路线收成一行文字链接，点它换路线。
-// 分叉点不再在目录里放“切换”按钮，也不列另一条路线的页面（作者 2026-10-23）。
-// V10：两个分叉点分别在 overview（节点方案，默认方案二）和 client-desktop（手机系统，没有默认）上，
-// 各选项的页面按新路线：plan1 / plan2-residential-server、iphone-* / android-*。
+// AC-04（FR-14、FR-16）：目录只展开当前页所在的章；分叉点的全部选项同时列出（用户 2026-10-24），
+// 选中的（或当前页所在的）选项展开，没选中的收起；点选项名可以展开，再从里面的页面链接进入那个方案。
+// 走完一个方案的最后一步，下一步直接到下一章，不会经过另一个方案。
 
-// 节点方案：在方案一的页面上，目录只列出方案一；点“换到方案二 →”进入方案二，当前页、小节和高亮跟着变
-test('目录只画当前路线，换到方案二后当前页、小节和高亮跟着变', async ({ page }) => {
+// 节点方案：方案一和方案二都在目录里；在方案一的页面上方案一展开、方案二收起，方案一的小节和高亮正常
+test('目录同时列出方案一和方案二，只展开当前方案；展开方案二并进入后高亮跟着变', async ({ page }) => {
   await page.goto('./plan1/');
   const toc = await openToc(page);
 
-  await expect(toc.locator('[data-toc-option="plan-1"] .toc-route-label')).toHaveText('方案一');
-  // 只画当前路线：另一个选项的页面不在目录里，也没有“其他路线”字样
-  await expect(toc.locator('[data-toc-option="plan-2"]')).toHaveCount(0);
-  await expect(toc).not.toContainText('其他路线');
-  await expect(toc.locator('a[aria-current="page"]')).toHaveText('搭建专属住宅代理节点');
-  await expect(toc.locator('.toc-sections a')).toHaveText([
+  const plan1 = toc.locator('[data-toc-option="plan-1"]');
+  const plan2 = toc.locator('[data-toc-option="plan-2"]');
+  await expect(plan1).toHaveCount(1);
+  await expect(plan2).toHaveCount(1);
+  await expect(plan1.locator('summary.toc-route-label')).toHaveText('方案一');
+  await expect(plan2.locator('summary.toc-route-label')).toContainText('方案二');
+  await expect(plan1).toHaveAttribute('open', '');
+  await expect(plan2).not.toHaveAttribute('open', /.*/);
+  // 收起时看不到方案二的页面，但选项名还在
+  await expect(plan2.locator('[data-toc-step="plan2-residential-server"]')).toBeHidden();
+
+  // 当前项、小节列表都只在方案一下面
+  const current = toc.locator('a[aria-current="page"]');
+  await expect(current).toHaveCount(1);
+  await expect(current).toHaveText('搭建专属住宅代理节点');
+  await expect(plan1.locator('.toc-sections a')).toHaveText([
     '购买海外 VPS',
     '购买静态住宅 ISP 代理',
     'SSH 连接服务器',
     '运行一键脚本',
     '打开面板（可选）',
   ]);
-  // 旧的分叉组控件不再出现
-  await expect(toc.locator('[data-toc-switch]')).toHaveCount(0);
-  await expect(toc.locator('[data-toc-other]')).toHaveCount(0);
 
-  await toc.getByRole('link', { name: '换到方案二 →' }).click();
+  // 点方案二的选项名只展开，不跳转；再点它里面的第一页才进入方案二
+  await plan2.locator('summary.toc-route-label').click();
+  await expect(plan2).toHaveAttribute('open', '');
+  await expect(page).toHaveURL(/\/plan1\/$/);
+  await plan2.getByRole('link', { name: '配置住宅 IP 服务器' }).click();
   await expect(page).toHaveURL(/\/plan2-residential-server\/$/);
 
   const nextToc = await openToc(page);
-  await expect(nextToc.locator('[data-toc-option="plan-2"] .toc-route-label')).toHaveText('方案二');
-  await expect(nextToc.locator('[data-toc-option="plan-1"]')).toHaveCount(0);
-  await expect(nextToc.getByRole('link', { name: '换到方案一 →' })).toBeVisible();
+  const nextPlan1 = nextToc.locator('[data-toc-option="plan-1"]');
+  const nextPlan2 = nextToc.locator('[data-toc-option="plan-2"]');
+  await expect(nextPlan1).not.toHaveAttribute('open', /.*/);
+  await expect(nextPlan2).toHaveAttribute('open', '');
   await expect(nextToc.locator('a[aria-current="page"]')).toHaveText('配置住宅 IP 服务器');
-  await expect(nextToc.locator('.toc-sections a')).toHaveText([
+  await expect(nextPlan2.locator('.toc-sections a')).toHaveText([
     '购买住宅服务器',
     '先测服务器 IP',
     'SSH 连接服务器',
     '运行一键脚本',
     '打开面板（可选）',
   ]);
+
+  // 走完方案二：下一步是下一章的第一页，不经过方案一
+  await expect(page.getByRole('navigation', { name: '上一步和下一步' }).getByRole('link', { name: /下一步.*客户端配置与环境验证：电脑端/ })).toHaveAttribute(
+    'href',
+    /\/client-desktop\/$/,
+  );
 });
 
-// 手机系统：在 iPhone 的页面上目录只列 iPhone，点“换到安卓 →”进入安卓分支的第一页
-test('手机系统的分叉也只画当前路线：iPhone 的页面上点“换到安卓 →”到安卓的第一页', async ({ page }) => {
+// 手机系统：iPhone 和安卓都在目录里，iPhone 展开、安卓收起；展开安卓进入后互换
+test('目录同时列出 iPhone 和安卓，只展开当前选项；进入安卓后只展开安卓', async ({ page }) => {
   await page.goto('./iphone-prepare/');
   const toc = await openToc(page);
 
-  await expect(toc.locator('[data-toc-option="iphone"] .toc-route-label')).toHaveText('iPhone / iPad');
-  await expect(toc.locator('[data-toc-option="android"]')).toHaveCount(0);
+  const iphone = toc.locator('[data-toc-option="iphone"]');
+  const android = toc.locator('[data-toc-option="android"]');
+  await expect(iphone.locator('summary.toc-route-label')).toHaveText('iPhone / iPad');
+  await expect(android.locator('summary.toc-route-label')).toContainText('安卓');
+  await expect(iphone).toHaveAttribute('open', '');
+  await expect(android).not.toHaveAttribute('open', /.*/);
   await expect(toc.locator('a[aria-current="page"]')).toHaveText('客户端配置与环境验证：iOS 端');
 
-  await toc.getByRole('link', { name: '换到安卓 →' }).click();
+  await android.locator('summary.toc-route-label').click();
+  await expect(android).toHaveAttribute('open', '');
+  await expect(page).toHaveURL(/\/iphone-prepare\/$/);
+  await android.getByRole('link', { name: '客户端配置与环境验证：安卓端' }).click();
   await expect(page).toHaveURL(/\/android-prepare\/$/);
 
   const nextToc = await openToc(page);
-  await expect(nextToc.locator('[data-toc-option="android"] .toc-route-label')).toHaveText('安卓');
-  await expect(nextToc.locator('[data-toc-option="iphone"]')).toHaveCount(0);
-  await expect(nextToc.getByRole('link', { name: '换到iPhone / iPad →' })).toBeVisible();
+  await expect(nextToc.locator('[data-toc-option="iphone"]')).not.toHaveAttribute('open', /.*/);
+  await expect(nextToc.locator('[data-toc-option="android"]')).toHaveAttribute('open', '');
   await expect(nextToc.locator('a[aria-current="page"]')).toHaveText('客户端配置与环境验证：安卓端');
-  await expect(nextToc.locator('.toc-sections a')).toHaveText(['安装 v2rayNG', '准备 Google Play', '改时区', '下载 Gmail']);
+
+  // 手机上刚才打开的是抽屉，先关掉再点正文里的翻页
+  if ((page.viewportSize()?.width ?? 0) < 720) await page.keyboard.press('Escape');
+
+  // 安卓分支的下一页仍是本章的订阅页；走完它以后下一步直接到下一章“日常维护”
+  const nav = page.getByRole('navigation', { name: '上一步和下一步' });
+  await expect(nav.getByRole('link', { name: /下一步.*账号注册与订阅全流程：安卓端/ })).toHaveAttribute(
+    'href',
+    /\/android-subscription\/$/,
+  );
+  await nav.getByRole('link', { name: /下一步/ }).click();
+  await expect(page).toHaveURL(/\/android-subscription\/$/);
+  await expect(nav.getByRole('link', { name: /下一步.*日常维护/ })).toHaveAttribute('href', /\/maintenance\/$/);
 });

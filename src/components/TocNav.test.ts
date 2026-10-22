@@ -88,6 +88,12 @@ describe('TocNav 侧边栏', () => {
     ];
     const html = await render({ outline: sharedOutline, sections });
     expect(html.match(/class="toc-sections"/g)).toHaveLength(1);
+    // 用户 2026-10-24：两个选项都显示，选中的展开、没选中的收起
+    expect(html.match(/<details class="toc-option-details"/g)).toHaveLength(2);
+    expect(html).toMatch(/<details class="toc-option-details" data-toc-option="plan-1" open>/);
+    expect(html).toMatch(/<details class="toc-option-details" data-toc-option="plan-2">/);
+    expect(html).not.toContain('toc-route-switch');
+    expect(html).toContain('或：<');
   });
 
   it('找不到页的目录不折叠，章名同样不写“第 n 章”', async () => {

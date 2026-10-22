@@ -3,6 +3,7 @@ import { hasSidebar, openToc, sidebar, tocButton } from './toc-helpers';
 
 // AC-27（FR-16，design v3 §4.5）：侧边栏按章折叠，只展开当前页所在的章；点章名开合、不写本机；
 // 当前项是 600 --accent 字 + 4px 左边线；参考页高亮上级并展开“日常维护”章（实施计划 §3.1）；
+// 分叉点同时列出全部选项，选中/当前选项展开、其余收起（用户 2026-10-24）；
 // 719px 没有常驻侧边栏，目录在抽屉里。章名不写“第 n 章”（作者 2026-10-22，V10）。
 // 小节列表只挂当前页（原理版 h2）；IP 实测子页的 h2 列在上级参考项下面（见文件末尾的用例）。
 // “没有 h2 就不列”、共享步骤只挂一份等结构由 TocNav.test.ts 覆盖。
@@ -21,12 +22,15 @@ test('当前章展开、其余折叠；当前项高亮；点章名开合不写�
   await expect(toc.locator('.toc-chapter-no')).toHaveCount(0);
   for (const text of await toc.locator('summary').allTextContents()) expect(text).not.toMatch(/第 \d+ 章/);
   // 只展开当前页所在的第 1 章（从 0 数）
-  await expect(toc.locator('details[open]')).toHaveCount(1);
-  await expect(toc.locator('details[open] .toc-chapter-title')).toHaveText('准备节点和住宅 IP');
+  await expect(toc.locator('.toc-chapter-details[open]')).toHaveCount(1);
+  await expect(toc.locator('.toc-chapter-details[open] .toc-chapter-title')).toHaveText('准备节点和住宅 IP');
   await expect(toc.locator('[data-toc-step="plan1"]')).toBeVisible();
   await expect(toc.locator('[data-toc-step="preface"]')).toBeHidden();
-  // 方案一在这一章下面；当前页正文的小节列在它下面
+  // 方案一、方案二都在这一章下面；方案一展开，方案二收起；当前页正文的小节列在方案一下面
   await expect(toc.locator('[data-toc-option="plan-1"]')).toBeVisible();
+  await expect(toc.locator('[data-toc-option="plan-2"]')).toBeVisible();
+  await expect(toc.locator('[data-toc-option="plan-1"]')).toHaveAttribute('open', '');
+  await expect(toc.locator('[data-toc-option="plan-2"]')).not.toHaveAttribute('open', /.*/);
   await expect(toc.locator('.toc-sections').first()).toBeVisible();
 
   const current = toc.locator('a[aria-current="page"]');
@@ -42,7 +46,7 @@ test('当前章展开、其余折叠；当前项高亮；点章名开合不写�
       return value;
     };
     const s = getComputedStyle(el);
-    return { color: s.color, background: s.backgroundColor, shadow: s.boxShadow, weight: s.fontWeight, accent: probe('--accent') };
+    return { color: s.color, background: s.backgroundColor, shadow: s.boxShadow, weight: s.fontWeight, accent: probe('--accent'), decoration: s.textDecorationLine };
   });
   expect(style.color).toBe(style.accent);
   expect(style.background).toBe('rgba(0, 0, 0, 0)');
@@ -50,17 +54,23 @@ test('当前章展开、其余折叠；当前项高亮；点章名开合不写�
   expect(style.shadow).toContain('inset');
   expect(style.shadow).toContain(style.accent);
   expect(style.weight).toBe('600');
+  // 当前项只变色、不加下划线（用户 2026-10-24）
+  expect(style.decoration).toBe('none');
+  await current.hover();
+  await expect(current).toHaveCSS('text-decoration-line', 'none');
 
   const before = await page.evaluate(() => JSON.stringify(localStorage));
   await toc.locator('summary').filter({ hasText: '客户端配置与订阅' }).click();
-  await expect(toc.locator('details[open] .toc-chapter-title')).toHaveText(['准备节点和住宅 IP', '客户端配置与订阅']);
-  await expect(toc.locator('[data-toc-step="iphone-prepare"]')).toBeVisible();
-  await expect(toc.getByRole('link', { name: '换到安卓 →' })).toBeVisible();
+  await expect(toc.locator('.toc-chapter-details[open] .toc-chapter-title')).toHaveText(['准备节点和住宅 IP', '客户端配置与订阅']);
+  // 还没选手机系统：两个选项名都显示，页面都收起
+  await expect(toc.locator('[data-toc-option="iphone"]')).toBeVisible();
+  await expect(toc.locator('[data-toc-option="android"]')).toBeVisible();
+  await expect(toc.locator('[data-toc-step="iphone-prepare"]')).toBeHidden();
   // 折叠只发生在 DOM 里，不写本机（FR-16）
   expect(await page.evaluate(() => JSON.stringify(localStorage))).toBe(before);
 
   await toc.locator('summary').filter({ hasText: '客户端配置与订阅' }).click();
-  await expect(toc.locator('details[open]')).toHaveCount(1);
+  await expect(toc.locator('.toc-chapter-details[open]')).toHaveCount(1);
   await expect(toc.locator('[data-toc-step="iphone-prepare"]')).toBeHidden();
 });
 
@@ -74,7 +84,7 @@ test('719px：没有常驻侧边栏，目录在抽屉里，章同样折叠', asy
   await tocButton(page).click();
   const dialog = page.getByRole('dialog', { name: '目录' });
   await expect(dialog).toBeVisible();
-  await expect(dialog.locator('details[open] .toc-chapter-title')).toHaveText('准备节点和住宅 IP');
+  await expect(dialog.locator('.toc-chapter-details[open] .toc-chapter-title')).toHaveText('准备节点和住宅 IP');
   await expect(dialog.locator('[data-toc-step="preface"]')).toBeHidden();
   // 章名是抽屉里的主控，可点区域 ≥44px（design §5）
   const summaryBox = await dialog.locator('summary').filter({ hasText: '准备节点和住宅 IP' }).boundingBox();
@@ -93,7 +103,7 @@ test('参考页：展开“日常维护”章，高亮 IP 质量实测合集（�
   for (const [path, parent] of cases) {
     await page.goto(path);
     const toc = await openToc(page);
-    await expect(toc.locator('details[open] .toc-chapter-title'), path).toHaveText('日常维护');
+    await expect(toc.locator('.toc-chapter-details[open] .toc-chapter-title'), path).toHaveText('日常维护');
     const current = toc.locator('a[aria-current="page"]');
     await expect(current, path).toHaveCount(1);
     await expect(current, path).toHaveAccessibleName(parent);
@@ -126,7 +136,7 @@ test.describe('没有 JS', () => {
       return;
     }
     const toc = sidebar(page);
-    await expect(toc.locator('details[open] .toc-chapter-title')).toHaveText('准备节点和住宅 IP');
+    await expect(toc.locator('.toc-chapter-details[open] .toc-chapter-title')).toHaveText('准备节点和住宅 IP');
     await toc.locator('summary').filter({ hasText: '开始' }).click();
     await expect(toc.locator('[data-toc-step="preface"]')).toBeVisible();
   });

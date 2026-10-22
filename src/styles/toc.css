@@ -255,34 +255,61 @@
   box-shadow: inset 4px 0 0 var(--accent);
 }
 
+/* 选中的项只变色，不加下划线（用户 2026-10-24） */
+.toc-step > a[aria-current='page']:hover .toc-label,
+.toc-step > a[aria-current='page']:focus-visible .toc-label {
+  text-decoration: none;
+}
+
 /*
- * 分叉点：只画当前路线。选项名是一行小字，页面项在它下面；另一条路线收成一行文字链接
- * （作者 2026-10-23，替代原来的“方案一 / 或：方案二”两组和“切换”按钮）。
+ * 分叉点（用户 2026-10-24）：全部选项同时列出，每个选项是一个可开合的 <details>。
+ * 选中的（或当前页所在的）选项展开，没选中的收起；展开后页面项在选项名下面。
  */
-.toc-route {
+.toc-route-group {
   margin: 0;
 }
 
-.toc-route-label {
+.toc-option-details {
+  margin: 0;
+}
+
+.toc-option-details > summary.toc-route-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  box-sizing: border-box;
   margin: 0;
   padding: var(--space-2) var(--space-2) var(--space-1) var(--space-3);
   color: var(--text-muted);
   font-size: var(--fs-caption);
   font-weight: var(--fw-heading);
   letter-spacing: normal;
+  cursor: pointer;
+  list-style: none;
 }
 
-.toc-route-switch {
-  display: block;
-  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
-  color: var(--accent);
-  font-size: var(--fs-meta);
-  text-decoration: none;
+.toc-option-details > summary.toc-route-label::-webkit-details-marker {
+  display: none;
 }
 
-.toc-route-switch:hover .toc-label,
-.toc-route-switch:hover {
-  text-decoration: underline;
+.toc-option-details > summary.toc-route-label::after {
+  content: '';
+  flex: none;
+  width: 0;
+  height: 0;
+  margin-left: auto;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 6px solid var(--text-muted);
+}
+
+.toc-option-details[open] > summary.toc-route-label::after {
+  transform: rotate(90deg);
+}
+
+.toc-option-details > ol {
+  padding-left: var(--space-2);
 }
 
 .toc-tag {

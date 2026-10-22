@@ -41,6 +41,11 @@ test('回到选择页：所选的块标“已选”和 aria-current，其他块�
   const chosen = optionBlock(page, '方案二');
   await expect(chosen).toHaveAttribute('aria-current', 'true');
   await expect(chosen.getByText('已选')).toBeVisible();
+  // 选中后只靠边框、底色和文字变色，标题不加下划线（用户 2026-10-24）
+  const chosenTitle = chosen.locator('.option-title a');
+  await expect(chosenTitle).toHaveCSS('text-decoration-line', 'none');
+  await chosenTitle.hover();
+  await expect(chosenTitle).toHaveCSS('text-decoration-line', 'none');
   await expect(optionBlock(page, '方案一')).not.toHaveAttribute('aria-current', /.*/);
   await expect(page.locator('.prose').filter({ visible: true }).locator('.option-block[aria-current]')).toHaveCount(1);
   await expect(page.getByRole('main').getByText('已选').filter({ visible: true })).toHaveCount(1);
