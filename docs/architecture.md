@@ -602,7 +602,7 @@ tests/fixtures/moved-*/         跳转表的坏内容用例（目标不存在、
 
 - **主题**（现状）：`src/lib/theme.ts`（`THEME_KEY`、`THEME_BOOT_SCRIPT`、`effectiveTheme`/`nextTheme` 纯函数）、`src/components/ThemeToggle.astro`（44×44 图标按钮，可访问名称“深色模式”，`aria-pressed` = 当前是深色，构建时 `hidden`）、`src/scripts/theme-toggle.ts`。`BaseLayout` 的 `<head>` 里内联 `THEME_BOOT_SCRIPT`，所有页面（含首页）首次绘制前按存过的选择写 `data-theme`；没存过时没有 `data-theme`，跟随系统。`tokens.css` 的深色令牌写两块：`:root[data-theme='dark']` 和 `@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) }`，`tokens.test.ts` 核对两块一致。只存这一个 localStorage 键，和 M4 无关。
 - **固定原理视图**（现状）：`[page].astro` 只渲染原理版正文，构建时导航按 `view(id, {}, 'principle')`；`PageLayout` 不再有 `operation` slot、`notice` 和 `data-body`；`VIEW_BOOT_SCRIPT` 固定写 `data-view="principle"`（只作“页面脚本会运行”的标记，PageLayout 按它先隐藏眉题步数）；`route-enhance`、`toc` 的视图固定为 `principle`，`VIEW_CHANGED_EVENT` 删除；`ViewToggle.astro`、`view-toggle.ts` 删除。M2 的 `view`/`outline` 仍接受两种视图，M4 仍有 `view` 字段（没人写），内容集合里的操作版数据暂不删，等 docs/v3-rewrite 的单版本重写统一处理。
-- **对后续任务的影响**（待用户或下一轮规划确认）：13.4 的 `section-hash` 不再需要“切视图”，双链和搜索结果的锚点可以只取原理版 id（V07、V08 的“先切视图再滚动”部分可以去掉）；R-2（`initViewToggle` 返回 `setView`）作废；R-7 的“按 M4 视图选锚点”改为固定原理版；13.3 的侧边栏小节列表只需一份（原理版的 h2）。
+- **对后续任务的影响**（用户 2026-10-22 确认，实施计划开头有汇总）：13.4 的 `section-hash` 不再需要“切视图”，双链和搜索结果的锚点可以只取原理版 id（V07、V08 的“先切视图再滚动”部分可以去掉）；R-2（`initViewToggle` 返回 `setView`）作废；R-7 的“按 M4 视图选锚点”改为固定原理版；13.3 的侧边栏小节列表只需一份（原理版的 h2）。
 
 ### 13.11 v3 实施前评审（2026-10-21）
 
