@@ -91,7 +91,7 @@
 chapters:
   - id: start
     title: 开始
-    intro: 每一步我都会努力去讲清楚为什么要这么做，……   # 可选：章节标题卡下的一句话（#36）
+    summary: 先看这份教程怎么用，……   # 可选：首页五栏简介的文案（M2 只校验非空；首页要求每章都有）
     items: [preface, disclaimer, overview, clean-up]
   - id: node-and-ip
     title: 准备节点和住宅 IP
@@ -209,7 +209,7 @@ function routeMapFromData(data: RouteData): RouteMap;
 function pathOf(stop: Stop): string;        // '/<id>/' 或 '/'；再由 withBase() 加前缀
 ```
 
-实现补充（#25）：`RouteData` 是 `{ chapters, pages, forks: { <分叉点>: { page, options } }, side: { <旁支页>: <returnTo> } }`（#36 起章节写了 `intro` 时 `chapters[i].intro` 带上它）；旁支页的 `current` 是 `{ kind: 'side' }`；`outline` 的 `onRoute` 在分叉点没选时对它的各选项都为真，操作视图下原理独有步骤为假。测试用路线图在 `src/lib/route/fixtures/sample-route.ts`，真实 `route.yaml` 的边界用例在 `src/lib/site.test.ts`。
+实现补充（#25）：`RouteData` 是 `{ chapters, pages, forks: { <分叉点>: { page, options } }, side: { <旁支页>: <returnTo> } }`（章节写了 `summary` 时 `chapters[i].summary` 带上它）；旁支页的 `current` 是 `{ kind: 'side' }`；`outline` 的 `onRoute` 在分叉点没选时对它的各选项都为真，操作视图下原理独有步骤为假。测试用路线图在 `src/lib/route/fixtures/sample-route.ts`，真实 `route.yaml` 的边界用例在 `src/lib/site.test.ts`。
 
 **规则**（构建时校验，任何一条不满足就失败，FR-61）：
 
@@ -225,7 +225,7 @@ function pathOf(stop: Stop): string;        // '/<id>/' 或 '/'；再由 withBas
 - **可跳过**：`skipTo` 沿当前路线和视图，跳过从当前页开始连续的可跳过步骤，取其后的第一项（可以跨章节，FR-15）。
 - **进度**：步骤在当前路线和视图的本章序列里才有 `index/total`；本章序列里有折叠的未选分支段、或当前页是选择页、旁支页、不在当前视图序列里的原理独有步骤时，只有章节名（FR-10）。
 - **枚举**：3 × 2 种选择组合 × 2 种视图共 12 条序列，每条都要从 `preface` 走到 `afterword`，不重复经过同一页（无环）。
-- **章节的一句话**（#36，§11.4 W-3）：`intro` 可选；写了就必须是非空字符串（M2 校验形状），并且原样出现在这一章第一项（普通页或选择页）的原理版正文里，第一项是分支段的章节不能写。M2 不读正文，这一条由 `assembleRoute()`（`src/lib/site.ts`）在 `buildRouteMap` 之后核对，错误照样是 `RouteValidationError`、写明 `route.yaml`（ADR-0005：标题卡的一句话不另写，`tests/fixtures/intro-not-in-body`）。
+- **章节的 summary**（V05 之后的首页五栏简介，作者 2026-10-22 调整）：`summary` 可选；写了就必须是非空字符串（M2 校验形状）。它是首页的导航文案，不是导入的正文，所以不要求原样摘自页面；首页要求五章都有，缺了由 `index.astro` 构建失败并指出章节标识。v2.1 的 `intro`（章节标题卡的一句话）已随标题卡删除，写了是未知字段。
 - **目录 outline**：沿用 1.0.0 的结构（章节 → 普通项 / 选择页 / “或”分组），每一项新增 `principleOnly`；去掉 `placeholder`；`current` 只在一处为真（共享步骤规则 1.0.0 已有）。
 
 ### M3 页面（`src/pages/`、`src/layouts/`、`src/components/`、`src/styles/`、`src/scripts/`）
@@ -478,7 +478,7 @@ v2.0 → v2.1 的代码差距（现状 → 目标）：
 | 模块 | 影响 | v3 改动 | 不变 |
 | --- | --- | --- | --- |
 | M1 内容 | 小改 | 双链的小节锚点按视图解析（13.4）；给 M6 提供每页两版正文的 h2、h3（Astro `render()` 返回的 `headings`，已含 `op-` 前缀）；合并页本身仍是“一页 = 重写稿一个文件”，导入规则不变 | 导入脚本、Obsidian 插件、校验三层 |
-| M2 路线 | 数据改动 + 小改 | `route.yaml` 随作者改完的重写稿重建（Q-18 定后）；新增 `moved:` 段和校验，取代 `REMOVED_PAGES`（ADR-0006）；章节的 `intro` 字段和 `site.ts` 里对它的核对随章节标题卡一起删除（FR-72 去掉了它的显示位置，不是放宽校验） | `buildRouteMap`/`view`/`outline` 的算法和接口，分叉、汇合、默认方案二 |
+| M2 路线 | 数据改动 + 小改 | `route.yaml` 随作者改完的重写稿重建（Q-18 定后）；新增 `moved:` 段和校验，取代 `REMOVED_PAGES`（ADR-0006）；章节的 `intro` 字段和 `site.ts` 里对它的核对随章节标题卡一起删除（FR-72 去掉了它的显示位置，不是放宽校验）；新增可选的 `summary`（首页五栏简介的导航文案，M2 只校验非空） | `buildRouteMap`/`view`/`outline` 的算法和接口，分叉、汇合、默认方案二 |
 | M3 页面 | 重做外观 | 顶栏、正文栏、侧边栏、翻页、首页、选择页卡片按 design.md v3 重做（13.3）；新增跳转页 `MovedPage`、页面脚本 `section-hash`、搜索框 | 视图切换机制（ADR-0004）、导航改写、视频门面、复制、看大图、QQ 群和联系方式的数据来源 |
 | M4 本机状态 | 不变 | — | 全部 |
 | M5 构建 | 小改 | 删掉 `astro.config.mjs` 的 `redirects`；sitemap 过滤跳转页；新增静态端点 `search-index.json` | 构建校验、内容提示、`BASE_PATH` |
@@ -518,9 +518,9 @@ function search(index: SearchEntry[], query: string, view: ViewMode, limit = 10)
 - **顶栏**（V01 现状）：`SiteHeader.astro` 改为文档站顶栏，左边 `Logo`（“Re:”标记）+ 站名 + `Mascot`，右边搜索挂载点 `[data-search-slot]`（V08 填 `SiteSearch`）、`ThemeToggle`（昼夜切换，用户 2026-10-22 决定取代 `ViewToggle`，见 13.12）、`ContactLinks`；<720px 左边多“目录”按钮。不吸顶。首页不用顶栏（FR-18）。
 - **页面骨架**（V01 现状）：`PageLayout`、`ReferenceLayout` 改成“顶栏 + 两栏（侧边栏 | 正文栏）”，≥720px 侧边栏 `position: sticky`、独立滚动，<720px 只有正文栏、目录在抽屉里。页头色带、`ChapterSubtitle`、章节标题卡、`.step-heading` 的编号挂栏删除；眉题改为 h1 上方一行灰色小字，进度文字仍由 `nav-text.ts` 和 `route-enhance` 的 `renderProgress` 给出（挂载点名字不变）。`Numeral`、`numerals/` 只剩找不到页的大号 `404`（design v3 §3.2、§9），`ChapterSubtitle` 和 `chapter-0X.svg` 已随 V05 删除。
 - **正文和内容组件**（V03 现状，FR-72）：页面标题、正文和内容组件按 design §3.2、§4.7 排（h1 在 `base.css` 和页面布局，其余在 `prose.css`）：h2–h4、正文链接、行内代码和代码块、表格（全格线 + 隔行）、提示块（浅底 + 4px 左色条）和截图图版；`GroupInvite` 用普通提示块的外观。正文栏宽度仍由 `--measure` 和 `--gutter` 决定。
-- **目录 / 侧边栏**（V02 现状，FR-16）：`TocNav` 每章是一个 `<details>`，当前页所在章 `open`，其余折叠；折叠只在 DOM 里，不写本机。当前页下面列出它正文的 h2（固定原理视图，只有一份，用户 2026-10-22 决定），由 `[page].astro`、`faq/*.astro`、`ip-tests/*.astro` 把 `render()` 的 `headings` 经 `tocSections()` 取 `depth === 2` 传给 `PageLayout`/`ReferenceLayout` 的新参数 `sections`，再交给 `Toc`；参考页的当前项由 `ReferenceLayout` 的 `currentReference` 指定（各条问题、各篇实测高亮上级），附录章跟着展开；子页也把 `headings` 传下去，小节挂在上级项下面，链接锚点仍是子页正文的 h2。旁支页用 `openChapterId`（`PageLayout` 传 `view.progress.chapterId`）展开它所属的章。`TocItems.astro` 写一章的页面项和参考页，`TocSections.astro` 写小节列表。链接锚点直接用正文 h2 的 `slug`。当前项 600 `--accent` + 4px 左边线。`toc.ts` 仍按本机选择改写弱化和当前项，不碰 `<details>` 的开合。首页和找不到页的目录用不折叠的变体（`collapsible` 不传）。首页的目录另有 `home` 变体（V05）：每章一个 h2“第 n 章　章名”，全部展开、不弱化、不标当前项、不放“切换”，推荐的选项后标“推荐”（默认选项取自 `site.route.data.forks`）。抽屉和侧边栏仍是同一套 `TocNav` 标记（v2.2 的做法）。
+- **目录 / 侧边栏**（V02 现状，FR-16）：`TocNav` 每章是一个 `<details>`，当前页所在章 `open`，其余折叠；折叠只在 DOM 里，不写本机。当前页下面列出它正文的 h2（固定原理视图，只有一份，用户 2026-10-22 决定），由 `[page].astro`、`faq/*.astro`、`ip-tests/*.astro` 把 `render()` 的 `headings` 经 `tocSections()` 取 `depth === 2` 传给 `PageLayout`/`ReferenceLayout` 的新参数 `sections`，再交给 `Toc`；参考页的当前项由 `ReferenceLayout` 的 `currentReference` 指定（各条问题、各篇实测高亮上级），附录章跟着展开；子页也把 `headings` 传下去，小节挂在上级项下面，链接锚点仍是子页正文的 h2。旁支页用 `openChapterId`（`PageLayout` 传 `view.progress.chapterId`）展开它所属的章。`TocItems.astro` 写一章的页面项和参考页，`TocSections.astro` 写小节列表。链接锚点直接用正文 h2 的 `slug`。当前项 600 `--accent` + 4px 左边线。`toc.ts` 仍按本机选择改写弱化和当前项，不碰 `<details>` 的开合。找不到页的目录用不折叠的变体（`collapsible` 不传）；首页不再用 `TocNav`（第二屏是五章简介，直接读 `RouteData.chapters` 的 `title` 和 `summary`）。抽屉和侧边栏仍是同一套 `TocNav` 标记（v2.2 的做法）。
 - **翻页**（V04 现状，FR-72、AC-30）：`StepNav` 在正文末尾一条 1px `--border` 细线下排一行文字链接，左边“← 上一步”+ 标题、右边“下一步 →”+ 标题（两行，13px `--text-muted` 的方向 + 16px 600 `--accent` 的目标标题，整块 `min-height: 44px`）；跳过步骤的“跳过 →”在“下一步”下面 4px，右对齐，也是文字链接。旁支页的“回到”、参考页的“回到”和“返回刚才的步骤”（`ReferenceLayout`，从步骤链接进来时出现在 h1 上方和正文末尾）用同一套样式；v2.2 的黑色主按钮、手机吸底底栏和底栏预留空白都删掉了（连同 `--bar-button-height`、`--mobile-bar-height`、`--option-no-size` 令牌）。导航数据和 `route-enhance` 的改写挂载点不变。
-- **首页**（V05 现状，`index.astro`、design §4.4）：VuePress 首页。没有顶栏和侧边栏，首屏内容居中：中文两行版 logo 是 h1（`aria-label` 同时给出中文站名和英文副标题，`Logo.astro` 的 `zh` 默认标题）、logo 右下方一行放小形象、一句话（`--text-muted`）、紫色主按钮“从第 00 章开始 →”和 QQ 群入口的紧凑版（一行小字，`GroupInvite` 的 `compact`）。一条 1px 细线下是按章目录，用 `TocNav` 的 `home` 变体，宽同正文栏（740px）并居中；页脚居中（`BaseLayout` 的 `footerCentered`）。一句话写在页面里，构建时核对它（去掉加粗后）原样出现在 `principle/overview.md` 正文里（ADR-0005、design V14）。v2.2 的眉题、小字信息行、“先看整体思路”、桌面章级索引和固定字形章节号都去掉。
+- **首页**（V05 现状 + 2026-10-22 调整，`index.astro`、design §4.4）：VuePress 首页。没有顶栏和侧边栏，首屏内容居中：中文两行版 logo 是 h1（`aria-label` 同时给出中文站名和英文副标题，`Logo.astro` 的 `zh` 默认标题）、logo 右下方一行放小形象、一句话（`--text-muted`）、紫色主按钮“从第 00 章开始 →”和 QQ 群入口的紧凑版（一行小字，`GroupInvite` 的 `compact`）。一条 1px 细线下是五章简介：桌面五栏一行、平板三栏、手机一栏；每栏是章名（h2，链到这一章第一页）和 `route.yaml` 的 `summary`，不列具体页面、不写“第几章”。页脚居中（`BaseLayout` 的 `footerCentered`）。一句话写在页面里，构建时核对它（去掉加粗后）原样出现在 `principle/overview.md` 正文里（ADR-0005、design V14）。v2.2 的眉题、小字信息行、“先看整体思路”、桌面章级索引和固定字形章节号都去掉。
 - **选择页**（V04 现状，FR-12、FR-72）：选项块改细边框卡片（1px `--border`、6px 圆角、内边距 16px 20px、手机 14px 16px、间距 12px，悬停边框 `--control-border`）；`option-blocks.ts` 不再插编号圆圈和箭头、不再包一层选项行，`section.option-block` 直接排在正文里，整块点击的 `a[data-option-start]` 伪元素和 `data-recommended` 不变；“推荐”“当前选择”的标记和交互沿用（`route-enhance.ts` 只标 `aria-current` 和 `.option-current`）。
 - **跳转页** `MovedPage`（计划，ADR-0006）：`[page].astro` 的 `getStaticPaths` 额外为 `moved:` 的每个旧标识生成一页：`<head>` 里内联一行脚本按本机视图选锚点后 `location.replace()`，再写 `<meta http-equiv="refresh">`（指向构建时选好的操作版优先锚点）、`<link rel="canonical">`、`<meta name="robots" content="noindex">`；正文一行“这一页已经并入《合并页》”和链接。没有 `section` 的条目（`plan1-free-isp`）直接跳到目标页顶部。
 - **找不到页**（V05 现状，`404.astro`、design §4.6）：v3 顶栏 + 正文栏（`main.page`，宽同正文栏并居中），没有侧边栏；大号固定字形 `404`、h1、主按钮“回到首页”和次按钮“打开目录”，目录直接写在页面上。`NumeralSprite` 只在这一页内联（design §3.2、§9）。

@@ -58,7 +58,7 @@ V02 ─────────────────────────�
 | V02 | 侧边栏按章折叠并列出当前页小节 | V01 | 标准 | 已实施（2026-10-22，已合并 main） | 待发布 |
 | V03 | 按 design v3 重排正文和内容组件 | V01 | 标准 | 已实施（2026-10-22，已合并 main） | 待发布 |
 | V04 | 文字链接翻页和选择页卡片 | V03 | 标准 | 已实施（2026-10-22，已合并 main） | 待发布 |
-| V05 | VuePress 式首页和找不到页 | V01 | 标准 | 已实施（2026-10-22，已合并 main） | 待发布 |
+| V05 | VuePress 式首页和找不到页 | V01 | 标准 | 已实施（2026-10-22，已合并 main；同日又按作者要求改成五栏章节简介） | 待发布 |
 | V06 | 站内搜索的索引和匹配 | 无 | 标准 | 已细化 | 待发布 |
 | V07 | 小节锚点按视图解析和落点 | 无 | 强 | 已细化 | 待发布 |
 | V08 | 顶栏搜索框 | V01、V06、V07 | 标准 | 已细化 | 待发布 |
@@ -153,20 +153,20 @@ V02 ─────────────────────────�
 
 ### V05 VuePress 式首页和找不到页
 
-**目标**：FR-18、AC-29 和 design §4.4、§4.6：首页没有顶栏和侧边栏，首屏居中放 logo（h1，`aria-label` 含站名和英文副标题）、小形象、一句话（构建核对保留）、紫色主按钮“从第 00 章开始 →”、QQ 群小字；下面一条线，按章列目录（h2“第 n 章　章名”，全部展开），页脚居中。找不到页换成 v3 的顶栏和正文栏，`404` 固定字形保留。删除不再使用的章节副标题和章级索引。
+**目标**：FR-18、AC-29 和 design §4.4、§4.6：首页没有顶栏和侧边栏，首屏居中放 logo（h1，`aria-label` 含站名和英文副标题）、小形象、一句话（构建核对保留）、紫色主按钮“从第 00 章开始 →”、QQ 群小字；下面一条线，按章列五章简介（**作者 2026-10-22 看过上线首页后调整**）：章名（h2，不写“第几章”，链到这一章第一页）和 `route.yaml` 的 `summary`，不列具体页面；桌面五栏一行、平板三栏、手机一栏，页脚居中。找不到页换成 v3 的顶栏和正文栏，`404` 固定字形保留。删除不再使用的章节副标题和章级索引。
 
-**涉及范围**：`src/pages/index.astro`、`src/pages/404.astro`、`src/components/TocNav.astro`（首页变体的样式）、`Logo.astro`（`aria-label` 文案）、`GroupInvite.astro`（紧凑版样式）；删除 `ChapterSubtitle.astro`（及测试）、`src/assets/numerals/chapter-0X.svg`，`scripts/build-logo.mjs` 和 `build-logo.test.ts` 去掉对应输出；`NumeralSprite` 只在找不到页内联；`AGENTS.md` 的生成物清单；`tests/e2e/ac-01-home.spec.ts`、`ac-29-home.spec.ts`（新）、`ac-18-not-found.spec.ts`。
+**涉及范围**：`src/pages/index.astro`、`src/content/route.yaml`（章节 `summary`）、`src/lib/route/types.ts`、`route-map.ts` 及测试、`src/pages/404.astro`、`Logo.astro`（`aria-label` 文案）、`GroupInvite.astro`（紧凑版样式）；删除 `TocNav`/`TocItems` 的首页变体和 `toc.css` 的 `.toc-home`；删除 `ChapterSubtitle.astro`（及测试）、`src/assets/numerals/chapter-0X.svg`，`scripts/build-logo.mjs` 和 `build-logo.test.ts` 去掉对应输出；`NumeralSprite` 只在找不到页内联；`AGENTS.md` 的生成物清单；`tests/e2e/ac-01-home.spec.ts`、`ac-29-home.spec.ts`（新）、`ac-18-not-found.spec.ts`。
 
 **依赖**：依赖 V01
 
 **建议档位**：`标准` — 规格在 design §4.4，构建核对沿用 #38 的实现。
 
-**参照**：一句话的核对在 `src/pages/index.astro`（#38）；目录数据 `outline({}, null, 'principle')`；logo 的 `aria-label` 在 `Logo.astro` 的 `defaultTitles`；`build-logo.mjs` 的输出要和 `build-logo.test.ts` 一致（生成物不手改，删输出后重跑脚本，需要 `.cache/fonts/`）。边界：手机 logo 满宽减边距；首页仍没有“继续上次”和已读标记（AC-10）。
+**参照**：一句话的核对在 `src/pages/index.astro`（#38）；五章简介读 `RouteData.chapters` 的 `title`、`summary`；章名链接取这一章第一项（分支段取第一个选项的第一个页面）；logo 的 `aria-label` 在 `Logo.astro` 的 `defaultTitles`；`build-logo.mjs` 的输出要和 `build-logo.test.ts` 一致（生成物不手改，删输出后重跑脚本，需要 `.cache/fonts/`）。边界：手机 logo 满宽减边距；首页仍没有“继续上次”和已读标记（AC-10）；没有 JS 时“目录”落在首页章节简介，从章名进入这一章。
 
 **验收**：
 - [ ] 测试：`npx vitest run scripts/build-logo.test.ts`
 - [ ] e2e：`npx playwright test tests/e2e/ac-29-home.spec.ts tests/e2e/ac-01-home.spec.ts tests/e2e/ac-18-not-found.spec.ts tests/e2e/ac-10-no-progress.spec.ts`
-- [ ] 手工验证：360 和 1280 打开首页 → 首屏居中的 logo、一句话、主按钮、QQ 群小字，下面五章目录，没有侧边栏；打开 `/nope/` → v3 顶栏 + 大号 404
+- [ ] 手工验证：360 和 1280 打开首页 → 首屏居中的 logo、一句话、主按钮、QQ 群小字；下面五章简介（1280 五栏一行、360 一列），只有章名和一句简介，没有“第几章”和页面列表，没有侧边栏；打开 `/nope/` → v3 顶栏 + 大号 404
 
 ### V06 站内搜索的索引和匹配
 

@@ -109,7 +109,7 @@ test.describe('关掉 JS', () => {
   test('带 ?from= 打开常见问题：保持构建时的样子（构建时返回链接是隐藏的）', async ({ page }) => {
     await page.goto('./faq/?from=plan3-residential-node');
     await expect(returnLinks(page)).toHaveCount(0);
-    // 没有 JS 时参考页也有目录：≥720px 是常驻侧边栏，<720px 是链到首页完整目录的“目录”（FR-16）
+    // 没有 JS 时参考页也有目录：≥720px 是常驻侧边栏，<720px 是链到首页章节简介的“目录”（FR-16）
     const sidebar = page.locator('aside[data-toc-sidebar]');
     if ((page.viewportSize()?.width ?? 0) >= 720) await expect(sidebar).toBeVisible();
     else await expect(page.locator('[data-toc-open]')).toHaveAttribute('href', /\/#home-chapters$/);

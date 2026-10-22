@@ -399,6 +399,23 @@ describe('章节的 intro 已删除', () => {
   });
 });
 
+// 首页五栏简介（作者 2026-10-22 决定）：summary 是 route.yaml 的导航文案，不是导入的正文
+describe('章节的 summary', () => {
+  it('解析后带进 RouteData；不写也可以（首页自己要求每章都有）', () => {
+    const spec = sampleSpec();
+    chapter(spec, 'start').summary = '先看这份教程怎么用。';
+    const map = buildRouteMap(spec, samplePages());
+    expect(map.data.chapters[0]!.summary).toBe('先看这份教程怎么用。');
+    expect(map.data.chapters[1]!.summary).toBeUndefined();
+  });
+
+  it('summary 是空字符串时报错', () => {
+    const spec = sampleSpec();
+    chapter(spec, 'start').summary = '  ';
+    expectError(errorsOf(spec), 'route.yaml', /第 1 个章节的 summary 必须是非空的一段文字/);
+  });
+});
+
 describe('pathOf', () => {
   it('页面都是 /<id>/，首页是 /（ADR-0002）', () => {
     expect(pathOf({ kind: 'step', id: 'preface', title: '前言' })).toBe('/preface/');

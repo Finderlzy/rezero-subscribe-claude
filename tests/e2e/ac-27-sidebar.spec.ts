@@ -123,7 +123,7 @@ test.describe('没有 JS', () => {
     await page.goto('./import-proxy/');
     if (!hasSidebar(page)) {
       await expect(sidebar(page)).toBeHidden();
-      // 没有 JS 时“目录”是链到首页完整目录的链接（FR-16）
+      // 没有 JS 时“目录”是链到首页章节简介的链接（FR-16）
       await expect(page.getByRole('link', { name: '目录', exact: true })).toHaveAttribute('href', /\/#home-chapters$/);
       return;
     }

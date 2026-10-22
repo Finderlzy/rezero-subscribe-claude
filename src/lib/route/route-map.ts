@@ -125,10 +125,12 @@ function parseSpec(raw: unknown, errors: RouteError[]): RouteSpec | null {
       return;
     }
     for (const key of Object.keys(chapter)) {
-      if (!['id', 'title', 'items'].includes(key)) err(`${where}有未知字段 ${key}`);
+      if (!['id', 'title', 'summary', 'items'].includes(key)) err(`${where}有未知字段 ${key}`);
     }
     if (typeof chapter.id !== 'string' || !KEBAB.test(chapter.id)) err(`${where}的 id 必须是英文 kebab-case`);
     if (typeof chapter.title !== 'string' || chapter.title.trim() === '') err(`${where}缺少 title`);
+    const summary = chapter.summary;
+    if (summary !== undefined && (typeof summary !== 'string' || summary.trim() === '')) err(`${where}的 summary 必须是非空的一段文字`);
     if (!Array.isArray(chapter.items) || chapter.items.length === 0) {
       err(`${where}的 items 必须是非空列表`);
       return;
@@ -138,7 +140,12 @@ function parseSpec(raw: unknown, errors: RouteError[]): RouteSpec | null {
       const parsedItem = parseItem(item, `${where}第 ${ii + 1} 项`, err);
       if (parsedItem !== null) items.push(parsedItem);
     });
-    chapters.push({ id: String(chapter.id), title: String(chapter.title), items });
+    chapters.push({
+      id: String(chapter.id),
+      title: String(chapter.title),
+      ...(typeof summary === 'string' && { summary }),
+      items,
+    });
   });
   return { chapters, side };
 }
@@ -389,6 +396,7 @@ function compile(spec: RouteSpec, pages: PageMeta[]): RouteData {
   data.chapters = spec.chapters.map((c) => ({
     id: c.id,
     title: c.title,
+    ...(c.summary !== undefined && { summary: c.summary }),
     items: c.items.map((item): RouteDataItem => {
       if (typeof item === 'string') return { kind: 'step', id: item };
       if ('choose' in item) {

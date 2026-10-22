@@ -117,7 +117,7 @@ test('≥720px 常驻侧边栏，没有“目录”按钮；以下宽度“目�
 test.describe('没有 JS', () => {
   test.use({ javaScriptEnabled: false });
 
-  test('“目录”是链接，点击到达首页的完整目录；≥720px 的侧边栏是静态 HTML，照样能点', async ({ page }) => {
+  test('“目录”是链接，点击到达首页的章节简介；≥720px 的侧边栏是静态 HTML，照样能点', async ({ page }) => {
     await page.goto('./overview/');
     await expect(page.getByRole('button', { name: '目录', exact: true })).toHaveCount(0);
     if (hasSidebar(page)) {
@@ -128,6 +128,11 @@ test.describe('没有 JS', () => {
     }
     await page.getByRole('link', { name: '目录', exact: true }).click();
     await expect(page).toHaveURL(/\/#home-chapters$/);
-    await expect(page.getByRole('navigation', { name: '全站目录' }).getByRole('link', { name: '前言' })).toBeVisible();
+    // 首页不再列具体页面：从章节简介点进这一章的第一页
+    const chapters = page.locator('#home-chapters');
+    await expect(chapters.getByRole('heading', { level: 2 })).toHaveCount(5);
+    await chapters.getByRole('link', { name: '开始' }).click();
+    await expect(page).toHaveURL(/\/preface\/$/);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('前言');
   });
 });

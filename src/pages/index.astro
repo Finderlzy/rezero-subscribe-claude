@@ -2,27 +2,27 @@
 import GroupInvite from '../components/GroupInvite.astro';
 import Logo from '../components/Logo.astro';
 import Mascot from '../components/Mascot.astro';
-import TocNav from '../components/TocNav.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { pathOf } from '../lib/route/route-map';
 import { loadSite } from '../lib/site';
 import { withBase } from '../lib/with-base';
-import '../styles/toc.css';
 
 /**
  * 首页（FR-18、AC-29，design v3 §4.4）：VuePress 默认首页的样子。没有顶栏、没有侧边栏，内容居中。
  *
  * 首屏：中文两行版 logo（h1，无障碍名称同时给出中文站名和英文副标题）、右下方的小形象、
- * 一句话（--text-muted）、紫色主按钮“从第 00 章开始 →”（全站唯一的实心按钮）和 QQ 群入口的紧凑版（FR-22）。
- * 一条细线下是按章目录：每章一个 h2“第 n 章　章名”，下面列出这一章的页面、分叉点的“或”分组和参考页。
- * 首页没有当前路线，所以目录全部展开、不折叠、不弱化；推荐的选项后标“推荐”。
+ * 一句话（--text-muted）、紫色主按钮“从第 00 章开始 →”（首页唯一的实心按钮）和 QQ 群入口的紧凑版（FR-22）。
+ *
+ * 一条细线下是五章简介（作者 2026-10-22 决定）：桌面五栏从左到右排成一行，平板三栏、手机一栏；
+ * 每栏只写章名（链到这一章的第一页）和 `route.yaml` 的 summary，不再列具体页面。
+ * 首页没有“继续上次”、已读标记和进度（需求 Never），也没有 v2.2 的眉题、小字信息行、桌面章级索引和固定字形章节号。
  *
  * 一句话仍要求原样摘自整体思路的原理版正文（ADR-0005，design V14）：构建时核对，不通过就失败。
- * 没有“继续上次”、已读标记和进度（需求 Never），也没有 v2.2 的眉题、小字信息行、桌面章级索引和固定字形章节号。
  */
 const site = await loadSite();
+const chapters = site.route.data.chapters;
 
-/** 进入整体思路的文字链接不再放在首屏；目录里照常列出这一页。 */
+/** 进入整体思路的文字链接不再放在首屏；下面的章节简介里也不列页面。 */
 const OVERVIEW_ID = 'overview';
 const overview = site.pages.get(OVERVIEW_ID);
 if (!overview) throw new Error(`首页：构建核对用的页面 principle/${OVERVIEW_ID}.md 不存在`);
@@ -36,7 +36,23 @@ if (!(overview.principle.body ?? '').replaceAll('**', '').includes(TAGLINE)) {
   throw new Error(`首页：logo 下的一句话没有原样出现在 principle/${OVERVIEW_ID}.md 的正文里（去掉加粗后比较）`);
 }
 
-const outline = site.route.outline({}, null, 'principle');
+/*
+ * 五章简介的文案写在 route.yaml 的 summary（导航文案，不是导入的正文）：五栏都要有，缺了就构建失败。
+ * 章名链到这一章的第一页；章节的第一项是分支段时取第一个选项的第一个页面。
+ */
+const missingSummary = chapters.filter((chapter) => chapter.summary === undefined).map((chapter) => chapter.id);
+if (missingSummary.length > 0) {
+  throw new Error(`首页：route.yaml 的章节缺少 summary：${missingSummary.join('、')}`);
+}
+
+function chapterEntryId(chapter: (typeof chapters)[number]): string {
+  const first = chapter.items[0];
+  if (first === undefined) throw new Error(`首页：章节 ${chapter.id} 没有页面`);
+  if (first.kind === 'step' || first.kind === 'choose') return first.id;
+  const entry = Object.values(first.options)[0]?.[0];
+  if (entry === undefined) throw new Error(`首页：章节 ${chapter.id} 的第一个分支段没有页面`);
+  return entry;
+}
 ---
 
 <BaseLayout
@@ -58,22 +74,27 @@ const outline = site.route.outline({}, null, 'principle');
       <GroupInvite compact />
     </section>
 
-    <section id="home-chapters" class="home-chapters" aria-label="站点目录">
-      <TocNav
-        outline={outline}
-        references={site.tocReferences}
-        label="全站目录"
-        home
-        forks={site.route.data.forks}
-      />
+    <section id="home-chapters" class="home-chapters" aria-label="章节简介">
+      <ol class="home-chapter-list">
+        {
+          chapters.map((chapter) => (
+            <li class="home-chapter">
+              <h2 class="home-chapter-title">
+                <a href={withBase(`/${chapterEntryId(chapter)}/`)}>{chapter.title}</a>
+              </h2>
+              <p class="home-chapter-summary">{chapter.summary}</p>
+            </li>
+          ))
+        }
+      </ol>
     </section>
   </main>
 </BaseLayout>
 
 <style>
-  /* 首页整体：内容居中，最宽 960px（design §4.4）；顶部留白手机 40px、平板起 64px。 */
+  /* 首页整体：内容居中，最宽 1120px（五栏简介要放得下）；顶部留白手机 40px、平板起 64px。 */
   .home {
-    max-width: 960px;
+    max-width: 1120px;
     margin: 0 auto;
     padding: calc(var(--space-6) + var(--space-2)) var(--gutter) var(--space-7);
   }
@@ -84,8 +105,10 @@ const outline = site.route.outline({}, null, 'principle');
     }
   }
 
-  /* 首屏：logo、一句话、主按钮和 QQ 群小字都居中（design §4.4） */
+  /* 首屏：logo、一句话、主按钮和 QQ 群小字都居中，最宽 960px（design §4.4） */
   .home-hero {
+    max-width: 960px;
+    margin: 0 auto;
     text-align: center;
   }
 
@@ -130,16 +153,61 @@ const outline = site.route.outline({}, null, 'principle');
     margin: var(--space-6) 0 0;
   }
 
-
   /*
-   * 一条 1px 细线隔开首屏和目录，上下各 48px（design §4.4）。
-   * 目录本身左对齐、宽同正文栏（--measure），在页面里居中摆放；章标题是 h2（toc.css 的 .toc-home）。
+   * 一条 1px 细线隔开首屏和章节简介，上下各 48px（design §4.4）。
+   * 五章从左到右：手机一栏、平板三栏（3 + 2），桌面五栏一行；简介左对齐。
    */
   .home-chapters {
-    max-width: var(--measure);
     margin: var(--space-7) auto 0;
     padding-top: var(--space-7);
     border-top: var(--border-width) solid var(--border);
     text-align: left;
+  }
+
+  .home-chapter-list {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-6) var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  @media (min-width: 720px) {
+    .home-chapter-list {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 960px) {
+    .home-chapter-list {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+  }
+
+  /* 章名是这一栏的标题（h2），链到这一章的第一页；不要“第 n 章” */
+  .home-chapter-title {
+    margin: 0 0 var(--space-2);
+    font-size: var(--fs-h3);
+    line-height: var(--lh-h3);
+    font-weight: var(--fw-heading);
+  }
+
+  .home-chapter-title a {
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  .home-chapter-title a:hover {
+    color: var(--accent);
+    text-decoration: underline;
+  }
+
+  /* 简介：--text-muted；五栏时每栏约 190px，16px 一行约 12 个汉字 */
+  .home-chapter-summary {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--fs-body);
+    line-height: var(--lh-tagline);
   }
 </style>

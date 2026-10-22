@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { GROUP_NUMBER, GROUP_URL } from '../../src/lib/group';
 
 const SITE_NAME = 'Re:从零开始订阅 claude';
@@ -6,11 +6,10 @@ const SITE_NAME_EN = 'Re:Zero − Starting Life with Claude';
 const START = '从第 00 章开始';
 const TAGLINE = '下面每一步，其实都在做同一件事：让每一项信息都不露出“我在国内”，而且像一个普通用户。';
 
-const width = (page: Page) => page.viewportSize()?.width ?? 0;
 
-// AC-01（FR-18，design v3 §4.4）：在新浏览器打开首页 → 看到 logo（含站名和英文副标题）、五章目录和“从第 00 章开始”，
+// AC-01（FR-18，design v3 §4.4）：在新浏览器打开首页 → 看到 logo（含站名和英文副标题）、五章简介和“从第 00 章开始”，
 // 没有“继续上次”；点“从第 00 章开始” → 进入“前言”。
-test('新浏览器打开首页：logo（含中英文站名）、一句话、“从第 00 章开始”和五章目录，没有“继续上次”', async ({ page }) => {
+test('新浏览器打开首页：logo（含中英文站名）、一句话、“从第 00 章开始”和五章简介，没有“继续上次”', async ({ page }) => {
   await page.goto('./');
 
   const heading = page.getByRole('heading', { level: 1 });
@@ -32,34 +31,35 @@ test('新浏览器打开首页：logo（含中英文站名）、一句话、“�
   await expect(page.locator('aside.toc-sidebar')).toHaveCount(0);
   await expect(page.locator('[data-toc-dialog]')).toHaveCount(0);
 
-  const toc = page.getByRole('navigation', { name: '全站目录' });
-  // 每章一个 h2“第 n 章　章名”，章节号写成文字，不再用固定字形（design §3.2、§4.4）
-  await expect(toc.locator('h2.toc-chapter-head')).toHaveText([
-    '第 0 章　开始',
-    '第 1 章　准备节点和住宅 IP',
-    '第 2 章　注册和订阅',
-    '第 3 章　结尾',
-    '第 4 章　附录',
+  // 下面五章简介：从左到右排，每栏只有章名（链到这一章的第一页）和简介，不列具体页面，也不写“第几章”
+  const chapters = page.locator('#home-chapters');
+  await expect(chapters.getByRole('heading', { level: 2 })).toHaveText([
+    '开始',
+    '准备节点和住宅 IP',
+    '注册和订阅',
+    '结尾',
+    '附录',
   ]);
-  await expect(toc.locator('[role="img"]')).toHaveCount(0);
-  // 目录全部展开、不折叠（首页没有当前路线）
-  await expect(toc.locator('details')).toHaveCount(0);
-
-  // 分叉点下按“或 方案一”分组；node-plan 的默认方案二标“推荐”，但首页不高亮当前路线、不标“其他路线”
-  await expect(toc.locator('.toc-option-title')).toContainText(['方案一', '或 方案二', '或 方案三', 'iPhone', '或 安卓']);
-  await expect(toc.locator('[data-toc-option="plan-2"]')).toHaveAttribute('data-recommended', '');
-  await expect(toc.locator('[data-toc-option="plan-2"] .toc-recommend')).toHaveText('推荐');
-  await expect(toc.locator('[data-selected]')).toHaveCount(0);
-  await expect(toc.locator('[data-off-route]')).toHaveCount(0);
-  await expect(toc.getByText('其他路线')).toHaveCount(0);
-  await expect(toc.locator('[data-toc-switch]')).toHaveCount(0);
-  // 原理独有步骤仍标“原理”（首页目录不弱化，所以没有样式上的弱化，只有这个标签）
-  await expect(toc.getByRole('link', { name: /小结：从服务器到代理软件/ })).toContainText('原理');
-
-  // 参考页列在附录一章里、附录页下面
-  const appendix = toc.locator('#chapter-appendix');
-  await expect(appendix.getByRole('link')).toHaveText(['附录', '常见问题', 'IP 质量实测合集']);
-  await expect(toc.getByText('卡住了再看')).toHaveCount(0);
+  await expect(chapters).not.toContainText('第 0 章');
+  await expect(chapters).not.toContainText('第 1 章');
+  await expect(chapters.getByRole('link')).toHaveCount(5);
+  expect(await chapters.locator('h2 a').evaluateAll((links) => links.map((a) => new URL((a as HTMLAnchorElement).href).pathname))).toEqual([
+    '/preface/',
+    '/choose-plan/',
+    '/choose-phone/',
+    '/thanks/',
+    '/appendix/',
+  ]);
+  await expect(chapters.locator('.home-chapter-summary')).toHaveText([
+    '先看这份教程怎么用，再清掉旧账号和环境里可能露馅的地方。',
+    '三个方案目的相同：让 claude 看到一个静态住宅 IP，而且只有你在用。',
+    '从手机、Google 账号到美区 Apple ID，一步步把订阅走完。',
+    '订阅成功之后，日常怎么用、怎么维护、出问题怎么处理。',
+    '常见问题、IP 质量实测和后续补充，卡住了再来查。',
+  ]);
+  // 不再列具体页面（页面导航在步骤页的侧边栏里）
+  await expect(chapters.getByRole('link', { name: '前言' })).toHaveCount(0);
+  await expect(chapters.locator('[data-toc-step]')).toHaveCount(0);
 
   // 首屏的 QQ 群是紧凑版：群号、加群链接，没有二维码（FR-22、design §4.4）
   const invite = page.getByRole('region', { name: 'QQ 群' });
@@ -120,20 +120,19 @@ test('首屏的主按钮是紫色（--primary-bg = --accent），logo 的“Re�
   expect(result.offenders).toEqual([]);
 });
 
-test('首页目录的链接都能打开，参考页链接到参考页', async ({ page }) => {
+test('五章简介的章名链到各章第一页；一句话仍原样出现在整体思路的正文里', async ({ page }) => {
   await page.goto('./');
-  const toc = page.getByRole('navigation', { name: '全站目录' });
-  await toc.getByRole('link', { name: '整体思路' }).click();
-  await expect(page).toHaveURL(/\/overview\/$/);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('整体思路');
-  // 一句话原样出现在整体思路的正文里（构建时也核对，ADR-0005）
-  await expect(page.locator('main')).toContainText(TAGLINE);
+  const chapters = page.locator('#home-chapters');
+  await chapters.getByRole('link', { name: '开始' }).click();
+  await expect(page).toHaveURL(/\/preface\/$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('前言');
 
   await page.goto('./');
-  await page
-    .getByRole('navigation', { name: '全站目录' })
-    .getByRole('link', { name: 'IP 质量实测合集' })
-    .click();
-  await expect(page).toHaveURL(/\/ip-tests\/$/);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('IP 质量实测合集');
+  await page.locator('#home-chapters').getByRole('link', { name: '附录' }).click();
+  await expect(page).toHaveURL(/\/appendix\/$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('附录');
+
+  // 一句话原样出现在整体思路的正文里（构建时也核对，ADR-0005）
+  await page.goto('./overview/');
+  await expect(page.locator('main')).toContainText(TAGLINE);
 });

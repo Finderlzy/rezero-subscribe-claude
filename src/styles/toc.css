@@ -140,7 +140,7 @@
   letter-spacing: var(--tracking-meta);
 }
 
-/* 找不到页的目录：章号写成文字“第 n 章”，20px --accent（首页的章标题是 h2，样式见 .toc-home）。 */
+/* 找不到页的目录：章号写成文字“第 n 章”，20px --accent（首页第二屏是五章简介，不用这份目录）。 */
 .toc-chapter-no {
   flex: none;
   color: var(--accent);
@@ -397,58 +397,5 @@ aside.toc-sidebar:focus-within {
   padding: 0 var(--space-2);
   border-color: var(--border);
   color: var(--accent);
-  font-size: var(--fs-caption);
-}
-
-/*
- * 首页的目录（design v3 §4.4）：章标题是正文里的 h2（--fs-h2，下方一条 1px --border 细线，下内边距 5px），
- * 页面链接 16px、--accent 且不加下划线（导航链接），行与行之间 8px；分叉点的选项名 14px --text-muted，
- * 推荐的选项后紧跟“推荐”。首页没有当前路线：不弱化、不带“其他路线”、不标当前项（TocItems 的 home 变体去掉了这些属性）。
- */
-.toc-home {
-  font-size: var(--fs-body);
-}
-
-.toc-home .toc-chapter-head {
-  margin: 0 0 var(--space-3);
-  padding-bottom: calc(var(--space-1) + var(--border-width));
-  border-bottom: var(--border-width) solid var(--border);
-  color: var(--text);
-  font-size: var(--fs-h2);
-  line-height: var(--lh-h2);
-  font-weight: var(--fw-heading);
-  letter-spacing: normal;
-}
-
-.toc-home .toc-chapter + .toc-chapter {
-  margin-top: var(--space-5);
-}
-
-/* 首页的页面列表按正文排，比侧边栏紧凑：16px，上下 4px（行与行之间 8px），不加下划线 */
-.toc-home .toc-step > a {
-  min-height: 0;
-  padding: var(--space-1) var(--space-2);
-  color: var(--accent);
-  font-size: var(--fs-body);
-}
-
-.toc-home .toc-option-head {
-  justify-content: flex-start;
-  gap: var(--space-3);
-  min-height: 0;
-  padding: var(--space-2) var(--space-2) var(--space-1);
-  color: var(--text-muted);
-  font-size: var(--fs-meta);
-}
-
-.toc-home .toc-recommend {
-  flex: none;
-  color: var(--accent);
-  font-size: var(--fs-caption);
-  font-weight: var(--fw-heading);
-}
-
-.toc-home .toc-tag {
-  color: var(--text-faint);
   font-size: var(--fs-caption);
 }

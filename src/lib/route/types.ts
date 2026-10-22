@@ -32,6 +32,8 @@ export interface RouteSpec {
 export interface RouteSpecChapter {
   id: string;
   title: string;
+  /** 首页五栏简介：导航文案，不是导入的正文（作者 2026-10-22 决定）；写了就必须非空 */
+  summary?: string;
   items: RouteSpecItem[];
 }
 
@@ -77,6 +79,8 @@ export interface RouteData {
 export interface RouteDataChapter {
   id: string;
   title: string;
+  /** 首页五栏简介；首页要求每章都有，缺失时构建失败 */
+  summary?: string;
   items: RouteDataItem[];
 }
 

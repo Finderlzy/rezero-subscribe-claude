@@ -1,6 +1,6 @@
 ---
 import { pathOf } from '../lib/route/route-map';
-import type { OutlineBranch, OutlineChapter, OutlineStep, RouteData } from '../lib/route/types';
+import type { OutlineBranch, OutlineChapter, OutlineStep } from '../lib/route/types';
 import type { TocReference } from '../lib/site';
 import type { TocSection } from '../lib/toc-sections';
 import { withBase } from '../lib/with-base';
@@ -9,7 +9,6 @@ import TocSections from './TocSections.astro';
 /**
  * 一章下面的目录项（TocNav.astro 的正文）：页面、分叉点的“或”分组和参考页。
  * 当前页下面列出它的小节（design v3 §4.5，FR-16）；页面固定原理视图，只有一份小节列表（用户 2026-10-22 决定）。
- * 首页的目录（`home`）不弱化、不标当前项、不放“切换”，只在推荐的选项后标“推荐”（design §4.4）。
  */
 interface Props {
   items: OutlineChapter['items'];
@@ -22,29 +21,23 @@ interface Props {
   currentReference?: string | undefined;
   /** 最后一个（附录）章末尾列参考页 */
   showReferences: boolean;
-  /** 首页的目录：没有当前路线，全部正常显示，推荐的选项后标“推荐” */
-  home?: boolean;
-  /** 分叉点的默认选项（`site.route.data.forks`），首页的目录据此标“推荐” */
-  forks?: RouteData['forks'];
 }
 
-const { items, references, sections, currentPageId, currentReference, showReferences, home = false, forks } = Astro.props;
+const { items, references, sections, currentPageId, currentReference, showReferences } = Astro.props;
 const stepHref = (step: OutlineStep) => withBase(pathOf({ kind: 'step', id: step.id, title: step.title }));
 /** 分叉点选了别的选项时，这个选项下的步骤标“其他路线”；没选时不标 */
 const otherRoute = (branch: OutlineBranch, option: OutlineBranch['options'][number]) =>
   !option.selected && branch.options.some((o) => o.selected);
 /** 小节列表只挂在当前项（共享步骤在每个选项下各一份，只有一份是当前项）或当前参考页 */
 const sectionsFor = (id: string, current: boolean) => current && sections.length > 0 && id === (currentReference ?? currentPageId);
-/** 首页的目录给推荐的选项标“推荐”：route.yaml 的 default，不对应本机选择（FR-12） */
-const recommended = (fork: string, option: string) => home && forks?.[fork]?.default === option;
 ---
 
 <ol>
   {
     items.map((item) =>
       item.kind === 'step' ? (
-        <li class="toc-step" data-toc-step={item.id} data-off-route={!home && !item.onRoute ? '' : undefined}>
-          <a href={stepHref(item)} aria-current={!home && item.current ? 'page' : undefined}>
+        <li class="toc-step" data-toc-step={item.id} data-off-route={item.onRoute ? undefined : ''}>
+          <a href={stepHref(item)} aria-current={item.current ? 'page' : undefined}>
             <span class="toc-label">{item.title}</span>
             {item.principleOnly && <span class="toc-tag">原理</span>}
             {item.skippable && <span class="toc-tag">可跳过</span>}
@@ -53,10 +46,7 @@ const recommended = (fork: string, option: string) => home && forks?.[fork]?.def
         </li>
       ) : item.kind === 'choose' ? (
         <li class="toc-step" data-toc-choose={item.fork}>
-          <a
-            href={withBase(pathOf({ kind: 'choose', id: item.id, title: item.title }))}
-            aria-current={!home && item.current ? 'page' : undefined}
-          >
+          <a href={withBase(pathOf({ kind: 'choose', id: item.id, title: item.title }))} aria-current={item.current ? 'page' : undefined}>
             <span class="toc-label">{item.title}</span>
           </a>
           <TocSections sections={sectionsFor(item.id, item.current) ? sections : []} />
@@ -65,34 +55,24 @@ const recommended = (fork: string, option: string) => home && forks?.[fork]?.def
         <li>
           <ul>
             {item.options.map((option, i) => (
-              <li
-                class="toc-option"
-                data-toc-option={option.id}
-                data-selected={!home && option.selected ? '' : undefined}
-                data-recommended={recommended(item.fork, option.id) ? '' : undefined}
-              >
+              <li class="toc-option" data-toc-option={option.id} data-selected={option.selected ? '' : undefined}>
                 <div class="toc-option-head">
                   <span class="toc-option-title">
-                    {i > 0 && (home ? '或 ' : '或：')}
+                    {i > 0 && '或：'}
                     {option.title}
                   </span>
-                  {recommended(item.fork, option.id) && <span class="toc-recommend">推荐</span>}
-                  {!home && (
-                    <button type="button" class="toc-switch" data-toc-switch={item.fork} value={option.id} aria-label={`切换到${option.title}`} hidden>
-                      切换
-                    </button>
-                  )}
+                  <button type="button" class="toc-switch" data-toc-switch={item.fork} value={option.id} aria-label={`切换到${option.title}`} hidden>
+                    切换
+                  </button>
                 </div>
                 <ol>
                   {option.steps.map((step) => (
-                    <li class="toc-step" data-toc-step={step.id} data-off-route={!home && !step.onRoute ? '' : undefined}>
-                      <a href={stepHref(step)} aria-current={!home && step.current ? 'page' : undefined}>
+                    <li class="toc-step" data-toc-step={step.id} data-off-route={step.onRoute ? undefined : ''}>
+                      <a href={stepHref(step)} aria-current={step.current ? 'page' : undefined}>
                         <span class="toc-label">{step.title}</span>
-                        {!home && (
-                          <span class="toc-tag" data-toc-other hidden={!otherRoute(item, option)}>
-                            其他路线
-                          </span>
-                        )}
+                        <span class="toc-tag" data-toc-other hidden={!otherRoute(item, option)}>
+                          其他路线
+                        </span>
                         {step.principleOnly && <span class="toc-tag">原理</span>}
                         {step.skippable && <span class="toc-tag">可跳过</span>}
                       </a>
@@ -113,7 +93,7 @@ const recommended = (fork: string, option: string) => home && forks?.[fork]?.def
         <ol class="toc-reference">
           {references.map((reference) => (
             <li class="toc-step">
-              <a href={withBase(`/${reference.id}/`)} aria-current={!home && reference.id === currentReference ? 'page' : undefined}>
+              <a href={withBase(`/${reference.id}/`)} aria-current={reference.id === currentReference ? 'page' : undefined}>
                 <span class="toc-label">{reference.title}</span>
               </a>
               <TocSections sections={sectionsFor(reference.id, reference.id === currentReference) ? sections : []} />

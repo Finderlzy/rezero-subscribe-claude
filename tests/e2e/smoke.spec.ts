@@ -15,15 +15,14 @@ test.describe('首页冒烟', () => {
     expect(await page.evaluate(() => document.title)).toContain(SITE_NAME);
   });
 
-  test('“从第 00 章开始”进入前言；首页有按章的目录，没有“继续上次”', async ({ page }) => {
+  test('“从第 00 章开始”进入前言；首页有五章简介，没有“继续上次”', async ({ page }) => {
     await page.goto('./');
-    const toc = page.getByRole('navigation', { name: '全站目录' });
-    await expect(toc.locator('h2.toc-chapter-head')).toHaveText([
-      '第 0 章　开始',
-      '第 1 章　准备节点和住宅 IP',
-      '第 2 章　注册和订阅',
-      '第 3 章　结尾',
-      '第 4 章　附录',
+    await expect(page.locator('#home-chapters').getByRole('heading', { level: 2 })).toHaveText([
+      '开始',
+      '准备节点和住宅 IP',
+      '注册和订阅',
+      '结尾',
+      '附录',
     ]);
     await expect(page.getByText('继续上次')).toHaveCount(0);
 
