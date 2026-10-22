@@ -2,143 +2,100 @@
 import GroupInvite from '../components/GroupInvite.astro';
 import Logo from '../components/Logo.astro';
 import Mascot from '../components/Mascot.astro';
-import Numeral from '../components/Numeral.astro';
 import TocNav from '../components/TocNav.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { chapterNoText } from '../lib/nav-text';
 import { pathOf } from '../lib/route/route-map';
 import { loadSite } from '../lib/site';
 import { withBase } from '../lib/with-base';
 import '../styles/toc.css';
 
 /**
- * 首页（FR-18，design v2.1 §4.4、D2）：首屏是 design 说的“说明书封面”版式，没有页眉。左侧主区是眉题、中文两行版 logo（h1）、一句话、
- * 小字信息行、“从第 00 章开始”（进入前言）和“先看整体思路”；桌面右侧是四行章级索引，链到下方完整目录的对应章。
- * 首屏只有 logo 的“Re”和主按钮用 --accent。一条细线下是完整目录，按原理版目录页的样子画（TocNav 的 home 变体）。
- * 小形象（design v2.2 D6）放在 logo 的右下方，脚底贴着首屏主区的下沿。
- * 按钮下面一行小字是 QQ 群入口的紧凑版（FR-22）：从宣传视频过来的人，第一屏就能找到群。
- * 没有“继续上次”和已读标记，没有脚本。
+ * 首页（FR-18、AC-29，design v3 §4.4）：VuePress 默认首页的样子。没有顶栏、没有侧边栏，内容居中。
+ *
+ * 首屏：中文两行版 logo（h1，无障碍名称同时给出中文站名和英文副标题）、右下方的小形象、
+ * 一句话（--text-muted）、紫色主按钮“从第 00 章开始 →”（全站唯一的实心按钮）和 QQ 群入口的紧凑版（FR-22）。
+ * 一条细线下是按章目录：每章一个 h2“第 n 章　章名”，下面列出这一章的页面、分叉点的“或”分组和参考页。
+ * 首页没有当前路线，所以目录全部展开、不折叠、不弱化；推荐的选项后标“推荐”。
+ *
+ * 一句话仍要求原样摘自整体思路的原理版正文（ADR-0005，design V14）：构建时核对，不通过就失败。
+ * 没有“继续上次”、已读标记和进度（需求 Never），也没有 v2.2 的眉题、小字信息行、桌面章级索引和固定字形章节号。
  */
 const site = await loadSite();
-const chapters = site.route.data.chapters;
 
-/** 进入整体思路的文字链接；标识改了构建就失败，不会留下坏链接 */
+/** 进入整体思路的文字链接不再放在首屏；目录里照常列出这一页。 */
 const OVERVIEW_ID = 'overview';
 const overview = site.pages.get(OVERVIEW_ID);
-if (!overview) throw new Error(`首页：“先看整体思路”指向的页面 principle/${OVERVIEW_ID}.md 不存在`);
+if (!overview) throw new Error(`首页：构建核对用的页面 principle/${OVERVIEW_ID}.md 不存在`);
 
 /*
  * logo 下的一句话：摘自整体思路的原理版正文，去掉开头的“所以”和加粗（作者 2026-10-17 确认，实施计划 v2.1 §6）。
- * 小字信息行：章节数从路线图取，“需要一台电脑和一部手机”是导入代理软件、选择手机系统两页事实的缩写（同上确认）。
+ * 构建时核对它原样出现在正文里（ADR-0005）；按 Markdown 原文比较，去掉加粗。
  */
 const TAGLINE = '下面每一步，其实都在做同一件事：让每一项信息都不露出“我在国内”，而且像一个普通用户。';
-const meta = `${chapters.length} 章 · 需要一台电脑和一部手机`;
-// 和章节标题卡的 intro 一样，构建时核对一句话原样摘自正文（ADR-0005）；按 Markdown 原文比较，去掉加粗
 if (!(overview.principle.body ?? '').replaceAll('**', '').includes(TAGLINE)) {
   throw new Error(`首页：logo 下的一句话没有原样出现在 principle/${OVERVIEW_ID}.md 的正文里（去掉加粗后比较）`);
 }
+
+const outline = site.route.outline({}, null, 'principle');
 ---
 
-<BaseLayout description={`Re:从零开始订阅 claude 的分步教程，从准备材料到订阅成功，每一步都有原理和操作。${TAGLINE}`}>
+<BaseLayout
+  description={`Re:从零开始订阅 claude 的分步教程，从准备材料到订阅成功，每一步都有原理和操作。${TAGLINE}`}
+  footerCentered
+>
   <main id="main" class="home">
-    <div class="home-top">
-      <div class="home-hero">
-        <p class="home-eyebrow">一份照着做的说明书</p>
-        <div class="home-logo">
-          <h1 class="home-title"><Logo variant="zh" /></h1>
-          <Mascot />
-        </div>
-        <p class="home-tagline">{TAGLINE}</p>
-        <p class="home-meta">{meta}</p>
-        <p class="home-actions">
-          <a class="button home-start" href={withBase(pathOf(site.start))} data-home-start
-            >从第 00 章开始<span class="button-arrow" aria-hidden="true">→</span></a
-          >
-          <a class="home-overview" href={withBase(pathOf({ kind: 'step', id: overview.id, title: overview.title }))}>先看整体思路</a>
-        </p>
-        <GroupInvite compact />
+    <section class="home-hero" aria-labelledby="home-title">
+      <div class="home-logo">
+        <h1 id="home-title" class="home-title"><Logo variant="zh" /></h1>
+        <Mascot />
       </div>
+      <p class="home-tagline">{TAGLINE}</p>
+      <p class="home-actions">
+        <a class="button home-start" href={withBase(pathOf(site.start))} data-home-start
+          >从第 00 章开始<span class="button-arrow" aria-hidden="true">→</span></a
+        >
+      </p>
+      <GroupInvite compact />
+    </section>
 
-      <nav class="home-index" aria-label="章级索引">
-        <ol>
-          {
-            chapters.map((chapter, chapterIndex) => (
-              <li>
-                <a href={`#chapter-${chapter.id}`}>
-                  <span class="home-index-no">
-                    <Numeral text={chapterNoText(chapterIndex)} label={`第 ${chapterIndex} 章`} />
-                  </span>
-                  <span class="home-index-title">{chapter.title}</span>
-                </a>
-              </li>
-            ))
-          }
-        </ol>
-      </nav>
-    </div>
-
-    <section class="home-chapters" aria-labelledby="home-chapters">
-      <h2 id="home-chapters" class="home-chapters-title">目录</h2>
-      <TocNav outline={site.route.outline({}, null, 'principle')} references={site.tocReferences} label="全站目录" home />
+    <section id="home-chapters" class="home-chapters" aria-label="站点目录">
+      <TocNav
+        outline={outline}
+        references={site.tocReferences}
+        label="全站目录"
+        home
+        forks={site.route.data.forks}
+      />
     </section>
   </main>
 </BaseLayout>
 
 <style>
-  /* 内容最宽 1120px，左对齐；顶部留白手机 32px、平板起 96px（design §3.3、§4.4）。 */
+  /* 首页整体：内容居中，最宽 960px（design §4.4）；顶部留白手机 40px、平板起 64px。 */
   .home {
-    max-width: 1120px;
+    max-width: 960px;
     margin: 0 auto;
-    padding: var(--space-6) var(--gutter) var(--space-7);
+    padding: calc(var(--space-6) + var(--space-2)) var(--gutter) var(--space-7);
   }
 
   @media (min-width: 720px) {
     .home {
-      padding-top: var(--space-9);
+      padding-top: var(--space-8);
     }
   }
 
-  /*
-   * 桌面 12 栏、栏间距 32px：主区占第 1–7 栏，索引占第 9–12 栏，两者顶部对齐（design §3.3、§4.4）。
-   * 章级索引只在桌面显示：平板和手机下面紧接着就是完整目录，重复了（§8 一致性检查第 6 条）。
-   */
-  .home-index {
-    display: none;
+  /* 首屏：logo、一句话、主按钮和 QQ 群小字都居中（design §4.4） */
+  .home-hero {
+    text-align: center;
   }
 
-  @media (min-width: 960px) {
-    .home-top {
-      display: grid;
-      grid-template-columns: repeat(12, minmax(0, 1fr));
-      column-gap: var(--space-6);
-      align-items: start;
-    }
-
-    .home-hero {
-      grid-column: 1 / 8;
-    }
-
-    .home-index {
-      display: block;
-      grid-column: 9 / 13;
-    }
-  }
-
-  /* 眉题到 logo 24px。v2.2：眉题用 --accent、不加两端短横（短横只留给章首页的英文副标题） */
-  .home-eyebrow {
-    margin: 0 0 var(--space-5);
-    color: var(--accent);
-    font-size: var(--fs-meta);
-    line-height: var(--lh-meta);
-    font-weight: var(--fw-heading);
-    letter-spacing: var(--tracking-meta);
-  }
-
-  /* logo 和小形象：小形象在 logo 的右下方，脚底贴着这一块的下沿（design v2.2 W2 第 6 条） */
+  /* logo 是 h1，宽 ≤560px、手机满宽；小形象在它的右下方（design §4.4、V16 的位置） */
   .home-logo {
-    display: flex;
-    align-items: flex-end;
-    gap: var(--space-3);
+    position: relative;
+    max-width: 560px;
+    margin: 0 auto;
+    /* 给小形象留出下方一行：它在 logo 的右下方，不和字重叠（design §4.4 的示意） */
+    padding-bottom: var(--mascot-height);
   }
 
   .home-title {
@@ -146,101 +103,43 @@ if (!(overview.principle.body ?? '').replaceAll('**', '').includes(TAGLINE)) {
     line-height: 0;
   }
 
-  /* logo 的 SVG 自带按字号算出的宽高，这里按宽度缩放（Logo.astro）：手机满宽，更宽时不超过 560px。 */
+  /* logo 的 SVG 自带按字号算出的宽高，这里按宽度缩放（Logo.astro） */
   .home-title :global(svg) {
     width: 100%;
     max-width: 560px;
     height: auto;
   }
 
-  /* logo 到一句话 32px */
+  .home-logo :global(.mascot) {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+  }
+
+  /* logo 到一句话 32px；一句话最宽 24em、居中、--text-muted（design §3.2、§4.4） */
   .home-tagline {
-    max-width: 22em;
-    margin: var(--space-6) 0 0;
+    max-width: 24em;
+    margin: var(--space-6) auto 0;
+    color: var(--text-muted);
     font-size: var(--fs-tagline);
     line-height: var(--lh-tagline);
   }
 
-  /* 同眉题的小字，不带两端短横 */
-  .home-meta {
-    margin: var(--space-2) 0 0;
-    color: var(--text-muted);
-    font-size: var(--fs-meta);
-    line-height: var(--lh-meta);
-    font-weight: 500;
-    letter-spacing: var(--tracking-meta);
-  }
-
-  /* 小字到按钮 32px；文字链接在按钮右侧 24px，用正文色，首屏不再多一处紫色 */
+  /* 一句话到主按钮 32px；按钮下 20px 是 QQ 群小字（GroupInvite 的紧凑版） */
   .home-actions {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-3) var(--space-5);
     margin: var(--space-6) 0 0;
   }
 
-  .home-start {
-    gap: var(--space-2);
-  }
 
-  /* 可点区域补足 44px 高（design §5），写法同 ReferenceLayout 的返回链接 */
-  .home-overview {
-    display: inline-flex;
-    align-items: center;
-    min-height: 44px;
-    color: var(--text);
-  }
-
-  .home-index ol {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .home-index li + li {
-    border-top: var(--border-width) solid var(--border);
-  }
-
-  /* 每行高 64px：编号用固定字形 32px，章名 17px 700，都是正文色（索引是第二层信息，不用紫色） */
-  .home-index a {
-    display: flex;
-    align-items: center;
-    gap: var(--space-4);
-    min-height: var(--space-8);
-    color: var(--text);
-    text-decoration: none;
-  }
-
-  .home-index a:hover .home-index-title {
-    text-decoration: underline;
-  }
-
-  .home-index-no {
-    flex: none;
-    font-size: 32px;
-    line-height: 1;
-  }
-
-  .home-index-title {
-    font-size: 17px;
-    font-weight: var(--fw-heading);
-    line-height: var(--lh-heading);
-  }
-
-  /* 封面下一条 1px 线，上下各 64px */
+  /*
+   * 一条 1px 细线隔开首屏和目录，上下各 48px（design §4.4）。
+   * 目录本身左对齐、宽同正文栏（--measure），在页面里居中摆放；章标题是 h2（toc.css 的 .toc-home）。
+   */
   .home-chapters {
-    margin-top: var(--space-8);
-    padding-top: var(--space-8);
+    max-width: var(--measure);
+    margin: var(--space-7) auto 0;
+    padding-top: var(--space-7);
     border-top: var(--border-width) solid var(--border);
-  }
-
-  .home-chapters-title {
-    margin: 0 0 var(--space-4);
-    color: var(--text-muted);
-    font-size: var(--fs-meta);
-    line-height: var(--lh-meta);
-    font-weight: 500;
-    letter-spacing: var(--tracking-meta);
+    text-align: left;
   }
 </style>

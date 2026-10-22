@@ -91,9 +91,61 @@ describe('TocNav 侧边栏', () => {
     expect(html.match(/class="toc-sections"/g)).toHaveLength(1);
   });
 
-  it('首页/找不到页的目录不折叠，章名保留“第 n 章”', async () => {
-    const html = await render({ collapsible: false, home: true });
+  it('找不到页的目录不折叠，章名保留“第 n 章”', async () => {
+    const html = await render({ collapsible: false });
     expect(html).not.toContain('<details');
     expect(html).toMatch(/toc-chapter-no/);
+  });
+
+  it('首页的目录：每章一个 h2“第 n 章　章名”，不折叠、不弱化、没有切换按钮', async () => {
+    const html = await render({
+      collapsible: false,
+      home: true,
+      forks: { 'node-plan': { page: 'choose-plan', options: [], default: 'plan-2' } },
+    });
+    expect(html).not.toContain('<details');
+    expect(html).toContain('<h2 class="toc-chapter-head">第 0 章　开始</h2>');
+    expect(html).toContain('<h2 class="toc-chapter-head">第 2 章　附录</h2>');
+    expect(html).not.toContain('toc-chapter-no');
+    expect(html).not.toContain('data-off-route');
+    expect(html).not.toContain('data-selected');
+    expect(html).not.toContain('data-toc-switch');
+    expect(html).not.toContain('其他路线');
+  });
+
+  it('首页目录给推荐的选项标“推荐”，其他选项不标；默认选项不代表本机选择', async () => {
+    const homeOutline: OutlineChapter[] = [
+      {
+        id: 'node',
+        title: '准备节点和住宅 IP',
+        items: [
+          {
+            kind: 'branch',
+            fork: 'node-plan',
+            options: [
+              { id: 'plan-1', title: '方案一', selected: false, steps: [step('plan1-buy-server', '一、购买服务器')] },
+              { id: 'plan-2', title: '方案二', selected: false, steps: [step('plan2-residential-server', '方案二：住宅 IP 服务器')] },
+            ],
+          },
+        ],
+      },
+    ];
+    const html = await render({
+      collapsible: false,
+      home: true,
+      outline: homeOutline,
+      forks: { 'node-plan': { page: 'choose-plan', options: [], default: 'plan-2' } },
+    });
+    expect(html).toMatch(/data-toc-option="plan-2" data-recommended/);
+    expect(html).not.toMatch(/data-toc-option="plan-1" data-recommended/);
+    expect(html.match(/class="toc-recommend">推荐/g)).toHaveLength(1);
+    expect(html).not.toContain('data-selected');
+  });
+
+  it('首页目录和折叠同时传时抛错', async () => {
+    const container = await AstroContainer.create();
+    await expect(container.renderToString(TocNav, { props: { outline: outline(), references, home: true, collapsible: true } })).rejects.toThrow(
+      '首页目录（home）不能用 collapsible',
+    );
   });
 });

@@ -53,7 +53,7 @@ test('关掉 JS：首页 → 方案三 → iPhone → 后记 → 附录 → 首�
 
   // 附录是路线的最后一页（v2.2 D11、FR-11）：下一步是“回到首页”
   await page.getByRole('navigation', { name: '上一步和下一步' }).getByRole('link', { name: /下一步.*回到首页/ }).click();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveAccessibleName('Re:从零开始订阅 claude');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveAccessibleName('Re:从零开始订阅 claude（Re:Zero − Starting Life with Claude）');
 
   expect(responses).toEqual([]);
   // 构建时按原理视图写导航（用户 2026-10-22 决定去掉视图切换、固定原理视图）：经过原理独有的整体思路和小结

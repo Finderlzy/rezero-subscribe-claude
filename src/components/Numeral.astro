@@ -1,13 +1,13 @@
 ---
-// 固定字形的编号（design §3.2 D7）：章节号、步骤编号、首页索引、404。标记由 lib/numeral.ts 的 numeralSvg() 给出，
-// 页面脚本改写编号时调用同一个函数。数字图形引用页面里内联的 NumeralSprite（BaseLayout 每页一份）。
+// 固定字形的编号（design §3.2 D7）：只剩找不到页的大号 404。标记由 lib/numeral.ts 的 numeralSvg() 给出，
+// 全站只有找不到页的 404 用它；数字图形引用同一页内联的 NumeralSprite（design v3 §3.2、§9）。
 // 高度是 1em = 数字高度，用 font-size 控制大小；颜色跟随 currentColor。
 import { numeralSvg } from '../lib/numeral';
 
 interface Props {
-  /** 0–9 和短横 `–` 组成的编号，例如 "02"、"404"、"–" */
+  /** 0–9 组成的编号，例如 "404" */
   text: string;
-  /** 读屏读到的文字，例如“第 2 步，共 5 步”“第 1 章”“404”（design §5） */
+  /** 读屏读到的文字，例如“404”（design §5） */
   label: string;
   class?: string;
 }

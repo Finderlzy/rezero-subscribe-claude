@@ -9,8 +9,8 @@
 //   SourceHanSansCN-Heavy.otf  https://raw.githubusercontent.com/adobe-fonts/source-han-sans/a4f7cf94edfb9d7ffbdfc4841de276358bd7e0f2/SubsetOTF/CN/SourceHanSansCN-Heavy.otf
 //
 // 输出：src/assets/logo/{logo-zh,logo-en,mark}.svg（由 Logo.astro 内联）、public/favicon.svg；
-// src/assets/numerals/ 的编号字形 symbols.svg + metrics.json（由 NumeralSprite.astro 和 lib/numeral.ts 使用）
-// 和五条章节副标题 chapter-00.svg…chapter-04.svg（由 ChapterSubtitle.astro 内联）。
+// src/assets/numerals/ 的编号字形 symbols.svg + metrics.json（只给找不到页的 404 用，NumeralSprite.astro 和 lib/numeral.ts 使用；
+// design v3 §3.2 起章节号一律写成文字，不再生成章节副标题）。
 // 颜色：“Re”用 var(--logo-re, #5B3FA0)，其余用 currentColor；favicon 单独用文件，自带深浅配色。
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -108,9 +108,8 @@ function pathData(path, decimals = 2) {
 }
 
 // 把若干段文字合成一个 SVG：外框按字形实际范围加留白，路径按颜色各合成一条。
-// 传了 style 时（favicon）配色全由 style 决定，不写内联颜色。logo 以外的图形（章节副标题）传 classes: false，
-// 不带 .logo-re/.logo-ink，免得 logo 的约定波及它们。
-function svg(runs, { pad = 4, style = '', classes = true } = {}) {
+// 传了 style 时（favicon）配色全由 style 决定，不写内联颜色。
+function svg(runs, { pad = 4, style = '' } = {}) {
   const re = runs.flatMap((r) => r.paths[RE]);
   const ink = runs.flatMap((r) => r.paths[INK]);
   const b = bbox([...re, ...ink]);
@@ -124,9 +123,8 @@ function svg(runs, { pad = 4, style = '', classes = true } = {}) {
   if (style) parts.push(`<style>${style}</style>`);
   const reFill = style ? '' : ' style="fill:var(--logo-re, #5B3FA0)"';
   const inkFill = style ? '' : ' fill="currentColor"';
-  const cls = (name) => (classes ? ` class="${name}"` : '');
-  if (re.length) parts.push(`<path${cls('logo-re')}${reFill} d="${d(re)}"/>`);
-  if (ink.length) parts.push(`<path${cls('logo-ink')}${inkFill} d="${d(ink)}"/>`);
+  if (re.length) parts.push(`<path class="logo-re"${reFill} d="${d(re)}"/>`);
+  if (ink.length) parts.push(`<path class="logo-ink"${inkFill} d="${d(ink)}"/>`);
   parts.push('</svg>');
   return parts.join('\n') + '\n';
 }
@@ -239,9 +237,10 @@ function square(text) {
 
 // —— 编号字形（design §3.2、D7）——
 // 和 logo“Re”同一种细衬线（Cormorant Garamond 500）的等高数字。这款字体默认是旧式数字（zero…），
-// charToGlyph 会拿到半高的 0 和 1，所以按字形名取 zero.lf…nine.lf，短横取 endash（架构 §11.4 W-1）。
-// 输出一份 <symbol> 雪碧图和字宽表：页面内联一次雪碧图，构建时和浏览器脚本都用 lib/numeral.ts 拼 <use>，
-// 不必为每个数字串单独转曲（架构 §11.4 W-2）。坐标是字体单位（1000/em），y 向下、基线是 0。
+// charToGlyph 会拿到半高的 0 和 1，所以按字形名取 zero.lf…nine.lf（架构 §11.4 W-1）。
+// design v3 §3.2 起固定字形只剩找不到页的 404，章节号写成文字，所以只生成 0–9，不再生成短横。
+// 输出一份 <symbol> 雪碧图和字宽表：找不到页内联一次，`lib/numeral.ts` 拼 <use>（架构 §11.4 W-2）。
+// 坐标是字体单位（1000/em），y 向下、基线是 0。
 const NUMERAL_GLYPHS = {
   0: 'zero.lf',
   1: 'one.lf',
@@ -253,10 +252,7 @@ const NUMERAL_GLYPHS = {
   7: 'seven.lf',
   8: 'eight.lf',
   9: 'nine.lf',
-  '–': 'endash',
 };
-// symbol 的 id 后缀；短横不能直接放进 id
-const numeralKey = (ch) => (ch === '–' ? 'dash' : ch);
 
 function numerals() {
   const { font, variation } = fonts.re;
@@ -274,7 +270,7 @@ function numerals() {
   const symbols = glyphs.map(({ ch, path, advance }) => {
     const d = pathData(path, 0);
     if (d.includes('NaN')) throw new Error('路径里出现 NaN');
-    return `<symbol id="numeral-${numeralKey(ch)}" viewBox="0 ${top} ${advance} ${height}"><path d="${d}"/></symbol>`;
+    return `<symbol id="numeral-${ch}" viewBox="0 ${top} ${advance} ${height}"><path d="${d}"/></symbol>`;
   });
   const metrics = {
     top,
@@ -287,30 +283,6 @@ function numerals() {
   };
 }
 
-// —— 章节标题卡的英文副标题（design §3.2、§4.1）：− CHAPTER 0n − ——
-// Roboto Condensed 700，13px，字距 0.3em；两端是 24px 长、1px 粗的细短横，竖向落在大写字母的中线上。
-function chapterSubtitle(n) {
-  const size = 13;
-  const dash = 24;
-  const gap = size * 0.6;
-  const { font } = fonts.sub;
-  const capHeight = (font.tables.os2.sCapHeight * size) / font.unitsPerEm;
-  // 短横的上下边落在整像素上，13px 原大显示时不发虚
-  const y = Math.round(-capHeight / 2 - 0.5);
-  const rule = (x) => {
-    const p = new opentype.Path();
-    p.moveTo(x, y);
-    p.lineTo(x + dash, y);
-    p.lineTo(x + dash, y + 1);
-    p.lineTo(x, y + 1);
-    p.close();
-    return p;
-  };
-  const text = run({ font: 'sub', text: `CHAPTER ${String(n).padStart(2, '0')}`, x: dash + gap, y: 0, size, tracking: size * 0.3 });
-  const ends = { paths: { [RE]: [], [INK]: [rule(0), rule(Math.round(text.end + gap))] } };
-  return svg([ends, text], { pad: 0, classes: false });
-}
-
 const numeralOut = numerals();
 
 const outputs = {
@@ -320,7 +292,6 @@ const outputs = {
   'public/favicon.svg': favicon(),
   'src/assets/numerals/symbols.svg': numeralOut.symbols,
   'src/assets/numerals/metrics.json': numeralOut.metrics,
-  ...Object.fromEntries([0, 1, 2, 3, 4].map((n) => [`src/assets/numerals/chapter-0${n}.svg`, chapterSubtitle(n)])),
 };
 
 for (const [file, content] of Object.entries(outputs)) {

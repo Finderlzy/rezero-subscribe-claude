@@ -25,8 +25,10 @@ describe('Logo', () => {
     expect(html).toContain('fill="currentColor"');
   });
 
-  it('不传 title 时用站名作无障碍名称，title 里的引号会转义', async () => {
-    expect(await render({ variant: 'zh' })).toMatch(/aria-label="Re:从零开始订阅 claude"/);
+  it('不传 title 时用站名作无障碍名称（中文版还带英文副标题），title 里的引号会转义', async () => {
+    expect(await render({ variant: 'zh' })).toMatch(
+      /aria-label="Re:从零开始订阅 claude（Re:Zero − Starting Life with Claude）"/,
+    );
     expect(await render({ variant: 'en' })).toMatch(/aria-label="Re:Zero − Starting Life with Claude"/);
     expect(await render({ variant: 'mark', title: '' })).toMatch(/aria-label="Re:从零开始订阅 claude"/);
     expect(await render({ variant: 'mark', title: '"<x>' })).toMatch(/aria-label="&quot;&lt;x&gt;"/);

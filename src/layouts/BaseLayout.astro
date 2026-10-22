@@ -1,7 +1,6 @@
 ---
 import '../styles/tokens.css';
 import '../styles/base.css';
-import NumeralSprite from '../components/NumeralSprite.astro';
 import SiteFooter from '../components/SiteFooter.astro';
 import { THEME_BOOT_SCRIPT } from '../lib/theme';
 import { withBase } from '../lib/with-base';
@@ -13,10 +12,12 @@ interface Props {
   description?: string;
   /** 不该被搜索引擎收录的页面（找不到页）设为 true。 */
   noindex?: boolean;
+  /** 首页的页脚居中（design §4.0、§4.4）；其他页左对齐于正文栏。 */
+  footerCentered?: boolean;
 }
 
 const SITE_NAME = 'Re:从零开始订阅 claude';
-const { title, description, noindex = false } = Astro.props;
+const { title, description, noindex = false, footerCentered = false } = Astro.props;
 // 构建时给了 site（部署时的 SITE_URL）才写规范网址。
 const canonical = Astro.site && !noindex ? new URL(Astro.url.pathname, Astro.site).href : undefined;
 const fullTitle = title ? `${title} - ${SITE_NAME}` : SITE_NAME;
@@ -38,8 +39,7 @@ const fullTitle = title ? `${title} - ${SITE_NAME}` : SITE_NAME;
   </head>
   <body>
     <a class="skip-link" href="#main">跳到正文</a>
-    <NumeralSprite />
     <slot />
-    <SiteFooter />
+    <SiteFooter centered={footerCentered} />
   </body>
 </html>

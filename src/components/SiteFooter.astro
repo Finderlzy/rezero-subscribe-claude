@@ -3,11 +3,18 @@
  * 页脚（design §4.0，v2.2 D6）：所有页面最底部一行 13px --text-faint 的非官方声明，上面一条 1px --border 细线。
  * 用它的原因只有一个：站点用了 Claude Code 的官方像素小形象（D6），要说明这是个人教程。
  * 放在 BaseLayout 里，每页都有；首页、步骤页、附录页、找不到页都不必各写一遍。
+ * 首页的页脚居中（design §4.0、§4.4），由 BaseLayout 的 footerCentered 传进来。
  */
+interface Props {
+  /** 首页：声明文字居中；其他页左对齐于正文栏 */
+  centered?: boolean;
+}
+
+const { centered = false } = Astro.props;
 const DISCLAIMER = '本站是个人教程，与 Anthropic 无关。';
 ---
 
-<footer class="site-footer">
+<footer class:list={['site-footer', { 'site-footer-centered': centered }]}>
   <p><small>{DISCLAIMER}</small></p>
 </footer>
 
@@ -30,6 +37,11 @@ const DISCLAIMER = '本站是个人教程，与 Anthropic 无关。';
   .site-footer small {
     color: var(--text-faint);
     font-size: var(--fs-caption);
+  }
+
+  /* 首页：声明居中（design §4.0、§4.4；首页以外只有首屏和页脚可以居中） */
+  .site-footer-centered p {
+    text-align: center;
   }
 
   /* 手机上底栏吸底：给声明多留出底栏的高度 */

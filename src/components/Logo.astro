@@ -10,13 +10,13 @@ import mark from '../assets/logo/mark.svg?raw';
 
 interface Props {
   variant: 'zh' | 'en' | 'mark';
-  /** 无障碍名称；不传时用站名 */
+  /** 无障碍名称；不传时用站名（中文版同时给出英文副标题，首页首屏靠它代替重复写两行字，design §4.4） */
   title?: string;
 }
 
 const sources = { zh, en, mark };
 const defaultTitles = {
-  zh: 'Re:从零开始订阅 claude',
+  zh: 'Re:从零开始订阅 claude（Re:Zero − Starting Life with Claude）',
   en: 'Re:Zero − Starting Life with Claude',
   mark: 'Re:从零开始订阅 claude',
 };

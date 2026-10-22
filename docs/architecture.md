@@ -230,11 +230,13 @@ function pathOf(stop: Stop): string;        // '/<id>/' 或 '/'；再由 withBas
 
 ### M3 页面（`src/pages/`、`src/layouts/`、`src/components/`、`src/styles/`、`src/scripts/`）
 
+> **v3 现状**：本节下面标“现状”的页面结构是 1.0.0/v2.1 的；V01–V05 已按 [§13.3](#133-m3-页面按-designmd-v3) 改掉页头色带、章节标题卡、章节副标题和每页内联的编号字形（现在只剩找不到页的 404），首页和找不到页的结构见 §13.3。两者冲突时以 §13.3 为准。
+
 **职责**：把内容和路线渲染成页面；实现 [design.md](design.md) v2.0 的全部页面和组件。
 
 | 页面 | URL | 文件（#25 建立） |
 | --- | --- | --- |
-| 首页：首屏（logo、站名、英文副标题、“从第 00 章开始”、桌面章级索引）、按章目录 | `/` | `src/pages/index.astro` |
+| 首页：VuePress 式首屏 + 按章目录（v3，见 §13.3） | `/` | `src/pages/index.astro` |
 | 步骤页、选择页、旁支页 | `/<id>/` | `src/pages/[page].astro` + `PageLayout` |
 | 常见问题 / 各条问题 | `/faq/`、`/faq/<id>/` | `src/pages/faq/index.astro`、`[question].astro` + `ReferenceLayout` |
 | IP 质量实测合集 / 各篇实测 | `/ip-tests/`、`/ip-tests/<id>/` | `src/pages/ip-tests/index.astro`、`[test].astro` |
@@ -326,7 +328,7 @@ function getNameHost(scope?): { name: string } | null;   // 浏览器里是 wind
 │   │   ├── logo/                    转曲后的 logo SVG（只由 Logo.astro 引用）
 │   │   ├── mascot/                  Claude Code 像素小形象 mascot.svg（只由 Mascot.astro 引用，design D6）
 │   │   ├── diagrams/                说明图（import-rewrite.mjs 从重写稿附件复制）
-│   │   └── numerals/                转曲后的编号字形和 CHAPTER 00–04 副标题（build-logo.mjs 生成）
+│   │   └── numerals/                转曲后的编号字形（build-logo.mjs 生成，只用在找不到页的 404）
 │   ├── lib/
 │   │   ├── content/                 M1：schemas、link-index、remark-obsidian、rehype-operation-ids、rehype-figures、markdown、integration（+ *.test.ts）
 │   │   ├── route/                   M2：route-map、types（+ 测试和测试用路线图）
@@ -336,7 +338,7 @@ function getNameHost(scope?): { name: string } | null;   // 浏览器里是 wind
 │   │   └── site.ts                  构建时装配 loadSite()、assembleRoute()
 │   ├── scripts/                     页面脚本：route-enhance、view-toggle、toc、reference-return、code-zoom、video-facade
 │   ├── layouts/                     BaseLayout、PageLayout（替换 StepLayout）、ReferenceLayout
-│   ├── components/                  Logo、Mascot、SiteHeader、SiteFooter、ViewToggle、StepNav、Toc、TocNav、Numeral、NumeralSprite、ChapterSubtitle、CodeCopy、ImageZoom、VideoFacade
+│   ├── components/                  Logo、Mascot、SiteHeader、ThemeToggle、ContactLinks、SiteFooter、StepNav、Toc、TocNav、TocItems、TocSections、Numeral、NumeralSprite、GroupInvite、CodeCopy、ImageZoom、VideoFacade
 │   ├── pages/                       index、[page]、faq/index、faq/[question]、ip-tests/index、ip-tests/[test]、404
 │   └── styles/                      tokens.css、base.css、prose.css、toc.css、code-zoom.css
 ├── public/                          favicon.svg
@@ -514,14 +516,14 @@ function search(index: SearchEntry[], query: string, view: ViewMode, limit = 10)
 
 - **断点**：`720px` 一档取代 `1100px` 的“常驻目录”档；具体令牌由 design 定，`tokens.css` 和 `tokens.test.ts` 同步。
 - **顶栏**（V01 现状）：`SiteHeader.astro` 改为文档站顶栏，左边 `Logo`（“Re:”标记）+ 站名 + `Mascot`，右边搜索挂载点 `[data-search-slot]`（V08 填 `SiteSearch`）、`ThemeToggle`（昼夜切换，用户 2026-10-22 决定取代 `ViewToggle`，见 13.12）、`ContactLinks`；<720px 左边多“目录”按钮。不吸顶。首页不用顶栏（FR-18）。
-- **页面骨架**（V01 现状）：`PageLayout`、`ReferenceLayout` 改成“顶栏 + 两栏（侧边栏 | 正文栏）”，≥720px 侧边栏 `position: sticky`、独立滚动，<720px 只有正文栏、目录在抽屉里。页头色带、`ChapterSubtitle`、章节标题卡、`.step-heading` 的编号挂栏删除；眉题改为 h1 上方一行灰色小字，进度文字仍由 `nav-text.ts` 和 `route-enhance` 的 `renderProgress` 给出（挂载点名字不变）。`Numeral`、`numerals/` 只在 design v3 还用到时保留，不用就连同 `build-logo.mjs` 的对应输出一起删。
+- **页面骨架**（V01 现状）：`PageLayout`、`ReferenceLayout` 改成“顶栏 + 两栏（侧边栏 | 正文栏）”，≥720px 侧边栏 `position: sticky`、独立滚动，<720px 只有正文栏、目录在抽屉里。页头色带、`ChapterSubtitle`、章节标题卡、`.step-heading` 的编号挂栏删除；眉题改为 h1 上方一行灰色小字，进度文字仍由 `nav-text.ts` 和 `route-enhance` 的 `renderProgress` 给出（挂载点名字不变）。`Numeral`、`numerals/` 只剩找不到页的大号 `404`（design v3 §3.2、§9），`ChapterSubtitle` 和 `chapter-0X.svg` 已随 V05 删除。
 - **正文和内容组件**（V03 现状，FR-72）：页面标题、正文和内容组件按 design §3.2、§4.7 排（h1 在 `base.css` 和页面布局，其余在 `prose.css`）：h2–h4、正文链接、行内代码和代码块、表格（全格线 + 隔行）、提示块（浅底 + 4px 左色条）和截图图版；`GroupInvite` 用普通提示块的外观。正文栏宽度仍由 `--measure` 和 `--gutter` 决定。
-- **目录 / 侧边栏**（V02 现状，FR-16）：`TocNav` 每章是一个 `<details>`，当前页所在章 `open`，其余折叠；折叠只在 DOM 里，不写本机。当前页下面列出它正文的 h2（固定原理视图，只有一份，用户 2026-10-22 决定），由 `[page].astro`、`faq/*.astro`、`ip-tests/*.astro` 把 `render()` 的 `headings` 经 `tocSections()` 取 `depth === 2` 传给 `PageLayout`/`ReferenceLayout` 的新参数 `sections`，再交给 `Toc`；参考页的当前项由 `ReferenceLayout` 的 `currentReference` 指定（各条问题、各篇实测高亮上级），附录章跟着展开；子页也把 `headings` 传下去，小节挂在上级项下面，链接锚点仍是子页正文的 h2。旁支页用 `openChapterId`（`PageLayout` 传 `view.progress.chapterId`）展开它所属的章。`TocItems.astro` 写一章的页面项和参考页，`TocSections.astro` 写小节列表。链接锚点直接用正文 h2 的 `slug`。当前项 600 `--accent` + 4px 左边线。`toc.ts` 仍按本机选择改写弱化和当前项，不碰 `<details>` 的开合。首页和找不到页的目录用不折叠的变体（`collapsible` 不传）。抽屉和侧边栏仍是同一套 `TocNav` 标记（v2.2 的做法）。
+- **目录 / 侧边栏**（V02 现状，FR-16）：`TocNav` 每章是一个 `<details>`，当前页所在章 `open`，其余折叠；折叠只在 DOM 里，不写本机。当前页下面列出它正文的 h2（固定原理视图，只有一份，用户 2026-10-22 决定），由 `[page].astro`、`faq/*.astro`、`ip-tests/*.astro` 把 `render()` 的 `headings` 经 `tocSections()` 取 `depth === 2` 传给 `PageLayout`/`ReferenceLayout` 的新参数 `sections`，再交给 `Toc`；参考页的当前项由 `ReferenceLayout` 的 `currentReference` 指定（各条问题、各篇实测高亮上级），附录章跟着展开；子页也把 `headings` 传下去，小节挂在上级项下面，链接锚点仍是子页正文的 h2。旁支页用 `openChapterId`（`PageLayout` 传 `view.progress.chapterId`）展开它所属的章。`TocItems.astro` 写一章的页面项和参考页，`TocSections.astro` 写小节列表。链接锚点直接用正文 h2 的 `slug`。当前项 600 `--accent` + 4px 左边线。`toc.ts` 仍按本机选择改写弱化和当前项，不碰 `<details>` 的开合。首页和找不到页的目录用不折叠的变体（`collapsible` 不传）。首页的目录另有 `home` 变体（V05）：每章一个 h2“第 n 章　章名”，全部展开、不弱化、不标当前项、不放“切换”，推荐的选项后标“推荐”（默认选项取自 `site.route.data.forks`）。抽屉和侧边栏仍是同一套 `TocNav` 标记（v2.2 的做法）。
 - **翻页** `StepNav`：正文末尾细线下，左“← 标题”、右“标题 →”，“跳过”在“下一步”下面一行；参考页、旁支页的“回到：……”用同样的链接样式。导航数据和改写逻辑不变。
-- **首页** `index.astro`：VuePress 首页的 hero（居中 logo、站名、英文副标题、主按钮、QQ 群小字）+ 按章目录，没有顶栏的搜索、没有侧边栏。首屏“一句话摘自整体思路”的构建核对随首屏改版是否保留由 design v3 定；保留就照旧核对。
+- **首页**（V05 现状，`index.astro`、design §4.4）：VuePress 首页。没有顶栏和侧边栏，首屏内容居中：中文两行版 logo 是 h1（`aria-label` 同时给出中文站名和英文副标题，`Logo.astro` 的 `zh` 默认标题）、logo 右下方一行放小形象、一句话（`--text-muted`）、紫色主按钮“从第 00 章开始 →”和 QQ 群入口的紧凑版（一行小字，`GroupInvite` 的 `compact`）。一条 1px 细线下是按章目录，用 `TocNav` 的 `home` 变体，宽同正文栏（740px）并居中；页脚居中（`BaseLayout` 的 `footerCentered`）。一句话写在页面里，构建时核对它（去掉加粗后）原样出现在 `principle/overview.md` 正文里（ADR-0005、design V14）。v2.2 的眉题、小字信息行、“先看整体思路”、桌面章级索引和固定字形章节号都去掉。
 - **选择页**：选项块改细边框卡片，“推荐”“当前选择”的标记和交互不变（`option-blocks.ts` 只改输出的类名和装饰，不改结构）。
 - **跳转页** `MovedPage`（计划，ADR-0006）：`[page].astro` 的 `getStaticPaths` 额外为 `moved:` 的每个旧标识生成一页：`<head>` 里内联一行脚本按本机视图选锚点后 `location.replace()`，再写 `<meta http-equiv="refresh">`（指向构建时选好的操作版优先锚点）、`<link rel="canonical">`、`<meta name="robots" content="noindex">`；正文一行“这一页已经并入《合并页》”和链接。没有 `section` 的条目（`plan1-free-isp`）直接跳到目标页顶部。
-- **找不到页**：沿用，只换顶栏和正文栏。
+- **找不到页**（V05 现状，`404.astro`、design §4.6）：v3 顶栏 + 正文栏（`main.page`，宽同正文栏并居中），没有侧边栏；大号固定字形 `404`、h1、主按钮“回到首页”和次按钮“打开目录”，目录直接写在页面上。`NumeralSprite` 只在这一页内联（design §3.2、§9）。
 
 ### 13.4 小节锚点（M1 + M3，ADR-0006）
 

@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import Numeral from './Numeral.astro';
 import NumeralSprite from './NumeralSprite.astro';
 
-// 固定字形的编号（design §3.2 D7，§5）：Numeral 输出一个 role="img" 的 <svg>，用 <use> 引用页面里的 NumeralSprite；
-// 读屏只读 aria-label。页面不加载字体。
+// 固定字形的编号（design v3 §3.2）：只剩找不到页的 404。Numeral 输出一个 role="img" 的 <svg>，
+// 用 <use> 引用页面里的 NumeralSprite；读屏只读 aria-label。页面不加载字体。
 async function render(component: Parameters<AstroContainer['renderToString']>[0], props: Record<string, unknown> = {}) {
   const container = await AstroContainer.create();
   return container.renderToString(component, { props });
@@ -13,9 +13,8 @@ const refs = (html: string) => [...html.matchAll(/<use href="#([^"]+)"/g)].map((
 
 describe('Numeral', () => {
   it.each([
-    ['00', '第 0 章', ['numeral-0', 'numeral-0']],
+    ['04', '04', ['numeral-0', 'numeral-4']],
     ['404', '404', ['numeral-4', 'numeral-0', 'numeral-4']],
-    ['–', '第 2 章，数不清第几步', ['numeral-dash']],
   ])('“%s”：一个 role="img" 的 <svg>，读屏名称是 aria-label，按字引用字形', async (text, label, ids) => {
     const html = await render(Numeral, { text, label });
     expect(html.match(/<svg\b/g)).toHaveLength(1);
@@ -35,10 +34,10 @@ describe('Numeral', () => {
 });
 
 describe('NumeralSprite', () => {
-  it('内联 0–9 和短横的 <symbol>，不显示、对读屏隐藏', async () => {
+  it('内联 0–9 的 <symbol>，不显示、对读屏隐藏', async () => {
     const html = await render(NumeralSprite);
     const ids = [...html.matchAll(/<symbol id="([^"]+)"/g)].map((m) => m[1]);
-    expect(ids).toEqual([...'0123456789'].map((d) => `numeral-${d}`).concat('numeral-dash'));
+    expect(ids).toEqual([...'0123456789'].map((d) => `numeral-${d}`));
     expect(html).toMatch(/<svg\b[^>]*\baria-hidden="true"/);
     // 还要 role="presentation"：<svg> 的默认 role 是 img，只加 aria-hidden 会被 axe 判为 simple-img（图片缺替代文字）
     expect(html).toMatch(/<svg\b[^>]*\brole="presentation"/);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chapterNoText, eyebrowText, figurePrefix, progressText, stopTitle } from './nav-text';
+import { eyebrowText, figurePrefix, progressText, stopTitle } from './nav-text';
 
 describe('nav-text：导航文案，构建时和浏览器共用', () => {
   const chapter = { chapterId: 'node-and-ip', chapter: '准备节点和住宅 IP', chapterNo: 1 };
@@ -68,12 +68,9 @@ describe('nav-text：导航文案，构建时和浏览器共用', () => {
     expect(stopTitle({ kind: 'home' }, 'next')).toBe('回到首页');
   });
 
-  it('眉题的章号不补零；目录和首页索引的章节号仍从 00 起、补足两位（design §2）', () => {
+  it('眉题的章号不补零（design v3 §3.2：章节号一律写成文字）', () => {
     expect(eyebrowText({ chapterId: 'a', chapter: '甲', chapterNo: 0 }, step)).toBe('第 0 章 · 甲');
     expect(eyebrowText({ chapterId: 'b', chapter: '乙', chapterNo: 3 }, step)).toBe('第 3 章 · 乙');
-    expect(chapterNoText(0)).toBe('00');
-    expect(chapterNoText(3)).toBe('03');
-    expect(chapterNoText(12)).toBe('12');
   });
 
 });

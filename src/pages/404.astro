@@ -1,5 +1,6 @@
 ---
 import Numeral from '../components/Numeral.astro';
+import NumeralSprite from '../components/NumeralSprite.astro';
 import SiteHeader from '../components/SiteHeader.astro';
 import TocNav from '../components/TocNav.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
@@ -11,11 +12,13 @@ import '../styles/toc.css';
  * 找不到页（design §4.6，AC-18）：大号 `404`（固定字形，Numeral）、
  * “找不到这一页”、一句说明，“回到首页”（主）和“打开目录”（次），目录直接写在页面上，“打开目录”跳到它，不靠 JS。
  * 小形象 v3 起只在顶栏站名旁（design §6、V16），这里不再放。不显示侧边栏：这一页本身就是目录（v2.2 D8）。
+ * 固定字形只在找不到页用（design v3 §3.2、§9），所以 NumeralSprite 也只在这里内联一份，不再由 BaseLayout 每页内联。
  */
 const site = await loadSite();
 ---
 
 <BaseLayout title="找不到这一页" noindex>
+  <NumeralSprite />
   <SiteHeader />
   <main id="main" class="page">
     <div class="not-found-head">

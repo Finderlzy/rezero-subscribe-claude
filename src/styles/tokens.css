@@ -42,7 +42,7 @@
   /* logo 的“Re”跟主色走 */
   --logo-re: var(--accent);
 
-  /* §3.2 字体：只用系统字体，不加载网页字体。大号编号（首页章级索引、404）用固定字形（Numeral），不靠字体 */
+  /* §3.2 字体：只用系统字体，不加载网页字体。大号编号只剩找不到页的 404，用固定字形（Numeral），不靠字体 */
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
     "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC",
     "Source Han Sans SC", sans-serif;
@@ -69,8 +69,8 @@
   /* 截图编号“图 02-1”、页脚 */
   --fs-caption: 13px;
   --fs-code: 0.875em;
-  /* 主按钮、次按钮的文字（§4.7） */
-  --fs-button: 16px;
+  /* 主按钮、次按钮的文字（§4.7：主按钮 18px 600，首页和找不到页两处都用） */
+  --fs-button: 18px;
   /* 顶栏的站名（§3.2：18px 600，<480px 隐藏）和顶栏里的文字按钮（<720px 的“联系”，15px） */
   --fs-site-name: 18px;
   --fs-header: 15px;

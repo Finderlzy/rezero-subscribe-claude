@@ -20,7 +20,7 @@ function stepCount(progress: Progress, current?: Stop): { index: number; total: 
   return { index: progress.index, total: progress.total };
 }
 
-/** 眉题里“第 n 章”：章号和首页、目录的 00–04 一样从 0 起，用阿拉伯数字，不补零（v2.2 D10、计划 W2 第 1 条） */
+/** 眉题里“第 n 章”：章号从 0 起，用阿拉伯数字，不补零（design v3 §3.2：章节号一律写成文字） */
 function chapterText(progress: Progress): string {
   return `第 ${progress.chapterNo} 章`;
 }
@@ -69,9 +69,4 @@ export function figurePrefix(progress: Progress, current: Stop): string {
 /** 导航按钮里写出的目标标题；`dir` 是按钮的方向（“回到”算上一步那一侧）。 */
 export function stopTitle(stop: Stop, dir: 'prev' | 'next'): string {
   return stop.kind === 'home' ? HOME_TITLE[dir] : stop.title;
-}
-
-/** 章节号：从 00 开始补足两位（design §2 “从零开始”），首页的章级索引和目录共用（眉题写“第 n 章”，不补零，v2.2 D10）。 */
-export function chapterNoText(chapterNo: number): string {
-  return String(chapterNo).padStart(2, '0');
 }

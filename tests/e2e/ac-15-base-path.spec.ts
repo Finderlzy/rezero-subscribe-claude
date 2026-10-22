@@ -109,7 +109,7 @@ test('不存在的页面显示“找不到这一页”，“回到首页”回�
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('找不到这一页');
   await page.getByRole('link', { name: '回到首页' }).click();
   await expect(page).toHaveURL(new URL('./', baseURL).href);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveAccessibleName('Re:从零开始订阅 claude');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveAccessibleName('Re:从零开始订阅 claude（Re:Zero − Starting Life with Claude）');
 });
 
 // ADR-0002：已经发布的地址不能失效。删掉的页面留一个跳转页，在 base 下跳到 REMOVED_PAGES 登记的页面。

@@ -1,6 +1,6 @@
 ---
-// 编号字形的 <symbol>（design §3.2 D7）：0–9 和短横，由 scripts/build-logo.mjs 生成，不手改。
-// BaseLayout 在每页内联一份，Numeral 和页面脚本用 <use href="#numeral-…"> 引用（架构 §11.4 W-2）。
+// 编号字形的 <symbol>（design §3.2 D7）：0–9，由 scripts/build-logo.mjs 生成，不手改；只用在找不到页的 404。
+// 只在找不到页内联一份（design v3 §3.2、§9），这一页的 Numeral 用 <use href="#numeral-…"> 引用（架构 §11.4 W-2）。
 // 本身不显示、不进无障碍树：<svg> 还要加 role="presentation"，否则 role="img" 会让 axe 报 simple-img（图片缺替代文字）。
 import symbols from '../assets/numerals/symbols.svg?raw';
 

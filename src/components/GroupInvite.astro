@@ -20,7 +20,7 @@ const { compact = false } = Astro.props;
 
 <section class:list={['group-invite', { 'group-invite-compact': compact }]} aria-label="QQ 群">
   <div class="group-invite-text">
-    <p class="group-invite-lead">有问题？进 QQ 群问大肥鱼</p>
+    <p class="group-invite-lead">{compact ? '进 QQ 群问大肥鱼：' : '有问题？进 QQ 群问大肥鱼'}</p>
     {
       !compact && (
         <p class="group-invite-desc">大肥鱼是群里的 AI 嘉宾，24 小时在线。教程哪一步卡住了都可以问她，也可以随便聊。</p>
@@ -28,6 +28,7 @@ const { compact = false } = Astro.props;
     }
     <p class="group-invite-meta">
       群号 <span class="group-invite-number">{GROUP_NUMBER}</span>
+      {compact && <span class="group-invite-sep" aria-hidden="true">·</span>}
       <a class="group-invite-link" href={GROUP_URL} rel="noopener">加入群聊<span aria-hidden="true"> →</span></a>
     </p>
   </div>
@@ -38,7 +39,7 @@ const { compact = false } = Astro.props;
   /*
    * 附录和参考页里是 §4.7 的普通提示块：--surface-muted 底、4px --accent 左色条、右侧 6px 圆角，
    * 内边距 12px 16px（几何和 prose.css 的 .callout 一致；QQ 群入口在 .prose 外面，所以这里再写一遍）。
-   * 首页的紧凑版（§4.4）是一行 14px 小字，不带提示块的外壳。
+   * 首页的紧凑版（§4.4）是一行 14px 小字“进 QQ 群问大肥鱼：群号 … · 加入群聊 →”，不带提示块的外壳。
    */
   .group-invite {
     display: flex;
@@ -52,11 +53,30 @@ const { compact = false } = Astro.props;
   }
 
   .group-invite-compact {
-    margin-top: var(--space-5);
+    justify-content: center;
+    margin-top: calc(var(--space-4) + var(--space-1));
     padding: 0;
     border: 0;
     border-radius: 0;
     background: none;
+  }
+
+  /* 紧凑版把标题和群号、链接排成一行；窄屏折行时仍居中 */
+  .group-invite-compact .group-invite-text {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: center;
+    gap: 0 var(--space-2);
+  }
+
+  .group-invite.group-invite-compact .group-invite-lead,
+  .group-invite.group-invite-compact .group-invite-meta {
+    margin-top: 0;
+  }
+
+  .group-invite.group-invite-compact .group-invite-meta {
+    gap: 0 var(--space-2);
   }
 
   .group-invite p {
@@ -76,6 +96,10 @@ const { compact = false } = Astro.props;
     font-size: var(--fs-meta);
     line-height: var(--lh-meta);
     font-weight: 400;
+  }
+
+  .group-invite-sep {
+    color: var(--text-faint);
   }
 
   .group-invite .group-invite-desc {

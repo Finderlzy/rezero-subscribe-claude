@@ -1,15 +1,13 @@
 ---
-import { chapterNoText } from '../lib/nav-text';
-import type { OutlineChapter, OutlineItem } from '../lib/route/types';
+import type { OutlineChapter, OutlineItem, RouteData } from '../lib/route/types';
 import type { TocReference } from '../lib/site';
 import type { TocSection } from '../lib/toc-sections';
-import Numeral from './Numeral.astro';
 import TocItems from './TocItems.astro';
 
 /**
  * 目录的列表本身：页面上的侧边栏/抽屉（Toc.astro）、首页和找不到页的目录都用它；标记契约见 Toc.astro。
- * 首页和找不到页的目录章名前是从 00 开始的章节号（固定字形 Numeral，读屏读“第 n 章”）；参考页（常见问题、
- * IP 质量实测合集）列在最后一章“附录”的附录页下面（design §4.5）。
+ * 章节号一律写成文字“第 n 章”（design v3 §3.2、D10）；参考页（常见问题、IP 质量实测合集）
+ * 列在最后一章“附录”的附录页下面（design §4.5）。
  * 没有已读标记和“清除进度”（FR-16）。原理独有步骤标“原理”。
  *
  * 侧边栏和抽屉里每章是一个 `<details>`（design v3 §4.5，FR-16）：当前页所在的章 `open`，其余折叠；
@@ -21,7 +19,11 @@ interface Props {
   references: TocReference[];
   /** 无障碍名称；一页里有两个目录时用来区分 */
   label?: string;
-  /** 首页的放大样式（toc.css 的 .toc-home）；每章带锚点 `#chapter-<章节标识>`，首页的章级索引链到这里 */
+  /**
+   * 首页的变体（design §4.4）：每章一个 h2“第 n 章　章名”，全部展开、不折叠、不弱化（首页没有当前路线），
+   * 推荐的选项后标“推荐”。
+   * 每章仍带锚点 `#chapter-<章节标识>`：v2.2 首页的章级索引链到这些锚点，外部深链也照旧能落到这一章。
+   */
   home?: boolean;
   /** 侧边栏里的那一份（toc.css 的 .toc-sidebar） */
   sidebar?: boolean;
@@ -33,6 +35,8 @@ interface Props {
   currentReference?: string;
   /** 要展开的章（旁支页不在 outline 里，用 progress.chapterId）；不传时按当前页推断 */
   openChapterId?: string;
+  /** 分叉点的默认选项（`site.route.data.forks`）：首页目录给推荐的选项标“推荐” */
+  forks?: RouteData['forks'];
 }
 
 const {
@@ -45,7 +49,11 @@ const {
   sections = [],
   currentReference,
   openChapterId,
+  forks,
 } = Astro.props;
+
+// 首页的目录不折叠（design §4.4），两个参数同时传会是配置错误
+if (home && collapsible) throw new Error('TocNav：首页目录（home）不能用 collapsible，首页目录全部展开');
 
 /** 当前路线上的页面标识：当前页（参考页没有） */
 function currentPageOf(items: OutlineItem[]): string | null {
@@ -93,16 +101,14 @@ const chapterOpen = (chapterIndex: number) => {
             </details>
           ) : (
             <>
-              <p class="toc-chapter-head">
-                {home ? (
-                  <span class="toc-chapter-no">
-                    <Numeral text={chapterNoText(chapterIndex)} label={`第 ${chapterIndex} 章`} />
-                  </span>
-                ) : (
+              {home ? (
+                <h2 class="toc-chapter-head">第 {chapterIndex} 章　{chapter.title}</h2>
+              ) : (
+                <p class="toc-chapter-head">
                   <span class="toc-chapter-no">第 {chapterIndex} 章</span>
-                )}
-                <span class="toc-chapter-title">{chapter.title}</span>
-              </p>
+                  <span class="toc-chapter-title">{chapter.title}</span>
+                </p>
+              )}
               <TocItems
                 items={chapter.items}
                 references={references}
@@ -110,6 +116,8 @@ const chapterOpen = (chapterIndex: number) => {
                 currentPageId={currentPageId}
                 currentReference={currentReference}
                 showReferences={chapterIndex === outline.length - 1}
+                home={home}
+                forks={forks}
               />
             </>
           )}

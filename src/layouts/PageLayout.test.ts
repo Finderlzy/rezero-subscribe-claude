@@ -120,7 +120,7 @@ describe('PageLayout', () => {
     expect(html).toMatch(/<div class="step-body"[^>]*>\s*<p class="eyebrow"[^>]*>\s*<span aria-hidden="true"[^>]*data-route-eyebrow[^>]*>第 2 章 · 注册和订阅 · 第 2 步，共 5 步<\/span>/);
     expect(html).toMatch(/class="visually-hidden"[^>]*data-route-progress[^>]*>注册和订阅，第 2 步，共 5 步</);
     expect(html.indexOf('data-route-eyebrow')).toBeLessThan(html.indexOf('<h1'));
-    // 正文区里没有任何补零的编号字形（D10）：<symbol> 字形和 <use> 都留给首页索引和 404
+    // 正文区里没有任何补零的编号字形（D10）：<symbol> 字形和 <use> 都只留给找不到页的 404
     const main = /<main[\s\S]*<\/main>/.exec(html)?.[0] ?? '';
     expect(main).not.toContain('numeral');
     expect(main).not.toContain('data-route-mark');

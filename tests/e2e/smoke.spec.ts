@@ -7,7 +7,8 @@ test.describe('首页冒烟', () => {
     await page.goto('./');
 
     const heading = page.getByRole('heading', { level: 1 });
-    await expect(heading).toHaveAccessibleName(SITE_NAME);
+    // v3：中文 logo 的无障碍名称同时给出中文站名和英文副标题（design §4.4、V12）
+    await expect(heading).toHaveAccessibleName(new RegExp(`^${SITE_NAME}.*Re:Zero − Starting Life with Claude`));
     await expect(heading.locator('svg')).toHaveCount(1);
     // design §4.4：英文副标题画在中文 logo 的中间一行里，页面上不再单独写一行文字
     await expect(heading.locator('svg')).toBeVisible();
@@ -17,7 +18,13 @@ test.describe('首页冒烟', () => {
   test('“从第 00 章开始”进入前言；首页有按章的目录，没有“继续上次”', async ({ page }) => {
     await page.goto('./');
     const toc = page.getByRole('navigation', { name: '全站目录' });
-    await expect(toc.locator('.toc-chapter-title')).toHaveText(['开始', '准备节点和住宅 IP', '注册和订阅', '结尾', '附录']);
+    await expect(toc.locator('h2.toc-chapter-head')).toHaveText([
+      '第 0 章　开始',
+      '第 1 章　准备节点和住宅 IP',
+      '第 2 章　注册和订阅',
+      '第 3 章　结尾',
+      '第 4 章　附录',
+    ]);
     await expect(page.getByText('继续上次')).toHaveCount(0);
 
     await page.getByRole('link', { name: '从第 00 章开始' }).click();

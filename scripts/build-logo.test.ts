@@ -36,11 +36,6 @@ describe.skipIf(!hasFonts)('build-logo.mjs（需要 .cache/fonts/ 里的字体�
       'src/assets/logo/logo-en.svg',
       'src/assets/logo/logo-zh.svg',
       'src/assets/logo/mark.svg',
-      'src/assets/numerals/chapter-00.svg',
-      'src/assets/numerals/chapter-01.svg',
-      'src/assets/numerals/chapter-02.svg',
-      'src/assets/numerals/chapter-03.svg',
-      'src/assets/numerals/chapter-04.svg',
       'src/assets/numerals/metrics.json',
       'src/assets/numerals/symbols.svg',
     ]);
@@ -50,8 +45,10 @@ describe.skipIf(!hasFonts)('build-logo.mjs（需要 .cache/fonts/ 里的字体�
     }
   });
 
-  it('编号用等高数字：0、1、4 一样高，短横在数字的竖向范围里', () => {
+  it('编号只有 0–9、用等高数字：0、1、4 一样高（只剩找不到页的 404 用）', () => {
     const symbols = build().get('src/assets/numerals/symbols.svg')!;
+    // design v3 §3.2：固定字形只剩 404，不再生成短横
+    expect([...symbols.matchAll(/<symbol id="([^"]+)"/g)].map((m) => m[1])).toEqual([...'0123456789'].map((d) => `numeral-${d}`));
     // 每个 symbol 的路径竖向范围（y 是字体单位，基线为 0，向上为负）
     const range = (id: string) => {
       const d = symbols.match(new RegExp(`id="numeral-${id}"[^>]*><path d="([^"]+)"`))![1];
@@ -62,8 +59,5 @@ describe.skipIf(!hasFonts)('build-logo.mjs（需要 .cache/fonts/ 里的字体�
     // 旧式数字的 0 只有约 400 单位高，等高数字约 650
     expect(zero.bottom - zero.top).toBeGreaterThan(600);
     for (const id of ['1', '4']) expect(Math.abs(range(id).top - zero.top)).toBeLessThan(25);
-    const dash = range('dash');
-    expect(dash.top).toBeGreaterThan(zero.top);
-    expect(dash.bottom).toBeLessThan(0);
   });
 });
