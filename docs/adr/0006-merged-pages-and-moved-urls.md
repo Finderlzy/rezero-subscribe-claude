@@ -4,7 +4,7 @@
 - 修订：[ADR-0002](0002-url-scheme.md) 的 2026-10-19 做法（`REMOVED_PAGES` + Astro `redirects`）由本文取代
 - 实施：V09（2026-10-22）完成跳转表、跳转页、sitemap 过滤和校验；第 3 条按单版本修正，见下面的“2026-10-22 实施记录”
 
-> **2026-10-22 实施记录（V09，以下面这段为准）**：用户在 V01 决定页面固定原理视图、去掉视图切换（架构 §13.12），所以第 3 条“按视图分开、换视图再滚动”不再适用：锚点只有原理版一种（`#<slug>`），`section-hash` 只负责滚动；`moved:` 的 `section` 用同一个 `sectionAnchor()` 解析。跳转页 `MovedPage` 用 `BaseLayout noindex` + 顶栏 + 正文栏（design §4.6，没有侧边栏），`<head>` 内联脚本立即 `location.replace`；`meta refresh` 改成 **5 秒延迟**，让禁用 JS 的读者先看到“这一页已经并入《…》”和链接（AC-33；0 秒会直接走掉，和 FR-25 的“没有 JS 时显示”矛盾）。校验分两层：`buildRouteMap` 查形状、旧标识/目标页/保留字/不串联；`site.ts` 用 M1 的 headings 查 `section`。`REMOVED_PAGES` 和 Astro `redirects` 已经删除，`plan1-free-isp` 已迁进 `moved:`。
+> **2026-10-22 实施记录（V09，以下面这段为准）**：用户在 V01 决定页面固定原理视图、去掉视图切换（架构 §13.12），所以第 3 条“按视图分开、换视图再滚动”不再适用：锚点只有原理版一种（`#<slug>`），`section-hash` 只负责滚动；`moved:` 的 `section` 用同一个 `sectionAnchor()` 解析。跳转页 `MovedPage` 用 `BaseLayout noindex` + 顶栏 + 正文栏（design §4.6，没有侧边栏），`<head>` 内联脚本立即 `location.replace`；`meta refresh` 改成 **5 秒延迟**，让禁用 JS 的读者先看到“这一页已经并入《…》”和链接（AC-33；0 秒会直接走掉，和 FR-25 的“没有 JS 时显示”矛盾）。校验分两层：`buildRouteMap` 查形状、旧标识/目标页/保留字/不串联；`site.ts` 用 M1 的 headings 查 `section`。`REMOVED_PAGES` 和 Astro `redirects` 已经删除，`plan1-free-isp` 已迁进 `moved:`。同一天补齐了实施计划 §3.1 要的两件事：**按分叉点选择分流**（`choice: { fork, options, fallback }`，手机相关的旧页按 M4 里的手机选项落地，没选过、读不到本机选择或没有 JS 时用 `fallback`，内联脚本在 `src/lib/moved.ts`，和 M4 用同一个存储键）和 **`faq/<id>` 这类多段旧参考页路径**（由 `src/pages/[...moved].astro` 生成同样的跳转页，单段仍由 `[page].astro` 生成；和现有参考页同址时构建失败）。
 
 v3 把重写稿里拆得太碎的几页合成一页（需求 FR-05），站点 2026-10-19 已上线，被合并掉的旧网址要跳到合并页里对应的小节（FR-25）。我们决定：
 

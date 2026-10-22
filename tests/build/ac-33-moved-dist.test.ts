@@ -75,3 +75,63 @@ describe('AC-33 跳转页、sitemap 和搜索索引', () => {
     expect(index).toContain('"path":"/choose-plan/"');
   });
 });
+
+describe('AC-33 按分叉点选择分流和多段旧网址（实施计划 §3.1）', () => {
+  let build: BuildResult;
+
+  beforeAll(async () => {
+    build = await buildProject({ fixture: 'moved-choice', env: { SITE_URL: 'https://example.test' }, keep: true });
+  }, 120_000);
+
+  afterAll(() => {
+    if (build !== undefined) rmSync(build.dir, { recursive: true, force: true });
+  });
+
+  const dist = () => join(build.dir, 'dist');
+
+  test('对照：构建成功', () => {
+    expect(build.code, build.output).toBe(0);
+  });
+
+  test('按选择分流的跳转页：正文、meta refresh 和 canonical 用兜底去向，各选项的去向写在 head 的 JSON 里', () => {
+    const html = readFileSync(join(dist(), 'old-register-gmail/index.html'), 'utf8');
+
+    expect(html).toContain('这一页已经并入《选择手机系统》');
+    expect(html).toContain('<a href="/choose-phone/">打开《选择手机系统》→</a>');
+    expect(html).toContain('<meta http-equiv="refresh" content="5; url=/choose-phone/">');
+    expect(html).toContain('<link rel="canonical" href="https://example.test/choose-phone/">');
+    expect(html).toContain('type="application/json" id="moved-data"');
+    expect(html).toContain('"fork":"phone"');
+    expect(html).toContain('"fallback":"/choose-phone/"');
+    // 带小节的选项：锚点按目标页 h2 的 slug 算好，和渲染出来的 id 一致（下面另测）
+    expect(html).toMatch(/"iphone":"\/iphone-gmail\/#[^"]+"/);
+    expect(html).toContain('"/android-gmail/"');
+  });
+
+  test('选项的锚点和目标页渲染出的 h2 id 是同一个', () => {
+    const moved = readFileSync(join(dist(), 'old-register-gmail/index.html'), 'utf8');
+    const anchor = /"iphone":"\/iphone-gmail\/#([^"]+)"/.exec(moved)?.[1];
+    expect(anchor).toBeTruthy();
+    expect(decodeURIComponent(anchor!)).toBeTruthy();
+    expect(readFileSync(join(dist(), 'iphone-gmail/index.html'), 'utf8')).toContain(`id="${decodeURIComponent(anchor!)}"`);
+  });
+
+  test('多段旧参考页路径（faq/<id>）也生成跳转页', () => {
+    const html = readFileSync(join(dist(), 'faq/old-question/index.html'), 'utf8');
+
+    expect(html).toContain('这一页已经并入《后记》');
+    expect(html).toContain('<a href="/afterword/">打开《后记》→</a>');
+    expect(html).toContain('location.replace("/afterword/");');
+  });
+
+  test('sitemap 和搜索索引里都没有旧网址', () => {
+    const xml = readFileSync(join(dist(), 'sitemap-0.xml'), 'utf8');
+    const index = readFileSync(join(dist(), 'search-index.json'), 'utf8');
+
+    for (const old of ['plan1-free-isp', 'old-register-gmail', 'faq/old-question', 'old-question']) {
+      expect(xml).not.toContain(old);
+      expect(index).not.toContain(old);
+    }
+    expect(xml).toContain('<loc>https://example.test/choose-phone/</loc>');
+  });
+});

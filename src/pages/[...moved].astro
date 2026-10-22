@@ -1,0 +1,23 @@
+---
+import MovedPage from '../components/MovedPage.astro';
+import { loadSite } from '../lib/site';
+
+/**
+ * 旧参考页路径的跳转页（V09，FR-25、ADR-0006）：`route.yaml` 的 `moved:` 键也可以是 `faq/<id>`
+ * 这类多段路径（常见问题在 v3 并入各章后，旧的一问一页仍要能打开）。它们和单段旧标识一样生成跳转页，
+ * 但不进路线图、目录、搜索和 sitemap。
+ *
+ * 单段旧标识由 [page].astro 生成；这里只接带 `/` 的键。和现有参考页同址的键由 site.ts 在构建时拒绝。
+ */
+export async function getStaticPaths() {
+  const site = await loadSite();
+  return site.moved.filter(({ from }) => from.includes('/')).map(({ from }) => ({ params: { moved: from } }));
+}
+
+const { moved: from } = Astro.params;
+const site = await loadSite();
+const moved = site.moved.find((entry) => entry.from === from);
+if (moved === undefined) throw new Error(`没有这一页：${from}`);
+---
+
+<MovedPage moved={moved} />

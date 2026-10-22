@@ -27,16 +27,34 @@ export interface RouteSpec {
   chapters: RouteSpecChapter[];
   /** 旁支页：不在序列里，`returnTo` 是它挂靠的普通页（FR-19） */
   side?: Record<PageId, { returnTo: PageId }>;
-  /** 跳转表：被合并掉或删掉的旧标识 → 目标页（FR-25、ADR-0006）；旧标识不能再分给新页面 */
-  moved?: Record<PageId, RouteSpecMoved>;
+  /**
+   * 跳转表：被合并掉或删掉的旧网址 → 目标页（FR-25、ADR-0006）；旧网址不能再分给新页面。
+   * 键是页面标识，也可以是 `faq/<id>` 这类旧参考页路径（它们不进路线图、目录和搜索）。
+   */
+  moved?: Record<string, RouteSpecMoved>;
 }
 
-/** 跳转表的一条：目标页，可指名目标页正文里的一个小节（ADR-0006）。 */
-export interface RouteSpecMoved {
+/** 跳转的去向：目标页，可指名目标页正文里的一个小节（ADR-0006）。 */
+export interface RouteSpecMovedTarget {
   to: PageId;
   /** 目标页原理版正文里的 h2 文字；缺省时跳到页顶 */
   section?: string;
 }
+
+/**
+ * 按读者在某个分叉点上的选择分流（FR-25、实施计划 §3.1）：手机相关的旧页面在新稿里 iOS、安卓各有一份，
+ * 打开旧网址时按 M4 里存的选择挑目标；没选过、读不到本机选择或没有 JS 时用 `fallback`。
+ */
+export interface RouteSpecMovedChoice {
+  choice: {
+    fork: ForkId;
+    options: Record<OptionId, RouteSpecMovedTarget>;
+    fallback: RouteSpecMovedTarget;
+  };
+}
+
+/** 跳转表的一条：直接给去向，或按分叉点的选择分流。 */
+export type RouteSpecMoved = RouteSpecMovedTarget | RouteSpecMovedChoice;
 
 export interface RouteSpecChapter {
   id: string;

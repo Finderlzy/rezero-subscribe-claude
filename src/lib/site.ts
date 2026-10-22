@@ -3,7 +3,7 @@ import routeText from '../content/route.yaml?raw';
 import { scanHeadings } from './content/headings';
 import { buildRouteMap, movedEntries, RouteValidationError } from './route/route-map';
 import { parseRouteYaml } from './route/route-yaml';
-import type { PageId, PageMeta, RouteMap, Stop } from './route/types';
+import type { ForkId, OptionId, PageId, PageMeta, RouteMap, RouteSpecMovedTarget, Stop } from './route/types';
 import { sectionAnchor, type AnchorHeading } from './section-anchor';
 
 /**
@@ -42,10 +42,8 @@ export interface Site {
   moved: MovedPage[];
 }
 
-/** 一个旧网址的跳转页（FR-25、ADR-0006）：构建时算好目标页和原理版小节锚点。 */
-export interface MovedPage {
-  /** 旧标识：仍然生成 `/<from>/`，但不能分给新页面 */
-  from: PageId;
+/** 跳转的去向：构建时算好目标页标题和原理版小节锚点。 */
+export interface MovedTarget {
   to: PageId;
   /** 目标页标题，写进“这一页已经并入《…》” */
   toTitle: string;
@@ -53,6 +51,17 @@ export interface MovedPage {
   section?: string;
   /** 小节在目标页原理版正文里的 slug；没有 `section` 时跳到页顶 */
   anchor?: string;
+}
+
+/**
+ * 一个旧网址的跳转页（FR-25、ADR-0006）。
+ * 有 `choice` 时这些字段是兜底去向（没选过、读不到本机选择或没有 JS 时用），各选项的去向在 `choice.options`。
+ */
+export interface MovedPage extends MovedTarget {
+  /** 旧网址：页面标识，或 `faq/<id>` 这类旧参考页路径；仍然生成一页，但不能分给新页面 */
+  from: string;
+  /** 按读者在 `fork` 上的选择分流（V11 的手机相关旧页） */
+  choice?: { fork: ForkId; options: Record<OptionId, MovedTarget> };
 }
 
 export interface TocReference {
@@ -112,18 +121,40 @@ export function buildMovedPages(
   spec: unknown,
   route: RouteMap,
   headingsOf: (id: PageId) => readonly AnchorHeading[] | undefined,
+  /** 现有的参考页路径（`faq/<id>`）：旧网址不能和它们同址 */
+  existingPaths: ReadonlySet<string> = new Set(),
 ): MovedPage[] {
-  return movedEntries(spec).map(({ from, to, section }): MovedPage => {
-    const target = route.data.pages[to];
-    if (target === undefined) throw new Error(`route.yaml：moved.${from} 的 to（${to}）不是路线图里的页面`);
-    if (section === undefined) return { from, to, toTitle: target.title };
-    const h2 = (headingsOf(to) ?? []).filter((heading) => heading.depth === 2);
-    const anchor = sectionAnchor(h2, section);
-    if (anchor === undefined) {
-      throw new Error(`route.yaml：moved.${from}.section 写的“${section}”在 ${to} 的原理版正文里找不到唯一的小标题（h2）`);
+  return movedEntries(spec).map(({ from, to, section, choice }): MovedPage => {
+    if (existingPaths.has(from)) {
+      throw new Error(`route.yaml：moved.${from} 和现有的页面同址（${from}），旧网址不能再分给现有的页面或参考页`);
     }
-    return { from, to, toTitle: target.title, section, anchor };
+    const where = `moved.${from}`;
+    const fallback = resolveMovedTarget(where, { to, ...(section !== undefined && { section }) }, route, headingsOf);
+    if (choice === undefined) return { from, ...fallback };
+    const options: Record<OptionId, MovedTarget> = {};
+    for (const [option, target] of Object.entries(choice.options)) {
+      options[option] = resolveMovedTarget(`${where}.choice.options.${option}`, target, route, headingsOf);
+    }
+    return { from, ...fallback, choice: { fork: choice.fork, options } };
   });
+}
+
+/** 把一条去向解析成目标页标题和小节锚点；目标页或小节不存在时构建失败。 */
+function resolveMovedTarget(
+  where: string,
+  { to, section }: RouteSpecMovedTarget,
+  route: RouteMap,
+  headingsOf: (id: PageId) => readonly AnchorHeading[] | undefined,
+): MovedTarget {
+  const target = route.data.pages[to];
+  if (target === undefined) throw new Error(`route.yaml：${where} 的 to（${to}）不是路线图里的页面`);
+  if (section === undefined) return { to, toTitle: target.title };
+  const h2 = (headingsOf(to) ?? []).filter((heading) => heading.depth === 2);
+  const anchor = sectionAnchor(h2, section);
+  if (anchor === undefined) {
+    throw new Error(`route.yaml：${where}.section 写的“${section}”在 ${to} 的原理版正文里找不到唯一的小标题（h2）`);
+  }
+  return { to, toTitle: target.title, section, anchor };
 }
 
 /**
@@ -206,7 +237,7 @@ async function readSite(): Promise<Site> {
   return {
     route,
     start: startOf(route),
-    moved: buildMovedPages(spec, route, (id) => principleHeadings.get(id)),
+    moved: buildMovedPages(spec, route, (id) => principleHeadings.get(id), new Set(referenceById.keys())),
     pages: new Map(
       principles.map((entry) => [
         entry.id,

@@ -7,7 +7,7 @@
 
 > **2026-10-22 修订：作者交来新稿 `docs/v3-rewrite/`，计划按它调整。** 新稿 11 个文件，一章一页，已经按章合并好，只有一版正文；文件之间用相对 Markdown 链接，不再有双链。方案三、独立常见问题、附录不再收录（常见问题并入各章和 `09` 的小节）；IP 质量实测合集保留为参考页。因此：V10 从“机械合并脚本”改为“换成 v3 单版本的页面和路线图”；V11 从“按清单合并页面”改为“旧网址、验收和文档/仓库同步”；V06–V09 去掉两种视图，V07 不再切视图。V01–V05 已完成，样式不动。页面标识、章节和旧网址去向见 §3.1，**作者 2026-10-22 已确认**。
 
-> **现在可开工：V10（换成 v3 单版本）**（改动范围见 §2）。V06–V09 已于 2026-10-22 合并 main（V08、V09 在 Windows 环境完成）；V09 只做了单段 `moved:`，`choice` 手机分流和 `faq/<id>` 多段键留给 V11 之前补。V11 等 V10。
+> **现在可开工：V10（换成 v3 单版本）**（改动范围见 §2）。V06–V09 已于 2026-10-22 合并 main（V08、V09 在 Windows 环境完成，V09 的 `choice` 和多段 `faq/<id>` 随后补齐）；V11 等 V10。
 
 ## 1. 里程碑（v3）
 
@@ -58,7 +58,7 @@ V10 换成 v3 单版本（强）───────────────┴
 | V06 | 站内搜索的索引和匹配 | 无 | 标准 | 已实施（2026-10-22，已合并 main；按单版本，含 IP 实测参考页） | 待发布 |
 | V07 | 小节锚点和落点 | 无 | 标准 | 已实施（2026-10-22，已合并 main；按单版本） | 待发布 |
 | V08 | 顶栏搜索框 | V01、V06、V07 | 标准 | 已实施（2026-10-22，已合并 main） | 待发布 |
-| V09 | 跳转表和旧网址跳转页 | V07 | 强 | 已实施（2026-10-22，已合并 main；单段 `{ to, section }`、`plan1-free-isp`、sitemap 过滤、坏数据用例。`choice` 手机分流和 `faq/<id>` 多段键未做） | 待发布 |
+| V09 | 跳转表和旧网址跳转页 | V07 | 强 | 已实施（2026-10-22，已合并 main；单段和多段 `moved:`、`section`、`choice` 手机分流、sitemap 过滤和坏数据用例） | 待发布 |
 | V10 | 换成 v3 单版本的页面和路线图 | V02、V09 | 强 | 待细化 | 待发布 |
 | V11 | 旧网址、验收和文档同步 | V10 | 强 | 待细化 | 待发布 |
 | V12 | v3 视觉验收和全量回归 | 全部 | 标准 | 待细化 | 待发布 |
@@ -299,11 +299,11 @@ V10 换成 v3 单版本（强）───────────────┴
 
 ### V09 跳转表和旧网址跳转页
 
-> **2026-10-22 实施情况（已合并 main）**：单段 `moved: { to, section }`、`plan1-free-isp → choose-plan`、`MovedPage`、sitemap/搜索过滤、`tests/fixtures/moved-*` 和构建级用例都已落地，跳转锚点固定原理版、meta refresh 延迟 5 秒（ADR-0006 的实施记录）。**还没做**：`choice` 的手机分流、`faq/<id>` 这类多段参考页键、`[...moved].astro` 和 `src/scripts/moved.ts`——V11 填完整的 `moved:` 之前要补。
+> **2026-10-22 实施情况（已合并 main）**：`moved:` 的单段去向（`{ to, section }`）、`plan1-free-isp → choose-plan`、`MovedPage`、sitemap/搜索过滤、`tests/fixtures/moved-*` 和构建级用例落地，跳转锚点固定原理版、meta refresh 延迟 5 秒。同日补齐 §3.1 要的**按分叉点选择分流**（`choice`，手机相关的旧页按 M4 的手机选项落地，没选过或读不到时用 `fallback`，脚本在 `src/lib/moved.ts`）和 **`faq/<id>` 多段旧参考页路径**（`src/pages/[...moved].astro`；和现有参考页同址时构建失败）。真实数据里的手机旧页和 `faq/<id>` 条目等 V11 换页面地图时填。
 
 **目标**：FR-25、ADR-0006：`route.yaml` 新增 `moved:` 段（旧标识 → `{ to, section? }`，或按分叉点选择 → `{ choice: { fork, options: { <option>: { to, section } }, fallback: { to, section } } }`）和校验；`[page].astro` 为每个单段旧标识生成跳转页，多段的参考页路径（`faq/<id>`）用 `src/pages/[...moved].astro` 生成同样的跳转页；跳转页内联脚本按 M4 的选择用 `location.replace` 到目标页的小节，meta refresh 指向 fallback 的锚点，`canonical`、`noindex`，正文“这一页已经并入《…》”和链接；sitemap 过滤旧标识；`REMOVED_PAGES` 和 `astro.config.mjs` 的 `redirects` 删除，`plan1-free-isp → choose-plan` 迁进 `moved:`（V10 换页面地图时同步改成 `overview#方案一和方案二`，避免目标页被删后构建失败）。`moved:` 的键除了页面标识，还要能收 `faq/<id>` 这类旧参考页路径，它们同样生成跳转页，但不进路线图、目录、搜索和 sitemap；`/ip-tests/…` 保留，不写 `moved:`。
 
-**涉及范围**：`src/content/route.yaml`、`src/lib/route/route-map.ts`、`types.ts` 及测试（`moved` 的解析和校验、`choice`）、`src/lib/site.ts`（`section` 对照 M1 的 headings）、`src/pages/[page].astro`、`src/pages/[...moved].astro`（新，多段参考页路径）、`src/components/MovedPage.astro`（新）、`src/scripts/moved.ts`（新，读 M4 的选择）、`astro.config.mjs`；`tests/fixtures/moved-*`（目标不存在、小节不存在、旧标识被复用、串联、参考页路径、choice 的选项和 fallback）；`tests/build/ac-14-build-fail.test.ts`；`tests/e2e/ac-33-moved.spec.ts`（新）、`ac-15-base-path.spec.ts`；`docs/adr/0002`、ADR-0006 和架构的“现状”。
+**涉及范围**（已实施）：`src/content/route.yaml`、`src/lib/route/route-map.ts`、`types.ts` 及测试（`moved` 的解析和校验、`choice`）、`src/lib/site.ts`（`section` 对照 M1 的 headings；`choice` 的每个去向；和现有参考页同址的检查）、`src/lib/content/headings.ts`（`scanHeadings`，构建时扫内容集合里的正文）、`src/lib/route/route-yaml.ts`、`src/pages/[page].astro`（单段）、`src/pages/[...moved].astro`（新，多段参考页路径）、`src/components/MovedPage.astro`（新）、`src/lib/moved.ts`（新，跳转页 `<head>` 的内联脚本：读 M4 的选择挑去向，和 `theme.ts` 一样是字符串常量）及测试、`astro.config.mjs`；`tests/fixtures/moved-*`（目标不存在、小节不存在、旧标识被复用、串联、参考页路径、choice 的选项和 fallback）；`tests/build/ac-14-build-fail.test.ts`、`tests/build/build-project.ts`；`tests/e2e/ac-33-moved.spec.ts`（新）、`ac-15-base-path.spec.ts`；`docs/adr/0002`、ADR-0006 和架构的“现状”。
 
 **依赖**：依赖 V07
 

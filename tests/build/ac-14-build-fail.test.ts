@@ -67,6 +67,36 @@ describe('AC-14 坏内容让构建失败并报出文件', () => {
       messages: ['route.yaml：moved.old-page 的 to（plan1-free-isp）也是旧标识'],
     },
     {
+      // 按选择分流的跳转缺 fallback：没有 JS 或没选过时没有去处
+      fixture: 'moved-choice-fallback-missing',
+      file: 'route.yaml',
+      messages: ['route.yaml：moved.old-choice.choice.fallback 要写成 { to: <页面> }'],
+    },
+    {
+      // 分叉点不在路线图里
+      fixture: 'moved-choice-unknown-fork',
+      file: 'route.yaml',
+      messages: ['route.yaml：moved.old-choice.choice.fork（no-such-fork）不是路线图里的分叉点'],
+    },
+    {
+      // 选项和分叉点的选项对不上
+      fixture: 'moved-choice-options-mismatch',
+      file: 'route.yaml',
+      messages: ['route.yaml：moved.old-choice.choice.options 的键要和分叉点 phone 的选项一致（iphone、android）'],
+    },
+    {
+      // 某个选项的去向不存在
+      fixture: 'moved-choice-target-missing',
+      file: 'route.yaml',
+      messages: ['route.yaml：moved.old-choice.choice.options.android 的 to（no-such-page）不是路线图里的页面'],
+    },
+    {
+      // 跳转表的键只能写成页面标识或以 faq/ 开头的参考页路径
+      fixture: 'moved-ref-path-bad',
+      file: 'route.yaml',
+      messages: ['route.yaml：moved 的键 faq/Not-Kebab 只能是页面标识（英文 kebab-case）或以 faq/ 开头的参考页路径'],
+    },
+    {
       // 旧标识被现有页面占用（原理版文件里有这个标识）
       fixture: 'moved-id-reused',
       // 路线图校验按 src/content/ 内的相对路径报文件（src/lib/site.ts 的“文件：说明”）

@@ -209,6 +209,67 @@ moved:
   });
 });
 
+describe('buildMovedPages：按分叉点选择分流和旧参考页路径（FR-25、实施计划 §3.1）', () => {
+  const spec = parseRouteYaml(`
+chapters:
+  - id: start
+    title: 开始
+    items:
+      - preface
+      - { choose: phone, page: choose-phone }
+      - { branch: phone, options: { iphone: [iphone-gmail], android: [android-gmail] } }
+      - afterword
+moved:
+  old-register:
+    choice:
+      fork: phone
+      options:
+        iphone: { to: iphone-gmail, section: 第一步 }
+        android: { to: android-gmail }
+      fallback: { to: afterword }
+  faq/old-question: { to: afterword }
+`);
+  const entries = [
+    entry('preface'),
+    entry('choose-phone', { options: { iphone: { title: 'iPhone', heading: 'iPhone 怎么弄' }, android: { title: '安卓', heading: '安卓怎么弄' } } }),
+    entry('iphone-gmail'),
+    entry('android-gmail'),
+    entry('afterword'),
+  ];
+  const route = assembleRoute(spec, entries);
+  const headings = new Map([['iphone-gmail', [{ slug: '第一步', text: '第一步', depth: 2 }]]]);
+
+  it('每个选项和兜底去向都算好目标页和锚点，旧参考页路径也生成一条', () => {
+    expect(buildMovedPages(spec, route, (id) => headings.get(id))).toEqual([
+      {
+        from: 'old-register',
+        to: 'afterword',
+        toTitle: '标题 afterword',
+        choice: {
+          fork: 'phone',
+          options: {
+            iphone: { to: 'iphone-gmail', toTitle: '标题 iphone-gmail', section: '第一步', anchor: '第一步' },
+            android: { to: 'android-gmail', toTitle: '标题 android-gmail' },
+          },
+        },
+      },
+      { from: 'faq/old-question', to: 'afterword', toTitle: '标题 afterword' },
+    ]);
+  });
+
+  it('选项的去向找不到小节时报出具体选项', () => {
+    expect(() => buildMovedPages(spec, route, () => undefined)).toThrow(
+      /route\.yaml：moved\.old-register\.choice\.options\.iphone\.section 写的“第一步”在 iphone-gmail/,
+    );
+  });
+
+  it('旧参考页路径和现有的参考页同址时失败', () => {
+    expect(() => buildMovedPages(spec, route, (id) => headings.get(id), new Set(['faq/old-question']))).toThrow(
+      /moved\.faq\/old-question 和现有的页面同址/,
+    );
+  });
+});
+
 // ================================================================ 真实路线图（Issue #25 的 M2 边界用例）
 
 const principleDir = fileURLToPath(new URL('../content/principle/', import.meta.url));

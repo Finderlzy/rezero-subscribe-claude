@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import type { MovedPage as MovedPageData } from '../lib/site';
+import { MOVED_BOOT_SCRIPT } from '../lib/moved';
+import type { MovedPage as MovedPageData, MovedTarget } from '../lib/site';
 import { withBase } from '../lib/with-base';
 import SiteHeader from './SiteHeader.astro';
 
@@ -10,6 +11,8 @@ import SiteHeader from './SiteHeader.astro';
  * - 有 JS：`<head>` 里的内联脚本立即 `location.replace`（不留在历史记录里）。
  * - 没有 JS：先看到“这一页已经并入《…》”和链接，`meta refresh` 5 秒后再自动前往。AC-33 要求禁用 JS 时
  *   也看得到说明和链接，所以刷新不能是 0 秒；ADR-0006 的“meta refresh 作退路”由此两者都成立。
+ * - 按分叉点的选择分流（`choice`）：正文、`meta refresh` 和 `canonical` 用兜底去向（没选过、读不到本机选择
+ *   或没有 JS 时都对），内联脚本再按 M4 里存的选择换成对应分支（`src/lib/moved.ts`）。
  * - 顶栏照常输出、没有侧边栏（design §4.6：避免跳转前闪一下目录）；noindex、canonical 指向目标页。
  *   <720px 的“目录”保留成链接（首页章节简介）：这一页没有页面脚本，抽屉打不开，但链接本身有去处。
  *
@@ -20,21 +23,35 @@ interface Props {
 }
 
 const { moved } = Astro.props;
-const { to, toTitle, section, anchor } = moved;
-const href = withBase(`/${to}/${anchor === undefined ? '' : `#${anchor}`}`);
+const { to, toTitle, section, anchor, choice } = moved;
+/** 去向的地址，已经带好 base 和小节锚点（地址一律走 withBase，架构 §13.11 R-6）。 */
+const hrefOf = (target: MovedTarget) => withBase(`/${target.to}/${target.anchor === undefined ? '' : `#${target.anchor}`}`);
+const href = hrefOf(moved);
 // 规范网址指向目标页本身，不带小节
 const canonical = Astro.site === undefined ? undefined : new URL(withBase(`/${to}/`), Astro.site).href;
 const title = `这一页已经并入《${toTitle}》`;
 const linkText = section === undefined ? `打开《${toTitle}》→` : `打开《${toTitle} › ${section}》→`;
 const refresh = `5; url=${href}`;
 // 内嵌在 <script> 里的字符串不能出现 `</script>`：和 PageLayout 的 RouteData 一样把 `<` 转义掉
-const script = `location.replace(${JSON.stringify(href).replace(/</g, '\\u003c')});`;
+const escape = (value: string) => value.replace(/</g, '\\u003c');
+const immediate = `location.replace(${JSON.stringify(href).replace(/</g, '\\u003c')});`;
+const bootData =
+  choice === undefined
+    ? undefined
+    : escape(
+        JSON.stringify({
+          fork: choice.fork,
+          options: Object.fromEntries(Object.entries(choice.options).map(([option, target]) => [option, hrefOf(target)])),
+          fallback: href,
+        }),
+      );
 ---
 
 <BaseLayout title={title} noindex>
-  <script is:inline slot="head" set:html={script} />
   <meta slot="head" http-equiv="refresh" content={refresh} />
   {canonical && <link slot="head" rel="canonical" href={canonical} />}
+  {bootData !== undefined && <script is:inline slot="head" type="application/json" id="moved-data" set:html={bootData} />}
+  <script is:inline slot="head" set:html={bootData === undefined ? immediate : MOVED_BOOT_SCRIPT} />
   <SiteHeader toc />
   <main id="main" class="page">
     <h1 class="page-title">{title}</h1>

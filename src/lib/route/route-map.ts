@@ -24,6 +24,7 @@ import type {
   RouteSpecChapter,
   RouteSpecItem,
   RouteSpecMoved,
+  RouteSpecMovedTarget,
   RouteView,
   Stop,
   ViewMode,
@@ -34,14 +35,28 @@ export type * from './types';
 /** 不能用作页面标识的保留路径（ADR-0002）：参考页和构建产物占用的路径。 */
 export const RESERVED_PAGE_IDS: readonly string[] = ['faq', 'ip-tests', '404', '_astro'];
 
-/**
- * 跳转表的一条（FR-25、ADR-0006）：旧标识 → 目标页，`section` 是目标页原理版正文里的一个小节标题。
- * 旧标识仍然生成一个跳转页，但不能分给新页面，也不进目录、搜索和 sitemap。
- */
-export interface MovedEntry {
-  from: PageId;
+/** 跳转的去向：目标页和可选的小节标题（目标页原理版正文里的 h2）。 */
+export interface MovedTarget {
   to: PageId;
   section?: string;
+}
+
+/**
+ * 跳转表的一条（FR-25、ADR-0006）：旧网址 → 目标页。`section` 是目标页原理版正文里的一个小节标题；
+ * `choice` 是按分叉点的选择分流（手机相关的旧页），这时 `to`/`section` 是分支目标里的 `fallback`。
+ * 旧网址仍然生成一个跳转页，但不能分给新页面，也不进目录、搜索和 sitemap。
+ */
+export interface MovedEntry extends MovedTarget {
+  /** 页面标识，或 `faq/<id>` 这类旧参考页路径 */
+  from: string;
+  /** 按读者在 `fork` 上的选择分流；键和该分叉点的选项一致 */
+  choice?: { fork: ForkId; options: Record<OptionId, MovedTarget> };
+}
+
+/** 一个去向（`{ to, section? }`）的容错读取：形状不对时返回 null，由 `buildRouteMap` 报错。 */
+function readMovedTarget(value: unknown): MovedTarget | null {
+  if (!isRecord(value) || typeof value.to !== 'string') return null;
+  return { to: value.to, ...(typeof value.section === 'string' && value.section !== '' && { section: value.section }) };
 }
 
 /**
@@ -52,10 +67,28 @@ export function movedEntries(spec: unknown): MovedEntry[] {
   if (!isRecord(spec) || !isRecord(spec.moved)) return [];
   const entries: MovedEntry[] = [];
   for (const [from, value] of Object.entries(spec.moved)) {
-    if (!isRecord(value) || typeof value.to !== 'string') continue;
-    entries.push({ from, to: value.to, ...(typeof value.section === 'string' && value.section !== '' && { section: value.section }) });
+    if (!isRecord(value)) continue;
+    if ('choice' in value) {
+      const choice = value.choice;
+      if (!isRecord(choice) || typeof choice.fork !== 'string' || !isRecord(choice.options)) continue;
+      const fallback = readMovedTarget(choice.fallback);
+      const options: Record<OptionId, MovedTarget> = {};
+      for (const [option, target] of Object.entries(choice.options)) {
+        const parsed = readMovedTarget(target);
+        if (parsed !== null) options[option] = parsed;
+      }
+      if (fallback !== null) entries.push({ from, ...fallback, choice: { fork: choice.fork, options } });
+    } else {
+      const target = readMovedTarget(value);
+      if (target !== null) entries.push({ from, ...target });
+    }
   }
   return entries;
+}
+
+/** 跳转表的一条的兜底去向：直接给去向时就是它，按选择分流时是 `fallback`。 */
+export function movedFallback(entry: RouteSpecMoved): RouteSpecMovedTarget {
+  return 'choice' in entry ? entry.choice.fallback : entry;
 }
 
 const VIEW_MODES: readonly ViewMode[] = ['operation', 'principle'];
@@ -129,24 +162,18 @@ function parseSpec(raw: unknown, errors: RouteError[]): RouteSpec | null {
     }
   }
 
-  const moved: Record<PageId, RouteSpecMoved> = {};
+  const moved: Record<string, RouteSpecMoved> = {};
   if (raw.moved !== undefined) {
     if (!isRecord(raw.moved)) {
-      err('moved 必须是“旧标识: { to: <页面>, section?: <小节标题> }”的映射');
+      err('moved 必须是“旧网址: { to: <页面>, section?: <小节标题> }”或“旧网址: { choice: { fork, options, fallback } }”的映射');
     } else {
       for (const [from, value] of Object.entries(raw.moved)) {
-        if (!KEBAB.test(from)) {
-          err(`moved 里的旧标识 ${from} 必须是英文 kebab-case`);
-        } else if (
-          !isRecord(value) ||
-          Object.keys(value).some((key) => key !== 'to' && key !== 'section') ||
-          typeof value.to !== 'string' ||
-          ('section' in value && (typeof value.section !== 'string' || value.section.trim() === ''))
-        ) {
-          err(`moved.${from} 要写成 { to: <页面> }，可选 section: <目标页正文里的小节标题>`);
-        } else {
-          moved[from] = { to: value.to, ...(typeof value.section === 'string' && { section: value.section }) };
+        if (!isMovedKey(from)) {
+          err(`moved 的键 ${from} 只能是页面标识（英文 kebab-case）或以 faq/ 开头的参考页路径`);
+          continue;
         }
+        const parsed = parseMovedValue(from, value, err);
+        if (parsed !== null) moved[from] = parsed;
       }
     }
   }
@@ -186,6 +213,67 @@ function parseSpec(raw: unknown, errors: RouteError[]): RouteSpec | null {
     });
   });
   return { chapters, side, moved };
+}
+
+/** 跳转表的键：页面标识，或 `faq/<id>` 这类旧参考页路径（段内仍是 kebab-case）。 */
+const MOVED_REFERENCE_PREFIX = 'faq/';
+function isMovedKey(key: string): boolean {
+  const [head, ...rest] = key.split('/');
+  if (rest.length === 0) return KEBAB.test(key);
+  return head === MOVED_REFERENCE_PREFIX.slice(0, -1) && rest.length === 1 && KEBAB.test(rest[0]!);
+}
+
+/** 一个去向的校验：`{ to, section? }`，`section` 写了就必须是非空字符串。 */
+function parseMovedTarget(value: unknown, where: string, err: (m: string) => void): RouteSpecMovedTarget | null {
+  if (
+    !isRecord(value) ||
+    Object.keys(value).some((key) => key !== 'to' && key !== 'section') ||
+    typeof value.to !== 'string' ||
+    ('section' in value && (typeof value.section !== 'string' || value.section.trim() === ''))
+  ) {
+    err(`${where} 要写成 { to: <页面> }，可选 section: <目标页正文里的小节标题>`);
+    return null;
+  }
+  return { to: value.to, ...(typeof value.section === 'string' && { section: value.section }) };
+}
+
+/** 跳转表一条的校验：直接给去向，或 `{ choice: { fork, options, fallback } }` 按选择分流。 */
+function parseMovedValue(from: string, value: unknown, err: (m: string) => void): RouteSpecMoved | null {
+  if (!isRecord(value)) {
+    err(`moved.${from} 要写成 { to: <页面> } 或 { choice: { fork, options, fallback } }`);
+    return null;
+  }
+  if (!('choice' in value)) return parseMovedTarget(value, `moved.${from}`, err);
+
+  const extra = Object.keys(value).filter((key) => key !== 'choice');
+  if (extra.length > 0) {
+    err(`moved.${from} 是 { choice: … } 时不能再写 ${extra.join('、')}`);
+    return null;
+  }
+  const choice = value.choice;
+  if (
+    !isRecord(choice) ||
+    Object.keys(choice).some((key) => key !== 'fork' && key !== 'options' && key !== 'fallback') ||
+    typeof choice.fork !== 'string' ||
+    !KEBAB.test(choice.fork) ||
+    !isRecord(choice.options) ||
+    Object.keys(choice.options).length === 0
+  ) {
+    err(`moved.${from}.choice 要写成 { fork: <分叉点>, options: { <选项>: { to, section? } }, fallback: { to, section? } }`);
+    return null;
+  }
+  const fallback = parseMovedTarget(choice.fallback, `moved.${from}.choice.fallback`, err);
+  const options: Record<OptionId, RouteSpecMovedTarget> = {};
+  for (const [option, target] of Object.entries(choice.options)) {
+    if (!KEBAB.test(option)) {
+      err(`moved.${from}.choice.options 里的选项 ${option} 必须是英文 kebab-case`);
+      continue;
+    }
+    const parsed = parseMovedTarget(target, `moved.${from}.choice.options.${option}`, err);
+    if (parsed !== null) options[option] = parsed;
+  }
+  if (fallback === null || Object.keys(options).length === 0) return null;
+  return { choice: { fork: choice.fork, options, fallback } };
 }
 
 function parseItem(item: unknown, where: string, err: (m: string) => void): RouteSpecItem | null {
@@ -244,7 +332,7 @@ function checkSemantics(spec: RouteSpec, pages: PageMeta[], errors: RouteError[]
     } else if (Object.hasOwn(moved, page.id)) {
       errors.push({
         file,
-        message: `页面标识 ${page.id} 是跳转表的旧标识（旧地址跳到 ${moved[page.id]!.to}），不能再分给新页面（FR-25、ADR-0006）`,
+        message: `页面标识 ${page.id} 是跳转表的旧标识（旧地址跳到 ${movedFallback(moved[page.id]!).to}），不能再分给新页面（FR-25、ADR-0006）`,
       });
     } else if (!KEBAB.test(page.id)) {
       errors.push({ file, message: `页面标识 ${page.id} 必须是英文 kebab-case` });
@@ -353,11 +441,36 @@ function checkSemantics(spec: RouteSpec, pages: PageMeta[], errors: RouteError[]
     if (placement.get(returnTo) !== 'item') routeErr(`旁支页 ${id} 的 returnTo（${returnTo}）必须是路线图里的普通页`);
   }
 
-  // ---- 跳转表（FR-25、ADR-0006）：旧标识不能是保留路径，目标页要存在，且不能指向另一个旧标识（不串联）
-  for (const [from, { to }] of Object.entries(moved)) {
-    if (RESERVED_PAGE_IDS.includes(from)) routeErr(`moved.${from} 用了保留路径（${RESERVED_PAGE_IDS.join('、')}），旧标识请换一个`);
-    if (!byId.has(to)) routeErr(`moved.${from} 的 to（${to}）不是路线图里的页面`);
-    if (Object.hasOwn(moved, to)) routeErr(`moved.${from} 的 to（${to}）也是旧标识：跳转表不能串联，${to} 要指向真正的页面`);
+  // ---- 跳转表（FR-25、ADR-0006）：旧标识不能是保留路径，目标页要存在，且不能指向另一个旧标识（不串联）；
+  // 按选择分流的条目还要和分叉点的选项对得上（V11 的手机相关旧页靠它，实施计划 §3.1）
+  for (const [from, entry] of Object.entries(moved)) {
+    if (!from.includes('/') && RESERVED_PAGE_IDS.includes(from)) {
+      routeErr(`moved.${from} 用了保留路径（${RESERVED_PAGE_IDS.join('、')}），旧标识请换一个`);
+    }
+    const targets: [string, RouteSpecMovedTarget][] =
+      'choice' in entry
+        ? [
+            [`moved.${from}.choice.fallback`, entry.choice.fallback],
+            ...Object.entries(entry.choice.options).map(([option, target]): [string, RouteSpecMovedTarget] => [
+              `moved.${from}.choice.options.${option}`,
+              target,
+            ]),
+          ]
+        : [[`moved.${from}`, entry]];
+    for (const [where, { to }] of targets) {
+      if (!byId.has(to)) routeErr(`${where} 的 to（${to}）不是路线图里的页面`);
+      if (Object.hasOwn(moved, to)) routeErr(`${where} 的 to（${to}）也是旧标识：跳转表不能串联，${to} 要指向真正的页面`);
+    }
+    if (!('choice' in entry)) continue;
+    const options = forkOptions.get(entry.choice.fork);
+    if (options === undefined) {
+      routeErr(`moved.${from}.choice.fork（${entry.choice.fork}）不是路线图里的分叉点`);
+      continue;
+    }
+    const given = Object.keys(entry.choice.options);
+    if (options.length !== given.length || options.some((option) => !given.includes(option))) {
+      routeErr(`moved.${from}.choice.options 的键要和分叉点 ${entry.choice.fork} 的选项一致（${options.join('、')}）`);
+    }
   }
 
   for (const page of pages) {

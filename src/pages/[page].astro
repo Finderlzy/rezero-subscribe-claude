@@ -12,14 +12,16 @@ import { tocSections } from '../lib/toc-sections';
  * 去掉视图切换、固定原理视图；内容集合里的操作版条目暂不删，等单版本重写统一处理）；
  * 导航按“原理视图 + 未选”在构建时写好，打开只属于一个分支的页面时按它所属的选项计算（架构 §3 M3）。
  *
- * 同一个路由还生成跳转页（V09，FR-25、ADR-0006）：`route.yaml` 的 `moved:` 里每个旧标识仍然是一个地址，
+ * 同一个路由还生成跳转页（V09，FR-25、ADR-0006）：`route.yaml` 的 `moved:` 里每个单段旧标识仍然是一个地址，
  * 打开后由 MovedPage 立即跳到目标页（可带小节）；旧标识不进目录、搜索和 sitemap。
+ * `faq/<id>` 这类多段旧网址由 [...moved].astro 生成。
  */
 export async function getStaticPaths() {
   const site = await loadSite();
   return [
     ...[...site.pages.keys()].map((page) => ({ params: { page } })),
-    ...site.moved.map(({ from }) => ({ params: { page: from } })),
+    // 单段旧标识；`faq/<id>` 这类多段旧网址由 [...moved].astro 生成
+    ...site.moved.filter(({ from }) => !from.includes('/')).map(({ from }) => ({ params: { page: from } })),
   ];
 }
 

@@ -474,10 +474,65 @@ describe('跳转表 moved（FR-25、ADR-0006）', () => {
 
   it('形状不对：不是映射、旧标识不是 kebab-case、多了字段、section 为空', () => {
     expectError(errorsOf({ ...sampleSpec(), moved: 'nope' }), 'route.yaml', /moved 必须是/);
-    expectError(errorsOf(withMoved({ Bad: { to: 'preface' } })), 'route.yaml', /moved 里的旧标识 Bad 必须是英文 kebab-case/);
+    expectError(errorsOf(withMoved({ Bad: { to: 'preface' } })), 'route.yaml', /moved 的键 Bad 只能是页面标识（英文 kebab-case）或以 faq\/ 开头的参考页路径/);
     expectError(errorsOf(withMoved({ old: { to: 'preface', extra: 1 } as never })), 'route.yaml', /moved\.old 要写成 \{ to: <页面> \}/);
     expectError(errorsOf(withMoved({ old: {} as never })), 'route.yaml', /moved\.old 要写成/);
     expectError(errorsOf(withMoved({ old: { to: 'preface', section: '  ' } })), 'route.yaml', /moved\.old 要写成/);
+  });
+
+  it('按选择分流：fallback 是兜底去向，各选项按分叉点的选择；键可以是 faq/<id> 这类旧参考页路径', () => {
+    const spec = withMoved({
+      'old-register': {
+        choice: {
+          fork: 'phone',
+          options: { iphone: { to: 'iphone-gmail' }, android: { to: 'android-gmail', section: '七、支付' } },
+          fallback: { to: 'choose-phone' },
+        },
+      },
+      'faq/old-question': { to: 'afterword' },
+    });
+    const map = buildRouteMap(spec, samplePages());
+
+    expect(movedEntries(spec)).toEqual([
+      {
+        from: 'old-register',
+        to: 'choose-phone',
+        choice: { fork: 'phone', options: { iphone: { to: 'iphone-gmail' }, android: { to: 'android-gmail', section: '七、支付' } } },
+      },
+      { from: 'faq/old-question', to: 'afterword' },
+    ]);
+    // 旧网址不进目录、搜索和浏览器用的 RouteData
+    expect(JSON.stringify(map.data)).not.toContain('faq/old-question');
+    expect(JSON.stringify(map.data)).not.toContain('old-register');
+  });
+
+  it('按选择分流：形状不对、分叉点或选项对不上时报出具体条目', () => {
+    const choice = (value: unknown) => withMoved({ old: { choice: value } as never });
+
+    expectError(errorsOf(choice({ fork: 'phone', options: { iphone: { to: 'preface' } } })), 'route.yaml', /moved\.old\.choice\.fallback 要写成/);
+    expectError(errorsOf(choice({ fork: 'phone', options: {}, fallback: { to: 'preface' } })), 'route.yaml', /moved\.old\.choice 要写成/);
+    expectError(
+      errorsOf(choice({ fork: 'nope', options: { iphone: { to: 'preface' } }, fallback: { to: 'preface' } })),
+      'route.yaml',
+      /moved\.old\.choice\.fork（nope）不是路线图里的分叉点/,
+    );
+    expectError(
+      errorsOf(choice({ fork: 'phone', options: { iphone: { to: 'preface' } }, fallback: { to: 'preface' } })),
+      'route.yaml',
+      /moved\.old\.choice\.options 的键要和分叉点 phone 的选项一致（iphone、android）/,
+    );
+    expectError(
+      errorsOf(choice({ fork: 'phone', options: { iphone: { to: 'preface' }, android: { to: 'ghost' } }, fallback: { to: 'preface' } })),
+      'route.yaml',
+      /moved\.old\.choice\.options\.android 的 to（ghost）不是路线图里的页面/,
+    );
+    expectError(
+      errorsOf(choice({ fork: 'phone', options: { iphone: { to: 'preface' }, Bad: { to: 'preface' } }, fallback: { to: 'preface' } })),
+      'route.yaml',
+      /moved\.old\.choice\.options 里的选项 Bad 必须是英文 kebab-case/,
+    );
+    expectError(errorsOf(withMoved({ 'ip-tests/old': { to: 'preface' } })), 'route.yaml', /moved 的键 ip-tests\/old 只能是页面标识/);
+    expectError(errorsOf(withMoved({ old: { choice: {}, to: 'preface' } as never })), 'route.yaml', /moved\.old 是 \{ choice: … \} 时不能再写 to/);
   });
 
   it('目标页要存在、不能串联、旧标识不能用保留路径', () => {

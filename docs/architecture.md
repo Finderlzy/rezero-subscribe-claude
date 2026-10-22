@@ -478,7 +478,7 @@ v2.0 → v2.1 的代码差距（现状 → 目标）：
 | 模块 | 影响 | v3 改动 | 不变 |
 | --- | --- | --- | --- |
 | M1 内容 | 小改 | 双链的小节锚点解析（V07 现状，页面固定原理视图，只有原理版）；给 M6 提供原理版和参考页的 h2、h3（Astro `render()` 返回的 `headings`）；合并页本身仍是“一页 = 重写稿一个文件”，导入规则不变 | 导入脚本、Obsidian 插件、校验三层 |
-| M2 路线 | 数据改动 + 小改 | `route.yaml` 随作者改完的重写稿重建（Q-18 定后）；`moved:` 段和校验（V09 现状，取代 `REMOVED_PAGES`，ADR-0006）；章节的 `intro` 字段和 `site.ts` 里对它的核对随章节标题卡一起删除（FR-72 去掉了它的显示位置，不是放宽校验）；新增可选的 `summary`（首页五栏简介的导航文案，M2 只校验非空） | `buildRouteMap`/`view`/`outline` 的算法和接口，分叉、汇合、默认方案二 |
+| M2 路线 | 数据改动 + 小改 | `route.yaml` 随作者改完的重写稿重建（Q-18 定后）；`moved:` 段和校验（V09 现状，取代 `REMOVED_PAGES`，ADR-0006：单段旧标识、`faq/<id>` 多段参考页路径、`choice` 按分叉点分流）；章节的 `intro` 字段和 `site.ts` 里对它的核对随章节标题卡一起删除（FR-72 去掉了它的显示位置，不是放宽校验）；新增可选的 `summary`（首页五栏简介的导航文案，M2 只校验非空） | `buildRouteMap`/`view`/`outline` 的算法和接口，分叉、汇合、默认方案二 |
 | M3 页面 | 重做外观 | 顶栏、正文栏、侧边栏、翻页、首页、选择页卡片按 design.md v3 重做（13.3）；跳转页 `MovedPage`（V09 现状）、页面脚本 `section-hash`（V07 现状）、搜索框（V08） | 视图切换机制（ADR-0004）、导航改写、视频门面、复制、看大图、QQ 群和联系方式的数据来源 |
 | M4 本机状态 | 不变 | — | 全部 |
 | M5 构建 | 小改 | 删掉 `astro.config.mjs` 的 `redirects`、sitemap 过滤跳转页（V09 现状）；新增静态端点 `search-index.json`（V06 现状） | 构建校验、内容提示、`BASE_PATH` |
@@ -521,7 +521,7 @@ function search(index: SearchEntry[], query: string, limit = 10): SearchHit[];  
 - **翻页**（V04 现状，FR-72、AC-30）：`StepNav` 在正文末尾一条 1px `--border` 细线下排一行文字链接，左边“← 上一步”+ 标题、右边“下一步 →”+ 标题（两行，13px `--text-muted` 的方向 + 16px 600 `--accent` 的目标标题，整块 `min-height: 44px`）；跳过步骤的“跳过 →”在“下一步”下面 4px，右对齐，也是文字链接。旁支页的“回到”、参考页的“回到”和“返回刚才的步骤”（`ReferenceLayout`，从步骤链接进来时出现在 h1 上方和正文末尾）用同一套样式；v2.2 的黑色主按钮、手机吸底底栏和底栏预留空白都删掉了（连同 `--bar-button-height`、`--mobile-bar-height`、`--option-no-size` 令牌）。导航数据和 `route-enhance` 的改写挂载点不变。
 - **首页**（V05 现状 + 2026-10-22 调整，`index.astro`、design §4.4）：VuePress 首页。没有顶栏和侧边栏，首屏内容居中：中文两行版 logo 是 h1（`aria-label` 同时给出中文站名和英文副标题，`Logo.astro` 的 `zh` 默认标题）、logo 右下方一行放小形象、一句话（`--text-muted`）、紫色主按钮“从第 00 章开始 →”和 QQ 群入口的紧凑版（一行小字，`GroupInvite` 的 `compact`）。一条 1px 细线下是五章简介：桌面五栏一行、平板三栏、手机一栏；每栏是章名（h2，链到这一章第一页）和 `route.yaml` 的 `summary`，不列具体页面、不写“第几章”。页脚居中（`BaseLayout` 的 `footerCentered`）。一句话写在页面里，构建时核对它（去掉加粗后）原样出现在 `principle/overview.md` 正文里（ADR-0005、design V14）。v2.2 的眉题、小字信息行、“先看整体思路”、桌面章级索引和固定字形章节号都去掉。
 - **选择页**（V04 现状，FR-12、FR-72）：选项块改细边框卡片（1px `--border`、6px 圆角、内边距 16px 20px、手机 14px 16px、间距 12px，悬停边框 `--control-border`）；`option-blocks.ts` 不再插编号圆圈和箭头、不再包一层选项行，`section.option-block` 直接排在正文里，整块点击的 `a[data-option-start]` 伪元素和 `data-recommended` 不变；“推荐”“当前选择”的标记和交互沿用（`route-enhance.ts` 只标 `aria-current` 和 `.option-current`）。
-- **跳转页** `MovedPage`（V09 现状，ADR-0006、design §4.6）：`[page].astro` 的 `getStaticPaths` 为 `site.pages` 和 `site.moved` 各生成一页（旧标识不能和页面标识重叠，M2 校验）。跳转页用 `BaseLayout noindex` + `SiteHeader` + `main.page`，没有侧边栏：`<head>` 里内联一行脚本 `location.replace()`（不留历史记录），再加 `<meta http-equiv="refresh" content="5; url=…">`、`<link rel="canonical">`（指向目标页、不带小节）；正文是 h1“这一页已经并入《目标页》”、一段“正在跳转到…”、链接“打开《目标页 › 小节》→”。锚点固定用原理版（`site.ts` 的 `buildMovedPages` 用 `sectionAnchor()` 算好），所以脚本和 meta refresh 都指向同一个地址；没有 JS 的读者先看到说明和链接，5 秒后由 meta refresh 自动前往（AC-33 要求看得到说明，所以刷新不能是 0 秒）。没有 `section` 的条目（`plan1-free-isp`）直接跳到目标页顶部。`BASE_PATH` 由 `withBase()` 拼进脚本和 meta refresh（R-6）。
+- **跳转页** `MovedPage`（V09 现状，ADR-0006、design §4.6）：单段旧标识由 `[page].astro` 的 `getStaticPaths` 生成，`faq/<id>` 这类多段参考页路径由 `[...moved].astro` 生成（旧网址不能和页面标识或现有参考页重叠，M2 和 site.ts 校验）。按分叉点选择分流的条目（`choice`）把各选项的地址写在 `<script type="application/json" id="moved-data">` 里，`src/lib/moved.ts` 的内联脚本读 M4 的选择换成对应分支。跳转页用 `BaseLayout noindex` + `SiteHeader` + `main.page`，没有侧边栏：`<head>` 里内联一行脚本 `location.replace()`（不留历史记录），再加 `<meta http-equiv="refresh" content="5; url=…">`、`<link rel="canonical">`（指向目标页、不带小节）；正文是 h1“这一页已经并入《目标页》”、一段“正在跳转到…”、链接“打开《目标页 › 小节》→”。锚点固定用原理版（`site.ts` 的 `buildMovedPages` 用 `sectionAnchor()` 算好），所以脚本和 meta refresh 都指向同一个地址；没有 JS 的读者先看到说明和链接，5 秒后由 meta refresh 自动前往（AC-33 要求看得到说明，所以刷新不能是 0 秒）。没有 `section` 的条目（`plan1-free-isp`）直接跳到目标页顶部。`BASE_PATH` 由 `withBase()` 拼进脚本和 meta refresh（R-6）。
 - **找不到页**（V05 现状，`404.astro`、design §4.6）：v3 顶栏 + 正文栏（`main.page`，宽同正文栏并居中），没有侧边栏；大号固定字形 `404`、h1、主按钮“回到首页”和次按钮“打开目录”，目录直接写在页面上。`NumeralSprite` 只在这一页内联（design §3.2、§9）。
 
 ### 13.4 小节锚点（M1 + M3，ADR-0006）
@@ -549,8 +549,8 @@ function search(index: SearchEntry[], query: string, limit = 10): SearchHit[];  
 
 ### 13.6 数据流：读者打开旧网址（AC-33，V09 现状）
 
-1. 构建：`loadSite()` 读 `route.yaml`，M2 校验 `moved:`（旧标识是 kebab-case、不是保留字或现有页面；`to` 是路线图里的页面、不是另一个旧标识即不串联）；`site.ts` 再用 M1 的 headings 核对 `section` 并算出原理版锚点，`[page].astro` 为 `plan1-free-isp` 生成跳转页。
-2. 读者打开 `/plan1-free-isp/`：`<head>` 内联脚本 `location.replace('/choose-plan/')`（有 `section` 时带 `#<slug>`），不留历史记录。
+1. 构建：`loadSite()` 读 `route.yaml`，M2 校验 `moved:`（旧网址是页面标识或以 `faq/` 开头的参考页路径、不是保留字或现有页面；`to` 是路线图里的页面、不是另一个旧网址即不串联；`choice.fork` 是路线图里的分叉点且选项键和它一致）；`site.ts` 再用 M1 的 headings 核对每个去向的 `section` 并算出原理版锚点；`[page].astro` 为单段旧网址、`[...moved].astro` 为多段旧参考页路径生成跳转页。
+2. 读者打开 `/plan1-free-isp/`：`<head>` 内联脚本 `location.replace('/choose-plan/')`（有 `section` 时带 `#<slug>`），不留历史记录。带 `choice` 的条目（手机相关的旧页）脚本先读 M4 的选择，落到对应分支的地址；没有存过、读不到或选项已失效时落到 `fallback`。
 3. 目标页（合并页）加载：`route-enhance` 把所属选项写进 M4（FR-17）；`section-hash` 找到小节并滚动；侧边栏展开当前章，合并页下列出小节。
 4. 禁用 JS：先看到“这一页已经并入《…》”和链接，5 秒后 meta refresh 自动前往同一个地址（先看到说明是 AC-33 的要求，所以延迟不是 0 秒）。
 
@@ -565,10 +565,11 @@ src/
 ├── scripts/search.ts           搜索框（V08 计划）
 ├── scripts/section-hash.ts     小节锚点落点（V07 现状）
 ├── components/SiteSearch.astro 顶栏搜索（V08 计划）
-└── components/MovedPage.astro  跳转页正文（V09 现状，由 [page].astro 使用）
+├── lib/moved.ts               跳转页按 M4 的选择分流的内联脚本（V09 现状）+ moved.test.ts
+└── components/MovedPage.astro  跳转页正文（V09 现状，由 [page].astro、[...moved].astro 使用）
 scripts/merge-rewrite.mjs       机械合并（+ merge-rewrite.test.mjs，V10 计划）
 tests/e2e/ac-26-…ac-33-*.spec.ts
-tests/fixtures/moved-*/         跳转表的坏内容用例（V09 现状：目标不存在、小节不存在、旧标识被复用、串联）
+tests/fixtures/moved-*/         跳转表的坏内容用例（V09 现状：目标不存在、小节不存在、旧标识被复用、串联、choice 缺 fallback / 分叉点不存在 / 选项不一致、参考页路径不合法）
 ```
 
 已删除（V01、V05、V09）：`astro.config.mjs` 的 `redirects`、`route-map.ts` 的 `REMOVED_PAGES`、`route.yaml` 的 `intro` 及其核对、页头色带和章节标题卡相关组件与样式。
@@ -583,7 +584,7 @@ tests/fixtures/moved-*/         跳转表的坏内容用例（V09 现状：目�
 | AC-29 | Playwright：首页 hero 元素、五章目录、没有侧边栏 |
 | AC-30 | Playwright：翻页文字链接、没有主按钮、“跳过”结果同 AC-05；360 下两个链接 `boundingBox().height ≥ 44` |
 | AC-32 | `merge-rewrite.mjs` 的自检和单元测试（合并前后命令、链接、嵌入不变）+ `compare-migration.mjs` 对照合并后的重写稿与产物 + Playwright 看侧边栏小节；人工抽查记进 migration-checklist 的 v3 节 |
-| AC-33 | Playwright：无痕上下文逐条打开 `moved:` 的旧网址，断言落到目标页（当前只有 `plan1-free-isp` 一条、没有小节，落在页顶）；`javaScriptEnabled: false` 的上下文断言“已经并入”和链接、点击可到目标页；构建级用例（`tests/build/ac-33-moved-dist.test.ts`，用 `SITE_URL` 构建）断言 sitemap 和 `search-index.json` 里没有旧标识、跳转页带 noindex/canonical/meta refresh；`tests/fixtures/moved-*` 断言坏跳转表让构建失败；带小节时落到 `#<slug>` 的规则由 `site.test.ts`、`MovedPage.test.ts` 覆盖，等 V11 合出合并页后再在 e2e 里逐条核对落点 |
+| AC-33 | Playwright：无痕上下文逐条打开 `moved:` 的旧网址，断言落到目标页（当前只有 `plan1-free-isp` 一条、没有小节，落在页顶）；`javaScriptEnabled: false` 的上下文断言“已经并入”和链接、点击可到目标页；构建级用例（`tests/build/ac-33-moved-dist.test.ts`，用 `SITE_URL` 构建）断言 sitemap 和 `search-index.json` 里没有旧标识、跳转页带 noindex/canonical/meta refresh；`tests/fixtures/moved-*` 断言坏跳转表让构建失败；带小节时落到 `#<slug>` 的规则由 `site.test.ts`、`MovedPage.test.ts` 覆盖；`moved-choice` 夹具在构建级用例里核对 `choice` 的去向 JSON、多段 `faq/<id>` 跳转页和 sitemap/索引过滤；`src/lib/moved.test.ts` 用假的 storage 跑内联脚本；真实数据里的手机旧页等 V11 填完再在 e2e 里逐条核对落点 |
 | AC-31 | 全部 e2e、axe、键盘、对比度在三种宽度重跑；断言只因选择器、文案或页面被合并而改，不删检查项 |
 
 ### 13.9 待定事项（v3）
