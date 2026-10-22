@@ -41,3 +41,6 @@ promo/video/*.mp4
 !promo/video/bilibili-music.mp4
 !promo/video/douyin-story-music.mp4
 !promo/video/bilibili-story-music.mp4
+
+# Obsidian 打开仓库根目录时的工作区状态
+.obsidian/
