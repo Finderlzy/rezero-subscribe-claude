@@ -114,7 +114,8 @@ export function startOf(route: RouteMap): Stop {
 
 /**
  * 把 `route.yaml` 的跳转表编译成跳转页（FR-25、ADR-0006）：`to` 的页面标题取自路线图，
- * `section` 用 M1 的小标题扫描按标题文字找 slug（V07 的 `sectionAnchor`），只认 h2。
+ * `section` 用 M1 的小标题扫描按标题文字找 slug（V07 的 `sectionAnchor`），认 h2 和 h3
+ * （常见问题并进各章后是一问一个 h3，实施计划 §3.1）。
  * 目标页或小节不存在时构建失败。
  */
 export function buildMovedPages(
@@ -149,10 +150,10 @@ function resolveMovedTarget(
   const target = route.data.pages[to];
   if (target === undefined) throw new Error(`route.yaml：${where} 的 to（${to}）不是路线图里的页面`);
   if (section === undefined) return { to, toTitle: target.title };
-  const h2 = (headingsOf(to) ?? []).filter((heading) => heading.depth === 2);
-  const anchor = sectionAnchor(h2, section);
+  const sections = (headingsOf(to) ?? []).filter((heading) => heading.depth === 2 || heading.depth === 3);
+  const anchor = sectionAnchor(sections, section);
   if (anchor === undefined) {
-    throw new Error(`route.yaml：${where}.section 写的“${section}”在 ${to} 的原理版正文里找不到唯一的小标题（h2）`);
+    throw new Error(`route.yaml：${where}.section 写的“${section}”在 ${to} 的原理版正文里找不到唯一的小标题（h2 或 h3）`);
   }
   return { to, toTitle: target.title, section, anchor };
 }

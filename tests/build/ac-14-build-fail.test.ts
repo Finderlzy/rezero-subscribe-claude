@@ -58,7 +58,7 @@ describe('AC-14 坏内容让构建失败并报出文件', () => {
       // 跳转表写了目标页正文里没有的小节
       fixture: 'moved-section-missing',
       file: 'route.yaml',
-      messages: ['route.yaml：moved.plan1-free-isp.section 写的“没有这个小节”在 choose-plan 的原理版正文里找不到唯一的小标题'],
+      messages: ['route.yaml：moved.plan1-free-isp.section 写的“没有这个小节”在 choose-plan 的原理版正文里找不到唯一的小标题（h2 或 h3）'],
     },
     {
       // 跳转表的目标是另一个旧标识：不串联

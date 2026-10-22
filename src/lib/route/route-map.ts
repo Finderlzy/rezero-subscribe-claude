@@ -35,7 +35,7 @@ export type * from './types';
 /** 不能用作页面标识的保留路径（ADR-0002）：参考页和构建产物占用的路径。 */
 export const RESERVED_PAGE_IDS: readonly string[] = ['faq', 'ip-tests', '404', '_astro'];
 
-/** 跳转的去向：目标页和可选的小节标题（目标页原理版正文里的 h2）。 */
+/** 跳转的去向：目标页和可选的小节标题（目标页原理版正文里的 h2 或 h3）。 */
 export interface MovedTarget {
   to: PageId;
   section?: string;

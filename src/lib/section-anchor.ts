@@ -12,7 +12,7 @@
 export interface AnchorHeading {
   slug: string;
   text: string;
-  /** ATX 标题级别（2 = h2）；跳转表的 `section` 只认 h2（ADR-0006），双链解析不看级别 */
+  /** ATX 标题级别（2 = h2）；跳转表的 `section` 只认 h2、h3（ADR-0006），双链解析不看级别 */
   depth?: number;
 }
 

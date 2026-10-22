@@ -165,17 +165,35 @@ moved:
     ]);
   });
 
-  it('section 只认 h2（ADR-0006）：h3 不算命中', () => {
-    const spec = parseRouteYaml(`
+  it('section 认 h2 和 h3（常见问题是一问一个 h3），h4 以下不算', () => {
+    const specFor = (section: string) =>
+      parseRouteYaml(`
 chapters:
   - id: start
     title: 开始
     items: [preface, afterword]
 moved:
-  old-section: { to: afterword, section: 小节三 }
+  old-section: { to: afterword, section: ${section} }
 `);
-    const badRoute = assembleRoute(spec, entries);
-    expect(() => buildMovedPages(spec, badRoute, (id) => headings.get(id))).toThrow(/找不到唯一的小标题（h2）/);
+    const deep = new Map([
+      [
+        'afterword',
+        [
+          { slug: '小节一', text: '小节一', depth: 2 },
+          { slug: '小节三', text: '小节三', depth: 3 },
+          { slug: '小节四', text: '小节四', depth: 4 },
+        ],
+      ],
+    ]);
+    const h3 = specFor('小节三');
+    const h4 = specFor('小节四');
+
+    expect(buildMovedPages(h3, assembleRoute(h3, entries), (id) => deep.get(id))).toEqual([
+      { from: 'old-section', to: 'afterword', toTitle: '标题 afterword', section: '小节三', anchor: '小节三' },
+    ]);
+    expect(() => buildMovedPages(h4, assembleRoute(h4, entries), (id) => deep.get(id))).toThrow(
+      /找不到唯一的小标题（h2 或 h3）/,
+    );
   });
 
   it('小节不存在时报出 route.yaml，不生成跳转页', () => {
