@@ -15,7 +15,6 @@
 [![部署](https://github.com/Finderlzy/rezero-subscribe-claude/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/Finderlzy/rezero-subscribe-claude/actions/workflows/deploy.yml)
 [![Node](https://img.shields.io/badge/node-%E2%89%A522.12-339933?style=flat-square&logo=nodedotjs&logoColor=white)](#本地运行)
 [![许可](https://img.shields.io/badge/license-MIT%20%2B%20CC%20BY--NC%204.0-3DA639?style=flat-square)](LICENSE-CONTENT.md)
-[![Stars](https://img.shields.io/github/stars/Finderlzy/rezero-subscribe-claude?style=flat-square&label=stars&color=6F42C1)](https://github.com/Finderlzy/rezero-subscribe-claude/stargazers)
 
 [开始阅读](https://re0claude.us.ci/) · [QQ 群](#qq-群) · [本地运行](#本地运行) · [开发文档](#开发文档)
 
@@ -23,10 +22,6 @@
 
 <div align="center">
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-home-dark.webp">
-  <img src="docs/assets/readme-home-light.webp" width="880" alt="首页：居中的 logo、一句话简介、从第 00 章开始按钮、QQ 群入口和五章简介">
-</picture>
 
 </div>
 
