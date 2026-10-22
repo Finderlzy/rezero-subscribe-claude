@@ -487,28 +487,27 @@ v2.0 → v2.1 的代码差距（现状 → 目标）：
 
 依赖方向：M1 ← M2 ← M3，M1 ← M6 ← M3，M4 独立。M6 不依赖 M2：索引的范围（哪些页面算步骤、选择页、旁支页、参考页）由 `loadSite()` 传入，M6 只管索引形状和匹配。
 
-### 13.2 M6 搜索（`src/lib/search/`，计划）
+### 13.2 M6 搜索（`src/lib/search/`，现状 V06 2026-10-22）
 
-**职责**：FR-24。把页面标题和两版正文的 h2、h3 变成一份小索引，在浏览器里按读者输入找出最多 10 条结果。深模块：对外两个纯函数，分词、规范化、排序都藏在里面。
+**职责**：FR-24。把页面标题和正文的 h2、h3 变成一份小索引，在浏览器里按读者输入找出最多 10 条结果。深模块：对外两个纯函数，规范化、排序都藏在里面。
 
 ```ts
-interface SearchEntry {
-  page: PageId;            // 页面标识；参考页是 'faq/split-routing' 这样的路径标识
-  pageTitle: string;
-  heading?: string;        // 没有时这一条是页面标题本身
-  anchors?: { principle?: string; operation?: string };  // 这个小标题在两版里的 id（ADR-0006 的规则）
-  order: number;           // 目录顺序，同分时靠前的排前面
-}
-function buildSearchIndex(pages: SearchSourcePage[]): SearchEntry[];          // 构建时
-function search(index: SearchEntry[], query: string, view: ViewMode, limit = 10): SearchHit[];  // 浏览器
-// SearchHit = { entry, href }，href 已按 view 选好锚点（当前视图没有这个小标题时用另一视图的）
+interface SearchSource { path: string; title: string; order: number; headings: MarkdownHeading[] }  // 构建时
+type SearchEntry =
+  | { path: string; pageTitle: string; order: number }  // 页面标题本身
+  | { path: string; pageTitle: string; heading: string; slug: string; order: number };  // h2、h3；heading 和 slug 成对
+// path：页面是 '/maintenance/'；参考页是 '/ip-tests/voyracloud/'。order 是目录顺序，同分时靠前的排前面。
+function buildSearchIndex(sources: SearchSource[]): SearchEntry[];
+function search(index: SearchEntry[], query: string, limit = 10): SearchHit[];  // 浏览器
+// SearchHit = { entry, href }，href 已用 withBase() 拼好
 ```
 
-- **数据来源**：`src/pages/search-index.json.ts`（静态端点，计划）调用 `loadSite()` 取页面清单和顺序，再对每页的 principle、operation、reference 条目调用 `render()` 取 `headings`（depth 2、3），交给 `buildSearchIndex`。同一页两版里文字相同的小标题合并成一条，`anchors` 记两边的 id。跳转页、首页、找不到页不进索引。
-- **匹配**：查询和条目文字都做 NFKC、转小写、去掉空白；条目包含查询就算命中。排序：页面标题命中 > 小标题命中；同类里开头命中 > 中间命中；再按 `order`。不做模糊匹配和分词（需求：只搜标题和小标题；中文子串匹配足够，例如“时区”命中“改时区”）。
-- **页面脚本** `src/scripts/search.ts`（计划）：读者第一次聚焦搜索框时用 `fetch(withBase('/search-index.json'))` 取索引（同源、地址固定，请求里没有读者输入的文字，AC-28）；之后输入时只在内存里调用 `search()`。下拉是 ARIA combobox（`role="combobox"` + `listbox`），上下键、回车、Esc；没有结果时显示“没有找到”。<720px 顶栏只显示搜索图标按钮，点开后输入框覆盖顶栏。没有 JS 时搜索控件隐藏（和视图切换一样）。打开小标题结果后，由 13.4 的 `section-hash` 负责切视图和滚动。
-- **组件** `SiteSearch.astro`（计划），只放进顶栏。
-- 体积：约 100 条，几 KB；索引只在聚焦时下载一次，浏览器缓存。
+- **数据来源**：`src/pages/search-index.json.ts`（现状）调用 `loadSite()`，用 `searchPageIds(route)`（`src/lib/site.ts`）按目录顺序列出全部页面——步骤、选择页、分叉的各个选项（共享步骤只算第一次），旁支页排在最后——用 `searchReferences(site.references)` 列出 `ip-tests` 合集和它的各篇实测，再对每项调用 `render()` 取 `headings`，交给 `buildSearchIndex`（只收 depth 2、3）。v3 只有一版正文，不再有 `view` 参数；首页、找不到页、跳转页（V09 的 `moved:`）不进索引。常见问题在 v3 并进各章、不再有独立页面（实施计划 §3.1），所以索引里没有 `faq`。
+- **匹配**：查询和条目文字都做 NFKC、转小写、去掉空白；页面标题条目只看标题，小标题条目只看小标题（所以标题命中不会把同一页的小标题重复列一遍），条目文字包含查询就算命中；页面标题和同名小标题各算一条（前者打开页顶，后者跳到小节）。排序：页面标题命中 > 小标题命中；同类里开头命中 > 中间命中；再按 `order`。不做模糊匹配和分词（需求：只搜标题和小标题；中文子串匹配足够，例如“时区”命中“改时区”）。
+- **锚点**：`search()` 用 `withBase()` 生成 `href`；小标题命中是 `withBase(path + '#' + slug)`，页面标题命中是 `withBase(path)`。
+- **页面脚本** `src/scripts/search.ts`（V08）：读者第一次聚焦搜索框时用 `fetch(withBase('/search-index.json'))` 取索引（同源、地址固定，请求里没有读者输入的文字，AC-28）；之后输入时只在内存里调用 `search()`。下拉是 ARIA combobox（`role="combobox"` + `listbox`），上下键、回车、Esc；没有结果时显示“没有找到”。<720px 顶栏只显示搜索图标按钮，点开后输入框覆盖顶栏。没有 JS 时搜索控件隐藏。打开小标题结果后，由 13.4 的 `section-hash` 滚动到位置。
+- **组件** `SiteSearch.astro`（V08），只放进顶栏。
+- 体积：几十条、几 KB，只有标题和小标题、没有正文段落；索引只在聚焦时下载一次，浏览器缓存。
 
 ### 13.3 M3 页面（按 design.md v3）
 
