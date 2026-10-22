@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { GROUP_NUMBER, GROUP_URL } from '../lib/group';
 import GroupInvite from './GroupInvite.astro';
 
-// QQ 中转群入口（FR-22）：群号、加群链接、大肥鱼的介绍；完整版带二维码，首页的紧凑版不带。
+// QQ 群入口（FR-22）：群号、加群链接、大肥鱼的介绍；完整版带二维码，首页的紧凑版不带。
 async function render(props: { compact?: boolean } = {}) {
   const container = await AstroContainer.create();
   return container.renderToString(GroupInvite, { props });
@@ -13,12 +13,12 @@ async function render(props: { compact?: boolean } = {}) {
 describe('GroupInvite', () => {
   it('完整版：介绍大肥鱼，写出群号，链接指向加群地址，内联一张二维码', async () => {
     const html = await render();
-    expect(html).toContain('进 QQ 中转群问大肥鱼');
+    expect(html).toContain('进 QQ 群问大肥鱼');
     expect(html).toContain('AI 嘉宾');
     expect(html).toContain(GROUP_NUMBER);
     expect(html).toContain(`href="${GROUP_URL}"`);
     expect(html.match(/<svg\b/g)).toHaveLength(1);
-    expect(html).toContain(`aria-label="QQ 中转群二维码，群号 ${GROUP_NUMBER}"`);
+    expect(html).toContain(`aria-label="QQ 群二维码，群号 ${GROUP_NUMBER}"`);
   });
 
   it('紧凑版：只有标题、群号和链接，没有介绍和二维码', async () => {

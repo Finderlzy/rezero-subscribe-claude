@@ -3,7 +3,7 @@ import qrcode from '../assets/qq-group/qrcode.svg?raw';
 import { GROUP_NUMBER, GROUP_URL } from '../lib/group';
 
 /**
- * QQ 中转群入口（FR-22）：一句话介绍群里的大肥鱼，写出群号，再给一个加群链接；平板和桌面多一张二维码，用手机扫。
+ * QQ 群入口（FR-22）：一句话介绍群里的大肥鱼，写出群号，再给一个加群链接；平板和桌面多一张二维码，用手机扫。
  * 手机上不放二维码：扫不了自己的屏幕，点链接直接拉起 QQ。
  * 二维码是加群链接 GROUP_URL（src/lib/group.ts）的素色版本（黑码白底，不用 QQ 自带的渐变样式，design §6），
  * 存在 src/assets/qq-group/qrcode.svg：用 Python 的 segno 生成（`segno.make(GROUP_URL, error='m')`，border 4、黑码透明底，
@@ -18,9 +18,9 @@ interface Props {
 const { compact = false } = Astro.props;
 ---
 
-<section class:list={['group-invite', { 'group-invite-compact': compact }]} aria-label="QQ 中转群">
+<section class:list={['group-invite', { 'group-invite-compact': compact }]} aria-label="QQ 群">
   <div class="group-invite-text">
-    <p class="group-invite-lead">{compact ? '进 QQ 中转群问大肥鱼：' : '有问题？进 QQ 中转群问大肥鱼'}</p>
+    <p class="group-invite-lead">{compact ? '进 QQ 群问大肥鱼：' : '有问题？进 QQ 群问大肥鱼'}</p>
     {
       !compact && (
         <p class="group-invite-desc">大肥鱼是群里的 AI 嘉宾，24 小时在线。教程哪一步卡住了都可以问她，也可以随便聊。</p>
@@ -32,14 +32,14 @@ const { compact = false } = Astro.props;
       <a class="group-invite-link" href={GROUP_URL} rel="noopener">加入群聊<span aria-hidden="true"> →</span></a>
     </p>
   </div>
-  {!compact && <div class="group-invite-qr" role="img" aria-label={`QQ 中转群二维码，群号 ${GROUP_NUMBER}`} set:html={qrcode} />}
+  {!compact && <div class="group-invite-qr" role="img" aria-label={`QQ 群二维码，群号 ${GROUP_NUMBER}`} set:html={qrcode} />}
 </section>
 
 <style>
   /*
    * 附录和参考页里是 §4.7 的普通提示块：--surface-muted 底、4px --accent 左色条、右侧 6px 圆角，
-   * 内边距 12px 16px（几何和 prose.css 的 .callout 一致；QQ 中转群入口在 .prose 外面，所以这里再写一遍）。
-   * 首页的紧凑版（§4.4）是一行 14px 小字“进 QQ 中转群问大肥鱼：群号 … · 加入群聊 →”，不带提示块的外壳。
+   * 内边距 12px 16px（几何和 prose.css 的 .callout 一致；QQ 群入口在 .prose 外面，所以这里再写一遍）。
+   * 首页的紧凑版（§4.4）是一行 14px 小字“进 QQ 群问大肥鱼：群号 … · 加入群聊 →”，不带提示块的外壳。
    */
   .group-invite {
     display: flex;
