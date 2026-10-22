@@ -163,8 +163,10 @@ describe('AC-14 坏内容让构建失败并报出文件', () => {
     },
   ])('$fixture：报出 $file', async ({ fixture, file, messages }) => {
     const { code, output } = await buildWith(fixture);
+    // Astro 自己的报错（如内容 schema 校验）会写绝对路径，Windows 下是反斜杠：统一成 / 再和仓库相对路径比
+    const text = output.split('\\').join('/');
     expect(code, output).not.toBe(0);
-    expect(output).toContain(file);
-    for (const message of messages) expect(output).toContain(message);
+    expect(text).toContain(file);
+    for (const message of messages) expect(text).toContain(message);
   });
 });
