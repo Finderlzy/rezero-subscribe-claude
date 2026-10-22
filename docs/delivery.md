@@ -1,14 +1,14 @@
 # 交付记录
 
-## 2026-10-22 v3 收尾与上线（3.0.1）
+## 2026-10-22 v3 正式上线（3.0.0）
 
-v3.0.0 验收通过后，本轮把交付收口并上线：清理 v2 遗留资源、重做 README、校准文档日期和验收文字，把 3.0.0 之后的修复与文档变更以 **3.0.1** 发布。
+v3.0.0 验收通过后，本轮把交付收口并正式上线：清理 v2 遗留资源、重做 README、校准文档日期和验收文字。站点版本保持 **3.0.0**，本次就是 v3 的正式上线。
 
-- **基线**：`main` @ `4a66d47`（3.0.0 标签之后的顶栏昼夜图标、QQ 群号和文案回退提交）。环境：Linux，Node v24.21.0，npm，Playwright Chromium。
+- **基线**：`main` @ `4a66d47`（V12 验收之后的顶栏昼夜图标、QQ 群号和文案回退提交）。环境：Linux，Node v24.21.0，npm，Playwright Chromium。
 - **清理**：删除 `src/assets/screenshots/` 里 29 张在 `src/content/`、`docs/`、`scripts/`、`tests/`、`promo/` 中都没有引用的 v2 截图（2.87 MiB）、v2 的 `说明图-测 IP 质量.svg` 和空的 `.gitkeep`；删除 36 个已合并的本地开发分支和遗留的 `.claude/worktrees/` 工作区。v2.2 计划、v2 交付记录和 `docs/rewrite/` 的删除记录保留作历史，Git 提交历史不动。
 - **README**：顶部居中 logo（深浅两版，由 `scripts/build-logo.mjs` 生成，README 用 `<picture>` 按主题切换）、站点/QQ 群/版本/部署/Node/许可/Stars 徽章、深浅两版首页截图、路线概览、QQ 群（群号 1131606770 和加群链接）、本地运行、部署、改内容、开发命令、项目结构、已知限制和文档入口。
 - **文档**：V12 的验收日期从误写的 2026-10-24 改回 2026-10-22（提交时间也是 10-22）；需求升 v0.12，把 2026-10-22 作者调整（侧边栏列出全部选项、去掉“换到方案二 →”、悬停/选中不加下划线、走完分支到下一章）写回 FR-16、AC-04 和变更摘要。
-- **版本**：3.0.0 → 3.0.1（修复和交付整理，没有新增功能）。
+- **版本**：保持 **3.0.0**（只做修复和交付整理，没有新增功能）。中途曾按 3.0.1 准备补丁版本，作者要求以本次为 v3 正式上线后改回 3.0.0，`v3.0.1` 的标签和 Release 已撤回。
 
 ### 回归与构建
 
@@ -25,8 +25,8 @@ v3.0.0 验收通过后，本轮把交付收口并上线：清理 v2 遗留资源
 ### 上线
 
 - 部署方式不变：推送 `main` 后由 [.github/workflows/deploy.yml](../.github/workflows/deploy.yml) 构建并发布到 GitHub Pages。
-- **上线结果**：收尾提交 `a122df4` 推送后，Actions 运行 [39801889688](https://github.com/Finderlzy/rezero-subscribe-claude/actions/runs/39801889688) 的 build 和 deploy 都成功。
-- **标签和 Release**：附注标签 `v3.0.1` 指向收尾记录提交 `065bb0f`；GitHub Release <https://github.com/Finderlzy/rezero-subscribe-claude/releases/tag/v3.0.1> 已创建（非草稿、非预发布）。
+- **上线结果**：正式上线提交推送后，Actions 的 build 和 deploy 都成功；V12 验收之后的 README、资源清理和文档变更都在线上版本里。
+- **标签和 Release**：附注标签 `v3.0.0` 指向本次正式上线提交；GitHub Release <https://github.com/Finderlzy/rezero-subscribe-claude/releases/tag/v3.0.0> 已创建（非草稿、非预发布）。
 - **线上核对**：`/`、`/preface/`、`/plan1/`、`/ip-tests/`、`/search-index.json`、`/sitemap-index.xml`、`/404.html` 都返回 200；旧网址 `/plan1-buy-isp/` 返回“这一页已经并入《方案一：搭建专属住宅代理节点》”，meta refresh 指向 `/plan1/#购买静态住宅-isp-代理`；首页有群号 1131606770。README 的四张图（深浅 logo、深浅首页截图）在 `raw.githubusercontent.com` 上都能取到。
 
 ### 未解决项
@@ -41,7 +41,7 @@ v3.0.0 验收通过后，本轮把交付收口并上线：清理 v2 遗留资源
 
 ## 2026-10-22 v3 视觉验收和全量回归（V12）
 
-V12 按 design §7 和需求 §8 对 v3 做了逐页视觉对照和全量回归，通过；站点版本升到 **3.0.0**，打附注标签 `v3.0.0`。
+V12 按 design §7 和需求 §8 对 v3 做了逐页视觉对照和全量回归，通过；站点版本升到 **3.0.0**，正式上线时附注标签 `v3.0.0` 改指上线提交（见上一节）。
 
 - **基线**：`main` @ `dbb738c`（V10/V11 和 2026-10-22 的侧边栏调整之后）。环境：Linux，Node v24.21.0，npm，Playwright Chromium。
 - **版本**：`package.json`、`package-lock.json` 的 `version` 从 2.2.4 改为 3.0.0。

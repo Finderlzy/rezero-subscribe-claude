@@ -11,7 +11,7 @@
 
 [![在线站点](https://img.shields.io/badge/%E5%9C%A8%E7%BA%BF%E7%AB%99%E7%82%B9-re0claude.us.ci-6F42C1?style=flat-square)](https://re0claude.us.ci/)
 [![QQ 群](https://img.shields.io/badge/QQ%E7%BE%A4-1131606770-12B7F5?style=flat-square&logo=tencentqq&logoColor=white)](https://qm.qq.com/q/a00aEmiu2I)
-[![版本](https://img.shields.io/badge/version-3.0.1-6F42C1?style=flat-square)](https://github.com/Finderlzy/rezero-subscribe-claude/releases)
+[![版本](https://img.shields.io/badge/version-3.0.0-6F42C1?style=flat-square)](https://github.com/Finderlzy/rezero-subscribe-claude/releases)
 [![部署](https://github.com/Finderlzy/rezero-subscribe-claude/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/Finderlzy/rezero-subscribe-claude/actions/workflows/deploy.yml)
 [![Node](https://img.shields.io/badge/node-%E2%89%A522.12-339933?style=flat-square&logo=nodedotjs&logoColor=white)](#本地运行)
 [![许可](https://img.shields.io/badge/license-MIT%20%2B%20CC%20BY--NC%204.0-3DA639?style=flat-square)](LICENSE-CONTENT.md)
