@@ -87,6 +87,12 @@ describe('AC-14 坏内容让构建失败并报出文件', () => {
       messages: ['“常见问题”里没有小标题“没有这一条”'],
     },
     {
+      // V07：v3 一章一页，页内目录链到不存在的小节时构建失败
+      fixture: 'missing-local-anchor',
+      file: 'src/content/principle/thanks.md',
+      messages: ['这一页里没有小标题“没有这个小节”'],
+    },
+    {
       fixture: 'missing-merge',
       file: 'route.yaml',
       // 路线图错误按“文件：说明”成行输出（src/lib/site.ts），连同文件名一起断言；

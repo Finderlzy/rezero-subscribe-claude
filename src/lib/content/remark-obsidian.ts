@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { basename, dirname, extname, join, relative, sep } from 'node:path';
 import { parseFrontmatter } from '@astrojs/markdown-remark';
-import { slug } from 'github-slugger';
 import type { Blockquote, Html, Image, Link, Paragraph, Parent, PhrasingContent, Root, RootContent, Text } from 'mdast';
+import { hashFragment, LAYOUT_ANCHOR_IDS, resolveSectionAnchor } from '../section-anchor';
 import { joinBase } from '../with-base';
 import { parseDiagram } from './diagram';
 import { resolveLinkIndex, type IndexedPage, type LinkIndex } from './link-index';
@@ -222,6 +222,9 @@ function walk(node: Parent, ctx: DocContext, inLink: boolean): void {
         (node.children as PhrasingContent[]).splice(i, 1, ...replaced);
         i += replaced.length - 1;
       }
+    } else if (child.type === 'link' && !inLink && ctx.page) {
+      checkSectionLink(child, ctx);
+      walk(child, ctx, true);
     } else if ('children' in child) {
       walk(child, ctx, inLink || child.type === 'link' || child.type === 'linkReference');
     }
@@ -321,6 +324,29 @@ function parseWikiTarget(raw: string, source: string, at: Point | undefined, ctx
 }
 
 /**
+ * 同页小节链接 `[文字](#小标题)`（V07、架构 §13.4）：v3 的一章一页里有大量页内目录链接，
+ * 片段可以写标题原文，也可以写 slug；解析成页面上的 slug 后写回链接，找不到就构建失败。
+ * 只处理 `#` 开头的链接，外链和别的页面不受影响。
+ */
+function checkSectionLink(node: Link, ctx: DocContext): void {
+  // 操作版不再渲染（页面固定原理视图），而且它的标题 id 会加 op- 前缀；这里只管实际渲染的正文
+  if (ctx.page === undefined || ctx.page.kind === 'operation' || !node.url.startsWith('#')) return;
+  const fragment = hashFragment(node.url);
+  if (fragment === undefined) {
+    ctx.report(`小节链接“${node.url}”没有写小标题：要写成 [文字](#小标题)`, node.position?.start);
+    return;
+  }
+  // #main 这类布局自带的落点不是小节，原样交给浏览器
+  if (LAYOUT_ANCHOR_IDS.has(fragment)) return;
+  const anchor = resolveSectionAnchor(ctx.page.headings, fragment);
+  if (anchor === undefined) {
+    ctx.report(`这一页里没有小标题“${fragment}”：${node.url}`, node.position?.start);
+    return;
+  }
+  node.url = `#${anchor}`;
+}
+
+/**
  * 双链（架构 §3 M1、ADR-0005）：目标是页面标题（重写稿的文件名），链到 `/<id>/`；
  * `#小标题` 要在目标页存在；从步骤链到参考页时带 `?from=<当前页>`（FR-20）；
  * 目录页指向首页；`04技术/…` 查 blog-links.yaml，地址待填时只输出文字（Q-11）。
@@ -366,8 +392,8 @@ function convertLink(raw: string, source: string, at: Point | undefined, ctx: Do
     ctx.report(`找不到标题为“${target}”的页面：双链按页面标题（正文第一行的 # 标题）解析：${source}`, at);
     return undefined;
   }
-  const anchor = heading ? slug(heading) : undefined;
-  if (anchor !== undefined && !page.headings.has(anchor)) {
+  const anchor = heading === undefined ? undefined : resolveSectionAnchor(page.headings, heading);
+  if (heading !== undefined && anchor === undefined) {
     ctx.report(`“${target}”里没有小标题“${heading}”：${source}`, at);
     return undefined;
   }

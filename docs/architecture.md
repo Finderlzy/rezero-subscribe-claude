@@ -527,10 +527,15 @@ function search(index: SearchEntry[], query: string, view: ViewMode, limit = 10)
 
 ### 13.4 小节锚点（M1 + M3，ADR-0006）
 
-- **id**：不变，原理版 `#<slug>`，操作版 `#op-<slug>`（`rehype-operation-ids.ts`）。合并页每个小节的 h2 文字就是原页面标题，两版相同（FR-03），所以两个 id 只差前缀。
-- **双链解析**（`remark-obsidian.ts`、`link-index.ts`，计划）：`IndexedPage` 现在只记原理版的 `headings`；改为同时取同名操作版条目的 `headings`。`[[页面#小标题]]` 写在操作版里时，目标页操作版有这个小标题就输出 `#op-<slug>`，否则输出 `#<slug>`；写在原理版或参考页里时反过来，优先原理版。两版都没有就构建失败（FR-05“校验”）。
-- **页面脚本** `src/scripts/section-hash.ts`（计划）：步骤页加载时和 `hashchange` 时运行。去掉 `op-` 前缀得到 slug；当前视图的正文里有对应 id 就交给浏览器正常滚动（必要时补一次 `scrollIntoView`）；只有另一视图有时，调用 `view-toggle` 导出的切换函数（写 M4、派发 `reader-view-changed`，但**不滚回顶部**），再滚到那个 id。站内链接、侧边栏小标题、搜索结果、跳转页都靠它落到正确的视图。
-- 没有 JS 时：页面固定操作视图，`#op-<slug>` 由浏览器原生滚动；指向只有原理版的小节时停在页面顶部（可接受的降级）。
+- **现状（V07，2026-10-22）**：页面固定原理视图、只有一版正文（用户 2026-10-22 决定去掉视图切换，见 §13.12），所以不再需要“按视图选锚点”。下面写的是单版本的规则；操作版、`op-` 前缀和切视图的旧做法在 V10 删除，本节的其余部分以本节为准。
+- **id**：就是正文标题的 github-slugger slug（`#<slug>`，重复的加 `-1`、`-2`），和页面上的 `id` 相同。合并页每个小节的 h2 文字就是原页面标题（FR-03）。
+- **数据**（`link-index.ts`）：`IndexedPage.headings` 是 `{ slug, text }[]`，一页一份，按正文顺序；`text` 去掉 `**`、行内代码和链接等行内记号，`slug` 与渲染后的标题 id 一致。
+- **解析**（`src/lib/section-anchor.ts`、`remark-obsidian.ts`，V07 现状）：
+  - `sectionAnchor(headings, text)`：先按标题文字精确匹配，再按 `normalizeSectionText()`（NFKC、小写、合并空白）匹配；只有唯一命中才返回 slug，重复标题或找不到返回 `undefined`。
+  - `resolveSectionAnchor()` 在标题文字之外也接受已经写好的 slug，供链接片段使用。
+  - `remark-obsidian.ts` 用它解析 `[[页面#小标题]]`，并在同一页出现 `[文字](#小标题)` 时把片段换成 `#<slug>`；目标不存在或片段只有 `#` 时构建失败（FR-05“校验”）。操作版不再渲染（V10 删除），同页链接不校验；`#main` 这类布局自带的落点原样交给浏览器。
+  - V09 的 `moved:` 条目用同一个 `sectionAnchor()` 校验并算出跳转锚点；V08 打开搜索结果直接改 `location.href`，由下面的页面脚本负责滚动。
+- **页面脚本** `src/scripts/section-hash.ts`（V07 现状）：`PageLayout`、`ReferenceLayout` 加载时初始化，页面加载和 `hashchange` 时解码 `location.hash`，在正文容器 `.prose` 里找对应 id，找到就 `scrollIntoView()`；初始化放在其它页面脚本之后，补一次滚动以免布局变化把原生锚点带偏。`#main` 这类不是小节的地址不处理，交给浏览器原生跳转。没有 JS 时浏览器原生锚点照常工作。
 
 ### 13.5 合并的执行（开发脚本，计划）
 
@@ -556,8 +561,9 @@ function search(index: SearchEntry[], query: string, view: ViewMode, limit = 10)
 src/
 ├── lib/search/                 M6：index.ts（buildSearchIndex、search）+ index.test.ts
 ├── pages/search-index.json.ts  M6 的静态端点
+├── lib/section-anchor.ts       小节标题 → slug（V07 现状）
 ├── scripts/search.ts           搜索框
-├── scripts/section-hash.ts     小节锚点 → 视图
+├── scripts/section-hash.ts     小节锚点落点（V07 现状）
 ├── components/SiteSearch.astro 顶栏搜索
 └── components/MovedPage.astro  跳转页正文（由 [page].astro 使用）
 scripts/merge-rewrite.mjs       机械合并（+ merge-rewrite.test.mjs）

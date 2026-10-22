@@ -94,6 +94,7 @@ const routeJson = JSON.stringify(site.route.data).replace(/</g, '\\u003c');
   import { initCodeZoom } from '../scripts/code-zoom';
   import { pageReaderStore, readRouteData } from '../scripts/reader-store';
   import { initReferenceReturn } from '../scripts/reference-return';
+  import { initSectionHash } from '../scripts/section-hash';
   import { initToc } from '../scripts/toc';
 
   initReferenceReturn(document);
@@ -101,6 +102,8 @@ const routeJson = JSON.stringify(site.route.data).replace(/</g, '\\u003c');
   const data = readRouteData(document);
   if (data) initToc(document, data, pageReaderStore(data));
   initCodeZoom(document);
+  // 放在最后：前面的脚本会展开“返回刚才的步骤”等 DOM，之后补一次滚动才不会被布局变化带偏
+  initSectionHash(document);
 </script>
 
 <style>

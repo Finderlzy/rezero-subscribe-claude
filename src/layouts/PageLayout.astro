@@ -84,6 +84,7 @@ const hasZoom = hasZoomableImage(principle);
   import { initCodeZoom } from '../scripts/code-zoom';
   import { pageReaderStore, readRouteData } from '../scripts/reader-store';
   import { initRouteEnhance } from '../scripts/route-enhance';
+  import { initSectionHash } from '../scripts/section-hash';
   import { initToc } from '../scripts/toc';
 
   const data = readRouteData(document);
@@ -94,6 +95,8 @@ const hasZoom = hasZoomableImage(principle);
     initToc(document, data, store);
   }
   initCodeZoom(document);
+  // 放在最后：前面的脚本会改写 DOM（展开返回块、包代码块），之后补一次滚动才不会被布局变化带偏
+  initSectionHash(document);
 </script>
 
 <style>

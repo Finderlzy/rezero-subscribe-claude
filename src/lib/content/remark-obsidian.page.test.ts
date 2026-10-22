@@ -137,6 +137,65 @@ describe('锚点', () => {
   });
 });
 
+describe('同页小节链接（V07）', () => {
+  it('可以写标题原文，输出时换成 github-slugger 的 slug', async () => {
+    const r = await render(
+      'principle/overview.md',
+      [
+        '# 整体思路',
+        '',
+        '- [清理旧账号和配置](#清理旧账号和配置)',
+        '- [选择方案](#方案一和方案二)',
+        '- [买服务器](<#第一步：购买海外 VPS>)',
+        '',
+        '## 清理旧账号和配置',
+        '',
+        '## 方案一和方案二',
+        '',
+        '## 第一步：购买海外 VPS',
+      ].join('\n'),
+    );
+    expect(r.problems).toEqual([]);
+    expect(r.html).toContain(`<a href="${encodeURI('#清理旧账号和配置')}">清理旧账号和配置</a>`);
+    expect(r.html).toContain(`<a href="${encodeURI('#方案一和方案二')}">选择方案</a>`);
+    // 标题里有标点、空格时，写标题原文也能对到 github-slugger 生成的 id
+    expect(r.html).toContain(`<a href="${encodeURI('#第一步购买海外-vps')}">买服务器</a>`);
+  });
+
+  it('也可以直接写已经生成的 slug', async () => {
+    const r = await render('principle/overview.md', '# 整体思路\n\n[去改时区](#改时区)\n\n## 改时区\n');
+    expect(r.problems).toEqual([]);
+    expect(r.html).toContain(`<a href="${encodeURI('#改时区')}">去改时区</a>`);
+  });
+
+  it('目标不存在时报出文件、行号和片段', async () => {
+    const r = await render('principle/overview.md', '# 整体思路\n\n[坏了](#没有这个小节)\n\n## 风控在看什么\n');
+    expect(messages(r)).toEqual(['3:1 这一页里没有小标题“没有这个小节”：#没有这个小节']);
+  });
+
+  it('只有 # 的链接报写法错误', async () => {
+    const r = await render('principle/overview.md', '# 整体思路\n\n[坏了](#)\n');
+    expect(messages(r)).toEqual(['3:1 小节链接“#”没有写小标题：要写成 [文字](#小标题)']);
+  });
+
+  it('外链里的片段不按本节校验', async () => {
+    const r = await render('principle/overview.md', '# 整体思路\n\n[外链](https://example.com/a#没有这个小节)\n');
+    expect(r.problems).toEqual([]);
+  });
+
+  it('#main 是布局自带的落点，不是小节，原样交给浏览器', async () => {
+    const r = await render('principle/overview.md', '# 整体思路\n\n[跳到正文](#main)\n');
+    expect(r.problems).toEqual([]);
+    expect(r.html).toContain('<a href="#main">跳到正文</a>');
+  });
+
+  it('操作版不再渲染，同页链接不在这里校验（标题 id 会加 op- 前缀）', async () => {
+    fx.write('principle/overview.md', '# 整体思路\n');
+    const r = await render('operation/overview.md', '# 整体思路\n\n[坏了](#没有这个小节)\n');
+    expect(r.problems).toEqual([]);
+  });
+});
+
 describe('参考页链接带 ?from=', () => {
   it('从步骤（两版都算）链到参考页时带当前页标识，锚点放在查询串之后', async () => {
     fx.write('principle/subscribe.md', '# 订阅\n');

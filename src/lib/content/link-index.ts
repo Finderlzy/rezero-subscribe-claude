@@ -3,6 +3,7 @@ import { basename, extname, join, relative, resolve, sep } from 'node:path';
 import { parseFrontmatter } from '@astrojs/markdown-remark';
 import GithubSlugger from 'github-slugger';
 import { parse as parseYaml } from 'yaml';
+import type { AnchorHeading } from '../section-anchor';
 import type { ContentProblem } from './remark-obsidian';
 
 /**
@@ -44,8 +45,12 @@ export interface IndexedPage {
   title: string | undefined;
   /** 标题所在的源文件行号（1 起）；没有标题时为正文第一行 */
   titleLine: number;
-  /** 除第一行标题以外全部小标题的 slug，与页面上的 id 相同（github-slugger，重复的加 -1、-2） */
-  headings: ReadonlySet<string>;
+  /**
+   * 除第一行标题以外全部小标题：slug 与页面上的 id 相同（github-slugger，重复的加 -1、-2），
+   * text 是去掉行内记号后的标题文字。页面固定原理视图、只有一版正文，所以只记这一份列表（架构 §13.4）。
+   * 操作版仍会被扫描，但渲染时标题 id 另加 `op-` 前缀（V10 删除操作版后这里只剩一版）。
+   */
+  headings: readonly AnchorHeading[];
   /** 原理版 frontmatter 的 principleOnly */
   principleOnly: boolean;
   /** 选择页原理版 frontmatter 的 `options`：选项标识 → 块标题原文（heading），按书写顺序；其他页面没有 */
@@ -138,7 +143,7 @@ function scanPage(kind: PageKind, id: string, file: string): IndexedPage {
   const titleMatch = first === -1 ? null : /^# +(.+?)[ \t]*$/.exec(lines[first]);
   const title = titleMatch?.[1];
   const slugger = new GithubSlugger();
-  const headings = new Set<string>();
+  const headings: AnchorHeading[] = [];
   let fence: string | undefined;
   lines.forEach((line, i) => {
     const f = FENCE.exec(line);
@@ -152,7 +157,10 @@ function scanPage(kind: PageKind, id: string, file: string): IndexedPage {
     }
     if (title !== undefined && i === first) return;
     const h = ATX_HEADING.exec(line);
-    if (h) headings.add(slugger.slug(plainHeading(h[2])));
+    if (h) {
+      const text = plainHeading(h[2]);
+      headings.push({ slug: slugger.slug(text), text });
+    }
   });
   return {
     kind,

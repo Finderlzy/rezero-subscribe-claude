@@ -83,7 +83,23 @@ describe('createLinkIndex：页面', () => {
 
     const page = createLinkIndex(fx.contentRoot).titles.get('常见问题');
 
-    expect([...(page?.headings ?? [])]).toEqual(['装过了想重装', '1-人独享怎么确认真的只有我在用', '分流规则具体怎么写', '装过了想重装-1']);
+    expect(page?.headings).toEqual([
+      { slug: '装过了想重装', text: '装过了，想重装？' },
+      { slug: '1-人独享怎么确认真的只有我在用', text: '“1 人独享”怎么确认真的只有我在用？' },
+      { slug: '分流规则具体怎么写', text: '分流规则具体怎么写？' },
+      { slug: '装过了想重装-1', text: '装过了，想重装？' },
+    ]);
+  });
+
+  it('小标题文字去掉行内记号：**加粗**、`代码` 和链接只留可见文字', () => {
+    fx.write('reference/ip-tests.md', '# 实测合集\n\n## **加粗**与`代码`\n\n## [链接](https://example.com)标题\n');
+
+    const page = createLinkIndex(fx.contentRoot).titles.get('实测合集');
+
+    expect(page?.headings).toEqual([
+      { slug: '加粗与代码', text: '加粗与代码' },
+      { slug: '链接标题', text: '链接标题' },
+    ]);
   });
 
   it('读 blog-links.yaml：地址或 null', () => {
