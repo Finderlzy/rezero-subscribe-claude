@@ -2,22 +2,24 @@
 /**
  * 顶栏的昼夜切换（用户 2026-10-22 决定：放在原来视图切换的位置，取代 design §4.3 的“操作｜原理”按钮）。
  * 一个 44×44 的图标按钮，可访问名称“深色模式”，`aria-pressed="true"` 表示当前是深色；
- * 浅色时画月亮（点了变深色），深色时画太阳。图标自画：1.5px 线宽、24px 网格（design §3.3），颜色同联系图标。
+ * 浅色时画月亮（点了变深色），深色时画太阳。图标自画、24px 网格，**实心填充**、20px：它和右边的联系方式
+ * 图标排在同一行，实心块面对齐才不显得比品牌图标轻（用户 2026-10-22 反馈线稿不协调，design §3.3、§4.0）；
+ * 颜色仍是 `--text-muted`，悬停 `--text`。
  * 构建时带 `hidden`：没有 JS 时不显示，页面跟随系统；页面脚本 theme-toggle.ts 露出它并处理点击。
  */
 ---
 
 <button type="button" class="theme-toggle" data-theme-toggle aria-pressed="false" aria-label="深色模式" hidden>
   <svg class="theme-icon-moon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
-    <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+    <path d="M22.08 12.88A10.08 10.08 0 1 1 11.12 1.92 7.84 7.84 0 0 0 22.08 12.88z" fill="currentColor" />
   </svg>
   <svg class="theme-icon-sun" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
-    <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.5" />
+    <circle cx="12" cy="12" r="4.2" fill="currentColor" />
     <path
-      d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"
+      d="M12 2.8v2.2M12 19v2.2M2.8 12h2.2M19 12h2.2M5.5 5.5l1.6 1.6M16.9 16.9l1.6 1.6M5.5 18.5l1.6-1.6M16.9 7.1l1.6-1.6"
       fill="none"
       stroke="currentColor"
-      stroke-width="1.5"
+      stroke-width="2"
       stroke-linecap="round"
     />
   </svg>
