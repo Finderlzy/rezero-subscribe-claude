@@ -81,12 +81,9 @@ const sectionsFor = (id: string, current: boolean) => current && sections.length
         </li>
       ) : (
         <li class="toc-route-group">
-          {item.options.map((option, i) => (
+          {item.options.map((option) => (
             <details class="toc-option-details" data-toc-option={option.id} open={optionOpen(option)}>
-              <summary class="toc-route-label">
-                {i > 0 && <span class="toc-route-or">或：</span>}
-                {option.title}
-              </summary>
+              <summary class="toc-route-label">{option.title}</summary>
               <ol>
                 {option.steps.map((step) => (
                   <li class="toc-step" data-toc-step={step.id} data-off-route={step.onRoute ? undefined : ''}>

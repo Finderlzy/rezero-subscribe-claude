@@ -93,7 +93,6 @@ describe('TocNav 侧边栏', () => {
     expect(html).toMatch(/<details class="toc-option-details" data-toc-option="plan-1" open>/);
     expect(html).toMatch(/<details class="toc-option-details" data-toc-option="plan-2">/);
     expect(html).not.toContain('toc-route-switch');
-    expect(html).toContain('或：<');
   });
 
   it('找不到页的目录不折叠，章名同样不写“第 n 章”', async () => {
