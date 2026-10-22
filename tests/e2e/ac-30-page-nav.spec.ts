@@ -55,6 +55,10 @@ test('AC-30：方案一末尾是文字链接翻页，没有黑色主按钮，也
   });
   await expect(next.locator('.step-nav-dir')).toHaveCSS('color', muted);
   await expect(next.locator('.step-nav-dir')).toHaveCSS('font-size', '13px');
+  // 悬停只变色、不加下划线（用户 2026-10-24）
+  await next.hover();
+  await expect(next.locator('.step-nav-title')).toHaveCSS('text-decoration-line', 'none');
+  await expect(next.locator('.step-nav-dir')).toHaveCSS('color', accent);
 
   // v3 没有可跳过页面：跳过链接不显示（FR-15 在当前内容下没有适用页）
   await expect(page.locator('[data-route-skip] a')).toBeHidden();

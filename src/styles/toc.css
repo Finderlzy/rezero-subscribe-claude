@@ -217,10 +217,6 @@
   color: var(--accent);
 }
 
-.toc-sections > li > a:hover .toc-label {
-  text-decoration: underline;
-}
-
 /* 页面项：15px，行高 1.5，上下内边距 6px，左内边距 12px（design §4.5） */
 .toc-step > a {
   display: flex;
@@ -240,10 +236,6 @@
 
 .toc-step > a:hover {
   color: var(--accent);
-}
-
-.toc-step > a:hover .toc-label {
-  text-decoration: underline;
 }
 
 /* 当前项：600、--accent 字，左边 4px --accent 竖线（design v3 §4.5；另有 aria-current，不只靠颜色）。 */

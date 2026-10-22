@@ -133,9 +133,9 @@ const backLabel = returnTo ? '回到' : '上一步';
     font-weight: var(--fw-heading);
   }
 
-  .step-nav-link:hover .step-nav-title {
-    text-decoration: underline;
-    text-underline-offset: 0.2em;
+  /* 悬停只变色、不加下划线（用户 2026-10-24）；标题本来就是 --accent，变色落在方向那一行 */
+  .step-nav-link:hover .step-nav-dir {
+    color: var(--accent);
   }
 
   /* “跳过”（FR-15）：下一步下面 4px，右对齐的一行 14px 文字链接，可点区域 44px 高 */
@@ -157,7 +157,6 @@ const backLabel = returnTo ? '回到' : '上一步';
 
   .step-skip a:hover {
     color: var(--accent);
-    text-decoration: underline;
   }
 
   /* 页面脚本按本机选择隐藏或显示跳过和“下一步”；上面的 display 会盖过 hidden 属性，这里补回来。 */

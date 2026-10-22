@@ -47,6 +47,12 @@ test('顶栏：白底、1px 细线、不固定；左边标记、站名、小形�
   if (width >= 480) await expect(header.locator('.site-name')).toBeVisible();
   else await expect(header.locator('.site-name')).toBeHidden();
   // 小形象紧跟在首页链接右边，不在链接里，对读屏隐藏
+  // 悬停只变色、不加下划线（用户 2026-10-24）
+  if (width >= 480) {
+    await home.hover();
+    await expect(header.locator('.site-name')).toHaveCSS('color', await tokenColor(page, '--accent'));
+    await expect(header.locator('.site-name')).toHaveCSS('text-decoration-line', 'none');
+  }
   const mascot = header.locator('svg.mascot');
   await expect(mascot).toHaveCount(1);
   await expect(mascot).toHaveAttribute('aria-hidden', 'true');
