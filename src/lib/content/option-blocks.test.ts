@@ -79,21 +79,21 @@ describe('选项块', () => {
     expect(html).toContain('<a href="/a-intro/" data-option-start="">甲：先讲道理</a>');
     expect(html).toContain('<a href="/a-step/">甲：动手</a>');
     expect(html).toContain('<a href="/b-step/" data-option-start="">乙：动手</a>，再看 <a href="/merge/">汇合</a>');
-    // 块和块并列，不互相嵌套；块里最后是箭头
-    expect(html).toMatch(/<a href="\/a-step\/">甲：动手<\/a><\/li>\s*<\/ol><span class="option-go" aria-hidden="true">→<\/span><\/section><\/div>\s*<div class="option-row"><span class="option-no" aria-hidden="true">2<\/span>\s*<section class="option-block" data-option="b">/);
+    // 块和块并列，不互相嵌套；块里不再加箭头（V04）
+    expect(html).toMatch(/<a href="\/a-step\/">甲：动手<\/a><\/li>\s*<\/ol><\/section>\s*<section class="option-block" data-option="b">/);
     // 下一个独占一段的加粗文字不进上一块
-    expect(html).toMatch(/<\/section><\/div>\s*<p><strong>结尾的加粗段落结束上一块<\/strong><\/p>$/);
+    expect(html).toMatch(/<\/section>\s*<p><strong>结尾的加粗段落结束上一块<\/strong><\/p>$/);
   });
 
-  it('每个选项前面是编号圆圈（按 frontmatter 的顺序从 1 编号，对读屏隐藏），块里最后是箭头', async () => {
+  it('选项是细边框卡片：输出 section 本身，不加编号圆圈和箭头（V04，design §4.2）', async () => {
     fx.write('operation/choose.md', '# 选一个\n\n**甲方案**\n\n[[甲：动手]]\n\n**乙方案**\n\n[[乙：动手]]\n');
     const { html } = await render('principle/choose.md', md(OPTIONS, '# 选一个\n\n**甲方案**\n\n[[甲：动手]]\n\n**乙方案**\n\n[[乙：动手]]\n'));
-    expect(html).toMatch(/<div class="option-row"><span class="option-no" aria-hidden="true">1<\/span>\s*<section class="option-block" data-option="a">/);
-    expect(html).toMatch(/<div class="option-row"><span class="option-no" aria-hidden="true">2<\/span>\s*<section class="option-block" data-option="b">/);
-    // 箭头在每个块里，不在块外
-    expect(html.match(/<span class="option-go" aria-hidden="true">→<\/span><\/section>/g)).toHaveLength(2);
-    // 圆圈和箭头都不是链接、不读给读屏
-    expect(html).not.toMatch(/<a[^>]*>\s*<span class="option-no"/);
+    expect(html).toMatch(/<section class="option-block" data-option="a">/);
+    expect(html).toMatch(/<\/section>\s*<section class="option-block" data-option="b">/);
+    // 没有编号圆圈、箭头，也没有包一层的选项行
+    expect(html).not.toContain('option-no');
+    expect(html).not.toContain('option-go');
+    expect(html).not.toContain('option-row');
   });
 
   it('路线图写了 default 的选项：块标 data-recommended，标题后加“推荐”；其他块不标', async () => {
@@ -117,8 +117,8 @@ describe('选项块', () => {
     fx.write('operation/choose.md', '# 选一个\n');
     const body = '# 选一个\n\n**甲方案**\n\n[[甲：先讲道理]]\n\n---\n\n后话\n\n**乙方案**\n\n[[乙：动手]]\n\n## 小标题\n\n**甲方案2**\n';
     const r = await render('principle/choose.md', md(OPTIONS, body));
-    expect(r.html).toMatch(/<a href="\/a-intro\/" data-option-start="">甲：先讲道理<\/a><\/p><span class="option-go" aria-hidden="true">→<\/span><\/section><\/div>\s*<hr>/);
-    expect(r.html).toMatch(/<a href="\/b-step\/" data-option-start="">乙：动手<\/a><\/p><span class="option-go" aria-hidden="true">→<\/span><\/section><\/div>\s*<h2/);
+    expect(r.html).toMatch(/<a href="\/a-intro\/" data-option-start="">甲：先讲道理<\/a><\/p><\/section>\s*<hr>/);
+    expect(r.html).toMatch(/<a href="\/b-step\/" data-option-start="">乙：动手<\/a><\/p><\/section>\s*<h2/);
   });
 
   it('块到它的第一个列表为止：列表后面的普通段落（两条路共用的话）不进最后一块', async () => {
@@ -126,7 +126,7 @@ describe('选项块', () => {
     const body = '# 选一个\n\n**甲方案**\n\n说明\n\n1. [[甲：先讲道理]]\n\n**乙方案**\n\n- [[乙：动手]]\n\n两条路走完，都接着 [[汇合]]。\n';
     const r = await render('principle/choose.md', md(OPTIONS, body));
     expect(messages(r.problems)).toEqual([]);
-    expect(r.html).toMatch(/<a href="\/b-step\/" data-option-start="">乙：动手<\/a><\/li>\s*<\/ul><span class="option-go" aria-hidden="true">→<\/span><\/section><\/div>\s*<p>两条路走完，都接着 <a href="\/merge\/">汇合<\/a>。<\/p>$/);
+    expect(r.html).toMatch(/<a href="\/b-step\/" data-option-start="">乙：动手<\/a><\/li>\s*<\/ul><\/section>\s*<p>两条路走完，都接着 <a href="\/merge\/">汇合<\/a>。<\/p>$/);
   });
 
   it('找不到块标题、块里没有站内链接时报错', async () => {

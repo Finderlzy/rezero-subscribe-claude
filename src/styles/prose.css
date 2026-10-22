@@ -237,49 +237,25 @@
 }
 
 /*
- * 选择页的选项（design §4.2，FR-12；v2.2 W4a）：每个选项是一行，不是大框。
- * 左边是构建时插进来的编号圆圈（.option-no，24px，1px --control-border，13px 数字），中间是内容，右边是箭头（.option-go）。
- * 行是 1px --border、8px 圆角、16px 20px 内边距，行与行间距 12px；整行可点：块内第一个链接（这个选项的第一步，
- * data-option-start）用伪元素撑满整行；块内其他链接（以及代码块、图片等可操作的内容）浮在上面，仍可单独点、选中。
- * 悬停：--surface-muted 底、--control-border 边框（这一行有底色了，边框不用再加粗），箭头右移 --nudge。
+ * 选择页的选项（design §4.2，FR-12；V04）：每个选项是一张细边框卡片，没有编号圆圈和箭头。
+ * 卡片是 1px --border、6px 圆角、16px 20px 内边距（手机 14px 16px），卡片间距 12px；
+ * 整块可点：块内第一个链接（这个选项的第一步，data-option-start）用伪元素撑满整块；
+ * 块内其他链接（以及代码块、图片等可操作的内容）浮在上面，仍可单独点、选中。
+ * 悬停：边框变成 --control-border。
  * 本机选过的选项由页面脚本标 aria-current 和“已选”，边框和底色用 --accent / --accent-soft；本机没选时，
  * 路线图 default 的选项（构建时标 data-recommended 和“推荐”）用同样的高亮，不标“已选”（FR-12）。
- * 手机上同样是竖排的行，内边距 14px 16px。
  */
-.prose .option-row {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  margin: var(--space-3) 0;
-}
-
-.prose .option-row:first-child {
-  margin-top: 0;
-}
-
-.prose .option-no {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: var(--option-no-size);
-  height: var(--option-no-size);
-  box-sizing: border-box;
-  border: var(--border-width) solid var(--control-border);
-  border-radius: 50%;
-  color: var(--text-muted);
-  font-size: var(--fs-caption);
-  line-height: 1;
-  font-weight: var(--fw-heading);
-}
-
 .prose .option-block {
   position: relative;
-  flex: 1 1 auto;
-  min-width: 0;
+  margin: var(--space-3) 0;
   padding: 14px var(--space-4);
   background: var(--bg);
   border: var(--border-width) solid var(--border);
   border-radius: var(--radius);
+}
+
+.prose .option-block:first-child {
+  margin-top: 0;
 }
 
 @media (min-width: 720px) {
@@ -288,14 +264,9 @@
   }
 }
 
-.prose .option-row:hover .option-block,
+.prose .option-block:hover,
 .prose .option-block:focus-within {
-  background: var(--surface-muted);
   border-color: var(--control-border);
-}
-
-.prose .option-row:hover .option-go {
-  translate: var(--nudge) 0;
 }
 
 .prose .option-block[aria-current='true'],
@@ -306,11 +277,6 @@
 
 .prose .option-block > :last-child {
   margin-bottom: 0;
-}
-
-/* 标题右边给箭头留出位置，标题折行时不压到箭头 */
-.prose .option-title {
-  padding-right: var(--space-6);
 }
 
 /* 选项标题（原来独占一段的加粗文字）：17px 600 */
@@ -345,24 +311,7 @@
   margin-top: 2px;
 }
 
-/* 箭头：靠右，和标题这一行对齐；装饰，对读屏隐藏 */
-.prose .option-go {
-  position: absolute;
-  top: 14px;
-  right: var(--space-4);
-  color: var(--text-muted);
-  font-size: 15px;
-  line-height: var(--lh-heading);
-}
-
-@media (min-width: 720px) {
-  .prose .option-go {
-    top: var(--space-4);
-    right: 20px;
-  }
-}
-
-/* “已选”“推荐”标签（design v2.2 W4a）：--accent 字、12px，跟在选项标题后面 */
+/* “已选”“推荐”标签：--accent 字、12px，跟在选项标题后面 */
 .prose .option-current,
 .prose .option-tag {
   display: inline-block;

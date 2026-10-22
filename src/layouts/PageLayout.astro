@@ -127,11 +127,4 @@ const hasZoom = hasZoomableImage(principle);
   :global(:root[data-view]) .step:not([data-route-ready]) :global(.plate-no) {
     visibility: hidden;
   }
-
-  /* 手机上吸底底栏：正文末尾预留等高留白，最后一段不被挡住（design §5）；底栏高度见 tokens.css 的 --mobile-bar-height（V04 去掉吸底后删） */
-  @media (max-width: 719px) {
-    .step-body {
-      padding-bottom: calc(var(--mobile-bar-height) + var(--space-7) + env(safe-area-inset-bottom));
-    }
-  }
 </style>

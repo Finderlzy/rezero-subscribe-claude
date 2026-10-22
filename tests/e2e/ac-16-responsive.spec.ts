@@ -13,6 +13,7 @@ const NAV_CONTROLS = [
   '.site-header button',
   'nav[aria-label="上一步和下一步"] a',
   '[data-route-skip] a',
+  '[data-reference-nav] a',
   '.page-actions a',
 ].join(', ');
 
@@ -29,7 +30,7 @@ async function expectControlsClickable(page: Page) {
   const controls = page.locator(NAV_CONTROLS).filter({ visible: true });
   const count = await controls.count();
   for (let i = 0; i < count; i++) {
-    // trial：只做可点性检查（可见、稳定、没被吸顶/吸底的栏挡住），不真的点
+    // trial：只做可点性检查（可见、稳定、没被吸顶的栏或浮层挡住），不真的点
     await controls.nth(i).click({ trial: true });
   }
 }

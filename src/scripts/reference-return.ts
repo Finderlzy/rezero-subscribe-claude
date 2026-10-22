@@ -19,16 +19,19 @@ export function initReferenceReturn(doc: Document): void {
 }
 
 function showReturn(doc: Document, target: ReferenceReturn): void {
-
   for (const block of doc.querySelectorAll<HTMLElement>('[data-reference-return]')) {
     const link = block.querySelector('a');
     if (!link) continue;
     // 同 pathOf（route-map）的 `/<id>/`；不为一个地址把整个路线模块打进参考页的脚本
     link.href = withBase(`/${target.id}/`);
-    link.textContent = `← 返回刚才的步骤：${target.title}`;
+    // 两行文字链接（design §4.6）：看得见的是“← 返回刚才的步骤”和目标标题，读屏读整句
+    link.setAttribute('aria-label', `返回刚才的步骤：${target.title}`);
+    const title = block.querySelector<HTMLElement>('[data-reference-return-title]');
+    if (title) title.textContent = target.title;
     block.hidden = false;
   }
-  // 页脚里只剩“回到：…”时整行显示；没有“回到…”的页面（常见问题首页、实测合集首页）整行不显示，不留空白
-  const actions = doc.querySelector<HTMLElement>('.page-actions');
-  if (actions && [...actions.children].every((child) => (child as HTMLElement).hidden)) actions.hidden = true;
+  // 现在每个参考页都有“回到”，这块构建时就显示；这里防止以后有没“回到”的参考页时，
+  // ?from= 的“返回刚才的步骤”找不到容器（只有它时把整块连同细线显示出来）。
+  const nav = doc.querySelector<HTMLElement>('[data-reference-nav]');
+  if (nav) nav.hidden = false;
 }

@@ -96,7 +96,7 @@ function recordChoice(doc: Document, fork: ForkId, store: ReaderStore): void {
   });
 }
 
-/** 本机保存的选项行：所在的一行加 data-selected，块标 aria-current 和“已选”；没选时都不标，也不标默认（FR-12） */
+/** 本机保存的选项卡片：加 aria-current 和“已选”；没选时都不标，也不标默认（FR-12） */
 function markChoice(doc: Document, chosen: string | undefined): void {
   for (const block of doc.querySelectorAll<HTMLElement>('.option-block[data-option]')) {
     const current = block.dataset.option === chosen;
@@ -110,8 +110,6 @@ function markChoice(doc: Document, chosen: string | undefined): void {
     if (label) label.hidden = !current;
     if (current) block.setAttribute('aria-current', 'true');
     else block.removeAttribute('aria-current');
-    // 编号圆圈也在这一行里：整行一起标（v2.2 W4a）
-    block.closest('.option-row')?.toggleAttribute('data-selected', current);
   }
 }
 
@@ -165,7 +163,5 @@ function renderNav(doc: Document, view: RouteView): void {
     link.href = withBase(pathOf(stop));
     const title = link.querySelector('[data-route-title]');
     if (title) title.textContent = stopTitle(stop, dir);
-    // 上一步 / 回到 的读屏名字写在 aria-label 里（手机吸底栏只露出箭头），目标变了要跟着改，不然读出的是构建时的标题
-    if (nav === 'prev' || nav === 'return') link.setAttribute('aria-label', `${nav === 'prev' ? '上一步' : '回到'}：${stopTitle(stop, dir)}`);
   }
 }
