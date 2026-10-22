@@ -26,6 +26,7 @@ v3.0.0 验收通过后，本轮把交付收口并上线：清理 v2 遗留资源
 
 - 部署方式不变：推送 `main` 后由 [.github/workflows/deploy.yml](../.github/workflows/deploy.yml) 构建并发布到 GitHub Pages。
 - **上线结果**：收尾提交 `a122df4` 推送后，Actions 运行 [39801889688](https://github.com/Finderlzy/rezero-subscribe-claude/actions/runs/39801889688) 的 build 和 deploy 都成功。
+- **标签和 Release**：附注标签 `v3.0.1` 指向收尾记录提交 `065bb0f`；GitHub Release <https://github.com/Finderlzy/rezero-subscribe-claude/releases/tag/v3.0.1> 已创建（非草稿、非预发布）。
 - **线上核对**：`/`、`/preface/`、`/plan1/`、`/ip-tests/`、`/search-index.json`、`/sitemap-index.xml`、`/404.html` 都返回 200；旧网址 `/plan1-buy-isp/` 返回“这一页已经并入《方案一：搭建专属住宅代理节点》”，meta refresh 指向 `/plan1/#购买静态住宅-isp-代理`；首页有群号 1131606770。README 的四张图（深浅 logo、深浅首页截图）在 `raw.githubusercontent.com` 上都能取到。
 
 ### 未解决项
