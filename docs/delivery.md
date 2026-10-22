@@ -7,6 +7,7 @@
 - **范围**：11 个页面、7 个参考页（`/ip-tests/` 和 6 篇实测）；删除操作版、独立常见问题、附录、旁支页和方案三；选项卡片改由 frontmatter 生成，侧边栏去掉章节号；搜索、目录和 sitemap 只收单版本页面和参考页。
 - **旧网址**：`route.yaml` 的 `moved:` 共 47 条：37 条旧页面（含 6 条按手机选项分流的 `choice`）、2026-10-19 删掉的 `plan1-free-isp`、8 条旧常见问题路径和旧 `faq` 目录；`/ip-tests/` 和 6 篇实测保留原网址。手机旧页的兜底是 `client-desktop#下一步`，锚点由 `ChoiceCards` 输出。
 - **环境**：Linux，Node v24.21.0，npm，Playwright Chromium；在分支 `v3-v10-single-version` 的当前工作区运行。
+- **同步**：Writing 单独提交 `10df4eb`（11 页 + 7 篇实测，删除旧页、常见问题和操作版）；大肥鱼 `corpus.json` 按教程提交 `e67ab14` 重新生成，18 页、160 块，摘要 `a38a23cb4e986154`；已登记到 `docs/project-board.md` 的 D-034，未同步服务器。
 
 ### 回归与构建
 
