@@ -16,6 +16,8 @@
 | 类型、单元、构建级、构建 | `npm run check` | 通过：astro check 0 错误；单元测试 540 通过；构建级用例 27 个；构建 67 页（11 页 + 7 参考页 + 首页 + 404 + 47 跳转页 + `search-index.json`） |
 | e2e | `npm run test:e2e` | 950 通过、20 跳过、0 失败（360、768、1280 三种宽度 + `/sub/` 子路径）；AC-33 逐条打开 47 条旧网址，6 条手机旧页分别按 iPhone、安卓、无选择核对 |
 | 内容提示 | `npm run build` | 只剩 1 条作者待补：`ip-tests/qsu-residential` |
+| 内容比对 | `node scripts/compare-migration.mjs` | 18 页、正文/命令/链接/截图差异 0；退出码 2（只剩登记的作者待补 1 处） |
+| 导入幂等 | `node scripts/import-rewrite.mjs` | 写入 0 个文件，18 个没有变化 |
 
 ### 未解决项
 
