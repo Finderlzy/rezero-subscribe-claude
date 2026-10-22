@@ -4,7 +4,7 @@ import { THEME_KEY } from '../../src/lib/theme';
 import { expectScriptRan } from './route-helpers';
 
 // AC-26（FR-72，design v3 §4.0、§4.1、§3.1）：文档站的外壳。顶栏白底细线，左边“Re:”标记、站名、小形象，
-// 右边搜索挂载点、昼夜切换、联系方式；没有 v2.2 的页头色带和章首页一组（副标题、章名、一句话），
+// 右边站内搜索、昼夜切换、联系方式；没有 v2.2 的页头色带和章首页一组（副标题、章名、一句话），
 // h1 上方一行灰色眉题；页脚一行非官方声明。
 // 取代 v2.2 的 ac-02-chapter-card.spec.ts：那份专测色带和章首页一组，FR-72 去掉了这两样（架构 §13.11 R-3）。
 // 视图切换由用户 2026-10-22 决定换成昼夜切换，主题切换的用例也在这里。
@@ -27,7 +27,7 @@ async function tokenColor(page: Page, name: string, prop: 'color' | 'background-
 const CHAPTER_STARTS = ['./preface/', './choose-plan/', './choose-phone/', './thanks/', './appendix/'];
 const OTHER_PAGES = ['./disclaimer/', './import-proxy/', './register-gmail/', './google-appeal/', './afterword/'];
 
-test('顶栏：白底、1px 细线、不固定；左边标记、站名、小形象，右边搜索挂载点、昼夜切换、联系方式（design §4.0）', async ({ page }) => {
+test('顶栏：白底、1px 细线、不固定；左边标记、站名、小形象，右边搜索、昼夜切换、联系方式（design §4.0）', async ({ page }) => {
   const width = page.viewportSize()!.width;
   await page.goto('./import-proxy/');
   const header = page.locator('header.site-header');
@@ -55,13 +55,17 @@ test('顶栏：白底、1px 细线、不固定；左边标记、站名、小形�
   // 整页只有顶栏里这一个小形象（design §6：v3 起只在顶栏站名旁）
   await expect(page.locator('svg.mascot')).toHaveCount(1);
 
-  // 右边一组：搜索挂载点（V08 填，现在 hidden）、昼夜切换、联系方式，按这个顺序
-  await expect(header.locator('[data-search-slot]')).toBeHidden();
+  // 右边一组：搜索、昼夜切换、联系方式，按这个顺序（搜索在 V08 接上）
+  const search = header.locator('[data-site-search]');
+  await expect(search).toBeVisible();
+  if (width >= 720) await expect(header.getByRole('combobox', { name: '搜索页面和小标题' })).toBeVisible();
+  else await expect(header.getByRole('button', { name: '搜索' })).toBeVisible();
   const toggle = header.getByRole('button', { name: '深色模式' });
   await expect(toggle).toBeVisible();
   const contact = header.getByRole('navigation', { name: '作者的联系方式' });
-  const xs = [await header.locator('[data-search-slot]').evaluate((el) => el.getBoundingClientRect().x), (await toggle.boundingBox())!.x, (await contact.boundingBox())!.x];
-  expect(xs[1]).toBeGreaterThan(mascotBox!.x);
+  const xs = [(await search.boundingBox())!.x, (await toggle.boundingBox())!.x, (await contact.boundingBox())!.x];
+  expect(xs[0]).toBeGreaterThan(mascotBox!.x);
+  expect(xs[1]).toBeGreaterThan(xs[0]!);
   expect(xs[2]).toBeGreaterThan(xs[1]!);
   if (width >= 720) await expect(contact.locator('.contact-icon')).toHaveCount(CONTACTS.length);
 
@@ -199,12 +203,16 @@ test.describe('昼夜切换（用户 2026-10-22 决定，放在原来视图切�
     expect(await bg()).toBe(light);
   });
 
-  test('键盘可操作：从首页链接 Tab 一次到按钮，空格、回车切换', async ({ page }) => {
+  test('键盘可操作：从首页链接 Tab 到搜索、再到昼夜切换按钮，空格、回车切换', async ({ page }) => {
+    const width = page.viewportSize()!.width;
     await page.goto('./import-proxy/');
     const toggle = page.getByRole('button', { name: '深色模式' });
     await expect(toggle).toBeVisible();
-    // 顶栏里首页链接后面紧跟昼夜切换（小形象不可聚焦，搜索挂载点 V08 前是空的）
+    // 顶栏里首页链接后面是搜索（小形象不可聚焦），再后面是昼夜切换
     await page.getByRole('link', { name: 'Re:从零开始订阅 claude 首页' }).focus();
+    await page.keyboard.press('Tab');
+    if (width >= 720) await expect(page.getByRole('combobox', { name: '搜索页面和小标题' })).toBeFocused();
+    else await expect(page.getByRole('button', { name: '搜索' })).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(toggle).toBeFocused();
     await page.keyboard.press('Space');
@@ -252,9 +260,10 @@ test.describe('系统是深色时', () => {
 test.describe('没有 JS 时', () => {
   test.use({ javaScriptEnabled: false });
 
-  test('昼夜切换隐藏，页面跟随系统；正文是原理版', async ({ page }) => {
+  test('昼夜切换隐藏，页面跟随系统；正文是原理版，搜索也隐藏', async ({ page }) => {
     await page.goto('./import-proxy/');
     await expect(page.locator('[data-theme-toggle]')).toBeHidden();
+    await expect(page.locator('[data-site-search]')).toBeHidden();
     await expect(page.locator('html')).not.toHaveAttribute('data-theme');
     await expect(page.locator('.prose')).toBeVisible();
   });

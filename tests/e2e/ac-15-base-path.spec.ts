@@ -103,6 +103,28 @@ test('截图在 base 下加载出来', async ({ page, baseURL }) => {
   }
 });
 
+// V08：站内搜索的索引地址和结果链接都由 withBase() 生成。AC-28 只跑根路径，这里在 /sub/ 下实际点一次：
+// 索引请求必须落在 base 下（运行时 fetch），结果的 href 也必须带 base。
+test('站内搜索在 base 下取到索引，结果地址也在 base 下', async ({ page, baseURL }) => {
+  test.skip(test.info().project.name !== 'sub-path', '根路径的搜索由 AC-28 覆盖，这里只核对子路径');
+  const base = new URL(baseURL!).pathname;
+  await page.goto('./import-proxy/');
+  const input = page.getByRole('combobox', { name: '搜索页面和小标题' });
+  const button = page.getByRole('button', { name: '搜索', exact: true });
+  if (await input.isVisible()) await input.click();
+  else await button.click();
+  await input.fill('时区');
+
+  const option = page.getByRole('listbox', { name: '搜索结果' }).getByRole('option').filter({ hasText: '改时区' }).first();
+  await expect(option).toBeVisible();
+  const href = await option.getAttribute('href');
+  expect(href).toBeTruthy();
+  expect(new URL(href!, baseURL).pathname.startsWith(base)).toBe(true);
+
+  await option.click();
+  await expect(page).toHaveURL(new URL('./timezone/', baseURL).href);
+});
+
 test('不存在的页面显示“找不到这一页”，“回到首页”回到 base 下的首页', async ({ page, baseURL }) => {
   const response = await page.goto('./no-such-page/');
   expect(response?.status()).toBe(404);

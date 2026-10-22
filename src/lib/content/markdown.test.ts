@@ -1,4 +1,4 @@
-import { relative } from 'node:path';
+import { relative, sep } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createLinkIndex } from './link-index';
 import { validateContent } from './markdown';
@@ -14,7 +14,8 @@ const report = () => validateContent({ base: '/', linkIndex: () => createLinkInd
 const validate = async () => (await report()).problems;
 
 describe('validateContent（构建开始时的全量检查）', () => {
-  const at = (file: string) => relative(process.cwd(), file);
+  // 报错里的路径统一用 `/`（markdown.ts 的 display()）：Windows 下 relative() 给反斜杠，先换成 `/` 再比
+  const at = (file: string) => relative(process.cwd(), file).split(sep).join('/');
 
   it('内容全部正确时没有问题', async () => {
     fx.write('principle/import-proxy.md', md('skippable: false', '# 导入代理软件\n\n见 [[常见问题#装过了]]，下一步 [[测 IP 质量]]'));
@@ -49,7 +50,8 @@ describe('validateContent（构建开始时的全量检查）', () => {
 });
 
 describe('validateContent：三个集合', () => {
-  const at = (file: string) => relative(process.cwd(), file);
+  // 报错里的路径统一用 `/`（markdown.ts 的 display()）：Windows 下 relative() 给反斜杠，先换成 `/` 再比
+  const at = (file: string) => relative(process.cwd(), file).split(sep).join('/');
 
   it('检查 principle、operation、reference（含子目录），并带上页面之间的标题校验', async () => {
     fx.write('principle/preface.md', md('skippable: true', '# 前言\n\n[[没有这页]]'));
