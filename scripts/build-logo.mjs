@@ -9,9 +9,10 @@
 //   SourceHanSansCN-Heavy.otf  https://raw.githubusercontent.com/adobe-fonts/source-han-sans/a4f7cf94edfb9d7ffbdfc4841de276358bd7e0f2/SubsetOTF/CN/SourceHanSansCN-Heavy.otf
 //
 // 输出：src/assets/logo/{logo-zh,logo-en,mark}.svg（由 Logo.astro 内联）、public/favicon.svg；
+// docs/assets/readme-logo-{light,dark}.svg（README 顶部的横幅，GitHub 用 <picture> 按深浅主题切换，颜色固定）；
 // src/assets/numerals/ 的编号字形 symbols.svg + metrics.json（只给找不到页的 404 用，NumeralSprite.astro 和 lib/numeral.ts 使用；
 // design v3 §3.2 起章节号一律写成文字，不再生成章节副标题）。
-// 颜色：“Re”用 var(--logo-re, #5B3FA0)，其余用 currentColor；favicon 单独用文件，自带深浅配色。
+// 颜色：页面里的“Re”用 var(--logo-re, #5B3FA0)、其余用 currentColor；favicon 和 README 横幅单独用文件，自带深浅配色。
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -141,7 +142,7 @@ function reColon(x, y, size, { reFont = 're', colonSize = size * 0.9, gap = 0.04
 // 第一行：Re : 从(小) 零(大)
 // 中间行：Re: Zero − Starting Life with Claude
 // 第二行（缩进）：开始(大) 订阅(小，中线偏上) CLAUDE（A 小一号上移、U 下沉）
-function logoZh() {
+function logoZh(style = '') {
   const big = 100;
   const line1 = 100;
   const head = reColon(0, line1, big * 1.38, { colonSize: big * 1.05 });
@@ -169,8 +170,13 @@ function logoZh() {
     tracking: 1,
     glyphs: { A: { scale: 0.8, dy: -16 }, U: { dy: 12 } },
   });
-  return svg([...head.runs, cong, ling, mid, kaishi, dingyue, claude]);
+  return svg([...head.runs, cong, ling, mid, kaishi, dingyue, claude], { style });
 }
+
+// README 横幅的颜色和 favicon 一致，固定写在文件里：GitHub 的 README 不经过页面令牌，
+// 深色主题用 <picture> 换一张，所以不能依赖 var(--logo-re)/currentColor。
+const README_LIGHT = '.logo-re{fill:#5B3FA0}.logo-ink{fill:#1C1A22}';
+const README_DARK = '.logo-re{fill:#B9A4EE}.logo-ink{fill:#E8E5EE}';
 
 // —— 英文版 ——：Re:ZERO（E 小一号上移、R 下沉），下面一行 −Starting Life with Claude−
 function logoEn() {
@@ -290,6 +296,8 @@ const outputs = {
   'src/assets/logo/logo-en.svg': logoEn(),
   'src/assets/logo/mark.svg': mark(),
   'public/favicon.svg': favicon(),
+  'docs/assets/readme-logo-light.svg': logoZh(README_LIGHT),
+  'docs/assets/readme-logo-dark.svg': logoZh(README_DARK),
   'src/assets/numerals/symbols.svg': numeralOut.symbols,
   'src/assets/numerals/metrics.json': numeralOut.metrics,
 };

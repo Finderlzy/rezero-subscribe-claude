@@ -5,7 +5,7 @@
 - 决策记录：[ADR-0001 Astro 静态站 + 自建路线图](adr/0001-astro-static-site-with-own-route-map.md)、[ADR-0002 URL 规则](adr/0002-url-scheme.md)（v2.0 修订）、[ADR-0003 原理块](adr/0003-principle-content-as-why-callouts.md)（已被取代）、[ADR-0004 整页视图切换](adr/0004-whole-page-view-switch.md)、[ADR-0005 重写稿原样导入、双链按标题解析](adr/0005-import-rewrite-verbatim.md)、[ADR-0006 合并页和旧网址跳转](adr/0006-merged-pages-and-moved-urls.md)
 - 现状：v2 骨架已建立（#23 内容集合，#25 路线图和静态页面，2026-10-15），#26 接上了导航改写、整页视图切换和 M4 v2（2026-10-16），1.0.0 的内容、页面和依赖旧路线的脚本已删除。本文 §3–§8 描述 v2.0 的目标结构；没有实现的部分标“计划”，由 [实施计划](implementation-plan.md) 的 v2.0 任务建立，建立后改成现状。
 - v2.1（2026-10-16）：页面按 design v2.1 改造，模块和依赖方向不变，差距和任务见 [§11.4](#114-v21-实施前评审2026-10-16)；对应条目在任务完成后改成现状。
-- **v3（2026-10-21，现状；2026-10-22 按作者新稿收口，2026-10-24 验收）**：对应需求 v0.11（站点版本 3.0.0）。M3 按文档站风格重做外观，新增 M6 站内搜索，合并页和旧网址跳转改用 `route.yaml` 的 `moved:` 段和单版本小节锚点（[ADR-0006](adr/0006-merged-pages-and-moved-urls.md)），不新增运行时依赖；见 [§13](#13-v3-增量架构2026-10-21)。作者 2026-10-22 交来 11 页单版本新稿并确认页面地图；代码现状：V01–V12 已实施，3.0.0 已通过视觉验收和全量回归。
+- **v3（2026-10-21，现状；2026-10-22 按作者新稿收口，2026-10-22 验收）**：对应需求 v0.11（站点版本 3.0.0）。M3 按文档站风格重做外观，新增 M6 站内搜索，合并页和旧网址跳转改用 `route.yaml` 的 `moved:` 段和单版本小节锚点（[ADR-0006](adr/0006-merged-pages-and-moved-urls.md)），不新增运行时依赖；见 [§13](#13-v3-增量架构2026-10-21)。作者 2026-10-22 交来 11 页单版本新稿并确认页面地图；代码现状：V01–V12 已实施，3.0.0 已通过视觉验收和全量回归。
 - v2.2（2026-10-19，现状）：按 [v2.2 改版计划](v2.2-plan.md) 和需求 v0.4 改了 M1（常见问题一问一页的导入和核对）、M2 的数据（附录一章）和 M3（页头色带、常驻侧边栏、参考页内嵌路线数据、选项行、翻页），依赖方向不变，见 [§12](#12-v22-改版2026-10-19现状)。§3 里写 v2.1 抽屉、页边栏、章节标题卡的条目是历史，以 §12 为准。
 
 ## 0. v2.0 增量影响分析
@@ -200,7 +200,7 @@ function pathOf(stop: Stop): string;        // '/<id>/' 或 '/'；再由 withBas
 - **进度**：步骤在当前路线和视图的本章序列里才有 `index/total`；本章序列里有折叠的未选分支段、或当前页是选择页、旁支页、不在当前视图序列里的原理独有步骤时，只有章节名（FR-10）。
 - **枚举**：3 × 2 种选择组合 × 2 种视图共 12 条序列，每条都要从 `preface` 走到 `afterword`，不重复经过同一页（无环）。
 - **章节的 summary**（V05 之后的首页五栏简介，作者 2026-10-22 调整）：`summary` 可选；写了就必须是非空字符串（M2 校验形状）。它是首页的导航文案，不是导入的正文，所以不要求原样摘自页面；首页要求五章都有，缺了由 `index.astro` 构建失败并指出章节标识。v2.1 的 `intro`（章节标题卡的一句话）已随标题卡删除，写了是未知字段。
-- **目录 outline**：章节 → 普通项 / 选择页 / 分支（每个选项的页面序列），每一项新增 `principleOnly`；去掉 `placeholder`；`current` 只在一处为真（共享步骤规则 1.0.0 已有）。侧边栏同时列出分叉点的全部选项，选中的（或当前页所在的）选项展开、其余收起（用户 2026-10-24）。
+- **目录 outline**：章节 → 普通项 / 选择页 / 分支（每个选项的页面序列），每一项新增 `principleOnly`；去掉 `placeholder`；`current` 只在一处为真（共享步骤规则 1.0.0 已有）。侧边栏同时列出分叉点的全部选项，选中的（或当前页所在的）选项展开、其余收起（用户 2026-10-22）。
 
 ### M3 页面（`src/pages/`、`src/layouts/`、`src/components/`、`src/styles/`、`src/scripts/`）
 
@@ -364,7 +364,7 @@ function getNameHost(scope?): { name: string } | null;   // 浏览器里是 wind
 | Q-01 | 部署位置和域名（需求遗留） | 交付阶段 | 否 |
 | Q-07 | 联系方式待作者提供 | 后记正文；提供前构建照常 | 否 |
 | Q-11 | 已解决（#23，2026-10-15）：`blog-links.yaml` 沿用 1.0.0 已上线的三个博客地址（作者确认）；以后新增的博客双链地址未定时仍写 `null` | — | 否 |
-| Q-13 | 已解决（#23，2026-10-15）：`截图 2026-10-15 13-43-53 1.png` 由仓库根目录未打码的原图裁剪而成，只保留 Settings → Account 的“Log out of all devices”一行，作者确认采用 | — | 否 |
+| Q-13 | 已解决（#23，2026-10-15）：`截图 2026-10-15 13-43-53 1.png` 由仓库根目录未打码的原图裁剪而成，只保留 Settings → Account 的“Log out of all devices”一行，作者确认采用；v3 正文不再引用，收尾时删除（需要时从 git 历史取回） | — | 否 |
 | A-01 | `BASE_PATH` 按部署位置各构建一次（1.0.0 已选定） | — | 否 |
 | A-04 | 两版正文都进 HTML，页面体积约翻倍 | 正文是纯文本，最大的页约 6 KB 原文；图片懒加载、隐藏的不加载。可接受 | 否 |
 
@@ -493,7 +493,7 @@ function search(index: SearchEntry[], query: string, limit = 10): SearchHit[];  
 - **顶栏**（V01 现状，搜索 V08 现状）：`SiteHeader.astro` 改为文档站顶栏，左边 `Logo`（“Re:”标记）+ 站名 + `Mascot`，右边 `SiteSearch`（V08 接上，桌面和平板是胶囊输入框、手机是放大镜按钮）、`ThemeToggle`（昼夜切换，用户 2026-10-22 决定取代 `ViewToggle`，见 13.12）、`ContactLinks`；<720px 左边多“目录”按钮。不吸顶。首页不用顶栏（FR-18）。
 - **页面骨架**（V01 现状）：`PageLayout`、`ReferenceLayout` 改成“顶栏 + 两栏（侧边栏 | 正文栏）”，≥720px 侧边栏 `position: sticky`、独立滚动，<720px 只有正文栏、目录在抽屉里。页头色带、`ChapterSubtitle`、章节标题卡、`.step-heading` 的编号挂栏删除；眉题改为 h1 上方一行灰色小字，进度文字仍由 `nav-text.ts` 和 `route-enhance` 的 `renderProgress` 给出（挂载点名字不变）。`Numeral`、`numerals/` 只剩找不到页的大号 `404`（design v3 §3.2、§9），`ChapterSubtitle` 和 `chapter-0X.svg` 已随 V05 删除。
 - **正文和内容组件**（V03 现状，FR-72）：页面标题、正文和内容组件按 design §3.2、§4.7 排（h1 在 `base.css` 和页面布局，其余在 `prose.css`）：h2–h4、正文链接、行内代码和代码块、表格（全格线 + 隔行）、提示块（浅底 + 4px 左色条）和截图图版；`GroupInvite` 用普通提示块的外观。正文栏宽度仍由 `--measure` 和 `--gutter` 决定。
-- **目录 / 侧边栏**（V02 现状，FR-16）：`TocNav` 每章是一个 `<details>`，当前页所在章 `open`，其余折叠；折叠只在 DOM 里，不写本机。当前页下面列出它正文的 h2（固定原理视图，只有一份，用户 2026-10-22 决定），由 `[page].astro`、`ip-tests/*.astro` 把 `render()` 的 `headings` 经 `tocSections()` 取 `depth === 2` 传给 `PageLayout`/`ReferenceLayout` 的新参数 `sections`，再交给 `Toc`；参考页的当前项由 `ReferenceLayout` 的 `currentReference` 指定（各篇实测高亮合集），合集挂在“日常维护”章末并展开这一章；子页也把 `headings` 传下去，小节挂在上级项下面，链接锚点仍是子页正文的 h2。`TocItems.astro` 写一章的页面项和参考页，`TocSections.astro` 写小节列表。链接锚点直接用正文 h2 的 `slug`。当前项 600 `--accent` + 4px 左边线。`toc.ts` 仍按本机选择改写弱化和当前项，不碰 `<details>` 的开合；分叉点的选项也是 `<details>`，选中/当前所在的展开、其余收起（用户 2026-10-24）。找不到页的目录用不折叠的变体（`collapsible` 不传）；首页不再用 `TocNav`（第二屏是五章简介，直接读 `RouteData.chapters` 的 `title` 和 `summary`）。抽屉和侧边栏仍是同一套 `TocNav` 标记（v2.2 的做法）。章名和步骤都不写数字（V10）。
+- **目录 / 侧边栏**（V02 现状，FR-16）：`TocNav` 每章是一个 `<details>`，当前页所在章 `open`，其余折叠；折叠只在 DOM 里，不写本机。当前页下面列出它正文的 h2（固定原理视图，只有一份，用户 2026-10-22 决定），由 `[page].astro`、`ip-tests/*.astro` 把 `render()` 的 `headings` 经 `tocSections()` 取 `depth === 2` 传给 `PageLayout`/`ReferenceLayout` 的新参数 `sections`，再交给 `Toc`；参考页的当前项由 `ReferenceLayout` 的 `currentReference` 指定（各篇实测高亮合集），合集挂在“日常维护”章末并展开这一章；子页也把 `headings` 传下去，小节挂在上级项下面，链接锚点仍是子页正文的 h2。`TocItems.astro` 写一章的页面项和参考页，`TocSections.astro` 写小节列表。链接锚点直接用正文 h2 的 `slug`。当前项 600 `--accent` + 4px 左边线。`toc.ts` 仍按本机选择改写弱化和当前项，不碰 `<details>` 的开合；分叉点的选项也是 `<details>`，选中/当前所在的展开、其余收起（用户 2026-10-22）。找不到页的目录用不折叠的变体（`collapsible` 不传）；首页不再用 `TocNav`（第二屏是五章简介，直接读 `RouteData.chapters` 的 `title` 和 `summary`）。抽屉和侧边栏仍是同一套 `TocNav` 标记（v2.2 的做法）。章名和步骤都不写数字（V10）。
 - **翻页**（V04 现状，FR-72、AC-30）：`StepNav` 在正文末尾一条 1px `--border` 细线下排一行文字链接，左边“← 上一步”+ 标题、右边“下一步 →”+ 标题（两行，13px `--text-muted` 的方向 + 16px 600 `--accent` 的目标标题，整块 `min-height: 44px`）；v3 没有可跳过的整页步骤，所以不出现“跳过”。旁支页的“回到”、参考页的“回到”和“返回刚才的步骤”（`ReferenceLayout`，从步骤链接进来时出现在 h1 上方和正文末尾）用同一套样式；v2.2 的黑色主按钮、手机吸底底栏和底栏预留空白都删掉了（连同 `--bar-button-height`、`--mobile-bar-height`、`--option-no-size` 令牌）。导航数据和 `route-enhance` 的改写挂载点不变。
 - **首页**（V05 现状 + 2026-10-22 调整，`index.astro`、design §4.4）：VuePress 首页。没有顶栏和侧边栏，首屏内容居中：中文两行版 logo 是 h1（`aria-label` 同时给出中文站名和英文副标题，`Logo.astro` 的 `zh` 默认标题）、logo 右下方一行放小形象、一句话（`--text-muted`）、紫色主按钮“从第 00 章开始 →”和 QQ 群入口的紧凑版（一行小字，`GroupInvite` 的 `compact`）。一条 1px 细线下是五章简介：桌面五栏一行、平板三栏、手机一栏；每栏是章名（h2，链到这一章第一页）和 `route.yaml` 的 `summary`，不列具体页面、不写“第几章”。页脚居中（`BaseLayout` 的 `footerCentered`）。一句话写在页面里，构建时核对它（去掉加粗后）原样出现在 `principle/overview.md` 正文里（ADR-0005、design V14）。v2.2 的眉题、小字信息行、“先看整体思路”、桌面章级索引和固定字形章节号都去掉。
 - **选择页**（V04 样式、V10 数据，FR-12、FR-72）：`ChoiceCards.astro` 由页面 frontmatter 的 `options` 生成细边框卡片（1px `--border`、6px 圆角、内边距 16px 20px、手机 14px 16px、间距 12px，悬停边框 `--control-border`），排在正文末尾；每张卡片是 `section.option-block`，第一个链接带 `data-option-start` 并用伪元素撑满整块，`data-recommended` 标路线图的 default；“推荐”“当前选择”的标记和交互沿用（`route-enhance.ts` 只标 `aria-current` 和 `.option-current`）。容器 `id="下一步"` 是旧手机页的兜底落点。`option-blocks.ts` 已随 V10 删除。

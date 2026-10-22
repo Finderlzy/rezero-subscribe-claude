@@ -32,6 +32,8 @@ describe.skipIf(!hasFonts)('build-logo.mjs（需要 .cache/fonts/ 里的字体�
     const first = build();
     const second = build();
     expect([...first.keys()].sort()).toEqual([
+      'docs/assets/readme-logo-dark.svg',
+      'docs/assets/readme-logo-light.svg',
       'public/favicon.svg',
       'src/assets/logo/logo-en.svg',
       'src/assets/logo/logo-zh.svg',
