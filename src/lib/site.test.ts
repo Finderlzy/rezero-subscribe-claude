@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import routeText from '../content/route.yaml?raw';
 import { principleSchema } from './content/schemas';
 import { RouteValidationError, type RouteMap, type Stop, type ViewMode } from './route/route-map';
-import { assembleRoute, pageTitle, parseRouteYaml, startOf, type PrincipleEntry } from './site';
+import { assembleRoute, pageTitle, parseRouteYaml, searchPageIds, searchReferences, startOf, type PrincipleEntry } from './site';
 
 const START_ONLY = `
 chapters:
@@ -79,6 +79,59 @@ chapters:
   });
 });
 
+describe('searchPageIds：站内搜索的页面顺序', () => {
+  const spec = parseRouteYaml(`
+chapters:
+  - id: start
+    title: 开始
+    items:
+      - preface
+      - { choose: node-plan, page: choose-plan }
+      - branch: node-plan
+        options:
+          plan-1: [a, b]
+          plan-2: [b, c]
+      - afterword
+side:
+  extra: { returnTo: preface }
+`);
+  const entries = ['preface', 'a', 'b', 'c', 'afterword', 'extra'].map((id) => entry(id));
+  entries.splice(1, 0, entry('choose-plan', { options: { 'plan-1': { title: '方案一', heading: '一' }, 'plan-2': { title: '方案二', heading: '二' } } }));
+
+  it('按目录顺序列步骤、选择页和分支的各个选项，共享步骤只算第一次，旁支页排在最后', () => {
+    const route = assembleRoute(spec, entries);
+
+    expect(searchPageIds(route)).toEqual(['preface', 'choose-plan', 'a', 'b', 'c', 'afterword', 'extra']);
+  });
+
+  it('路线图里的每个页面都只出现一次', () => {
+    const route = assembleRoute(spec, entries);
+    const ids = searchPageIds(route);
+
+    expect(new Set(ids).size).toBe(ids.length);
+    expect([...ids].sort()).toEqual(Object.keys(route.data.pages).sort());
+  });
+});
+
+describe('searchReferences：站内搜索保留的参考页', () => {
+  it('只留 IP 质量实测合集和它的各篇实测，合集在前、其余按标识排序，常见问题不进索引', () => {
+    const references = new Map(
+      [
+        { id: 'faq', title: '常见问题' },
+        { id: 'faq/split-routing', title: '分流规则具体怎么写' },
+        { id: 'ip-tests/voyracloud', title: '实测：VoyraCloud 住宅服务器' },
+        { id: 'ip-tests', title: 'IP 质量实测合集' },
+        { id: 'ip-tests/decodo', title: '实测：Decodo ISP' },
+        { id: 'ip-testsx', title: '不是实测页' },
+      ].map((reference) => [reference.id, reference]),
+    );
+
+    const kept = searchReferences(references);
+    expect(kept.map((reference) => reference.id)).toEqual(['ip-tests', 'ip-tests/decodo', 'ip-tests/voyracloud']);
+    expect(kept.map((reference) => reference.title)).toEqual(['IP 质量实测合集', '实测：Decodo ISP', '实测：VoyraCloud 住宅服务器']);
+  });
+});
+
 // ================================================================ 真实路线图（Issue #25 的 M2 边界用例）
 
 const principleDir = fileURLToPath(new URL('../content/principle/', import.meta.url));
@@ -103,6 +156,14 @@ describe('真实 route.yaml', () => {
 
   it('首页的“开始”进入前言', () => {
     expect(startOf(route)).toEqual({ kind: 'step', id: 'preface', title: '前言' });
+  });
+
+  it('站内搜索的页面顺序从前言开始，覆盖路线里的每一页且不重复', () => {
+    const ids = searchPageIds(route);
+
+    expect(ids[0]).toBe('preface');
+    expect(new Set(ids).size).toBe(ids.length);
+    expect([...ids].sort()).toEqual(Object.keys(route.data.pages).sort());
   });
 
   it('无痕打开（没有本机选择）：节点方案默认方案二，导入代理软件 → 上一步方案二；注册 Gmail → 上一步选择手机系统；订阅 → 下一步选择手机系统（AC-09）', () => {

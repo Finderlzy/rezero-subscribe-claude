@@ -2,7 +2,7 @@ import { getCollection, type CollectionEntry } from 'astro:content';
 import { parseDocument } from 'yaml';
 import routeText from '../content/route.yaml?raw';
 import { buildRouteMap, RouteValidationError } from './route/route-map';
-import type { PageMeta, RouteMap, Stop } from './route/types';
+import type { PageId, PageMeta, RouteMap, Stop } from './route/types';
 
 /**
  * 构建时装配（架构 §3 M3）：读取 M1 的三个内容集合和 route.yaml，交给 M2 编译成 RouteMap。
@@ -95,6 +95,49 @@ export function startOf(route: RouteMap): Stop {
   const first = route.data.chapters[0]?.items[0];
   if (first?.kind !== 'step') throw new Error('route.yaml：路线图的第一项必须是普通页面');
   return route.view(first.id, {}, 'principle').current;
+}
+
+/**
+ * 站内搜索的页面顺序（架构 §13.2）：路线图里的全部页面——步骤、选择页和分叉的各个选项——
+ * 按目录顺序排，旁支页不在章里，跟在最后。共享步骤出现在同一分叉段的多个选项里时
+ * 只算第一次（首次出现的顺序就是目录顺序），调用方用下标作 `order`。
+ */
+export function searchPageIds(route: RouteMap): PageId[] {
+  const ids: PageId[] = [];
+  const seen = new Set<PageId>();
+  const add = (id: PageId) => {
+    if (seen.has(id)) return;
+    seen.add(id);
+    ids.push(id);
+  };
+  for (const chapter of route.data.chapters) {
+    for (const item of chapter.items) {
+      if (item.kind === 'branch') {
+        for (const steps of Object.values(item.options)) for (const step of steps) add(step);
+      } else {
+        add(item.id);
+      }
+    }
+  }
+  for (const id of Object.keys(route.data.side)) add(id);
+  return ids;
+}
+
+/** 站内搜索保留的参考页是 IP 质量实测合集和各篇实测；常见问题并进各章后没有独立页面（实施计划 §3.1）。 */
+const SEARCH_REFERENCE_ROOT = 'ip-tests';
+
+/**
+ * 站内搜索的参考页顺序：合集在前，各篇实测按标识排序，跟在路线图的页面后面。
+ * 跳转页（V09 的 `moved:`）和常见问题不在这里，因此不会进索引。
+ */
+export function searchReferences<T extends { id: string }>(references: ReadonlyMap<string, T>): T[] {
+  return [...references.values()]
+    .filter((reference) => reference.id === SEARCH_REFERENCE_ROOT || reference.id.startsWith(`${SEARCH_REFERENCE_ROOT}/`))
+    .sort((a, b) => {
+      if (a.id === SEARCH_REFERENCE_ROOT) return -1;
+      if (b.id === SEARCH_REFERENCE_ROOT) return 1;
+      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+    });
 }
 
 let cached: Promise<Site> | undefined;
