@@ -3,7 +3,7 @@
  *
  * 对外的入口：`buildRouteMap`（构建时校验并编译）、`routeMapFromData`（浏览器用
  * 序列化的 RouteData 重建）、`pathOf`（Stop → 站内路径）、错误类型 `RouteValidationError`，
- * 以及类型、保留字清单 `RESERVED_PAGE_IDS` 和已删除页面的跳转表 `REMOVED_PAGES`。
+ * 以及类型、保留字清单 `RESERVED_PAGE_IDS` 和跳转表 `movedEntries`（FR-25、ADR-0006）。
  * 纯函数，不碰文件系统和浏览器 API，构建时和浏览器里用同一份代码。
  */
 import type {
@@ -23,6 +23,7 @@ import type {
   RouteSpec,
   RouteSpecChapter,
   RouteSpecItem,
+  RouteSpecMoved,
   RouteView,
   Stop,
   ViewMode,
@@ -34,13 +35,28 @@ export type * from './types';
 export const RESERVED_PAGE_IDS: readonly string[] = ['faq', 'ip-tests', '404', '_astro'];
 
 /**
- * 已删除的页面：旧标识 → 旧地址跳到的页面（ADR-0002：已发布的 URL 不能失效）。
- * 构建时由 astro.config.mjs 的 `redirects` 生成跳转页；旧标识不能再分给别的页面，否则旧链接会指向别的内容。
+ * 跳转表的一条（FR-25、ADR-0006）：旧标识 → 目标页，`section` 是目标页原理版正文里的一个小节标题。
+ * 旧标识仍然生成一个跳转页，但不能分给新页面，也不进目录、搜索和 sitemap。
  */
-export const REMOVED_PAGES: Readonly<Record<PageId, PageId>> = {
-  // 2026-10-19 作者改用方案二，删掉方案一的“一、白嫖 ISP”，旧地址跳到“选择方案”
-  'plan1-free-isp': 'choose-plan',
-};
+export interface MovedEntry {
+  from: PageId;
+  to: PageId;
+  section?: string;
+}
+
+/**
+ * 取出 `route.yaml` 的 `moved:` 段。形状由 `buildRouteMap` 校验；这里只做容错读取，
+ * 给 `site.ts`（核对小节）、`astro.config.mjs`（sitemap 过滤）和测试用。
+ */
+export function movedEntries(spec: unknown): MovedEntry[] {
+  if (!isRecord(spec) || !isRecord(spec.moved)) return [];
+  const entries: MovedEntry[] = [];
+  for (const [from, value] of Object.entries(spec.moved)) {
+    if (!isRecord(value) || typeof value.to !== 'string') continue;
+    entries.push({ from, to: value.to, ...(typeof value.section === 'string' && value.section !== '' && { section: value.section }) });
+  }
+  return entries;
+}
 
 const VIEW_MODES: readonly ViewMode[] = ['operation', 'principle'];
 const HOME: Stop = { kind: 'home' };
@@ -95,7 +111,7 @@ function parseSpec(raw: unknown, errors: RouteError[]): RouteSpec | null {
     return null;
   }
   for (const key of Object.keys(raw)) {
-    if (key !== 'chapters' && key !== 'side') err(`未知字段 ${key}`);
+    if (key !== 'chapters' && key !== 'side' && key !== 'moved') err(`未知字段 ${key}`);
   }
 
   const side: Record<PageId, { returnTo: PageId }> = {};
@@ -109,6 +125,28 @@ function parseSpec(raw: unknown, errors: RouteError[]): RouteSpec | null {
         else if (!isRecord(value) || Object.keys(value).length !== 1 || typeof value.returnTo !== 'string') {
           err(`side.${id} 要写成 { returnTo: <页面> }`);
         } else side[id] = { returnTo: value.returnTo };
+      }
+    }
+  }
+
+  const moved: Record<PageId, RouteSpecMoved> = {};
+  if (raw.moved !== undefined) {
+    if (!isRecord(raw.moved)) {
+      err('moved 必须是“旧标识: { to: <页面>, section?: <小节标题> }”的映射');
+    } else {
+      for (const [from, value] of Object.entries(raw.moved)) {
+        if (!KEBAB.test(from)) {
+          err(`moved 里的旧标识 ${from} 必须是英文 kebab-case`);
+        } else if (
+          !isRecord(value) ||
+          Object.keys(value).some((key) => key !== 'to' && key !== 'section') ||
+          typeof value.to !== 'string' ||
+          ('section' in value && (typeof value.section !== 'string' || value.section.trim() === ''))
+        ) {
+          err(`moved.${from} 要写成 { to: <页面> }，可选 section: <目标页正文里的小节标题>`);
+        } else {
+          moved[from] = { to: value.to, ...(typeof value.section === 'string' && { section: value.section }) };
+        }
       }
     }
   }
@@ -147,7 +185,7 @@ function parseSpec(raw: unknown, errors: RouteError[]): RouteSpec | null {
       items,
     });
   });
-  return { chapters, side };
+  return { chapters, side, moved };
 }
 
 function parseItem(item: unknown, where: string, err: (m: string) => void): RouteSpecItem | null {
@@ -192,6 +230,8 @@ function parseItem(item: unknown, where: string, err: (m: string) => void): Rout
 
 function checkSemantics(spec: RouteSpec, pages: PageMeta[], errors: RouteError[]): void {
   const routeErr = (message: string) => errors.push({ file: ROUTE_FILE, message });
+  /** 跳转表；`route.yaml` 可以完全不写 moved（RouteSpec 里是可选的） */
+  const moved = spec.moved ?? {};
 
   // ---- 页面文件
   const byId = new Map<PageId, PageMeta>();
@@ -201,8 +241,11 @@ function checkSemantics(spec: RouteSpec, pages: PageMeta[], errors: RouteError[]
     byId.set(page.id, page);
     if (RESERVED_PAGE_IDS.includes(page.id)) {
       errors.push({ file, message: `页面标识 ${page.id} 是保留路径（${RESERVED_PAGE_IDS.join('、')}），请换一个` });
-    } else if (Object.hasOwn(REMOVED_PAGES, page.id)) {
-      errors.push({ file, message: `页面标识 ${page.id} 属于已删除的页面，旧地址跳到 ${REMOVED_PAGES[page.id]}，不能再用，请换一个` });
+    } else if (Object.hasOwn(moved, page.id)) {
+      errors.push({
+        file,
+        message: `页面标识 ${page.id} 是跳转表的旧标识（旧地址跳到 ${moved[page.id]!.to}），不能再分给新页面（FR-25、ADR-0006）`,
+      });
     } else if (!KEBAB.test(page.id)) {
       errors.push({ file, message: `页面标识 ${page.id} 必须是英文 kebab-case` });
     }
@@ -308,6 +351,13 @@ function checkSemantics(spec: RouteSpec, pages: PageMeta[], errors: RouteError[]
   for (const [id, { returnTo }] of Object.entries(spec.side ?? {})) {
     place(id, 'side', `旁支页 ${id}`);
     if (placement.get(returnTo) !== 'item') routeErr(`旁支页 ${id} 的 returnTo（${returnTo}）必须是路线图里的普通页`);
+  }
+
+  // ---- 跳转表（FR-25、ADR-0006）：旧标识不能是保留路径，目标页要存在，且不能指向另一个旧标识（不串联）
+  for (const [from, { to }] of Object.entries(moved)) {
+    if (RESERVED_PAGE_IDS.includes(from)) routeErr(`moved.${from} 用了保留路径（${RESERVED_PAGE_IDS.join('、')}），旧标识请换一个`);
+    if (!byId.has(to)) routeErr(`moved.${from} 的 to（${to}）不是路线图里的页面`);
+    if (Object.hasOwn(moved, to)) routeErr(`moved.${from} 的 to（${to}）也是旧标识：跳转表不能串联，${to} 要指向真正的页面`);
   }
 
   for (const page of pages) {

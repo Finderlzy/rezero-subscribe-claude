@@ -1,6 +1,7 @@
 ---
 import { render } from 'astro:content';
 import GroupInvite from '../components/GroupInvite.astro';
+import MovedPage from '../components/MovedPage.astro';
 import VideoFacade from '../components/VideoFacade.astro';
 import PageLayout from '../layouts/PageLayout.astro';
 import { loadSite } from '../lib/site';
@@ -10,31 +11,45 @@ import { tocSections } from '../lib/toc-sections';
  * 步骤页、选择页、旁支页共用一个标识空间：/<id>/（ADR-0002）。只输出原理版正文（用户 2026-10-22 决定：
  * 去掉视图切换、固定原理视图；内容集合里的操作版条目暂不删，等单版本重写统一处理）；
  * 导航按“原理视图 + 未选”在构建时写好，打开只属于一个分支的页面时按它所属的选项计算（架构 §3 M3）。
+ *
+ * 同一个路由还生成跳转页（V09，FR-25、ADR-0006）：`route.yaml` 的 `moved:` 里每个旧标识仍然是一个地址，
+ * 打开后由 MovedPage 立即跳到目标页（可带小节）；旧标识不进目录、搜索和 sitemap。
  */
 export async function getStaticPaths() {
   const site = await loadSite();
-  return [...site.pages.keys()].map((page) => ({ params: { page } }));
+  return [
+    ...[...site.pages.keys()].map((page) => ({ params: { page } })),
+    ...site.moved.map(({ from }) => ({ params: { page: from } })),
+  ];
 }
 
 const { page: id } = Astro.params;
 const site = await loadSite();
-const page = site.pages.get(id)!;
-const { data } = page.principle;
-const view = site.route.view(id, {}, 'principle');
-const { Content: Principle, headings } = await render(page.principle);
+const moved = site.moved.find((entry) => entry.from === id);
+const page = moved === undefined ? site.pages.get(id) : undefined;
+if (page === undefined && moved === undefined) throw new Error(`没有这一页：${id}`);
+const view = page === undefined ? undefined : site.route.view(id, {}, 'principle');
+const rendered = page === undefined ? undefined : await render(page.principle);
+const Principle = rendered?.Content;
 /** 附录页正文末尾放 QQ 群入口（FR-22）：卡住了来查的地方，也是问人的地方 */
 const GROUP_INVITE_PAGE = 'appendix';
 ---
 
-<PageLayout
-  title={page.title}
-  view={view}
-  routeData={site.route.data}
-  tocReferences={site.tocReferences}
-  sections={tocSections(headings)}
-  skipLabel={data.skipLabel}
->
-  <VideoFacade slot="video" video={data.video} stepTitle={page.title} />
-  <Principle slot="principle" />
-  {id === GROUP_INVITE_PAGE && <GroupInvite slot="after" />}
-</PageLayout>
+{moved && <MovedPage moved={moved} />}
+
+{
+  page && view && Principle && rendered && (
+    <PageLayout
+      title={page.title}
+      view={view}
+      routeData={site.route.data}
+      tocReferences={site.tocReferences}
+      sections={tocSections(rendered.headings)}
+      skipLabel={page.principle.data.skipLabel}
+    >
+      <VideoFacade slot="video" video={page.principle.data.video} stepTitle={page.title} />
+      <Principle slot="principle" />
+      {id === GROUP_INVITE_PAGE && <GroupInvite slot="after" />}
+    </PageLayout>
+  )
+}

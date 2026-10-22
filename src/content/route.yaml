@@ -60,3 +60,8 @@ chapters:
 # 旁支页：不在序列里，页脚是“回到：<returnTo>”和 returnTo 的下一步（FR-19）
 side:
   google-appeal: { returnTo: use-two-days }
+# 跳转表：被合并掉或删掉的旧网址 → 目标页（可写 section 指名目标页正文里的一个小节），旧地址仍然生成一个跳转页
+# （FR-25、ADR-0006）。旧标识不能再分给新页面，也不进目录、搜索和 sitemap。
+moved:
+  # 2026-10-19 作者改用方案二，删掉方案一的“一、白嫖 ISP”，旧地址跳到“选择方案”
+  plan1-free-isp: { to: choose-plan }

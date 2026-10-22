@@ -5,8 +5,9 @@ import { parseFrontmatter } from '@astrojs/markdown-remark';
 import { describe, expect, it } from 'vitest';
 import routeText from '../content/route.yaml?raw';
 import { principleSchema } from './content/schemas';
-import { RouteValidationError, type RouteMap, type Stop, type ViewMode } from './route/route-map';
-import { assembleRoute, pageTitle, parseRouteYaml, searchPageIds, searchReferences, startOf, type PrincipleEntry } from './site';
+import { movedEntries, RouteValidationError, type RouteMap, type Stop, type ViewMode } from './route/route-map';
+import { parseRouteYaml } from './route/route-yaml';
+import { assembleRoute, buildMovedPages, pageTitle, searchPageIds, searchReferences, startOf, type PrincipleEntry } from './site';
 
 const START_ONLY = `
 chapters:
@@ -132,6 +133,82 @@ describe('searchReferences：站内搜索保留的参考页', () => {
   });
 });
 
+// ================================================================ 跳转表
+
+describe('buildMovedPages：跳转页的目标页和小节锚点（FR-25、架构 §13.4）', () => {
+  const spec = parseRouteYaml(`
+chapters:
+  - id: start
+    title: 开始
+    items: [preface, afterword]
+moved:
+  old-page: { to: afterword }
+  old-section: { to: afterword, section: 小节一 }
+`);
+  const entries = [entry('preface'), entry('afterword')];
+  const route = assembleRoute(spec, entries);
+  const headings = new Map([
+    [
+      'afterword',
+      [
+        { slug: '小节一', text: '小节一', depth: 2 },
+        { slug: '小节二', text: '小节二', depth: 2 },
+        { slug: '小节三', text: '小节三', depth: 3 },
+      ],
+    ],
+  ]);
+
+  it('没有 section 时跳到页顶；有 section 时按标题文字找 slug，页面标题取自路线图', () => {
+    expect(buildMovedPages(spec, route, (id) => headings.get(id))).toEqual([
+      { from: 'old-page', to: 'afterword', toTitle: '标题 afterword' },
+      { from: 'old-section', to: 'afterword', toTitle: '标题 afterword', section: '小节一', anchor: '小节一' },
+    ]);
+  });
+
+  it('section 只认 h2（ADR-0006）：h3 不算命中', () => {
+    const spec = parseRouteYaml(`
+chapters:
+  - id: start
+    title: 开始
+    items: [preface, afterword]
+moved:
+  old-section: { to: afterword, section: 小节三 }
+`);
+    const badRoute = assembleRoute(spec, entries);
+    expect(() => buildMovedPages(spec, badRoute, (id) => headings.get(id))).toThrow(/找不到唯一的小标题（h2）/);
+  });
+
+  it('小节不存在时报出 route.yaml，不生成跳转页', () => {
+    const bad = parseRouteYaml(`
+chapters:
+  - id: start
+    title: 开始
+    items: [preface, afterword]
+moved:
+  old-section: { to: afterword, section: 没有这个小节 }
+`);
+    const badRoute = assembleRoute(bad, entries);
+
+    expect(() => buildMovedPages(bad, badRoute, (id) => headings.get(id))).toThrow(
+      /route\.yaml：moved\.old-section\.section 写的“没有这个小节”在 afterword 的原理版正文里找不到唯一的小标题/,
+    );
+    expect(() => buildMovedPages(bad, badRoute, () => undefined)).toThrow(/找不到唯一的小标题/);
+  });
+
+  it('目标页不在路线图里时失败（M2 校验之前的兜底）', () => {
+    const ghost = parseRouteYaml(`
+chapters:
+  - id: start
+    title: 开始
+    items: [preface, afterword]
+moved:
+  old-page: { to: ghost }
+`);
+    const route = assembleRoute(parseRouteYaml(START_ONLY), entries);
+    expect(() => buildMovedPages(ghost, route, () => undefined)).toThrow(/moved\.old-page 的 to（ghost）不是路线图里的页面/);
+  });
+});
+
 // ================================================================ 真实路线图（Issue #25 的 M2 边界用例）
 
 const principleDir = fileURLToPath(new URL('../content/principle/', import.meta.url));
@@ -147,7 +224,8 @@ function realEntries(): PrincipleEntry[] {
 }
 
 describe('真实 route.yaml', () => {
-  const route: RouteMap = assembleRoute(parseRouteYaml(routeText), realEntries());
+  const spec = parseRouteYaml(routeText);
+  const route: RouteMap = assembleRoute(spec, realEntries());
   const id = (stop: Stop | null) => (stop === null ? null : stop.kind === 'home' ? 'home' : stop.id);
   const nav = (at: string, mode: ViewMode = 'operation', stored = {}) => {
     const v = route.view(at, stored, mode);
@@ -234,5 +312,11 @@ describe('真实 route.yaml', () => {
   it('faq、ip-tests 是保留字，没有页面占用', () => {
     expect(Object.keys(route.data.pages)).not.toContain('faq');
     expect(Object.keys(route.data.pages)).not.toContain('ip-tests');
+  });
+
+  it('跳转表把 2026-10-19 删掉的 plan1-free-isp 迁过来，旧标识不再是页面（FR-25、ADR-0006）', () => {
+    // 用 toContainEqual：V11 会加合并页的条目，这里只要求这条在
+    expect(movedEntries(spec)).toContainEqual({ from: 'plan1-free-isp', to: 'choose-plan' });
+    expect(Object.keys(route.data.pages)).not.toContain('plan1-free-isp');
   });
 });

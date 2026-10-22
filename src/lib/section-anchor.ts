@@ -8,10 +8,12 @@
  * - 跳转表（V09）的 `section` 也按同一套规则找小节。
  */
 
-/** 正文里的一级小节：`slug` 是渲染后标题的 id，`text` 是去掉行内记号后的标题文字 */
+/** 正文里的一个标题：`slug` 是渲染后标题的 id，`text` 是去掉行内记号后的标题文字 */
 export interface AnchorHeading {
   slug: string;
   text: string;
+  /** ATX 标题级别（2 = h2）；跳转表的 `section` 只认 h2（ADR-0006），双链解析不看级别 */
+  depth?: number;
 }
 
 /** 规范化标题文字：全角半角、大小写和连续空白不影响匹配（“ＩＰ”“ip”算同一个） */

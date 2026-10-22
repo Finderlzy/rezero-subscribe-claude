@@ -27,6 +27,15 @@ export interface RouteSpec {
   chapters: RouteSpecChapter[];
   /** 旁支页：不在序列里，`returnTo` 是它挂靠的普通页（FR-19） */
   side?: Record<PageId, { returnTo: PageId }>;
+  /** 跳转表：被合并掉或删掉的旧标识 → 目标页（FR-25、ADR-0006）；旧标识不能再分给新页面 */
+  moved?: Record<PageId, RouteSpecMoved>;
+}
+
+/** 跳转表的一条：目标页，可指名目标页正文里的一个小节（ADR-0006）。 */
+export interface RouteSpecMoved {
+  to: PageId;
+  /** 目标页原理版正文里的 h2 文字；缺省时跳到页顶 */
+  section?: string;
 }
 
 export interface RouteSpecChapter {

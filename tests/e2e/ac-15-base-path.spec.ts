@@ -1,6 +1,6 @@
 import { expect, test, type APIRequestContext } from '@playwright/test';
-import { REMOVED_PAGES } from '../../src/lib/route/route-map';
 import { builtPages } from './built-pages';
+import { movedPages } from './route-file';
 
 // AC-15（FR-60）：构建产物放到静态文件服务器的根路径或子路径下 → 所有页面、图片、导航都正常。
 // playwright.config.ts 让这个文件跑两种 base：根路径由 mobile-360、tablet-768、desktop-1280 测（dist/，astro preview），
@@ -134,14 +134,39 @@ test('不存在的页面显示“找不到这一页”，“回到首页”回�
   await expect(page.getByRole('heading', { level: 1 })).toHaveAccessibleName('Re:从零开始订阅 claude（Re:Zero − Starting Life with Claude）');
 });
 
-// ADR-0002：已经发布的地址不能失效。删掉的页面留一个跳转页，在 base 下跳到 REMOVED_PAGES 登记的页面。
-test('已删除页面的旧地址跳到登记的页面，地址一直在 base 下', async ({ page, baseURL }) => {
-  const entries = Object.entries(REMOVED_PAGES);
+// ADR-0002、ADR-0006：已经发布的地址不能失效。删掉或合并掉的页面留一个跳转页，
+// 在 base 下跳到 route.yaml 的 moved: 登记的目标页（有 section 时还带原理版小节锚点）。
+test('旧网址的跳转页在 base 下跳到登记的目标页', async ({ page, baseURL }) => {
+  const entries = movedPages();
   expect(entries.length).toBeGreaterThan(0);
-  for (const [from, to] of entries) {
+  for (const { from, to, section } of entries) {
     const response = await page.goto(`./${from}/`);
     expect(response?.status(), `/${from}/`).toBe(200);
-    await expect(page).toHaveURL(new URL(`./${to}/`, baseURL).href);
+    const expected = new URL(`./${to}/`, baseURL);
+    await expect(page).toHaveURL(
+      (url) => url.origin === expected.origin && url.pathname === expected.pathname && (section === undefined ? url.hash === '' : url.hash.length > 1),
+    );
     await expect(page.locator('main[data-route-ready]')).toHaveCount(1);
   }
+});
+
+// R-6（架构 §13.11）：跳转页的 location.replace 和 meta refresh 都要带 BASE_PATH。没有 JS 时只剩 meta refresh，
+// 所以在子路径下单独断言它（根路径由 ac-33-moved.spec.ts 的禁用 JS 用例覆盖）。
+test.describe('没有 JS 时跳转页的 meta refresh 也在 base 下', () => {
+  test.use({ javaScriptEnabled: false });
+
+  test('meta refresh 的地址以 base 开头，指向登记的目标页', async ({ page, baseURL }) => {
+    const base = new URL(baseURL!).pathname;
+    const entries = movedPages();
+    expect(entries.length).toBeGreaterThan(0);
+    for (const { from, to } of entries) {
+      await page.goto(`./${from}/`);
+      const refresh = await page.locator('meta[http-equiv="refresh"]').getAttribute('content');
+      const target = new URL(refresh!.replace(/^\d+;\s*url=/, ''), page.url()).pathname;
+      expect(target, `/${from}/ 的 meta refresh`).toBe(new URL(`./${to}/`, baseURL).pathname);
+      expect(target.startsWith(base), `meta refresh 跳出了 base：${target}`).toBe(true);
+      // 说明和链接照常显示（AC-33），5 秒后才自动前往
+      await expect(page.locator('main.page a').first()).toBeVisible();
+    }
+  });
 });

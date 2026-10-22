@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { samplePages, sampleSpec } from './fixtures/sample-route';
 import {
   buildRouteMap,
+  movedEntries,
   pathOf,
   RESERVED_PAGE_IDS,
-  REMOVED_PAGES,
   RouteValidationError,
   routeMapFromData,
   type Choices,
@@ -440,6 +440,55 @@ describe('校验：夹具是合法的', () => {
   });
 });
 
+// ================================================================ 跳转表
+
+describe('跳转表 moved（FR-25、ADR-0006）', () => {
+  const withMoved = (moved: RouteSpec['moved']): RouteSpec => ({ ...sampleSpec(), moved });
+
+  it('合法跳转表解析成“旧标识 → 目标页（+ 小节）”，旧标识不进 RouteData', () => {
+    const spec = withMoved({
+      'plan1-make-node': { to: 'choose-plan' },
+      'plan1-free-isp': { to: 'import-proxy', section: '三、把服务器变成节点' },
+    });
+    const map = buildRouteMap(spec, samplePages());
+
+    expect(movedEntries(spec)).toEqual([
+      { from: 'plan1-make-node', to: 'choose-plan' },
+      { from: 'plan1-free-isp', to: 'import-proxy', section: '三、把服务器变成节点' },
+    ]);
+    // 目录、搜索和浏览器用的 RouteData 都不含旧标识
+    expect(Object.keys(map.data.pages)).not.toContain('plan1-make-node');
+    expect(map.data).not.toHaveProperty('moved');
+    expect(JSON.stringify(map.data)).not.toContain('plan1-free-isp');
+  });
+
+  it('movedEntries 容错：没写、写成空、条目形状不对时只取能用的部分', () => {
+    expect(movedEntries({})).toEqual([]);
+    expect(movedEntries({ moved: {} })).toEqual([]);
+    expect(movedEntries({ moved: { a: { to: 'preface' }, b: { to: 1 }, c: null } as never })).toEqual([{ from: 'a', to: 'preface' }]);
+    expect(movedEntries({ moved: { a: { to: 'preface', section: '小节' }, b: { to: 'preface', section: '' } } })).toEqual([
+      { from: 'a', to: 'preface', section: '小节' },
+      { from: 'b', to: 'preface' },
+    ]);
+  });
+
+  it('形状不对：不是映射、旧标识不是 kebab-case、多了字段、section 为空', () => {
+    expectError(errorsOf({ ...sampleSpec(), moved: 'nope' }), 'route.yaml', /moved 必须是/);
+    expectError(errorsOf(withMoved({ Bad: { to: 'preface' } })), 'route.yaml', /moved 里的旧标识 Bad 必须是英文 kebab-case/);
+    expectError(errorsOf(withMoved({ old: { to: 'preface', extra: 1 } as never })), 'route.yaml', /moved\.old 要写成 \{ to: <页面> \}/);
+    expectError(errorsOf(withMoved({ old: {} as never })), 'route.yaml', /moved\.old 要写成/);
+    expectError(errorsOf(withMoved({ old: { to: 'preface', section: '  ' } })), 'route.yaml', /moved\.old 要写成/);
+  });
+
+  it('目标页要存在、不能串联、旧标识不能用保留路径', () => {
+    const errors = errorsOf(withMoved({ old: { to: 'ghost' }, 'old-two': { to: 'old' }, faq: { to: 'preface' } }));
+
+    expectError(errors, 'route.yaml', /moved\.old 的 to（ghost）不是路线图里的页面/);
+    expectError(errors, 'route.yaml', /moved\.old-two 的 to（old）也是旧标识：跳转表不能串联/);
+    expectError(errors, 'route.yaml', /moved\.faq 用了保留路径/);
+  });
+});
+
 // ================================================================ 校验错误
 
 describe('校验错误（FR-61、AC-14 逻辑层）', () => {
@@ -496,11 +545,13 @@ describe('校验错误（FR-61、AC-14 逻辑层）', () => {
     expectError(errors, 'principle/Bad_Id.md', /kebab-case/);
   });
 
-  it('已删除页面的标识不能再用（旧地址是跳转页）', () => {
+  it('跳转表里的旧标识不能再用', () => {
     const pages = samplePages();
-    for (const id of Object.keys(REMOVED_PAGES)) pages.push({ id, title: id, principleOnly: false, skippable: false });
-    const errors = errorsOf(sampleSpec(), pages);
-    expectError(errors, 'principle/plan1-free-isp.md', /已删除的页面，旧地址跳到 choose-plan/);
+    const spec = sampleSpec();
+    spec.moved = { 'plan1-free-isp': { to: 'choose-plan' } };
+    pages.push({ id: 'plan1-free-isp', title: '白嫖 ISP', principleOnly: false, skippable: false });
+    const errors = errorsOf(spec, pages);
+    expectError(errors, 'principle/plan1-free-isp.md', /是跳转表的旧标识（旧地址跳到 choose-plan），不能再分给新页面/);
   });
 
   it('选择页的文件要写 options；写了 options 的页面必须是选择页', () => {

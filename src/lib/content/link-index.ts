@@ -1,9 +1,9 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { basename, extname, join, relative, resolve, sep } from 'node:path';
 import { parseFrontmatter } from '@astrojs/markdown-remark';
-import GithubSlugger from 'github-slugger';
 import { parse as parseYaml } from 'yaml';
 import type { AnchorHeading } from '../section-anchor';
+import { scanHeadings } from './headings';
 import type { ContentProblem } from './remark-obsidian';
 
 /**
@@ -120,12 +120,8 @@ function listMarkdownDeep(dir: string, prefix = ''): string[] {
   return out.sort();
 }
 
-const ATX_HEADING = /^ {0,3}(#{1,6})[ \t]+(.*?)(?:[ \t]+#+)?[ \t]*$/;
-const FENCE = /^ {0,3}(`{3,}|~{3,})/;
-
 /**
- * 读一个页面文件的标题和小标题。不跑完整的 Markdown 解析：重写稿的小标题都是纯文字，
- * 这里只认 ATX 标题、跳过代码块，再去掉常见的行内记号，与渲染后的标题文字一致。
+ * 读一个页面文件的标题和小标题。小标题的扫描规则在 `headings.ts`（和 `site.ts` 的跳转表校验共用）。
  */
 function scanPage(kind: PageKind, id: string, file: string): IndexedPage {
   const source = readFileSync(file, 'utf8').replace(/\r\n?/g, '\n');
@@ -142,45 +138,16 @@ function scanPage(kind: PageKind, id: string, file: string): IndexedPage {
   const first = lines.findIndex((line) => line.trim() !== '');
   const titleMatch = first === -1 ? null : /^# +(.+?)[ \t]*$/.exec(lines[first]);
   const title = titleMatch?.[1];
-  const slugger = new GithubSlugger();
-  const headings: AnchorHeading[] = [];
-  let fence: string | undefined;
-  lines.forEach((line, i) => {
-    const f = FENCE.exec(line);
-    if (fence !== undefined) {
-      if (f && f[1][0] === fence[0] && f[1].length >= fence.length && line.trim() === f[1]) fence = undefined;
-      return;
-    }
-    if (f) {
-      fence = f[1];
-      return;
-    }
-    if (title !== undefined && i === first) return;
-    const h = ATX_HEADING.exec(line);
-    if (h) {
-      const text = plainHeading(h[2]);
-      headings.push({ slug: slugger.slug(text), text });
-    }
-  });
   return {
     kind,
     id,
     file,
     title,
     titleLine: (first === -1 ? 0 : first) + 1,
-    headings,
+    headings: scanHeadings(content),
     principleOnly: kind === 'principle' && frontmatter.principleOnly === true,
     options: kind === 'principle' ? readOptions(frontmatter.options) : undefined,
   };
-}
-
-/** 小标题去掉行内记号后的文字：`**加粗**`、`` `代码` ``、`[[目标|文字]]`、`[文字](地址)` */
-export function plainHeading(text: string): string {
-  return text
-    .replace(/!?\[\[([^\]|]*)(?:\|([^\]]*))?\]\]/g, (_, target: string, label?: string) => label ?? target)
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-    .replace(/(\*\*|__|`)/g, '')
-    .trim();
 }
 
 function readBlogLinks(file: string): { blogLinks: Map<string, string | null>; blogLinksError: string | undefined } {
