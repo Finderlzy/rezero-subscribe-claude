@@ -284,6 +284,38 @@ moved:
       /moved\.faq\/old-question 和现有的页面同址/,
     );
   });
+
+  it('选择页末尾的选项卡片用“下一步”当锚点，其他页没有这个锚点', () => {
+    const chapters = `
+chapters:
+  - id: start
+    title: 开始
+    items:
+      - preface
+      - { choose: phone, page: choose-phone }
+      - { branch: phone, options: { iphone: [iphone-gmail], android: [android-gmail] } }
+      - afterword
+`;
+    const chooseSpec = parseRouteYaml(`${chapters}
+moved:
+  old-choose: { to: choose-phone, section: 下一步 }
+`);
+    const otherSpec = parseRouteYaml(`${chapters}
+moved:
+  old-other: { to: afterword, section: 下一步 }
+`);
+
+    expect(buildMovedPages(chooseSpec, assembleRoute(chooseSpec, entries), () => undefined)).toContainEqual({
+      from: 'old-choose',
+      to: 'choose-phone',
+      toTitle: '标题 choose-phone',
+      section: '下一步',
+      anchor: '下一步',
+    });
+    expect(() => buildMovedPages(otherSpec, assembleRoute(otherSpec, entries), () => undefined)).toThrow(
+      /moved\.old-other\.section 写的“下一步”在 afterword/,
+    );
+  });
 });
 
 // ================================================================ 真实路线图（Issue #25 的 M2 边界用例）

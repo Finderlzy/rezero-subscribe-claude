@@ -1,11 +1,11 @@
 # 架构：Re:从零开始订阅 claude
 
 - 状态：**v3 增量定稿（2026-10-21）**，对应需求 v0.9（目标站点版本 3.0.0），没有阻塞决策（合并清单 Q-18 只阻塞合并数据），见 [§13](#13-v3-增量架构2026-10-21)。v2.0 定稿（2026-10-15）对应需求 v0.3（目标站点版本 2.0.0），没有阻塞决策；待定事项见 §10。上一版 v0.1（2026-10-13）对应已交付的 1.0.0，其中仍然有效的实现细节保留在各节里，标“1.0.0 已有”。
-- 输入：[术语](../CONTEXT.md)、[需求 v0.9](requirements.md)、[复用调研](reuse-research.md)、[界面设计契约](design.md)、[重写稿](rewrite/)
+- 输入：[术语](../CONTEXT.md)、[需求 v0.9](requirements.md)、[复用调研](reuse-research.md)、[界面设计契约](design.md)、[重写稿](v3-rewrite/)
 - 决策记录：[ADR-0001 Astro 静态站 + 自建路线图](adr/0001-astro-static-site-with-own-route-map.md)、[ADR-0002 URL 规则](adr/0002-url-scheme.md)（v2.0 修订）、[ADR-0003 原理块](adr/0003-principle-content-as-why-callouts.md)（已被取代）、[ADR-0004 整页视图切换](adr/0004-whole-page-view-switch.md)、[ADR-0005 重写稿原样导入、双链按标题解析](adr/0005-import-rewrite-verbatim.md)、[ADR-0006 合并页和旧网址跳转](adr/0006-merged-pages-and-moved-urls.md)
 - 现状：v2 骨架已建立（#23 内容集合，#25 路线图和静态页面，2026-10-15），#26 接上了导航改写、整页视图切换和 M4 v2（2026-10-16），1.0.0 的内容、页面和依赖旧路线的脚本已删除。本文 §3–§8 描述 v2.0 的目标结构；没有实现的部分标“计划”，由 [实施计划](implementation-plan.md) 的 v2.0 任务建立，建立后改成现状。
 - v2.1（2026-10-16）：页面按 design v2.1 改造，模块和依赖方向不变，差距和任务见 [§11.4](#114-v21-实施前评审2026-10-16)；对应条目在任务完成后改成现状。
-- **v3（2026-10-21，实施中）**：对应需求 v0.9（目标站点版本 3.0.0）。M3 按文档站风格重做外观，新增 M6 站内搜索，合并页和旧网址跳转改用 `route.yaml` 的 `moved:` 段和原理版小节锚点（[ADR-0006](adr/0006-merged-pages-and-moved-urls.md)），不新增运行时依赖；见 [§13](#13-v3-增量架构2026-10-21)。合并清单待作者定（Q-18），不阻塞其余实施。代码现状：V01–V07、V09 已实施，其余条目仍是计划。
+- **v3（2026-10-21，实施中；2026-10-22 按作者新稿收口）**：对应需求 v0.11（目标站点版本 3.0.0）。M3 按文档站风格重做外观，新增 M6 站内搜索，合并页和旧网址跳转改用 `route.yaml` 的 `moved:` 段和单版本小节锚点（[ADR-0006](adr/0006-merged-pages-and-moved-urls.md)），不新增运行时依赖；见 [§13](#13-v3-增量架构2026-10-21)。作者 2026-10-22 交来 11 页单版本新稿并确认页面地图；代码现状：V01–V11 已实施，V12（验收）待做。
 - v2.2（2026-10-19，现状）：按 [v2.2 改版计划](v2.2-plan.md) 和需求 v0.4 改了 M1（常见问题一问一页的导入和核对）、M2 的数据（附录一章）和 M3（页头色带、常驻侧边栏、参考页内嵌路线数据、选项行、翻页），依赖方向不变，见 [§12](#12-v22-改版2026-10-19现状)。§3 里写 v2.1 抽屉、页边栏、章节标题卡的条目是历史，以 §12 为准。
 
 ## 0. v2.0 增量影响分析
@@ -56,7 +56,7 @@
 
 ```
                  ┌──────────────── 构建时（Node） ────────────────┐      ┌──── 浏览器 ────┐
- docs/rewrite/ ─▶ import-rewrite ─▶ src/content/ ─▶ M1 内容 ──▶ M2 路线 ──▶ M3 页面 ──▶ dist/*.html ──▶ 页面脚本
+ docs/v3-rewrite/ ─▶ import-rewrite ─▶ src/content/ ─▶ M1 内容 ──▶ M2 路线 ──▶ M3 页面 ──▶ dist/*.html ──▶ 页面脚本
  （重写稿）       （开发脚本，手动跑）  principle/     │  └ Obsidian 插件       │ RouteData JSON ────────┘   │   │
                                      operation/    │                        M2（同一份代码） M4
                                      reference/    └─────── M5 构建：校验失败就终止 ───────┘
@@ -66,105 +66,79 @@
 
 ### M1 内容（`src/content/`、`src/content.config.ts`、`src/lib/content/`）
 
-**职责**：定义内容文件的格式；加载并校验元数据；把重写稿的 Obsidian 写法转换成 HTML。
+**职责**：定义内容文件的格式；加载并校验元数据；把重写稿的 Markdown 和 Obsidian 写法转换成 HTML。
 
-**内容文件**（#23 建立；1.0.0 的 `steps/`、`choices/`、`faq/`、`pages/` 和页面已在 #25 删除）
+**内容文件**（V10 现状：作者 2026-10-22 的 `docs/v3-rewrite/`，11 页、只有一版正文）
 
 | 路径 | 内容 | 元数据 |
 | --- | --- | --- |
-| `src/content/route.yaml` | **路线图**：章节、分叉点、各选项的页面顺序、旁支页（见下文） | 由 M2 校验 |
-| `src/content/principle/<id>.md` | 一个页面的原理版：步骤、选择页、旁支页各一份。正文第一行是 `# <标题>`，与重写稿文件名相同 | frontmatter（Zod `strictObject`，都可省）：`principleOnly`（默认 false，原理独有步骤）、`skippable`（默认 false）、`skipLabel`（可选，默认“跳过”）、`video: { bilibili?, youtube? }`（可选）；选择页另有必填的 `options: { <option-id>: { title, heading } }` |
-| `src/content/operation/<id>.md` | 同一页面的操作版，文件名与原理版相同 | 不写 frontmatter |
-| `src/content/reference/faq.md`、`faq/<id>.md`、`ip-tests.md`、`ip-tests/<id>.md` | 参考页：常见问题（各条问题的目录）、各条问题（一问一页）、IP 质量实测合集、各篇实测；只有原理版 | 不写 frontmatter |
-| `src/content/blog-links.yaml` | 指向博客其他文章的双链目标（如 `04技术/自建梯子：VPS + 3x-ui + VLESS Reality`）→ 博客 URL；地址待作者提供时写 `null`（Q-11） | 由 M1 校验 |
+| `src/content/route.yaml` | **路线图**：章节、分叉点、各选项的页面顺序、跳转表（`moved:`） | 由 M2 校验 |
+| `src/content/principle/<id>.md` | 一个页面：11 页（前言、整体思路、方案一/二、电脑端、iOS 准备/订阅、安卓准备/订阅、日常维护、后记）。正文第一行是 `# <标题>`，和重写稿文件标题相同 | frontmatter（Zod `strictObject`，都可省）：`video: { bilibili?, youtube? }`、`skippable`/`skipLabel`（v3 没有可跳过页，字段休眠）、`options: { <option-id>: { title } }`（选择页必填） |
+| `src/content/reference/ip-tests.md`、`ip-tests/<id>.md` | 参考页：IP 质量实测合集和 6 篇实测，只有一版正文 | 不写 frontmatter |
+| `src/content/blog-links.yaml` | 指向博客其他文章的链接目标 → 博客 URL；地址待作者提供时写 `null`（Q-11） | 由 M1 校验 |
 | `src/assets/screenshots/` | 截图（从重写稿的 `附件/` 导入，只导入被引用的） | — |
-| `src/assets/diagrams/` | 说明图 SVG（从重写稿的 `附件/` 导入，附件里的是原稿，变了就覆盖；#39） | — |
+| `src/assets/diagrams/` | 说明图 SVG（从重写稿的 `附件/` 导入，附件里的是原稿，变了就覆盖） | — |
 
-- **标题**：页面标题取正文第一行的 `# <标题>`（导入时原样保留），渲染时从正文里去掉，由布局输出 `<h1>`。两版的标题必须相同（FR-03）；全站标题（原理版和参考页）不能重复，因为双链按标题解析。缺少第一行标题、两版标题不同、标题重复都让构建失败。
-- **原理独有步骤**：`principleOnly: true` 且没有操作版文件。写了 `principleOnly: true` 却有操作版文件 → 构建失败；没写却缺操作版 → 按 FR-21 处理（操作视图显示原理版正文并提示“操作版还在写”），构建结束列进内容提示，不阻止构建。
-- **选择页的选项块**（FR-12）：`options` 的 `heading` 是正文里独占一段的加粗文字原文（如 `方案一：普通服务器 + ISP 代理`、`iPhone`）。插件在两版正文里各找到这一段，把它到后面第一个列表（含）为止的内容包成 `<section data-option="<option-id>">`，加粗段落变成块标题；遇到“独占一段的加粗文字 / 分隔线 / 标题 / 正文结尾”时提前结束。“到第一个列表为止”是 #29 加的：选择手机系统末尾的“两条路走完，都接着注册 Gmail”是两个选项共用的话，不能进“安卓”块，否则点它会把选择记成安卓。块内第一个站内链接是这个选项的第一步，M3 用它做整块的点击区域。找不到 `heading`、块内没有站内链接、第一个链接不是该选项在路线图里的第一步（两种视图各核对一次）都让构建失败。`title`（如“方案一”）用于目录里的当前路线标签和“换到另一条路线”的链接文字。
-  - 现状（#29）：`src/lib/content/option-blocks.ts`，在 remark-obsidian 转完双链之后调用。依赖方向的例外：核对第一步要用 M2 的纯函数 `buildRouteMap`（只在这里，读 `route.yaml`；M2 不引用 M1，不成环），因为“第一步”的定义就在 M2。输出 `<section class="option-block" data-option>`，块标题是 `p.option-title`，块内第一个站内链接带 `data-option-start`。“该选项的第一步”取 M2 的 `view(选择页, {分叉点: 选项}, 视图).next`，和选择页的“下一步”是同一个定义；原理版按原理视图核对，操作版按操作视图核对，没有操作版时原理版两种视图都核对。路线图本身有错时只包块、不核对（错误由 `loadSite()` 报出）。
+- **标题**：页面标题取正文第一行的 `# <标题>`（导入时原样保留），渲染时从正文里去掉，由布局输出 `<h1>`。全站标题不能重复，因为双链按标题解析。缺少第一行标题、标题重复都让构建失败。
+- **单一正文**：v3 删除 `operation/` 和 `principleOnly` 的运行路径，`[page].astro` 只渲染这一份正文；M2/M4 的 `view` 字段暂时保留，但固定按 `principle` 计算（§13.12）。
+- **选择页的选项卡片**（FR-12，V10 现状）：选项写在页面 frontmatter 的 `options`（标识 → 标题），`[page].astro` 用 M2 的 `view(选择页, { 分叉点: 选项 })` 算出每个选项的第一步，交给 `ChoiceCards.astro` 渲染在正文末尾；卡片整块可点，路线图的 `default` 标“推荐”。`ChoiceCards` 的容器带 `id="下一步"`，旧“选择手机系统”和手机旧页的兜底都落到这里（`site.ts` 的 `resolveMovedTarget` 单独认这个锚点，因为它不在导入的正文标题里）。
+- **参考页**：只有 `ip-tests` 和 6 篇实测；`site.ts` 的 `TOC_REFERENCES` 只列合集，挂在 `maintenance` 章末；参考页没有上一步/下一步。
+- **导入**（ADR-0005）：`scripts/import-rewrite.mjs` 从 `docs/v3-rewrite/` 原样导入 11 页和 `reference/` 的 7 个文件，把相对 Markdown 链接转成站内链接，复制被引用的截图和说明图；第二次运行应无改动。`docs/rewrite/` 已在 V11 同步 Writing 后删除。
+- **校验**：站内双链、同页锚点、图片、路线图、跳转表、参考页目录都在构建时核对；跳转表的目标页和小节不存在、旧标识被新页面复用、`choice` 的选项和分叉点不一致时构建失败（FR-61）。
 
-**route.yaml 格式**（#25 建立）：章节、分叉点和旁支页的唯一来源。页面文件不重复写所属章节和选项。
+**route.yaml 格式**（V10 现状）：章节、分叉点、跳转表的唯一来源；页面文件不重复写所属章节和选项。
 
 ```yaml
 chapters:
   - id: start
     title: 开始
-    summary: 先看这份教程怎么用，……   # 可选：首页五栏简介的文案（M2 只校验非空；首页要求每章都有）
-    items: [preface, disclaimer, overview, clean-up]
+    summary: ……                       # 首页五栏简介的文案（M2 只校验非空；首页要求每章都有）
+    items: [preface]
   - id: node-and-ip
     title: 准备节点和住宅 IP
     items:
-      - choose: node-plan          # 分叉点 F1
-        page: choose-plan          # 选择页的标识，也是 URL /choose-plan/
+      - { choose: node-plan, page: overview, default: plan-2 }
       - branch: node-plan
-        options:
-          plan-1: [plan1-buy-server, plan1-buy-isp, plan1-make-node, plan1-panel]
-          plan-2: [plan2-residential-server]
-          plan-3: [plan3-residential-node]
-      - import-proxy               # F1 的汇合点
-      - check-ip
-      - recap                      # 原理独有（principleOnly），操作视图绕过
-      - leak-protection
-      - timezone
-  - id: register-and-subscribe
-    title: 注册和订阅
+        options: { plan-1: [plan1], plan-2: [plan2-residential-server] }
+  - id: client-and-subscribe
+    title: 客户端配置与订阅
     items:
-      - { choose: phone, page: choose-phone }
+      - { choose: phone, page: client-desktop }
       - branch: phone
         options:
-          iphone: [iphone-app-store-austria, iphone-proxy, iphone-gmail]
-          android: [android-proxy, android-google-play, android-gmail]
-      - register-gmail             # F2 第一段的汇合点
-      - chrome-sign-in
-      - use-two-days
-      - google-region
-      - register-claude
-      - subscribe
-      - branch: phone              # 同一分叉点的第二段，没有选择页
-        options:
-          iphone: [iphone-why-us-apple-id, iphone-apple-id, iphone-app-store-login, iphone-gift-card, iphone-subscribe, iphone-purchase-failed]
-          android: [android-subscribe]
-      - after-subscribe
+          iphone: [iphone-prepare, iphone-subscription]
+          android: [android-prepare, android-subscription]
+  - id: maintenance
+    title: 日常维护
+    items: [maintenance]
   - id: ending
     title: 结尾
-    items: [thanks, afterword]
-side:                              # 旁支页：不在序列里
-  google-appeal: { returnTo: use-two-days }
+    items: [afterword]
+side: {}
+moved:                              # 旧网址 → 目标页；也可按分叉点选择分流（choice）
+  plan1-buy-server: { to: plan1, section: 购买海外 VPS }
+  register-gmail:
+    choice:
+      fork: phone
+      options:
+        iphone: { to: iphone-subscription, section: 注册 Gmail }
+        android: { to: android-subscription, section: 注册 Gmail }
+      fallback: { to: client-desktop, section: 下一步 }
+  faq/split-routing: { to: maintenance, section: 分流规则具体怎么写 }
 ```
 
-标识用需求 §5.2 的初稿，导入任务可以微调，v2.0 发布后锁定（ADR-0002）。
+标识用需求 §5.2 的地图，v2.0 发布后锁定（ADR-0002）；v3 被合并页面的旧标识只进 `moved:`（ADR-0006），`faq` 这个旧目录允许作为 `moved:` 的键，但仍不能用作页面标识。
 
-**Obsidian 写法**（自研插件 `src/lib/content/remark-obsidian.ts`，1.0.0 已有，v2.0 改动见表）：
+**Obsidian 和 Markdown 写法**（自研插件 `src/lib/content/remark-obsidian.ts`，v3 现状）：
 
 | 写法 | 转换结果 | 找不到目标时 |
 | --- | --- | --- |
-| `[[标题]]`、`[[标题\|文字]]` | 按标题找到页面，链接到 `/<id>/`；不写文字时用标题。**v2.0 改动**：1.0.0 按标识解析 | 构建失败，报出文件和行号 |
-| `[[标题#小标题]]` | 链接到 `/<id>/#<slug>`，slug 用 `github-slugger`；**v2.0 新增**：校验目标页有这个小标题 | 同上 |
-| 指向参考页的双链（`[[常见问题]]`、`[[分流规则具体怎么写？]]`、`[[IP 质量实测合集]]`、`[[实测：…]]`） | 从步骤页链出时自动加 `?from=<当前页标识>`（FR-20），锚点放在查询串之后 | 同上 |
-| `[[如何订阅claude]]`、`[[如何订阅claude（纯操作版）]]`（重写稿的目录页） | 首页 `/` | — |
-| `[[04技术/…]]` | 查 `blog-links.yaml`：有地址时是外链；`null` 时只输出链接文字，构建结束列进内容提示（Q-11） | 表里没有这一项 → 构建失败 |
-| `![[文件名\|宽度]]`、`![[文件名]]` | 图片，可以点开看大图（1.0.0 已有） | 构建失败 |
-| 正文末尾“分隔线 + `上一步：`/`下一步：`/`回到：` 开头的一段” | 去掉（FR-04：页脚由路线图生成）。**v2.0 新增** | — |
-| 以 `TODO：` 开头的段落 | `<aside class="author-todo">`，文字原样，前面加“作者待补”标签（FR-21）。**v2.0 新增** | — |
-| `> [!note]`、`> [!caution]` | 两种视图都显示的提示框（1.0.0 已有）；`[!why]` 从白名单删掉，出现即报错 | — |
-
-- **链接索引**：`createLinkIndex(contentRoot)` 同步扫描三个集合的文件，取每个文件第一行（frontmatter 之后第一个非空行）的标题和全部小标题的 slug（跳过代码块），生成 `pages`（每个文件一项：集合、标识、标题、小标题集合、`principleOnly`）和 `titles`（标题 → 页面，只收原理版和参考页），外加截图文件名和 `blogLinks`。`checkPages(index)` 报出页面之间的问题：缺第一行标题、标题重复、两版标题不同、操作版没有同名原理版、原理独有步骤却有操作版、`blog-links.yaml` 形状不对。仍然不依赖内容集合的渲染顺序（1.0.0 已有）。参考页的标识带子目录（`ip-tests/decodo`），URL 统一是 `/<id>/`。
-- **内容提示的接口**：插件通过 `onHints` 交出 `ContentHint`（`author-todo`、`blog-link`，带所在页面）；`validateContent()` 返回 `{ problems, hints }`，另外补上 `missing-operation`；`contentValidation` 在 `astro:build:done` 用 `formatHints()` 打印（M5）。
-- **标题 id**：同一 HTML 里有两版正文（ADR-0004），操作版正文的标题 id 加前缀 `op-`（`rehype-operation-ids.ts` 按文件路径判断，按 Astro 同样的 github-slugger 规则先写好 id），避免重复 id；`[[标题#小标题]]` 指向原理版的 id。
-- **只有一套规则**（#25 删除了 1.0.0 按标识解析的模式和 `[!why]`）：不属于三个集合的文件（只在单元测试里出现）照样按标题解析双链，只是不去标题和页脚、不记内容提示。
-- **表格可聚焦**（#25）：`rehype-scrollable-tables.ts` 给每张表加 `tabindex="0"`，窄屏上横向滚动的表格能用键盘滚动（axe 的 scrollable-region-focusable）。v2.2 关掉语法高亮后，代码块 `<pre>` 的 `tabindex` 也由它加（以前由 Shiki 加）。
-- **截图图版**（#37，§11.4 W-4，现状）：`rehype-figures.ts` 把独占一行的截图（`img[data-zoom]`）包成 `<figure class="plate" data-figure="n">`，编号 `<figcaption class="plate-no">图 <span data-figure-step></span>n</figcaption>` 放在截图前面；每篇正文单独编号，所以两版各自从 1 起。截图所在的段落从截图处拆开（前后的文字仍是段落，空段落丢掉），列表项里的截图留在这一项里；只在根和能放块级内容的容器（列表项、引用、表格单元格等）里包，标题、加粗、链接里的图片和与文字同一行的行内图片不是图版，不编号；先包完再按文档顺序编号。步骤号前缀（`02-`）由 `figurePrefix(stepMark(...))`（`src/lib/nav-text.ts`）算：数得清时是“步骤号-”，数不清、选择页、旁支页为空；`PageLayout` 构建时用 `fillFigureSteps()` 按操作视图写进两版正文（没有 JS 时就是它），`route-enhance` 的 `renderProgress` 按当前视图和选择改写所有 `[data-figure-step]`，算完前和页边栏编号一样先不显示。参考页不填，只有序号。样式在 `prose.css`：图片 1px `--border`、4px 圆角，图版上下 24px；<1100px 编号用 `order` 排到截图下方；≥1100px `.prose` 作定位容器，编号绝对定位到页边栏（横向按 `.prose`，列表缩进不影响；竖向不写 `top`，取原位置，所以和截图顶边齐平），`[!caution]` 用 `::before` 在同一位置写“注意”（`--caution-rule`，替代文字为空，不重复读）。参考页同样悬挂在正文左侧（design §4.7 把参考页列在编号规则里；§4.6 的“没有页边栏编号”指步骤编号）。已知限制：选项块自己是定位容器，块里的截图编号会对不上竖线，选择页现在没有截图。
-- **说明图**（#39，§11.4 W-7，现状）：design §4.7 的单色线稿。作者在重写稿原理版里写 `![[说明图-页面标题.svg]]`，SVG 放在 `附件/`，导入脚本复制到 `src/assets/diagrams/`（链接索引的 `diagrams`/`diagramsDir`）；不另加 frontmatter 字段，也不用新 ADR（ADR-0005 的“原样导入”不变）。`remark-obsidian` 遇到 `.svg` 嵌入就读文件、用 `parseDiagram()`（`src/lib/content/diagram.ts`）检查后原样内联：输出 mdast `html` 节点并带 `hName: 'svg'`，hast 里就是一个 `svg[data-diagram]` 元素（`role="img"`、`aria-label` 取 `<title>`，宽高写成 viewBox 的宽高），`rehype-figures` 把它和截图一样包成图版（多一个 `diagram` 类），一起编号。检查是白名单：只放行 `title`、`desc`、`g`、基本形状、`text`/`tspan` 和画线稿用得到的属性，颜色只能是 `currentColor`/`none`，没有脚本、样式、外部资源、渐变滤镜、`transform` 和 id（内联后和页面共用样式和 id）；属性必须写成 `名字="值"`（没加引号、没有值的写法报错，不能绕过白名单），标签以外不能有 `<`；画法按 §4.7 固定：只有文字和包文字的 `<g>` 能 `fill="currentColor"`，`stroke-width` 只能 1.5，`font-size` 只能 14，`class` 只能 `accent`；根元素只写 `xmlns`、`viewBox`，viewBox 宽度不超过 328（手机正文栏）；必须有 `<title>`。不合格、找不到、写了宽度都按 FR-61 报错让构建失败。样式在 `prose.css`：图按 1:1 显示、`max-width: 100%`，`color: var(--text)`，`.accent` 里的用 `--accent`，`text` 用 `--font-sans`、`--fs-meta`（14px），图版上下 32px、没有边框；不进看大图（不是 `img[data-zoom]`）。
-- **1.0.0 已有、继续生效**：管线配置的唯一来源 `markdownPipeline()`；`contentValidation` 集成在 `astro:build:start` 用同一条管线重新处理全部源文件并在失败时终止构建；集合 `deferRender: true`；关闭 SmartyPants；嵌入的宽度、文件名字符和 1x/2x `srcset` 规则；解析后残留 `**` 报错；不做语法高亮（v2.2 起 `markdown.syntaxHighlight: false`，代码块单色，design §4.7）；内容文件名必须是以字母开头的英文 kebab-case。
-
-**导入脚本**（`scripts/import-rewrite.mjs`，#23 建立，[ADR-0005](adr/0005-import-rewrite-verbatim.md)；页面标识表和截图核对记录在 [migration-checklist.md](migration-checklist.md) 的 v2 节）：
-
-- `node scripts/import-rewrite.mjs [重写稿目录，默认 docs/rewrite]`。按标题匹配：读 `src/content/principle/*.md` 和 `reference/**/*.md` 的第一行标题，与重写稿 `原理版/<标题>.md` 对应（参考页也按标题，不用固定文件名，新增实测页的做法与新增步骤相同）。操作版跟随原理版：重写稿有 `操作版/<标题>.md` 时写入 `operation/<同一标识>.md`，缺的直接新建（操作版没有元数据，标识由原理版决定，不算“新页面”）。重写稿文件带 frontmatter（Obsidian 属性）时去掉并报告。
-- 对已匹配的页面，**保留目标文件的 frontmatter，正文整段替换成重写稿原文**（只把 Windows 换行统一成 `\n`）；把被引用、但 `src/assets/screenshots/` 里还没有的图片从 `附件/` 复制过去；嵌入的 `.svg`（说明图）复制到 `src/assets/diagrams/`，内容变了也覆盖（附件里的是原稿，不需要打码）。
-- 重写稿里有、站内没有的页面（新页面）只列出来，不自动建文件：新页面要先手建 `principle/<id>.md`（frontmatter + `# 标题`），再在 `route.yaml` 里放好位置，然后重跑脚本。站内有、重写稿里没有的页面同样列出来，由作者决定是否删除。
-- 脚本不改 `route.yaml`，也不判断截图有没有打码；结束时提醒“新复制的截图要逐张核对打码”（三级边界 Never）。
+| `[[标题]]`、`[[标题\|文字]]` | 按标题找到页面，链接到 `/<id>/`；不写文字时用标题 | 构建失败，报出文件和行号 |
+| `[[标题#小标题]]` | 链接到 `/<id>/#<slug>`，slug 用 `github-slugger`；校验目标页有这个小标题 | 同上 |
+| `[文字](#小标题)` | 同页链接，片段换成渲染后的 slug | 同上 |
+| 指向参考页的链接 | 从页面链出时自动加 `?from=<当前页标识>`（FR-20） | — |
+| `![[文件名\|宽度]]` | 图片进 Astro 图片处理，生成 `src/assets/screenshots/` 的导入副本；说明图 `.svg` 由 `diagram.ts` 白名单内联 | 构建失败 |
+| `TODO：` | 显示成“作者待补”提示，构建结束列出（FR-21） | — |
 
 ### M2 路线（`src/lib/route/`）
 
@@ -234,13 +208,15 @@ function pathOf(stop: Stop): string;        // '/<id>/' 或 '/'；再由 withBas
 
 **职责**：把内容和路线渲染成页面；实现 [design.md](design.md) v2.0 的全部页面和组件。
 
-| 页面 | URL | 文件（#25 建立） |
+| 页面 | URL | 文件 |
 | --- | --- | --- |
-| 首页：VuePress 式首屏 + 按章目录（v3，见 §13.3） | `/` | `src/pages/index.astro` |
-| 步骤页、选择页、旁支页 | `/<id>/` | `src/pages/[page].astro` + `PageLayout` |
-| 常见问题 / 各条问题 | `/faq/`、`/faq/<id>/` | `src/pages/faq/index.astro`、`[question].astro` + `ReferenceLayout` |
-| IP 质量实测合集 / 各篇实测 | `/ip-tests/`、`/ip-tests/<id>/` | `src/pages/ip-tests/index.astro`、`[test].astro` |
+| 首页：VuePress 式首屏 + 五章简介（v3，见 §13.3） | `/` | `src/pages/index.astro` |
+| 步骤页、选择页 | `/<id>/` | `src/pages/[page].astro` + `PageLayout` |
+| 旧网址跳转页（单段旧标识 / 多段 `faq/<id>`） | `/<旧标识>/`、`/faq/<id>/` | `src/pages/[page].astro`、`src/pages/[...moved].astro` + `MovedPage` |
+| IP 质量实测合集 / 各篇实测 | `/ip-tests/`、`/ip-tests/<id>/` | `src/pages/ip-tests/index.astro`、`[test].astro` + `ReferenceLayout` |
 | 找不到 | `404.html` | `src/pages/404.astro` |
+
+v3 的页面结构、组件和当前行为以 §13.3 为准；下面标“现状”的 #25/#26/#30/#31/#38 各条是 1.0.0/v2.1 的历史，已被 V01–V10 取代。
 
 已删除（#25）：`[step].astro`、`choose/[fork].astro`、`done.astro`、`faq/[faq].astro`、`StepLayout`、`ChoiceOption`、`PlaceholderNotice`，以及依赖旧路线的页面脚本 `home.ts`、`done.ts`、`route-enhance.ts`、`toc.ts`、`view-toggle.ts`、`faq-return.ts`、`reader-store.ts`（#26、#27、#30 参照 `v1.0.0` 标签重写；`route-enhance.ts`、`view-toggle.ts`、`reader-store.ts` 已由 #26 重写，`faq-return.ts` 已由 #27 重写为 `reference-return.ts`，`toc.ts` 已由 #30 重写）。
 
@@ -483,7 +459,7 @@ v2.0 → v2.1 的代码差距（现状 → 目标）：
 | M4 本机状态 | 不变 | — | 全部 |
 | M5 构建 | 小改 | 删掉 `astro.config.mjs` 的 `redirects`、sitemap 过滤跳转页（V09 现状）；新增静态端点 `search-index.json`（V06 现状） | 构建校验、内容提示、`BASE_PATH` |
 | **M6 搜索（新增）** | 新增 | 构建时生成索引，浏览器里匹配（13.2） | — |
-| 开发脚本 | 新增 | `scripts/merge-rewrite.mjs`：在重写稿里机械合并一组文件（13.5） | `import-rewrite.mjs`、`compare-migration.mjs` 的规则 |
+| 开发脚本 | 新增 | ~~`scripts/merge-rewrite.mjs`：机械合并~~（13.5 已取消，作者直接交来合并稿）；保留 `import-rewrite.mjs`、`compare-migration.mjs` | `import-rewrite.mjs`、`compare-migration.mjs` 的规则 |
 
 依赖方向：M1 ← M2 ← M3，M1 ← M6 ← M3，M4 独立。M6 不依赖 M2：索引的范围（哪些页面算步骤、选择页、旁支页、参考页）由 `loadSite()` 传入，M6 只管索引形状和匹配。
 
@@ -517,11 +493,11 @@ function search(index: SearchEntry[], query: string, limit = 10): SearchHit[];  
 - **顶栏**（V01 现状，搜索 V08 现状）：`SiteHeader.astro` 改为文档站顶栏，左边 `Logo`（“Re:”标记）+ 站名 + `Mascot`，右边 `SiteSearch`（V08 接上，桌面和平板是胶囊输入框、手机是放大镜按钮）、`ThemeToggle`（昼夜切换，用户 2026-10-22 决定取代 `ViewToggle`，见 13.12）、`ContactLinks`；<720px 左边多“目录”按钮。不吸顶。首页不用顶栏（FR-18）。
 - **页面骨架**（V01 现状）：`PageLayout`、`ReferenceLayout` 改成“顶栏 + 两栏（侧边栏 | 正文栏）”，≥720px 侧边栏 `position: sticky`、独立滚动，<720px 只有正文栏、目录在抽屉里。页头色带、`ChapterSubtitle`、章节标题卡、`.step-heading` 的编号挂栏删除；眉题改为 h1 上方一行灰色小字，进度文字仍由 `nav-text.ts` 和 `route-enhance` 的 `renderProgress` 给出（挂载点名字不变）。`Numeral`、`numerals/` 只剩找不到页的大号 `404`（design v3 §3.2、§9），`ChapterSubtitle` 和 `chapter-0X.svg` 已随 V05 删除。
 - **正文和内容组件**（V03 现状，FR-72）：页面标题、正文和内容组件按 design §3.2、§4.7 排（h1 在 `base.css` 和页面布局，其余在 `prose.css`）：h2–h4、正文链接、行内代码和代码块、表格（全格线 + 隔行）、提示块（浅底 + 4px 左色条）和截图图版；`GroupInvite` 用普通提示块的外观。正文栏宽度仍由 `--measure` 和 `--gutter` 决定。
-- **目录 / 侧边栏**（V02 现状，FR-16）：`TocNav` 每章是一个 `<details>`，当前页所在章 `open`，其余折叠；折叠只在 DOM 里，不写本机。当前页下面列出它正文的 h2（固定原理视图，只有一份，用户 2026-10-22 决定），由 `[page].astro`、`faq/*.astro`、`ip-tests/*.astro` 把 `render()` 的 `headings` 经 `tocSections()` 取 `depth === 2` 传给 `PageLayout`/`ReferenceLayout` 的新参数 `sections`，再交给 `Toc`；参考页的当前项由 `ReferenceLayout` 的 `currentReference` 指定（各条问题、各篇实测高亮上级），附录章跟着展开；子页也把 `headings` 传下去，小节挂在上级项下面，链接锚点仍是子页正文的 h2。旁支页用 `openChapterId`（`PageLayout` 传 `view.progress.chapterId`）展开它所属的章。`TocItems.astro` 写一章的页面项和参考页，`TocSections.astro` 写小节列表。链接锚点直接用正文 h2 的 `slug`。当前项 600 `--accent` + 4px 左边线。`toc.ts` 仍按本机选择改写弱化和当前项，不碰 `<details>` 的开合。找不到页的目录用不折叠的变体（`collapsible` 不传）；首页不再用 `TocNav`（第二屏是五章简介，直接读 `RouteData.chapters` 的 `title` 和 `summary`）。抽屉和侧边栏仍是同一套 `TocNav` 标记（v2.2 的做法）。
-- **翻页**（V04 现状，FR-72、AC-30）：`StepNav` 在正文末尾一条 1px `--border` 细线下排一行文字链接，左边“← 上一步”+ 标题、右边“下一步 →”+ 标题（两行，13px `--text-muted` 的方向 + 16px 600 `--accent` 的目标标题，整块 `min-height: 44px`）；跳过步骤的“跳过 →”在“下一步”下面 4px，右对齐，也是文字链接。旁支页的“回到”、参考页的“回到”和“返回刚才的步骤”（`ReferenceLayout`，从步骤链接进来时出现在 h1 上方和正文末尾）用同一套样式；v2.2 的黑色主按钮、手机吸底底栏和底栏预留空白都删掉了（连同 `--bar-button-height`、`--mobile-bar-height`、`--option-no-size` 令牌）。导航数据和 `route-enhance` 的改写挂载点不变。
+- **目录 / 侧边栏**（V02 现状，FR-16）：`TocNav` 每章是一个 `<details>`，当前页所在章 `open`，其余折叠；折叠只在 DOM 里，不写本机。当前页下面列出它正文的 h2（固定原理视图，只有一份，用户 2026-10-22 决定），由 `[page].astro`、`ip-tests/*.astro` 把 `render()` 的 `headings` 经 `tocSections()` 取 `depth === 2` 传给 `PageLayout`/`ReferenceLayout` 的新参数 `sections`，再交给 `Toc`；参考页的当前项由 `ReferenceLayout` 的 `currentReference` 指定（各篇实测高亮合集），合集挂在“日常维护”章末并展开这一章；子页也把 `headings` 传下去，小节挂在上级项下面，链接锚点仍是子页正文的 h2。`TocItems.astro` 写一章的页面项和参考页，`TocSections.astro` 写小节列表。链接锚点直接用正文 h2 的 `slug`。当前项 600 `--accent` + 4px 左边线。`toc.ts` 仍按本机选择改写弱化和当前项，不碰 `<details>` 的开合。找不到页的目录用不折叠的变体（`collapsible` 不传）；首页不再用 `TocNav`（第二屏是五章简介，直接读 `RouteData.chapters` 的 `title` 和 `summary`）。抽屉和侧边栏仍是同一套 `TocNav` 标记（v2.2 的做法）。章名和步骤都不写数字（V10）。
+- **翻页**（V04 现状，FR-72、AC-30）：`StepNav` 在正文末尾一条 1px `--border` 细线下排一行文字链接，左边“← 上一步”+ 标题、右边“下一步 →”+ 标题（两行，13px `--text-muted` 的方向 + 16px 600 `--accent` 的目标标题，整块 `min-height: 44px`）；v3 没有可跳过的整页步骤，所以不出现“跳过”。旁支页的“回到”、参考页的“回到”和“返回刚才的步骤”（`ReferenceLayout`，从步骤链接进来时出现在 h1 上方和正文末尾）用同一套样式；v2.2 的黑色主按钮、手机吸底底栏和底栏预留空白都删掉了（连同 `--bar-button-height`、`--mobile-bar-height`、`--option-no-size` 令牌）。导航数据和 `route-enhance` 的改写挂载点不变。
 - **首页**（V05 现状 + 2026-10-22 调整，`index.astro`、design §4.4）：VuePress 首页。没有顶栏和侧边栏，首屏内容居中：中文两行版 logo 是 h1（`aria-label` 同时给出中文站名和英文副标题，`Logo.astro` 的 `zh` 默认标题）、logo 右下方一行放小形象、一句话（`--text-muted`）、紫色主按钮“从第 00 章开始 →”和 QQ 群入口的紧凑版（一行小字，`GroupInvite` 的 `compact`）。一条 1px 细线下是五章简介：桌面五栏一行、平板三栏、手机一栏；每栏是章名（h2，链到这一章第一页）和 `route.yaml` 的 `summary`，不列具体页面、不写“第几章”。页脚居中（`BaseLayout` 的 `footerCentered`）。一句话写在页面里，构建时核对它（去掉加粗后）原样出现在 `principle/overview.md` 正文里（ADR-0005、design V14）。v2.2 的眉题、小字信息行、“先看整体思路”、桌面章级索引和固定字形章节号都去掉。
-- **选择页**（V04 现状，FR-12、FR-72）：选项块改细边框卡片（1px `--border`、6px 圆角、内边距 16px 20px、手机 14px 16px、间距 12px，悬停边框 `--control-border`）；`option-blocks.ts` 不再插编号圆圈和箭头、不再包一层选项行，`section.option-block` 直接排在正文里，整块点击的 `a[data-option-start]` 伪元素和 `data-recommended` 不变；“推荐”“当前选择”的标记和交互沿用（`route-enhance.ts` 只标 `aria-current` 和 `.option-current`）。
-- **跳转页** `MovedPage`（V09 现状，ADR-0006、design §4.6）：单段旧标识由 `[page].astro` 的 `getStaticPaths` 生成，`faq/<id>` 这类多段参考页路径由 `[...moved].astro` 生成（旧网址不能和页面标识或现有参考页重叠，M2 和 site.ts 校验）。按分叉点选择分流的条目（`choice`）把各选项的地址写在 `<script type="application/json" id="moved-data">` 里，`src/lib/moved.ts` 的内联脚本读 M4 的选择换成对应分支。跳转页用 `BaseLayout noindex` + `SiteHeader` + `main.page`，没有侧边栏：`<head>` 里内联一行脚本 `location.replace()`（不留历史记录），再加 `<meta http-equiv="refresh" content="5; url=…">`、`<link rel="canonical">`（指向目标页、不带小节）；正文是 h1“这一页已经并入《目标页》”、一段“正在跳转到…”、链接“打开《目标页 › 小节》→”。锚点固定用原理版（`site.ts` 的 `buildMovedPages` 用 `sectionAnchor()` 算好），所以脚本和 meta refresh 都指向同一个地址；没有 JS 的读者先看到说明和链接，5 秒后由 meta refresh 自动前往（AC-33 要求看得到说明，所以刷新不能是 0 秒）。没有 `section` 的条目（`plan1-free-isp`）直接跳到目标页顶部。`BASE_PATH` 由 `withBase()` 拼进脚本和 meta refresh（R-6）。
+- **选择页**（V04 样式、V10 数据，FR-12、FR-72）：`ChoiceCards.astro` 由页面 frontmatter 的 `options` 生成细边框卡片（1px `--border`、6px 圆角、内边距 16px 20px、手机 14px 16px、间距 12px，悬停边框 `--control-border`），排在正文末尾；每张卡片是 `section.option-block`，第一个链接带 `data-option-start` 并用伪元素撑满整块，`data-recommended` 标路线图的 default；“推荐”“当前选择”的标记和交互沿用（`route-enhance.ts` 只标 `aria-current` 和 `.option-current`）。容器 `id="下一步"` 是旧手机页的兜底落点。`option-blocks.ts` 已随 V10 删除。
+- **跳转页** `MovedPage`（V09 现状，ADR-0006、design §4.6）：单段旧标识由 `[page].astro` 的 `getStaticPaths` 生成，`faq/<id>` 这类多段参考页路径由 `[...moved].astro` 生成（旧网址不能和页面标识或现有参考页重叠，M2 和 site.ts 校验）。按分叉点选择分流的条目（`choice`）把各选项的地址写在 `<script type="application/json" id="moved-data">` 里，`src/lib/moved.ts` 的内联脚本读 M4 的选择换成对应分支。跳转页用 `BaseLayout noindex` + `SiteHeader` + `main.page`，没有侧边栏：`<head>` 里内联一行脚本 `location.replace()`（不留历史记录），再加 `<meta http-equiv="refresh" content="5; url=…">`、`<link rel="canonical">`（指向目标页、不带小节）；正文是 h1“这一页已经并入《目标页》”、一段“正在跳转到…”、链接“打开《目标页 › 小节》→”。锚点固定用原理版（`site.ts` 的 `buildMovedPages` 用 `sectionAnchor()` 算好），所以脚本和 meta refresh 都指向同一个地址；没有 JS 的读者先看到说明和链接，5 秒后由 meta refresh 自动前往（AC-33 要求看得到说明，所以刷新不能是 0 秒）。没有 `section` 的条目（如 `appendix`）直接跳到目标页顶部；`section: 下一步` 是选择页末尾选项卡片的锚点（`ChoiceCards` 的 `id`，不是正文标题），只允许指向路线图里的选择页。`BASE_PATH` 由 `withBase()` 拼进脚本和 meta refresh（R-6）。
 - **找不到页**（V05 现状，`404.astro`、design §4.6）：v3 顶栏 + 正文栏（`main.page`，宽同正文栏并居中），没有侧边栏；大号固定字形 `404`、h1、主按钮“回到首页”和次按钮“打开目录”，目录直接写在页面上。`NumeralSprite` 只在这一页内联（design §3.2、§9）。
 
 ### 13.4 小节锚点（M1 + M3，ADR-0006）
@@ -533,41 +509,35 @@ function search(index: SearchEntry[], query: string, limit = 10): SearchHit[];  
   - `sectionAnchor(headings, text)`：先按标题文字精确匹配，再按 `normalizeSectionText()`（NFKC、小写、合并空白）匹配；只有唯一命中才返回 slug，重复标题或找不到返回 `undefined`。
   - `resolveSectionAnchor()` 在标题文字之外也接受已经写好的 slug，供链接片段使用。
   - `remark-obsidian.ts` 用它解析 `[[页面#小标题]]`，并在同一页出现 `[文字](#小标题)` 时把片段换成 `#<slug>`；目标不存在或片段只有 `#` 时构建失败（FR-05“校验”）。操作版不再渲染（V10 删除），同页链接不校验；`#main` 这类布局自带的落点原样交给浏览器。
-  - V09 的 `moved:` 条目用同一个 `sectionAnchor()` 校验并算出跳转锚点（`site.ts` 的 `buildMovedPages`）：`section` 找不到唯一的小标题时构建失败并指出 `route.yaml`；跳转页的锚点固定原理版。V08 打开搜索结果直接改 `location.href`，由下面的页面脚本负责滚动。
+  - V09 的 `moved:` 条目用同一个 `sectionAnchor()` 校验并算出跳转锚点（`site.ts` 的 `buildMovedPages`）：`section` 找不到唯一的小标题时构建失败并指出 `route.yaml`；跳转页的锚点固定这一版正文。唯一的例外是 `section: 下一步`：它指向选择页末尾由 `ChoiceCards` 输出的选项卡片容器（`id="下一步"`），`resolveMovedTarget` 只在目标页是路线图里的选择页时接受；其他页写这个 section 仍然构建失败。V11 的旧手机页兜底用它。V08 打开搜索结果直接改 `location.href`，由下面的页面脚本负责滚动。
 - **页面脚本** `src/scripts/section-hash.ts`（V07 现状）：`PageLayout`、`ReferenceLayout` 加载时初始化，页面加载和 `hashchange` 时解码 `location.hash`，在正文容器 `.prose` 里找对应 id，找到就 `scrollIntoView()`；初始化放在其它页面脚本之后，补一次滚动以免布局变化把原生锚点带偏。`#main` 这类不是小节的地址不处理，交给浏览器原生跳转。没有 JS 时浏览器原生锚点照常工作。
 
-### 13.5 合并的执行（开发脚本，计划）
+### 13.5 合并的执行（不再执行，2026-10-22）
 
-`scripts/merge-rewrite.mjs <合并页标题> <第一页标题> <第二页标题> …`，只改 `docs/rewrite/`，不碰 `src/content/`：
+作者 2026-10-22 直接交来按章合并好的 `docs/v3-rewrite/`（11 个文件、单版本），V10 起站点只按“一页 = 一个文件”导入，不再执行机械合并，也不再维护 `scripts/merge-rewrite.mjs`。本节保留为历史：当时计划的“合并前后命令/外链/截图多重集比较”由 V10 的 `compare-migration.mjs` 对照新稿承接，11 页的旧网址去向由 V11 的 `moved:` 承接。
 
-1. 原理版、操作版各自按给出的顺序拼成 `<合并页标题>.md`；每个原文件的 `# 标题` 变成 `## 标题`，原有 h2、h3 各降一级（跳过围栏代码块）；去掉手写页脚（和 `import-rewrite.mjs` 共用识别规则，抽到两者都能导入的模块）；其余文字一字不改。某一版缺某个文件时跳过它（原理独有页只进原理版）。
-2. 重写稿里所有文件中指向被合并页面的双链改成 `[[合并页#原标题]]`，原来带 `#小标题` 的改成 `[[合并页#小标题]]`；显示文字（`|文字`）保留。
-3. **自检**（AC-32 的前半段）：合并前后，每一版的命令、外链、嵌入（截图、说明图）、TODO 段落按多重集比较必须相同，否则不写文件、报出差异。
-4. 删除被合并的原文件，打印要写进 `route.yaml` `moved:` 段的条目草稿（旧标识从 `src/content/principle/` 按标题查出）。
+### 13.6 数据流：读者打开旧网址（AC-33，V11 现状）
 
-之后按 ADR-0005 的流程：手建 `src/content/principle/<新标识>.md`（frontmatter 照原第一页，`skippable` 按 FR-05 处理）、改 `route.yaml` 和 `moved:`、跑 `import-rewrite.mjs`、构建、跑 `compare-migration.mjs`（AC-32 的后半段：合并后的重写稿对照产物），并按 AGENTS.md“文章同步”同步到 Writing 和大肥鱼。作者再在合并稿上改内容。
+1. 构建：`loadSite()` 读 `route.yaml`，M2 校验 `moved:`（旧网址是页面标识、`faq/<id>` 或旧 `faq` 目录路径，不是保留路径或现有页面；`to` 是路线图里的页面、不是另一个旧网址即不串联；`choice.fork` 是路线图里的分叉点且选项键和它一致）；`site.ts` 再用 M1 的 headings 核对每个去向的 `section` 并算出锚点（`下一步` 单独指向选择页的选项卡片）；`[page].astro` 为单段旧网址、`[...moved].astro` 为多段旧参考页路径生成跳转页。
+2. 读者打开 `/plan1-buy-server/`：`<head>` 内联脚本 `location.replace('/plan1/#购买海外-vps')`，不留历史记录。带 `choice` 的条目（`register-gmail` 等 6 条手机旧页）脚本先读 M4 的选择，落到 iPhone/安卓分支的地址；没有存过、读不到或选项已失效时落到 `client-desktop#下一步`（选项卡片）。
+3. 目标页加载：`route-enhance` 把所属选项写进 M4（FR-17）；`section-hash` 找到小节并滚动；侧边栏展开当前章，合并页下列出小节。
+4. 禁用 JS：先看到“这一页已经并入《…》”和链接，5 秒后 meta refresh 自动前往同一个地址（先看到说明是 AC-33 的要求，所以延迟不是 0 秒）。旧 `/faq/` 跳到 `maintenance` 页顶，8 条 `faq/<id>` 跳到对应 h3。
 
-### 13.6 数据流：读者打开旧网址（AC-33，V09 现状）
+V11 的 `moved:` 共 47 条：37 条旧页面（含 6 条 `choice`）、`plan1-free-isp`、8 条旧常见问题路径和 `faq` 目录；`/ip-tests/` 和 6 篇实测保留原网址，不写 `moved:`。
 
-1. 构建：`loadSite()` 读 `route.yaml`，M2 校验 `moved:`（旧网址是页面标识或以 `faq/` 开头的参考页路径、不是保留字或现有页面；`to` 是路线图里的页面、不是另一个旧网址即不串联；`choice.fork` 是路线图里的分叉点且选项键和它一致）；`site.ts` 再用 M1 的 headings 核对每个去向的 `section` 并算出原理版锚点；`[page].astro` 为单段旧网址、`[...moved].astro` 为多段旧参考页路径生成跳转页。
-2. 读者打开 `/plan1-free-isp/`：`<head>` 内联脚本 `location.replace('/choose-plan/')`（有 `section` 时带 `#<slug>`），不留历史记录。带 `choice` 的条目（手机相关的旧页）脚本先读 M4 的选择，落到对应分支的地址；没有存过、读不到或选项已失效时落到 `fallback`。
-3. 目标页（合并页）加载：`route-enhance` 把所属选项写进 M4（FR-17）；`section-hash` 找到小节并滚动；侧边栏展开当前章，合并页下列出小节。
-4. 禁用 JS：先看到“这一页已经并入《…》”和链接，5 秒后 meta refresh 自动前往同一个地址（先看到说明是 AC-33 的要求，所以延迟不是 0 秒）。
-
-
-### 13.7 目录结构增量（V09 后现状）
+### 13.7 目录结构增量（V11 后现状）
 
 ```
 src/
 ├── lib/search/                 M6：index.ts（buildSearchIndex、search）+ index.test.ts（V06 现状）
 ├── pages/search-index.json.ts  M6 的静态端点（V06 现状）
 ├── lib/section-anchor.ts       小节标题 → slug（V07 现状）
-├── scripts/search.ts           搜索框（V08 计划）
+├── scripts/search.ts           搜索框（V08 现状）
 ├── scripts/section-hash.ts     小节锚点落点（V07 现状）
-├── components/SiteSearch.astro 顶栏搜索（V08 计划）
+├── components/SiteSearch.astro 顶栏搜索（V08 现状）
 ├── lib/moved.ts               跳转页按 M4 的选择分流的内联脚本（V09 现状）+ moved.test.ts
 └── components/MovedPage.astro  跳转页正文（V09 现状，由 [page].astro、[...moved].astro 使用）
-scripts/merge-rewrite.mjs       机械合并（+ merge-rewrite.test.mjs，V10 计划）
+scripts/compare-migration.mjs    对照 docs/v3-rewrite/ 和产物（V10 现状）
 tests/e2e/ac-26-…ac-33-*.spec.ts
 tests/fixtures/moved-*/         跳转表的坏内容用例（V09 现状：目标不存在、小节不存在、旧标识被复用、串联、choice 缺 fallback / 分叉点不存在 / 选项不一致、参考页路径不合法）
 ```
@@ -583,8 +553,8 @@ tests/fixtures/moved-*/         跳转表的坏内容用例（V09 现状：目�
 | AC-28 | `src/lib/search/index.test.ts`（规范化、排序、锚点选择、上限 10 条、“没有找到”）；`tests/e2e/ac-28-search.spec.ts`（V08 现状）：键盘和鼠标打开结果、打开小标题结果后由 `section-hash` 滚动到小节（固定原理视图，不切视图）、`page.on('request')` 断言只下载一次索引且没有站外请求、没有带查询文字的请求、输入法组字不搜索；360 下先点图标才有输入框、无横向滚动；`ac-15-base-path.spec.ts` 在 `/sub/` 下核对索引和结果地址 |
 | AC-29 | Playwright：首页 hero 元素、五章目录、没有侧边栏 |
 | AC-30 | Playwright：翻页文字链接、没有主按钮、“跳过”结果同 AC-05；360 下两个链接 `boundingBox().height ≥ 44` |
-| AC-32 | `merge-rewrite.mjs` 的自检和单元测试（合并前后命令、链接、嵌入不变）+ `compare-migration.mjs` 对照合并后的重写稿与产物 + Playwright 看侧边栏小节；人工抽查记进 migration-checklist 的 v3 节 |
-| AC-33 | Playwright：无痕上下文逐条打开 `moved:` 的旧网址，断言落到目标页（当前只有 `plan1-free-isp` 一条、没有小节，落在页顶）；`javaScriptEnabled: false` 的上下文断言“已经并入”和链接、点击可到目标页；构建级用例（`tests/build/ac-33-moved-dist.test.ts`，用 `SITE_URL` 构建）断言 sitemap 和 `search-index.json` 里没有旧标识、跳转页带 noindex/canonical/meta refresh；`tests/fixtures/moved-*` 断言坏跳转表让构建失败；带小节时落到 `#<slug>` 的规则由 `site.test.ts`、`MovedPage.test.ts` 覆盖；`moved-choice` 夹具在构建级用例里核对 `choice` 的去向 JSON、多段 `faq/<id>` 跳转页和 sitemap/索引过滤；`src/lib/moved.test.ts` 用假的 storage 跑内联脚本；真实数据里的手机旧页等 V11 填完再在 e2e 里逐条核对落点 |
+| AC-32 | `compare-migration.mjs` 对照 `docs/v3-rewrite/` 的 11 个文件和产物（命令、链接、截图、说明图、正文）+ Playwright 看侧边栏小节；人工抽查记进 migration-checklist |
+| AC-33 | Playwright：无痕上下文逐条打开 `moved:` 的 47 条旧网址，断言落到目标页和小节（页尾附近的小节只要求落在视口里）；`page.addInitScript` 预置 iPhone/安卓，逐条核对 6 条 `choice` 的两个分支，未预置时落到 `client-desktop#下一步`；`javaScriptEnabled: false` 的上下文断言“已经并入”和链接、点击可到目标页；构建级用例（`tests/build/ac-33-moved-dist.test.ts`，用 `SITE_URL` 构建）断言 sitemap 和 `search-index.json` 里没有旧标识、跳转页带 noindex/canonical/meta refresh；`tests/fixtures/moved-*` 断言坏跳转表让构建失败；带小节时落到 `#<slug>` 的规则由 `site.test.ts`、`MovedPage.test.ts` 覆盖；`moved-choice` 夹具在构建级用例里核对 `choice` 的去向 JSON、多段 `faq/<id>` 跳转页和 sitemap/索引过滤；`src/lib/moved.test.ts` 用假的 storage 跑内联脚本；V11 的 `ac-33-moved.spec.ts` 全量核对落点 |
 | AC-31 | 全部 e2e、axe、键盘、对比度在三种宽度重跑；断言只因选择器、文案或页面被合并而改，不删检查项 |
 
 ### 13.9 待定事项（v3）
@@ -592,7 +562,7 @@ tests/fixtures/moved-*/         跳转表的坏内容用例（V09 现状：目�
 | 编号 | 事项 | 影响 | 阻塞？ |
 | --- | --- | --- | --- |
 | Q-17 | 360px 顶栏放不放得下（需求遗留） | 已试排：design §4.0 预算约 320px，放得下；实现后由 e2e 核对 | 否 |
-| Q-18 | 合并清单、合并页标题和新标识（需求遗留）；ADR-0006 给了提议 | `route.yaml`、`moved:`、ADR-0006 末尾的表、提到被合并页面的 AC | 阻塞合并和跳转的**数据**；机制（`moved:`、`section-hash`、`merge-rewrite.mjs`、M6）可以先用测试数据做完 |
+| Q-18 | 合并清单、合并页标题和新标识 | `route.yaml`、`moved:`、ADR-0006 末尾的表、提到被合并页面的 AC | **已决**（作者 2026-10-22 交来 11 页并确认页面地图；V10/V11 已落地） |
 | A-05 | 小节只在原理版时，从操作视图跳过去会切到原理视图并写进本机（ADR-0006） | — | 已作废：V01 起页面固定原理视图、没有视图切换（§13.12） |
 | A-06 | 首页首屏一句话的构建核对是否保留 | 已定保留（design V14） | 否 |
 
@@ -602,7 +572,7 @@ tests/fixtures/moved-*/         跳转表的坏内容用例（V09 现状：目�
 2. M3 骨架：顶栏、两栏布局、侧边栏 `<details>` 和小标题列表、翻页、首页、选择页卡片、删除 v2.2 色带和标题卡（可拆成两三个 Issue）。
 3. M6 搜索（依赖 2 的顶栏挂载点；`src/lib/search/` 可以和 2 并行）。
 4. 跳转和锚点机制：`moved:` 段及校验、`MovedPage`、`section-hash`、双链的视图锚点、sitemap 过滤（用 `plan1-free-isp` 和测试路线图验证，不等 Q-18）。
-5. `merge-rewrite.mjs`（不等 Q-18，用测试重写稿验证）。
+5. ~~`merge-rewrite.mjs`~~：作者直接交来合并稿，V10 改为导入。
 6. Q-18 定后：按清单合并、导入、改路线图和跳转表、同步 Writing 和大肥鱼。
 7. v3 整体验收（AC-26–AC-33、AC-31 回归），版本升到 3.0.0。
 
@@ -611,7 +581,7 @@ tests/fixtures/moved-*/         跳转表的坏内容用例（V09 现状：目�
 用户在 V01 实施时决定：顶栏原来放“操作｜原理”视图切换的位置换成**昼夜（浅色/深色）主题切换**，视图切换的 UI 去掉，**页面固定原理视图**。以此为准，取代本节 13.3“顶栏”里的 `ViewToggle`、design §3.1 的“不提供手动切换”和 §4.3。
 
 - **主题**（现状）：`src/lib/theme.ts`（`THEME_KEY`、`THEME_BOOT_SCRIPT`、`effectiveTheme`/`nextTheme` 纯函数）、`src/components/ThemeToggle.astro`（44×44 图标按钮，可访问名称“深色模式”，`aria-pressed` = 当前是深色，构建时 `hidden`）、`src/scripts/theme-toggle.ts`。`BaseLayout` 的 `<head>` 里内联 `THEME_BOOT_SCRIPT`，所有页面（含首页）首次绘制前按存过的选择写 `data-theme`；没存过时没有 `data-theme`，跟随系统。`tokens.css` 的深色令牌写两块：`:root[data-theme='dark']` 和 `@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) }`，`tokens.test.ts` 核对两块一致。只存这一个 localStorage 键，和 M4 无关。
-- **固定原理视图**（现状）：`[page].astro` 只渲染原理版正文，构建时导航按 `view(id, {}, 'principle')`；`PageLayout` 不再有 `operation` slot、`notice` 和 `data-body`；`VIEW_BOOT_SCRIPT` 固定写 `data-view="principle"`（只作“页面脚本会运行”的标记，PageLayout 按它先隐藏眉题步数）；`route-enhance`、`toc` 的视图固定为 `principle`，`VIEW_CHANGED_EVENT` 删除；`ViewToggle.astro`、`view-toggle.ts` 删除。M2 的 `view`/`outline` 仍接受两种视图，M4 仍有 `view` 字段（没人写），内容集合里的操作版数据暂不删，等 docs/v3-rewrite 的单版本重写统一处理。
+- **固定原理视图**（现状）：`[page].astro` 只渲染唯一的正文，构建时导航按 `view(id, {}, 'principle')`；`PageLayout` 不再有 `operation` slot、`notice` 和 `data-body`；`VIEW_BOOT_SCRIPT` 固定写 `data-view="principle"`（只作“页面脚本会运行”的标记，PageLayout 按它先隐藏眉题步数）；`route-enhance`、`toc` 的视图固定为 `principle`，`VIEW_CHANGED_EVENT` 删除；`ViewToggle.astro`、`view-toggle.ts` 删除。V10 已删除 `operation/`、`principleOnly` 的页面数据和 `option-blocks.ts`；M2/M4 的 `view` 字段暂时保留，没人写，也不再影响输出。
 - **对后续任务的影响**（用户 2026-10-22 确认，实施计划开头有汇总）：13.4 的 `section-hash` 不再需要“切视图”，双链和搜索结果的锚点可以只取原理版 id（V07、V08 的“先切视图再滚动”部分可以去掉）；R-2（`initViewToggle` 返回 `setView`）作废；R-7 的“按 M4 视图选锚点”改为固定原理版；13.3 的侧边栏小节列表只需一份（原理版的 h2）。
 
 ### 13.11 v3 实施前评审（2026-10-21）

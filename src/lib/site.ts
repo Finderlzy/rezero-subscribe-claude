@@ -142,6 +142,9 @@ export function buildMovedPages(
   });
 }
 
+/** 选择页末尾选项卡片的锚点；卡片不在导入的正文里，由 ChoiceCards.astro 输出这个 id。 */
+const NEXT_STEP_ANCHOR = '下一步';
+
 /** 把一条去向解析成目标页标题和小节锚点；目标页或小节不存在时构建失败。 */
 function resolveMovedTarget(
   where: string,
@@ -152,6 +155,11 @@ function resolveMovedTarget(
   const target = route.data.pages[to];
   if (target === undefined) throw new Error(`route.yaml：${where} 的 to（${to}）不是路线图里的页面`);
   if (section === undefined) return { to, toTitle: target.title };
+  // 选择页的选项卡片不是导入正文里的标题（ChoiceCards 挂在正文末尾，带 id="下一步"），
+  // 但旧“选择手机系统”和手机旧页的兜底都要落在这些卡片上（实施计划 §3.1），所以单独认这一个锚点。
+  if (section === NEXT_STEP_ANCHOR && Object.values(route.data.forks).some((fork) => fork.page === to)) {
+    return { to, toTitle: target.title, section, anchor: NEXT_STEP_ANCHOR };
+  }
   const sections = (headingsOf(to) ?? []).filter((heading) => heading.depth === 2 || heading.depth === 3);
   const anchor = sectionAnchor(sections, section);
   if (anchor === undefined) {

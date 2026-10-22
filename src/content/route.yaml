@@ -42,4 +42,96 @@ side: {}
 # （FR-25、ADR-0006）。旧标识不能再分给新页面，也不进目录、搜索和 sitemap。
 moved:
   # 2026-10-19 作者改用方案二，删掉方案一的“一、白嫖 ISP”，旧地址跳到方案一和方案二的对比（V10 换成新页面）
-  plan1-free-isp: { to: overview, section: 方案一和方案二 }
+  plan1-free-isp: { to: overview, section: "方案一和方案二" }
+  # 前言和整体思路：免责声明、清理旧账号、方案三（V11、实施计划 §3.1）
+  disclaimer: { to: preface, section: "免责声明" }
+  clean-up: { to: overview, section: "清理旧账号和配置" }
+  choose-plan: { to: overview, section: "接下来怎么选" }
+  plan3-residential-node: { to: overview, section: "为什么不推荐直接买住宅节点" }
+  # 方案一：旧稿的四页并进 plan1 的四个 h2（V11）
+  plan1-buy-server: { to: plan1, section: "购买海外 VPS" }
+  plan1-buy-isp: { to: plan1, section: "购买静态住宅 ISP 代理" }
+  plan1-make-node: { to: plan1, section: "SSH 连接服务器" }
+  plan1-panel: { to: plan1, section: "打开面板（可选）" }
+  # 电脑端：旧稿的导入、验收、小结、防泄漏、时区并进 client-desktop 的 h2；
+  # 旧“选择手机系统”落到这一页末尾的选项卡片（ChoiceCards 的 id="下一步"，不在导入的正文里）
+  import-proxy: { to: client-desktop, section: "安装代理软件" }
+  check-ip: { to: client-desktop, section: "验收清单" }
+  recap: { to: client-desktop, section: "先看一眼整条链路" }
+  leak-protection: { to: client-desktop, section: "防泄漏" }
+  timezone: { to: client-desktop, section: "改时区" }
+  choose-phone: { to: client-desktop, section: "下一步" }
+  # iOS 准备：旧稿三页并进 iphone-prepare 的三个 h2（V11）
+  iphone-app-store-austria: { to: iphone-prepare, section: "准备一个能下载代理软件的 App Store" }
+  iphone-proxy: { to: iphone-prepare, section: "在 V2Box 里导入节点" }
+  iphone-gmail: { to: iphone-prepare, section: "下载 Gmail" }
+  # 安卓准备：旧稿三页并进 android-prepare 的三个 h2（V11）
+  android-proxy: { to: android-prepare, section: "安装 v2rayNG" }
+  android-google-play: { to: android-prepare, section: "准备 Google Play" }
+  android-gmail: { to: android-prepare, section: "下载 Gmail" }
+  # iOS 订阅：旧稿六页并进 iphone-subscription 的 h2/h3（V11）
+  iphone-why-us-apple-id: { to: iphone-subscription, section: "注册美区 Apple ID" }
+  iphone-apple-id: { to: iphone-subscription, section: "注册美区 Apple ID" }
+  iphone-app-store-login: { to: iphone-subscription, section: "只在 App Store 登录" }
+  iphone-gift-card: { to: iphone-subscription, section: "买礼品卡充值" }
+  iphone-subscribe: { to: iphone-subscription, section: "在 App 内订阅" }
+  iphone-purchase-failed: { to: iphone-subscription, section: "如果提示“购买未完成”" }
+  android-subscribe: { to: android-subscription, section: "支付" }
+  # 日常维护和结尾：旧稿的订阅之后、申诉旁支、附录、致谢并进各页（V11）
+  after-subscribe: { to: maintenance, section: "订阅之后，继续像普通人一样用" }
+  google-appeal: { to: maintenance, section: "账号受限之后" }
+  appendix: { to: maintenance }
+  thanks: { to: afterword, section: "致谢" }
+  # 手机相关的旧页在新稿里 iOS/安卓各一份：按 M4 的手机选项分流，没选过（或读不到）时落到电脑端的选项卡片
+  register-gmail:
+    choice:
+      fork: phone
+      options:
+        iphone: { to: iphone-subscription, section: "注册 Gmail" }
+        android: { to: android-subscription, section: "注册 Gmail" }
+      fallback: { to: client-desktop, section: "下一步" }
+  chrome-sign-in:
+    choice:
+      fork: phone
+      options:
+        iphone: { to: iphone-subscription, section: "登录 Chrome，完善资料" }
+        android: { to: android-subscription, section: "登录 Chrome，完善资料" }
+      fallback: { to: client-desktop, section: "下一步" }
+  use-two-days:
+    choice:
+      fork: phone
+      options:
+        iphone: { to: iphone-subscription, section: "先用两天" }
+        android: { to: android-subscription, section: "先用两天" }
+      fallback: { to: client-desktop, section: "下一步" }
+  google-region:
+    choice:
+      fork: phone
+      options:
+        iphone: { to: iphone-subscription, section: "修改 Google 账号地区（可选）" }
+        android: { to: android-subscription, section: "修改 Google 账号地区（可选）" }
+      fallback: { to: client-desktop, section: "下一步" }
+  register-claude:
+    choice:
+      fork: phone
+      options:
+        iphone: { to: iphone-subscription, section: "注册 Claude" }
+        android: { to: android-subscription, section: "注册 Claude" }
+      fallback: { to: client-desktop, section: "下一步" }
+  subscribe:
+    choice:
+      fork: phone
+      options:
+        iphone: { to: iphone-subscription, section: "在 App 内订阅" }
+        android: { to: android-subscription, section: "支付" }
+      fallback: { to: client-desktop, section: "下一步" }
+  # 旧常见问题（一问一页）：内容已并进各章，旧路径跳到对应 h3；目录页 /faq/ 跳到日常维护
+  faq: { to: maintenance }
+  faq/ssh-permission-denied: { to: maintenance, section: "SSH 提示 Permission denied" }
+  faq/ssh-port-not-22: { to: maintenance, section: "SSH 端口不是 22" }
+  faq/reinstall: { to: maintenance, section: "装过了，想重装" }
+  faq/panel-login: { to: maintenance, section: "面板的用户名、密码、端口大家都一样，安全吗" }
+  faq/dedicated-ip-check: { to: maintenance, section: "怎么确认“1 人独享”真的只有我在用" }
+  faq/different-ips: { to: maintenance, section: "测出来好几个不同的 IP" }
+  faq/split-routing: { to: maintenance, section: "分流规则具体怎么写" }
+  faq/shadowrocket-not-working: { to: maintenance, section: "节点导入小火箭后用不了" }

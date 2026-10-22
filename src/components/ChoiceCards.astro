@@ -9,6 +9,8 @@ import { withBase } from '../lib/with-base';
  * route-enhance 标 `aria-current` 和“已选”。
  *
  * 选项的顺序、标题来自页面 frontmatter；第一步由调用方用 M2 的 `view(选择页, { 分叉点: 选项 })` 算好传进来。
+ * 整块带 `id="下一步"`：旧“选择手机系统”和手机旧页的兜底都跳到这个锚点（V11、实施计划 §3.1），
+ * 它不是导入正文里的标题，锚点由 `site.ts` 的 `resolveMovedTarget` 单独认。
  */
 interface Props {
   /** 选择页的页面标识，写进 `data-option-page` 方便测试和排查 */
@@ -23,7 +25,7 @@ interface Props {
 const { pageId, options, starts, recommended } = Astro.props;
 ---
 
-<div class="choice-cards" data-option-page={pageId}>
+<div class="choice-cards" id="下一步" data-option-page={pageId}>
   {
     options.map((option) => {
       const start = starts[option.id];

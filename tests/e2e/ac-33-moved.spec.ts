@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
+import { READER_STATE_KEY } from '../../src/lib/reader-state/reader-store';
 import { movedPages } from './route-file';
 
 /**
@@ -9,15 +10,71 @@ import { movedPages } from './route-file';
  * 跳转页不进目录、搜索和 sitemap：搜索索引在 dev 产物里就能查；sitemap 只在给了 SITE_URL 时生成，
  * 产物断言在 tests/build/ac-33-moved-dist.test.ts。
  *
- * 现在 `moved:` 只有 plan1-free-isp 一条（没有小节）；带小节落到合并页的用例等 V11 合出合并页后补。
- * 锚点规则（section → 原理版 h2 的 slug）由 src/lib/site.test.ts、src/components/MovedPage.test.ts
- * 和 tests/build/ac-33-moved-dist.test.ts 的 `moved-with-section` 夹具覆盖。
+ * V11 起 `moved:` 覆盖实施计划 §3.1 的全部旧页面、8 条旧常见问题路径和 `/faq/`；手机相关的 6 条按 M4 的
+ * 手机选择分流，没选过时落到 client-desktop 末尾的选项卡片（`#下一步`）。本文件逐条核对兜底去向，另用
+ * `localStorage` 预置 iPhone/安卓，核对 6 条分流去向。锚点规则（section → 正文 h2/h3 的 slug）由
+ * src/lib/site.test.ts、src/components/MovedPage.test.ts 和 tests/build/ac-33-moved-dist.test.ts 覆盖。
  */
 const entries = movedPages();
 const hashOf = (url: URL) => decodeURIComponent(url.hash);
 
 test('route.yaml 的 moved: 非空（空了会让下面的用例悄悄消失）', () => {
   expect(entries.length).toBeGreaterThan(0);
+});
+
+test('moved: 覆盖实施计划 §3.1 的全部旧页面和 8 条旧常见问题路径（/ip-tests/ 不写）', () => {
+  expect(entries.map(({ from }) => from).sort()).toEqual(
+    [
+      'after-subscribe',
+      'android-gmail',
+      'android-google-play',
+      'android-proxy',
+      'android-subscribe',
+      'appendix',
+      'check-ip',
+      'choose-phone',
+      'choose-plan',
+      'chrome-sign-in',
+      'clean-up',
+      'disclaimer',
+      'faq',
+      'faq/dedicated-ip-check',
+      'faq/different-ips',
+      'faq/panel-login',
+      'faq/reinstall',
+      'faq/shadowrocket-not-working',
+      'faq/split-routing',
+      'faq/ssh-permission-denied',
+      'faq/ssh-port-not-22',
+      'google-appeal',
+      'google-region',
+      'import-proxy',
+      'iphone-app-store-austria',
+      'iphone-app-store-login',
+      'iphone-apple-id',
+      'iphone-gift-card',
+      'iphone-gmail',
+      'iphone-proxy',
+      'iphone-purchase-failed',
+      'iphone-subscribe',
+      'iphone-why-us-apple-id',
+      'leak-protection',
+      'plan1-buy-isp',
+      'plan1-buy-server',
+      'plan1-free-isp',
+      'plan1-make-node',
+      'plan1-panel',
+      'plan3-residential-node',
+      'recap',
+      'register-claude',
+      'register-gmail',
+      'subscribe',
+      'thanks',
+      'timezone',
+      'use-two-days',
+    ].sort(),
+  );
+  expect(entries.some(({ from }) => from === 'ip-tests' || from.startsWith('ip-tests/'))).toBe(false);
 });
 
 test.describe('打开旧网址', () => {
@@ -33,11 +90,53 @@ test.describe('打开旧网址', () => {
       if (section === undefined) {
         expect(await page.evaluate(() => window.scrollY), '没有 section 时跳到页顶').toBeLessThan(80);
       } else {
-        const heading = page.getByRole('heading', { level: 2, name: section });
-        await expect(heading).toBeVisible();
-        await expect.poll(async () => (await heading.boundingBox())?.y ?? Number.POSITIVE_INFINITY).toBeLessThan(160);
+        // 落点用地址里的 hash 找元素：h2/h3 的 id 会去掉标点（如“打开面板（可选）” → “打开面板可选”），
+        // 选择页末尾的选项卡片则是一个带 id="下一步" 的 div，不一定是标题。
+        const anchor = decodeURIComponent(new URL(page.url()).hash.slice(1));
+        const target = page.locator(`[id="${anchor.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"]`);
+        await expect(target).toBeVisible();
+        await expect(target).toBeInViewport();
+        // 页尾附近的小节最多只能滚到页面底部，不能像页中小节那样顶到视口上方，所以只要求落在视口里。
+        const y = (await target.boundingBox())?.y ?? Number.POSITIVE_INFINITY;
+        expect(y).toBeLessThan(page.viewportSize()!.height);
       }
     });
+  }
+});
+
+test.describe('按手机选择分流', () => {
+  const choiceEntries = entries.filter((entry) => entry.choice !== undefined);
+
+  test('6 条手机相关的旧页都带 choice（空表会让下面的用例悄悄消失）', () => {
+    expect(choiceEntries.map(({ from }) => from).sort()).toEqual([
+      'chrome-sign-in',
+      'google-region',
+      'register-claude',
+      'register-gmail',
+      'subscribe',
+      'use-two-days',
+    ]);
+  });
+
+  for (const entry of choiceEntries) {
+    for (const [option, target] of Object.entries(entry.choice!.options)) {
+      test(`${entry.from}（选了 ${option}）→ ${target.to}${target.section === undefined ? '' : `（${target.section}）`}`, async ({ page }) => {
+        await page.addInitScript(
+          ({ key, fork, option }) => localStorage.setItem(key, JSON.stringify({ choices: { [fork]: option } })),
+          { key: READER_STATE_KEY, fork: entry.choice!.fork, option },
+        );
+        await page.goto(`./${entry.from}/`);
+
+        await expect(page).toHaveURL(
+          (url) => url.pathname.endsWith(`/${target.to}/`) && (target.section === undefined ? url.hash === '' : decodeURIComponent(url.hash) !== ''),
+        );
+        await expect(page.locator('main[data-route-ready]')).toHaveCount(1);
+        if (target.section !== undefined) {
+          const anchor = decodeURIComponent(new URL(page.url()).hash.slice(1));
+          await expect(page.locator(`[id="${anchor}"]`)).toBeVisible();
+        }
+      });
+    }
   }
 });
 

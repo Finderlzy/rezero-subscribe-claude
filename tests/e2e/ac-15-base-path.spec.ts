@@ -142,8 +142,17 @@ test('不存在的页面显示“找不到这一页”，“回到首页”回�
 // ADR-0002、ADR-0006：已经发布的地址不能失效。删掉或合并掉的页面留一个跳转页，
 // 在 base 下跳到 route.yaml 的 moved: 登记的目标页（有 section 时还带原理版小节锚点）。
 test('旧网址的跳转页在 base 下跳到登记的目标页', async ({ page, baseURL }) => {
+  test.skip(['mobile-360', 'tablet-768'].includes(test.info().project.name), '和 desktop-1280 的根路径检查相同，子路径另跑一次');
   const entries = movedPages();
   expect(entries.length).toBeGreaterThan(0);
+  // 同一个页面上下文会在循环里累积路线脚本写下的本机选择；每次导航前都清掉，让 choice 条目按 fallback 核对
+  await page.addInitScript(() => {
+    try {
+      localStorage.clear();
+    } catch {
+      // about:blank 等拿不到 localStorage 的文档不用清
+    }
+  });
   for (const { from, to, section } of entries) {
     const response = await page.goto(`./${from}/`);
     expect(response?.status(), `/${from}/`).toBe(200);
@@ -151,9 +160,12 @@ test('旧网址的跳转页在 base 下跳到登记的目标页', async ({ page,
     await expect(page).toHaveURL(
       (url) => url.origin === expected.origin && url.pathname === expected.pathname && (section === undefined ? url.hash === '' : url.hash.length > 1),
     );
-    // section 也必须是登记的那一小节：V10 的 plan1-free-isp 现在跳到 /overview/#方案一和方案二
+    // section 也必须是登记的那一小节；hash 是渲染后的 slug，不一定等于标题原文（如“打开面板（可选）” → “打开面板可选”），
+    // 所以按 id 找元素，而不是拿标题原文拼 hash。
     if (section !== undefined) {
-      expect(decodeURIComponent(new URL(page.url()).hash), `/${from}/ 的跳转目标小节`).toBe(`#${section}`);
+      const anchor = decodeURIComponent(new URL(page.url()).hash.slice(1));
+      expect(anchor, `/${from}/ 的跳转目标小节`).not.toBe('');
+      await expect(page.locator(`[id="${anchor.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"]`)).toBeVisible();
     }
     await expect(page.locator('main[data-route-ready]')).toHaveCount(1);
   }
@@ -165,6 +177,7 @@ test.describe('没有 JS 时跳转页的 meta refresh 也在 base 下', () => {
   test.use({ javaScriptEnabled: false });
 
   test('meta refresh 的地址以 base 开头，指向登记的目标页', async ({ page, baseURL }) => {
+    test.skip(['mobile-360', 'tablet-768'].includes(test.info().project.name), '和 desktop-1280 的根路径检查相同，子路径另跑一次');
     const base = new URL(baseURL!).pathname;
     const entries = movedPages();
     expect(entries.length).toBeGreaterThan(0);

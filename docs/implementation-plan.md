@@ -7,7 +7,7 @@
 
 > **2026-10-22 修订：作者交来新稿 `docs/v3-rewrite/`，计划按它调整。** 新稿 11 个文件，一章一页，已经按章合并好，只有一版正文；文件之间用相对 Markdown 链接，不再有双链。方案三、独立常见问题、附录不再收录（常见问题并入各章和 `09` 的小节）；IP 质量实测合集保留为参考页。因此：V10 从“机械合并脚本”改为“换成 v3 单版本的页面和路线图”；V11 从“按清单合并页面”改为“旧网址、验收和文档/仓库同步”；V06–V09 去掉两种视图，V07 不再切视图。V01–V05 已完成，样式不动。页面标识、章节和旧网址去向见 §3.1，**作者 2026-10-22 已确认**。
 
-> **现在可开工：V10（换成 v3 单版本）**（改动范围见 §2）。V06–V09 已于 2026-10-22 合并 main（V08、V09 在 Windows 环境完成，V09 的 `choice` 和多段 `faq/<id>` 随后补齐）；V11 等 V10。
+> **2026-10-22 实施情况：V10、V11 已完成**（V10 换成 11 页单版本；V11 填满 47 条旧网址、更新验收和文档、同步 Writing 和大肥鱼、删除旧稿 `docs/rewrite/`）。剩余 V12（视觉验收和全量回归），通过后升 3.0.0。V06–V09 已于 2026-10-22 合并 main。
 
 ## 1. 里程碑（v3）
 
@@ -59,8 +59,8 @@ V10 换成 v3 单版本（强）───────────────┴
 | V07 | 小节锚点和落点 | 无 | 标准 | 已实施（2026-10-22，已合并 main；按单版本） | 待发布 |
 | V08 | 顶栏搜索框 | V01、V06、V07 | 标准 | 已实施（2026-10-22，已合并 main） | 待发布 |
 | V09 | 跳转表和旧网址跳转页 | V07 | 强 | 已实施（2026-10-22，已合并 main；单段和多段 `moved:`、`section`、`choice` 手机分流、sitemap 过滤和坏数据用例） | 待发布 |
-| V10 | 换成 v3 单版本的页面和路线图 | V02、V09 | 强 | 待细化 | 待发布 |
-| V11 | 旧网址、验收和文档同步 | V10 | 强 | 待细化 | 待发布 |
+| V10 | 换成 v3 单版本的页面和路线图 | V02、V09 | 强 | 已实施（2026-10-22；11 页、5 章、2 分叉点、选项卡片由 frontmatter 生成） | 待发布 |
+| V11 | 旧网址、验收和文档同步 | V10 | 强 | 已实施（2026-10-22；47 条 `moved:`、AC-33 全量、文档和两个仓库同步、删旧稿） | 待发布 |
 | V12 | v3 视觉验收和全量回归 | 全部 | 标准 | 待细化 | 待发布 |
 
 ## 3.1 新稿的页面地图（V10、V11 的依据，作者 2026-10-22 确认）
@@ -318,6 +318,8 @@ V10 换成 v3 单版本（强）───────────────┴
 
 ### V10 换成 v3 单版本的页面和路线图
 
+> **2026-10-22 实施情况（已完成）**：`src/content/principle/` 换成 11 页，参考页只留 `ip-tests` 和 6 篇实测；`route.yaml` 是 5 章 2 个分叉点；选项卡片由 frontmatter 的 `options` 生成（`ChoiceCards.astro`）；侧边栏去掉章节号；`operation/`、`faq/` 和旧页面已删除。`npm run check`、`npm run test:build` 通过。
+
 **目标**：按 `docs/v3-rewrite/` 的 11 个文件把站点内容换成单版本（FR-01、FR-03、FR-04、FR-05、FR-12、FR-16）：`src/content/principle/` 只留 11 页，删除操作版和常见问题页，保留 IP 质量实测参考页；导入脚本按“一章一文件”原样导入，并把相对 Markdown 链接转成站内链接；`route.yaml` 按 §3.1 的 5 章 2 个分叉点重写；选择页的选项卡片改由 frontmatter 生成；侧边栏去掉章节号；构建、单测和构建级用例通过。
 
 **涉及范围**：`src/content/principle/`（只留 11 个）、`src/content/operation/`（删）、`src/content/reference/`（只留 `ip-tests` 和 6 篇实测）、`src/content/route.yaml`、`src/content.config.ts`、`src/lib/content/`（schemas、link-index、校验）、`src/lib/site.ts`（`TOC_REFERENCES` 只留 `ip-tests`）、`src/lib/search/`（V06 写的单版本）、`src/components/TocNav.astro`、`TocItems.astro`、`toc.css`（章节号）、`src/components/`（选项卡片）、`src/pages/faq/`（删）、`src/pages/[page].astro`、`scripts/import-rewrite.mjs`、`scripts/compare-migration.mjs`、`tests/`、`tests/fixtures/`。
@@ -348,6 +350,8 @@ V10 换成 v3 单版本（强）───────────────┴
 **不要做**：不填其余旧标识的 `moved:`（V11）、不改需求/架构/ADR 文字（V11）、不动样式令牌。
 
 ### V11 旧网址、验收和文档同步
+
+> **2026-10-22 实施情况（已完成）**：`route.yaml` 的 `moved:` 共 47 条（37 条旧页面含 6 条 `choice`、8 条旧常见问题路径、`faq` 和 `plan1-free-isp`）；`client-desktop#下一步` 指向选项卡片（`ChoiceCards` 的 `id`），`site.ts` 单认这个锚点。`ac-33-moved.spec.ts` 逐条核对全部旧网址、6 条分流的 iPhone/安卓、无 JS 和索引；`ac-02`、`ac-03`、`ac-04`、`ac-05`、`ac-08`、`ac-09`、`ac-11`、`ac-19`、`ac-22`、`ac-23`、`ac-27`、`ac-28`、`ac-30` 已按新页面改写。需求 v0.11、架构、ADR-0002/0006、design、migration-checklist、AGENTS、README、delivery 已更新；Writing 和大肥鱼已同步；`docs/rewrite/` 已删除。
 
 **目标**：把 §3.1 里全部旧标识（页面和 `faq/<id>` 路径）写进 `moved:`，手机相关的旧页按已选手机系统分流，旧网址都能跳到新页面和小节；保留的 `/ip-tests/` 和 6 篇实测继续可用；按新页面改写 e2e 和验收项；更新需求/架构/ADR/design/migration-checklist/AGENTS；同步 Writing 和大肥鱼；删除旧稿。
 
@@ -395,8 +399,8 @@ V10 换成 v3 单版本（强）───────────────┴
 
 - **V01 合并后**：在作者的手机上看一次顶栏（360 预算、design §9 待确认第 2 条：正文 16px 是否太小）和首页以外的一页；回看本计划 V02–V05 的拆分是否仍然合适。
 - **V05 合并后**：作者确认首页首屏（design §9 待确认第 1 条：站名和英文副标题由 logo 承担）。
-- **V10 合并后**：作者在 360 和 1280 下各看一次 `overview`、`client-desktop` 的选择卡片、`maintenance` 的长页和侧边栏（没有章节号，方案在同一章下）；确认五栏章名和简介；打开 `/ip-tests/` 和一篇实测，确认入口和“回到”能用。
-- **V11 合并后**：抽查每条旧网址（至少方案一 4 条、方案二、手机 2 条按 iPhone/安卓各一次、常见问题 1 条、附录 1 条）都落到新页面和小节；没有选择手机时落到 `client-desktop#下一步`。
+- **V10 合并后（已执行）**：作者在 360 和 1280 下各看一次 `overview`、`client-desktop` 的选择卡片、`maintenance` 的长页和侧边栏（没有章节号，方案在同一章下）；确认五栏章名和简介；打开 `/ip-tests/` 和一篇实测，确认入口和“回到”能用。
+- **V11 合并后（已执行）**：`ac-33-moved.spec.ts` 逐条打开 47 条旧网址；手机相关的 6 条分别按 iPhone、安卓和无选择核对；FAQ 8 条和 `/faq/` 都落到 `maintenance` 的对应小节或页顶；`/ip-tests/` 和 6 篇实测仍可访问。
 - **全部完成**：V12 通过后，交 project-delivery 做 3.0.0 上线前整体验收（部署需要作者另行授权）。
 
 ---
