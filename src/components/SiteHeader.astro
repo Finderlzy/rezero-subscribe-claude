@@ -3,6 +3,7 @@ import { withBase } from '../lib/with-base';
 import ContactLinks from './ContactLinks.astro';
 import Logo from './Logo.astro';
 import Mascot from './Mascot.astro';
+import SiteSearch from './SiteSearch.astro';
 import ThemeToggle from './ThemeToggle.astro';
 
 /**
@@ -14,10 +15,10 @@ import ThemeToggle from './ThemeToggle.astro';
  * “目录”（`toc`）构建时是指向首页完整目录 `/#home-chapters` 的链接，没有 JS 也能到达目录（design §5，FR-16），
  * 页面脚本 toc.ts 把它换成打开抽屉的按钮（换元素时保留这里的属性，样式照样选得中）。
  *
- * 右边依次：站内搜索的挂载点（`[data-search-slot]`，V08 填，现在是空的、hidden）、昼夜切换（ThemeToggle，
- * 用户 2026-10-22 决定放在原来视图切换的位置）、作者的联系方式（ContactLinks，FR-23）。
+ * 右边依次：站内搜索（SiteSearch，FR-24；桌面和平板是胶囊输入框，<720px 是放大镜按钮）、
+ * 昼夜切换（ThemeToggle，用户 2026-10-22 决定放在原来视图切换的位置）、作者的联系方式（ContactLinks，FR-23）。
  * 360px 预算（design §4.0、需求 Q-17）：内边距 12×2 + 目录 44 + 标记 28 + 间距 6 + 小形象 24
- * + 搜索 44 + 昼夜 44 + 联系约 46 + 间距 4×3 ≈ 272px（搜索在 V08 之前是空的，现在更宽松）。
+ * + 搜索 44 + 昼夜 44 + 联系约 46 + 间距 4×3 ≈ 272px。
  */
 interface Props {
   /** 页面内嵌了目录（Toc.astro）：显示“目录”（≥720px 由 CSS 隐藏） */
@@ -47,7 +48,7 @@ const { toc = false } = Astro.props;
       <Mascot />
     </div>
     <div class="site-header-tools">
-      <div class="site-search-slot" data-search-slot hidden></div>
+      <SiteSearch />
       <ThemeToggle />
       <ContactLinks />
     </div>
@@ -123,10 +124,6 @@ const { toc = false } = Astro.props;
     align-items: center;
     gap: var(--header-gap);
     margin-left: auto;
-  }
-
-  .site-search-slot[hidden] {
-    display: none;
   }
 
   /* “目录”：44×44 的菜单图标按钮（design §4.0），没有 JS 时是链接 */

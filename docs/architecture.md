@@ -487,7 +487,7 @@ v2.0 → v2.1 的代码差距（现状 → 目标）：
 
 依赖方向：M1 ← M2 ← M3，M1 ← M6 ← M3，M4 独立。M6 不依赖 M2：索引的范围（哪些页面算步骤、选择页、旁支页、参考页）由 `loadSite()` 传入，M6 只管索引形状和匹配。
 
-### 13.2 M6 搜索（`src/lib/search/`，现状 V06 2026-10-22）
+### 13.2 M6 搜索（`src/lib/search/`，现状 V06、V08 2026-10-22）
 
 **职责**：FR-24。把页面标题和正文的 h2、h3 变成一份小索引，在浏览器里按读者输入找出最多 10 条结果。深模块：对外两个纯函数，规范化、排序都藏在里面。
 
@@ -505,8 +505,8 @@ function search(index: SearchEntry[], query: string, limit = 10): SearchHit[];  
 - **数据来源**：`src/pages/search-index.json.ts`（现状）调用 `loadSite()`，用 `searchPageIds(route)`（`src/lib/site.ts`）按目录顺序列出全部页面——步骤、选择页、分叉的各个选项（共享步骤只算第一次），旁支页排在最后——用 `searchReferences(site.references)` 列出 `ip-tests` 合集和它的各篇实测，再对每项调用 `render()` 取 `headings`，交给 `buildSearchIndex`（只收 depth 2、3）。v3 只有一版正文，不再有 `view` 参数；首页、找不到页、跳转页（V09 的 `moved:`）不进索引。常见问题在 v3 并进各章、不再有独立页面（实施计划 §3.1），所以索引里没有 `faq`。
 - **匹配**：查询和条目文字都做 NFKC、转小写、去掉空白；页面标题条目只看标题，小标题条目只看小标题（所以标题命中不会把同一页的小标题重复列一遍），条目文字包含查询就算命中；页面标题和同名小标题各算一条（前者打开页顶，后者跳到小节）。排序：页面标题命中 > 小标题命中；同类里开头命中 > 中间命中；再按 `order`。不做模糊匹配和分词（需求：只搜标题和小标题；中文子串匹配足够，例如“时区”命中“改时区”）。
 - **锚点**：`search()` 用 `withBase()` 生成 `href`；小标题命中是 `withBase(path + '#' + slug)`，页面标题命中是 `withBase(path)`。
-- **页面脚本** `src/scripts/search.ts`（V08）：读者第一次聚焦搜索框时用 `fetch(withBase('/search-index.json'))` 取索引（同源、地址固定，请求里没有读者输入的文字，AC-28）；之后输入时只在内存里调用 `search()`。下拉是 ARIA combobox（`role="combobox"` + `listbox`），上下键、回车、Esc；没有结果时显示“没有找到”。<720px 顶栏只显示搜索图标按钮，点开后输入框覆盖顶栏。没有 JS 时搜索控件隐藏。打开小标题结果后，由 13.4 的 `section-hash` 滚动到位置。
-- **组件** `SiteSearch.astro`（V08），只放进顶栏。
+- **页面脚本** `src/scripts/search.ts`（V08 现状）：读者第一次聚焦搜索框时用 `fetch(withBase('/search-index.json'))` 取索引（同源、地址固定，请求里没有读者输入的文字，AC-28）；之后输入时只在内存里调用 `search()`。下拉是 ARIA combobox（`role="combobox"` + `listbox`），上下键、回车、Esc；没有结果时显示“没有找到”，索引下载失败时显示“搜索暂时不可用”。<720px 顶栏只显示搜索图标按钮，点开后输入框覆盖顶栏，关闭后焦点回到按钮。没有 JS 时搜索控件隐藏。打开小标题结果后，由 13.4 的 `section-hash` 滚动到位置。
+- **组件** `SiteSearch.astro`（V08 现状），只放进顶栏。
 - 体积：几十条、几 KB，只有标题和小标题、没有正文段落；索引只在聚焦时下载一次，浏览器缓存。
 
 ### 13.3 M3 页面（按 design.md v3）
@@ -514,7 +514,7 @@ function search(index: SearchEntry[], query: string, limit = 10): SearchHit[];  
 [design.md](design.md) v3（2026-10-21 定稿）给出令牌、尺寸、断点、深色配色和 Q-17 的 360px 顶栏预算，M3 的实现以它为准；本节只定结构和接口。
 
 - **断点**：`720px` 一档取代 `1100px` 的“常驻目录”档；具体令牌由 design 定，`tokens.css` 和 `tokens.test.ts` 同步。
-- **顶栏**（V01 现状）：`SiteHeader.astro` 改为文档站顶栏，左边 `Logo`（“Re:”标记）+ 站名 + `Mascot`，右边搜索挂载点 `[data-search-slot]`（V08 填 `SiteSearch`）、`ThemeToggle`（昼夜切换，用户 2026-10-22 决定取代 `ViewToggle`，见 13.12）、`ContactLinks`；<720px 左边多“目录”按钮。不吸顶。首页不用顶栏（FR-18）。
+- **顶栏**（V01 现状，搜索 V08 现状）：`SiteHeader.astro` 改为文档站顶栏，左边 `Logo`（“Re:”标记）+ 站名 + `Mascot`，右边 `SiteSearch`（V08 接上，桌面和平板是胶囊输入框、手机是放大镜按钮）、`ThemeToggle`（昼夜切换，用户 2026-10-22 决定取代 `ViewToggle`，见 13.12）、`ContactLinks`；<720px 左边多“目录”按钮。不吸顶。首页不用顶栏（FR-18）。
 - **页面骨架**（V01 现状）：`PageLayout`、`ReferenceLayout` 改成“顶栏 + 两栏（侧边栏 | 正文栏）”，≥720px 侧边栏 `position: sticky`、独立滚动，<720px 只有正文栏、目录在抽屉里。页头色带、`ChapterSubtitle`、章节标题卡、`.step-heading` 的编号挂栏删除；眉题改为 h1 上方一行灰色小字，进度文字仍由 `nav-text.ts` 和 `route-enhance` 的 `renderProgress` 给出（挂载点名字不变）。`Numeral`、`numerals/` 只剩找不到页的大号 `404`（design v3 §3.2、§9），`ChapterSubtitle` 和 `chapter-0X.svg` 已随 V05 删除。
 - **正文和内容组件**（V03 现状，FR-72）：页面标题、正文和内容组件按 design §3.2、§4.7 排（h1 在 `base.css` 和页面布局，其余在 `prose.css`）：h2–h4、正文链接、行内代码和代码块、表格（全格线 + 隔行）、提示块（浅底 + 4px 左色条）和截图图版；`GroupInvite` 用普通提示块的外观。正文栏宽度仍由 `--measure` 和 `--gutter` 决定。
 - **目录 / 侧边栏**（V02 现状，FR-16）：`TocNav` 每章是一个 `<details>`，当前页所在章 `open`，其余折叠；折叠只在 DOM 里，不写本机。当前页下面列出它正文的 h2（固定原理视图，只有一份，用户 2026-10-22 决定），由 `[page].astro`、`faq/*.astro`、`ip-tests/*.astro` 把 `render()` 的 `headings` 经 `tocSections()` 取 `depth === 2` 传给 `PageLayout`/`ReferenceLayout` 的新参数 `sections`，再交给 `Toc`；参考页的当前项由 `ReferenceLayout` 的 `currentReference` 指定（各条问题、各篇实测高亮上级），附录章跟着展开；子页也把 `headings` 传下去，小节挂在上级项下面，链接锚点仍是子页正文的 h2。旁支页用 `openChapterId`（`PageLayout` 传 `view.progress.chapterId`）展开它所属的章。`TocItems.astro` 写一章的页面项和参考页，`TocSections.astro` 写小节列表。链接锚点直接用正文 h2 的 `slug`。当前项 600 `--accent` + 4px 左边线。`toc.ts` 仍按本机选择改写弱化和当前项，不碰 `<details>` 的开合。找不到页的目录用不折叠的变体（`collapsible` 不传）；首页不再用 `TocNav`（第二屏是五章简介，直接读 `RouteData.chapters` 的 `title` 和 `summary`）。抽屉和侧边栏仍是同一套 `TocNav` 标记（v2.2 的做法）。
@@ -533,7 +533,7 @@ function search(index: SearchEntry[], query: string, limit = 10): SearchHit[];  
   - `sectionAnchor(headings, text)`：先按标题文字精确匹配，再按 `normalizeSectionText()`（NFKC、小写、合并空白）匹配；只有唯一命中才返回 slug，重复标题或找不到返回 `undefined`。
   - `resolveSectionAnchor()` 在标题文字之外也接受已经写好的 slug，供链接片段使用。
   - `remark-obsidian.ts` 用它解析 `[[页面#小标题]]`，并在同一页出现 `[文字](#小标题)` 时把片段换成 `#<slug>`；目标不存在或片段只有 `#` 时构建失败（FR-05“校验”）。操作版不再渲染（V10 删除），同页链接不校验；`#main` 这类布局自带的落点原样交给浏览器。
-  - V09 的 `moved:` 条目用同一个 `sectionAnchor()` 校验并算出跳转锚点；V08 打开搜索结果直接改 `location.href`，由下面的页面脚本负责滚动。
+  - V09 的 `moved:` 条目用同一个 `sectionAnchor()` 校验并算出跳转锚点；V08 现状：打开搜索结果直接改 `location.href`，由下面的页面脚本负责滚动。
 - **页面脚本** `src/scripts/section-hash.ts`（V07 现状）：`PageLayout`、`ReferenceLayout` 加载时初始化，页面加载和 `hashchange` 时解码 `location.hash`，在正文容器 `.prose` 里找对应 id，找到就 `scrollIntoView()`；初始化放在其它页面脚本之后，补一次滚动以免布局变化把原生锚点带偏。`#main` 这类不是小节的地址不处理，交给浏览器原生跳转。没有 JS 时浏览器原生锚点照常工作。
 
 ### 13.5 合并的执行（开发脚本，计划）
@@ -578,7 +578,7 @@ tests/fixtures/moved-*/         跳转表的坏内容用例（目标不存在、
 | --- | --- |
 | AC-26 | Playwright（1280）：顶栏元素顺序、细线、没有 `.page-band` 一类色带元素；`tokens.test.ts` 核对紫色令牌和对比度 |
 | AC-27 | Playwright（768、1280，另在用例里设 719 宽）：`<details open>` 只有第 1 章；点章名展开；当前页的小标题列表（固定原理视图只有一份）；719 宽没有侧边栏、“目录”打开抽屉；参考页子页的小节列在上级下面 |
-| AC-28 | `src/lib/search/index.test.ts`（规范化、排序、锚点选择、上限 10 条、“没有找到”）；Playwright：键盘操作、原理独有小标题切视图并滚动、`page.on('request')` 断言没有站外请求、没有带查询文字的请求；360 下先点图标才有输入框、无横向滚动 |
+| AC-28 | `src/lib/search/index.test.ts`（规范化、排序、锚点选择、上限 10 条、“没有找到”）；`tests/e2e/ac-28-search.spec.ts`（V08 现状）：键盘和鼠标打开结果、打开小标题结果后由 `section-hash` 滚动到小节（固定原理视图，不切视图）、`page.on('request')` 断言只下载一次索引且没有站外请求、没有带查询文字的请求、输入法组字不搜索；360 下先点图标才有输入框、无横向滚动；`ac-15-base-path.spec.ts` 在 `/sub/` 下核对索引和结果地址 |
 | AC-29 | Playwright：首页 hero 元素、五章目录、没有侧边栏 |
 | AC-30 | Playwright：翻页文字链接、没有主按钮、“跳过”结果同 AC-05；360 下两个链接 `boundingBox().height ≥ 44` |
 | AC-32 | `merge-rewrite.mjs` 的自检和单元测试（合并前后命令、链接、嵌入不变）+ `compare-migration.mjs` 对照合并后的重写稿与产物 + Playwright 看侧边栏小节；人工抽查记进 migration-checklist 的 v3 节 |
@@ -619,12 +619,12 @@ tests/fixtures/moved-*/         跳转表的坏内容用例（目标不存在、
 | # | 发现 | 影响 | 处理 |
 | --- | --- | --- | --- |
 | R-1 | 侧边栏要列当前页两版的 h2（FR-16），但 `[page].astro` 只取 `render()` 的 `Content`，`PageLayout`/`Toc` 没有标题数据 | V02 无从下手 | 接口：`[page].astro` 把两版 `render()` 的 `headings`（depth 2）传给 `PageLayout` 的新参数 `sections: { principle: Heading[]; operation?: Heading[] }`，再传给 `Toc`；参考页只有 `principle` |
-| R-2 | `section-hash` 要切视图但不能像按钮那样滚回顶部；`view-toggle.ts` 现在没有导出切换函数 | V08 需要改 view-toggle 的接口 | `initViewToggle` 返回 `{ setView(view, { scroll: boolean }) }`，按钮调用时 `scroll: true`；`section-hash` 收到它 |
+| R-2 | `section-hash` 要切视图但不能像按钮那样滚回顶部；`view-toggle.ts` 现在没有导出切换函数 | V08 需要改 view-toggle 的接口 | **作废**（§13.12：去掉视图切换，页面固定原理视图，V07 的 `section-hash` 只滚动） |
 | R-3 | `tests/e2e/ac-02-chapter-card.spec.ts` 专测 v2.2 的页头色带和章首页一组，v3 按 FR-72 去掉这部分 | 按 AC-31“不删检查项”会误以为不能删 | 这是需求删掉的功能，不是放宽断言：V01 把这个文件换成 AC-26 的断言（找不到色带和章首页一组、眉题和 h1 仍在），在提交说明里写明对应 FR-72 |
 | R-4 | 手机吸底翻页栏取消（design V11），`ac-16-responsive`、`a11y` 里有按底栏高度预留空白和 44px 按钮的断言 | 断言会失败 | V04 按 AC-30 改成“翻页链接可点区域 ≥44px”，同样是功能变化，写明 |
 | R-5 | `Toc` 把 `TocNav` 写两份（侧边栏 + 抽屉），v3 的 `<details>` 和小节列表也会写两份 | 只是体积，不影响 id（列表里只有链接） | 沿用 v2.2 做法，不改 |
 | R-6 | 跳转页的 `location.replace` 目标和 meta refresh 都要带 `BASE_PATH`；AC-15 现有 `plan1-free-isp` 的子路径用例依赖 Astro `redirects` 的输出 | 换实现后子路径可能失效 | V09 用 `withBase()` 生成两处地址，AC-15 的子路径用例保留并改为断言新跳转页 |
-| R-7 | 搜索框也在参考页和找不到页的顶栏里（FR-24“首页以外每页”），这些页面没有视图切换 | `search.ts` 取不到当前视图 | 统一从 M4 读视图（`createReaderStore` 已可用），没有就按操作视图选锚点 |
+| R-7 | 搜索框也在参考页和找不到页的顶栏里（FR-24“首页以外每页”），这些页面没有视图切换 | `search.ts` 取不到当前视图 | **改为固定原理版**（§13.12）：V08 不读 M4 视图，打开结果直接改地址，由 `section-hash` 滚动 |
 | R-8 | 合并后，AC-03/04/05/08/09/30 的用例里有会被合并的页面 | Q-18 定后才知道改哪些 | V11 按 AC-31 的规则改成合并页及其小节，在提交说明里逐条列出 |
 | R-9 | “合并页和被合并页面属于同一选项”（ADR-0006 的前提）删页后无法由构建校验 | 本机选择可能丢 | V11 的手工核对清单逐条比对 `route.yaml` 改前改后；AC-33 的 e2e 断言跳转后 `choices` 写入了对应选项 |
 | R-10 | `merge-rewrite.mjs` 要和 `import-rewrite.mjs` 识别同一种手写页脚 | 两套规则会漂移 | 先把页脚识别抽成两者共用的模块（V10 的第一步，先重构） |

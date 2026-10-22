@@ -50,14 +50,21 @@ describe('PageLayout', () => {
     expect(JSON.parse(json!)).toEqual(data);
   });
 
-  // 原来放视图切换的位置换成昼夜切换（用户 2026-10-22 决定）；搜索挂载点留给 V08
-  it('顶栏右侧：搜索挂载点（空、hidden）、昼夜切换（没有 JS 时 hidden）、联系方式，没有视图切换', async () => {
+  // 原来放视图切换的位置换成昼夜切换（用户 2026-10-22 决定）；搜索由 V08 接上（SiteSearch）
+  it('顶栏右侧：搜索（没有 JS 时 hidden）、昼夜切换（没有 JS 时 hidden）、联系方式，没有视图切换', async () => {
     const html = await render({}, { principle: '<p>原理正文</p>' });
     const header = /<header class="site-header"[\s\S]*?<\/header>/.exec(html)?.[0] ?? '';
     expect(header).not.toContain('data-view-option');
-    expect(header).toMatch(/<div class="site-search-slot" data-search-slot hidden[^>]*><\/div>/);
+    expect(header).not.toContain('data-search-slot');
+    // 搜索控件：没有 JS 时整个 hidden，脚本露出；输入框是 ARIA combobox，下拉是 listbox
+    const search = /<div class="site-search" data-site-search[^>]*>/.exec(header)?.[0] ?? '';
+    expect(search).toContain('hidden');
+    expect(header).toContain('role="combobox"');
+    expect(header).toContain('aria-autocomplete="list"');
+    expect(header).toContain('aria-controls="site-search-list"');
+    expect(header).toContain('role="listbox"');
     expect(header).toMatch(/<button type="button" class="theme-toggle" data-theme-toggle aria-pressed="false" aria-label="深色模式"[^>]*hidden/);
-    const order = ['data-search-slot', 'data-theme-toggle', 'aria-label="作者的联系方式"'].map((m) => header.indexOf(m));
+    const order = ['data-site-search', 'data-theme-toggle', 'aria-label="作者的联系方式"'].map((m) => header.indexOf(m));
     expect(order.every((i) => i > 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
   });

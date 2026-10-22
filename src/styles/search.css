@@ -1,0 +1,261 @@
+/*
+ * 顶栏站内搜索（FR-24、AC-28、design §4.8）：胶囊输入框（桌面和平板）、放大镜按钮（手机）、
+ * 下拉结果和“没有找到 / 搜索暂时不可用”。颜色、间距、圆角只用 tokens.css 的令牌。
+ * 没有 JS 时 SiteSearch.astro 的根元素是 hidden（search.ts 在初始化时露出）。
+ */
+
+.site-search {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+}
+
+.site-search[hidden] {
+  display: none;
+}
+
+/* 手机上的放大镜按钮（44×44）；桌面和平板由 CSS 隐藏，输入框直接显示 */
+.search-open {
+  display: none;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.search-open:hover {
+  background: var(--surface-muted);
+  color: var(--text);
+}
+
+.search-form {
+  position: relative;
+  display: flex;
+  align-items: center;
+  /* 焦点加宽时输入框的右缘不动，向左长（design §4.8） */
+  min-width: 0;
+}
+
+/* 放大镜画在输入框里面：16px，--text-faint（design §4.8） */
+.search-icon {
+  position: absolute;
+  left: var(--space-3);
+  display: inline-flex;
+  color: var(--text-faint);
+  pointer-events: none;
+}
+
+.search-input {
+  box-sizing: border-box;
+  width: 140px;
+  height: 36px;
+  padding: 0 var(--space-3) 0 var(--space-6);
+  border: var(--border-width) solid var(--control-border);
+  border-radius: var(--radius-pill);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-meta);
+  line-height: 1;
+  /* 桌面搜索框聚焦加宽 150ms（design §5）；其余动效没有 */
+  transition: width 150ms var(--ease-decelerate);
+}
+
+.search-input:hover {
+  border-color: var(--text-muted);
+}
+
+/* 不要浏览器自带的清除按钮（design §4.8 的胶囊里只有放大镜；清空用 Esc 或退格） */
+.search-input::-webkit-search-cancel-button,
+.search-input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.search-input:focus {
+  border-color: var(--accent);
+}
+
+/* 手机打开后输入框盖住整条顶栏时的“←”关闭按钮；桌面和平板不显示 */
+.search-close {
+  display: none;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.search-close:hover {
+  background: var(--surface-muted);
+}
+
+/* 下拉（design §4.8）：--surface 底、1px 细线、6px 圆角、浮层阴影，6px 内边距（design 定的值，没有对应 spacing 令牌），
+   最高 min(70vh, 480px) */
+.search-popup {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  box-sizing: border-box;
+  width: 360px;
+  max-height: min(70vh, 480px);
+  overflow-y: auto;
+  padding: 6px;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--overlay-shadow);
+  z-index: 3;
+}
+
+.search-popup[hidden] {
+  display: none;
+}
+
+.search-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.search-list[hidden] {
+  display: none;
+}
+
+/* 每条结果：内边距 8px 12px、6px 圆角；选中或悬停时 --accent-soft 底、标题 --accent */
+.search-option {
+  display: block;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.search-option[aria-selected='true'],
+.search-option:hover {
+  background: var(--accent-soft);
+}
+
+.search-option-title {
+  display: block;
+  /* 15px 600（design §4.8）；和顶栏文字按钮同字号 */
+  font-size: var(--fs-header);
+  font-weight: var(--fw-heading);
+  line-height: 1.4;
+}
+
+.search-option[aria-selected='true'] .search-option-title {
+  color: var(--accent);
+}
+
+/* 第二行“› 小标题”：14px --text-muted（design §4.8） */
+.search-option-heading {
+  display: block;
+  color: var(--text-muted);
+  font-size: var(--fs-meta);
+  line-height: var(--lh-meta);
+}
+
+/* 匹配到的文字加粗，不改色（700 是加粗，不是标题字重 --fw-heading） */
+.search-option strong {
+  font-weight: 700;
+}
+
+/* “没有找到 / 搜索暂时不可用”：一行 14px --text-muted，读屏用 aria-live 播报 */
+.search-status {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--fs-meta);
+  line-height: var(--lh-meta);
+}
+
+@media (min-width: 960px) {
+  .search-input {
+    width: 180px;
+  }
+
+  .search-input:focus {
+    width: 220px;
+  }
+}
+
+/* <720px：只显示放大镜按钮；点开后输入框固定盖住整条顶栏，下拉占满视口宽度、贴着顶栏下沿 */
+@media (max-width: 719px) {
+  .site-search {
+    position: static;
+  }
+
+  .search-open {
+    display: inline-flex;
+  }
+
+  .search-form {
+    display: none;
+  }
+
+  .site-search[data-open] .search-open {
+    display: none;
+  }
+
+  .site-search[data-open] .search-form {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    gap: var(--space-2);
+    box-sizing: border-box;
+    height: var(--header-height);
+    padding: 0 var(--header-pad-x);
+    border-bottom: var(--border-width) solid var(--border);
+    background: var(--bg);
+    z-index: 3;
+  }
+
+  .search-close {
+    display: inline-flex;
+  }
+
+  /* 覆盖层里不再需要画在输入框里的放大镜（左边是关闭按钮，design §4.8 的示意图） */
+  .site-search[data-open] .search-icon {
+    display: none;
+  }
+
+  .site-search[data-open] .search-input {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+    padding-left: var(--space-3);
+  }
+
+  .search-popup {
+    position: fixed;
+    top: var(--header-height);
+    left: 0;
+    right: 0;
+    width: auto;
+    border-radius: 0;
+    max-height: min(70vh, 480px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-input {
+    transition: none;
+  }
+}

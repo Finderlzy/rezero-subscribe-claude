@@ -1,0 +1,66 @@
+---
+import '../styles/search.css';
+
+/**
+ * 顶栏的站内搜索（FR-24、AC-28、design §4.8、架构 §13.2）：只放进 `SiteHeader.astro`，
+ * 首页以外的每页都有（步骤页、选择页、旁支页、参考页、找不到页）。
+ *
+ * 桌面和平板是一个胶囊输入框（平板 140px、桌面 180px，聚焦时桌面加宽到 220px）；
+ * <720px 只有 44×44 的放大镜按钮，点开后输入框固定盖住整条顶栏（左边是“←”关闭按钮），
+ * 关闭后焦点回到按钮。下拉最多 10 条：页面标题，命中小标题时第二行写“› 小标题”；上下键、回车、Esc。
+ *
+ * 索引在第一次聚焦时由 `src/scripts/search.ts` 下载（`search-index.json`），之后只在内存里匹配；
+ * 输入的文字不离开浏览器。没有 JS 时整个控件是 `hidden`（design §5）。
+ */
+---
+
+<div class="site-search" data-site-search hidden>
+  <button type="button" class="search-open" data-search-open aria-label="搜索">
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+      <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"></circle>
+      <path d="m16 16 5 5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+    </svg>
+  </button>
+  <div class="search-form" role="search" aria-label="站内搜索" data-search-form>
+    <button type="button" class="search-close" data-search-close aria-label="关闭搜索">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+        <path d="M20 12H4M11 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+      </svg>
+    </button>
+    <span class="search-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+        <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"></circle>
+        <path d="m16 16 5 5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+      </svg>
+    </span>
+    <label class="visually-hidden" for="site-search-input">搜索页面和小标题</label>
+    <input
+      id="site-search-input"
+      class="search-input"
+      type="search"
+      role="combobox"
+      aria-expanded="false"
+      aria-controls="site-search-list"
+      aria-autocomplete="list"
+      autocomplete="off"
+      spellcheck="false"
+      placeholder="搜索"
+      data-search-input
+    />
+  </div>
+  <div class="search-popup" data-search-popup hidden>
+    <ul class="search-list" id="site-search-list" role="listbox" aria-label="搜索结果" data-search-list></ul>
+    <p class="search-status" data-search-status aria-hidden="true" hidden></p>
+  </div>
+  {/*
+    读屏播报“没有找到 / 搜索暂时不可用”（design §4.8）：这块始终在可访问树里（视觉隐藏），
+    只换里面的文字；可见的那一行在弹层里，对读屏隐藏，避免同一句读两次。
+  */}
+  <p class="visually-hidden" data-search-announce role="status" aria-live="polite"></p>
+</div>
+
+<script>
+  import { initSearch } from '../scripts/search';
+
+  initSearch(document);
+</script>
