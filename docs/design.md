@@ -1,6 +1,6 @@
 # 界面设计契约：Re:从零开始订阅 claude
 
-- 状态：**v3 定稿（2026-10-21），实施中**（V01、V02、V03、V04、V05 已实施），对应需求 v0.9 的 FR-72、FR-16、FR-18、FR-24、FR-05、FR-25 和第 0.1 节，以及架构 [§13](architecture.md#13-v3-增量架构2026-10-21)。v3 把 v2.2 的“精确工具”（白底、浅紫页头色带、黑色主按钮）换成**参考站 [Wallpaper Engine 设计师文档](https://docs.wallpaperengine.io/en/scene/first/gettingstarted.html) 用的 VuePress 1 默认文档主题的样子**：白色顶栏、左侧侧边栏、一栏纯文字正文、文字链接翻页。主色仍是 logo 的紫色，框架仍是 Astro（作者 2026-10-21 选定）。**代码现状是 v3 部分实施**，v2.2 的契约见 git 历史（`v2.0.0` 标签之后、本次提交之前的 `docs/design.md`），决定记录留在 §8。
+- 状态：**v3 定稿（2026-10-21），已实施并验收**（V01–V12，2026-10-24），对应需求 v0.9 的 FR-72、FR-16、FR-18、FR-24、FR-05、FR-25 和第 0.1 节，以及架构 [§13](architecture.md#13-v3-增量架构2026-10-21)。v3 把 v2.2 的“精确工具”（白底、浅紫页头色带、黑色主按钮）换成**参考站 [Wallpaper Engine 设计师文档](https://docs.wallpaperengine.io/en/scene/first/gettingstarted.html) 用的 VuePress 1 默认文档主题的样子**：白色顶栏、左侧侧边栏、一栏纯文字正文、文字链接翻页。主色仍是 logo 的紫色，框架仍是 Astro（作者 2026-10-21 选定）。**代码现状是 v3 已实施**，v2.2 的契约见 git 历史（`v2.0.0` 标签之后、本次提交之前的 `docs/design.md`），决定记录留在 §8。
 - 关联：[需求](requirements.md)、[架构](architecture.md)、[术语](../CONTEXT.md)、[ADR-0006](adr/0006-merged-pages-and-moved-urls.md)
 - 用途：实现页面（M3）时以本文为准。本文规定**做什么、为什么这么做**；具体值以 `src/styles/tokens.css` 为准，两边改动要同步，对比度由 `src/styles/tokens.test.ts` 实测。
 

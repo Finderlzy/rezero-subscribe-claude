@@ -1,8 +1,8 @@
 # 仓库指南
 
-「Re:从零开始订阅 claude」是把《如何订阅claude》做成分步引导的静态网站。当前状态：**v3 实施中（V01–V11 已完成，V12 验收待做）**，目标版本 3.0.0；2.0.0 已于 2026-10-19 通过上线前验收并部署到 <https://re0claude.us.ci/>（见 [docs/delivery.md](docs/delivery.md)）。
+「Re:从零开始订阅 claude」是把《如何订阅claude》做成分步引导的静态网站。当前状态：**v3 已完成（V01–V12），站点版本 3.0.0**，已部署到 <https://re0claude.us.ci/>（见 [docs/delivery.md](docs/delivery.md)）。
 
-v3（2026-10-21 需求定稿，2026-10-22 按作者新稿收口）把站点改成参考站 VuePress 默认文档主题的样子（保留紫色和 Astro，去掉页头色带，≥720px 常驻侧边栏，加站内搜索、昼夜切换），并按作者重写好的 `docs/v3-rewrite/` 换成 11 页单版本：一章一页、没有操作版/原理版切换，方案三、独立常见问题、附录不再收录，IP 质量实测合集和 6 篇实测保留为参考页。V01–V09 已合并 main；**V10** 换成 11 页、5 章、2 个分叉点，选项卡片改由 frontmatter 生成；**V11** 把全部 47 条旧网址（37 条旧页面含 6 条手机分流、8 条旧常见问题路径和旧 `faq` 目录）写进 `route.yaml` 的 `moved:`，更新验收和文档、同步 Writing 和大肥鱼、删除旧稿 `docs/rewrite/`。剩余 V12 做视觉验收和全量回归，然后升 3.0.0。标“计划”的条目由对应任务建立，建立后改成现状。
+v3（2026-10-21 需求定稿，2026-10-22 按作者新稿收口）把站点改成参考站 VuePress 默认文档主题的样子（保留紫色和 Astro，去掉页头色带，≥720px 常驻侧边栏，加站内搜索、昼夜切换），并按作者重写好的 `docs/v3-rewrite/` 换成 11 页单版本：一章一页、没有操作版/原理版切换，方案三、独立常见问题、附录不再收录，IP 质量实测合集和 6 篇实测保留为参考页。V01–V09 已合并 main；**V10** 换成 11 页、5 章、2 个分叉点，选项卡片改由 frontmatter 生成；**V11** 把全部 47 条旧网址（37 条旧页面含 6 条手机分流、8 条旧常见问题路径和旧 `faq` 目录）写进 `route.yaml` 的 `moved:`，更新验收和文档、同步 Writing 和大肥鱼、删除旧稿 `docs/rewrite/`。**V12** 按 design §7 做了 360/768/1280、深浅两色的逐页截图对照和 AC-01–AC-33 全量回归，升 3.0.0 并打标签。标“计划”的条目由对应任务建立，建立后改成现状。
 
 ## 文档入口
 
@@ -11,7 +11,7 @@ v3（2026-10-21 需求定稿，2026-10-22 按作者新稿收口）把站点改�
 | 任何任务前 | [CONTEXT.md](CONTEXT.md)：术语（步骤、路线、分叉点、操作视图……），命名和文案要用这里的词 |
 | 判断做不做、怎么验收 | [docs/requirements.md](docs/requirements.md)：范围、三级边界、FR/AC 编号 |
 | 改代码结构、接口、目录 | [docs/architecture.md](docs/architecture.md)（v3 的增量在 §13）、[docs/adr/](docs/adr/) |
-| 改页面或样式 | [docs/design.md](docs/design.md)：设计令牌、页面结构、拒绝清单；**v3（文档站风格，2026-10-21 定稿，V01–V10 已实施）**：昼夜切换、常驻侧边栏、正文组件、文字链接翻页、VuePress 式首页、站内搜索、小节锚点、11 页单版本内容和选项卡片。v2.2 的契约见 git 历史 |
+| 改页面或样式 | [docs/design.md](docs/design.md)：设计令牌、页面结构、拒绝清单；**v3（文档站风格，2026-10-21 定稿，V01–V12 已实施）**：昼夜切换、常驻侧边栏、正文组件、文字链接翻页、VuePress 式首页、站内搜索、小节锚点、11 页单版本内容和选项卡片。v2.2 的契约见 git 历史 |
 | 选依赖 | [docs/reuse-research.md](docs/reuse-research.md) |
 | 看交付状态、未解决项 | [docs/delivery.md](docs/delivery.md)：验收基线、结果和待补项；使用和部署说明在 [README.md](README.md) |
 | 选任务、看顺序和档位 | [docs/implementation-plan.md](docs/implementation-plan.md)：里程碑、依赖和 Issue 链接；任务范围与状态以 GitHub Issues 为准 |
