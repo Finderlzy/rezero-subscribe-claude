@@ -19,7 +19,7 @@ test('打开不存在的页面显示“找不到这一页”和目录，“回�
   // 外层高 1em = 数字高度 = --fs-display：桌面 96px、平板 80px、手机 64px（0 和 4 等高由 scripts/build-logo.test.ts 核对）
   const box = await numeral.boundingBox();
   const width = page.viewportSize()!.width;
-  expect(box?.height).toBe(width >= 1100 ? 96 : width >= 720 ? 80 : 64);
+  expect(box?.height).toBe(width >= 960 ? 96 : width >= 720 ? 80 : 64);
 
   const toc = page.getByRole('navigation', { name: '全站目录' });
   await expect(toc.getByRole('link', { name: '前言' })).toHaveAttribute('href', /\/preface\/$/);

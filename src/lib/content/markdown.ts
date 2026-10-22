@@ -93,7 +93,7 @@ export interface ContentReport {
   hints: ContentHint[];
 }
 
-/** 还没有操作版的页面（不含原理独有步骤和参考页）：操作视图会显示原理版并提示“操作版还在写”（FR-21） */
+/** 还没有操作版的页面（不含原理独有步骤和参考页），构建结束时列为内容提示（FR-21；页面固定原理视图后只作记录，架构 §13.12） */
 function missingOperationHints(index: LinkIndex): ContentHint[] {
   const operations = new Set(index.pages.filter((p) => p.kind === 'operation').map((p) => p.id));
   return index.pages

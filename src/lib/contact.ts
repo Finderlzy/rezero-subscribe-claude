@@ -1,5 +1,5 @@
 /**
- * 作者的联系方式（页眉右侧，SiteHeader.astro）：和作者博客 Writing 的 `mkdocs.yml` 里 `extra.social` 一致，改了要两边一起改。
+ * 作者的联系方式（顶栏右侧，SiteHeader.astro）：和作者博客 Writing 的 `mkdocs.yml` 里 `extra.social` 一致，改了要两边一起改。
  * 图标是 Simple Icons（CC0，取自 mkdocs-material 自带的 `.icons/simple/`）的单色路径，viewBox 0 0 24 24，内联进页面，
  * 不加载图标库（design §6）。抖音用的是 TikTok 的标志，和 Writing 一样。
  */

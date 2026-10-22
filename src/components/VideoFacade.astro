@@ -76,7 +76,7 @@ const facadeData = JSON.stringify({
     display: inline-flex;
     margin: 0 0 var(--space-2);
     border: var(--border-width) solid var(--control-border);
-    border-radius: var(--radius-control);
+    border-radius: var(--radius);
     background: var(--surface);
   }
 
@@ -89,7 +89,7 @@ const facadeData = JSON.stringify({
     min-height: 44px;
     padding: 0 var(--space-3);
     border: 0;
-    border-radius: calc(var(--radius-control) - var(--border-width));
+    border-radius: calc(var(--radius) - var(--border-width));
     background: transparent;
     color: var(--text-muted);
     font: inherit;
@@ -109,7 +109,7 @@ const facadeData = JSON.stringify({
     aspect-ratio: 16 / 9;
     background: var(--video-bg);
     border: var(--border-width) solid var(--border);
-    border-radius: var(--radius-panel);
+    border-radius: var(--radius);
   }
 
   .video-frame :global(iframe) {

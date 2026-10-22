@@ -3,6 +3,7 @@ import '../styles/tokens.css';
 import '../styles/base.css';
 import NumeralSprite from '../components/NumeralSprite.astro';
 import SiteFooter from '../components/SiteFooter.astro';
+import { THEME_BOOT_SCRIPT } from '../lib/theme';
 import { withBase } from '../lib/with-base';
 
 interface Props {
@@ -26,6 +27,8 @@ const fullTitle = title ? `${title} - ${SITE_NAME}` : SITE_NAME;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {/* 昼夜主题：首次绘制前按读者存过的选择设 data-theme，深色读者不会先闪一下白底（src/lib/theme.ts） */}
+    <script is:inline set:html={THEME_BOOT_SCRIPT} />
     <title>{fullTitle}</title>
     {description && <meta name="description" content={description} />}
     {canonical && <link rel="canonical" href={canonical} />}

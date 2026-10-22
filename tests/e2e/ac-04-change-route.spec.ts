@@ -31,7 +31,7 @@ test('在目录里把方案三改成方案一，汇合点的“上一步”走�
 });
 
 // FR-16：按章列出全部页面；“或”分组；当前路线正常、其他路线弱化并写“其他路线”；当前页高亮；
-// 原理独有步骤标“原理”，操作视图下弱化、原理视图下正常；参考页在末尾单列。
+// 原理独有步骤标“原理”，固定原理视图下正常显示（用户 2026-10-22 决定去掉视图切换、固定原理视图，操作视图下弱化的用例随之移除）；参考页在末尾单列。
 test('目录区分当前路线、其他路线、当前页和原理独有步骤，参考页在附录页下面', async ({ page }) => {
   await page.goto('./choose-plan/');
   await expectScriptRan(page);
@@ -53,20 +53,18 @@ test('目录区分当前路线、其他路线、当前页和原理独有步骤�
   await expect(toc.locator('[data-toc-option="android"] [data-toc-step]').first()).not.toHaveAttribute('data-off-route');
   await expect(toc.getByRole('button', { name: '切换到iPhone' }).first()).toBeVisible();
 
-  // 原理独有步骤：标“原理”，操作视图下弱化（不写“其他路线”），切到原理视图后正常
+  // 原理独有步骤：标“原理”，在当前路线上正常显示（不弱化、不写“其他路线”）
   const recap = toc.locator('[data-toc-step="recap"]');
   await expect(recap).toContainText('原理');
   await expect(recap).not.toContainText('其他路线');
-  await expect(recap).toHaveAttribute('data-off-route', '');
+  await expect(recap).not.toHaveAttribute('data-off-route');
   await expect(toc.getByRole('link', { name: /四、打开面板/ })).toContainText('可跳过');
   await expect(toc.locator('.toc-reference').getByRole('link')).toHaveText(['常见问题', 'IP 质量实测合集']);
   await expect(toc.locator('[data-toc-step="appendix"]')).toBeVisible();
 
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog', { name: '目录' })).toBeHidden();
-  await page.getByRole('group', { name: '视图' }).getByRole('button', { name: '原理' }).click();
   await openToc(page);
-  await expect(recap).not.toHaveAttribute('data-off-route');
 
   // 点其他路线的步骤就进入那条路线
   await plan1.click();
@@ -74,9 +72,9 @@ test('目录区分当前路线、其他路线、当前页和原理独有步骤�
   await expect(stepNav(page).getByRole('link', { name: /上一步/ })).toHaveAttribute('href', /\/choose-plan\/$/);
 });
 
-// 目录（design §4.5，v2.2 D8）：≥1100px 是左侧常驻的侧边栏，页眉没有“目录”按钮；
-// <1100px 点页眉的“目录”打开抽屉，手机全屏，更宽时贴左边宽 400px。Esc、点遮罩、点“关闭”都能关，关闭后焦点回到按钮。
-test('≥1100px 常驻侧边栏，没有“目录”按钮；以下宽度“目录”打开抽屉，Esc、点遮罩、点“关闭”都能关，焦点回到按钮', async ({ page }) => {
+// 目录（design v3 §4.5）：≥720px 是左侧常驻的侧边栏，顶栏没有“目录”按钮；
+// <720px 点顶栏的“目录”打开抽屉，从左侧滑入，宽 min(300px, 85vw)，右侧露出遮罩。Esc、点遮罩、点“关闭”都能关，关闭后焦点回到按钮。
+test('≥720px 常驻侧边栏，没有“目录”按钮；以下宽度“目录”打开抽屉，Esc、点遮罩、点“关闭”都能关，焦点回到按钮', async ({ page }) => {
   await page.goto('./overview/');
   await expect(page.locator('[data-toc-ready]').first()).toBeAttached();
   const toc = sidebar(page);
@@ -95,7 +93,7 @@ test('≥1100px 常驻侧边栏，没有“目录”按钮；以下宽度“目�
   // 等滑入结束再量位置（过渡 200ms）
   await expect.poll(async () => (await dialog.boundingBox())?.x).toBe(0);
   const box = (await dialog.boundingBox())!;
-  expect(box.width).toBe(viewport.width < 720 ? viewport.width : 400);
+  expect(box.width).toBe(Math.min(300, Math.floor(viewport.width * 0.85)));
   expect(box.height).toBe(viewport.height);
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
@@ -106,19 +104,17 @@ test('≥1100px 常驻侧边栏，没有“目录”按钮；以下宽度“目�
   await expect(dialog).toBeHidden();
   await expect(button).toBeFocused();
 
-  // 手机上抽屉全屏，没有露出来的遮罩可点
-  if (viewport.width >= 720) {
-    await openToc(page);
-    await page.mouse.click(viewport.width - 20, viewport.height / 2);
-    await expect(dialog).toBeHidden();
-    await expect(button).toBeFocused();
-  }
+  // 抽屉右边露出遮罩，点它关闭
+  await openToc(page);
+  await page.mouse.click(viewport.width - 20, viewport.height / 2);
+  await expect(dialog).toBeHidden();
+  await expect(button).toBeFocused();
 });
 
 test.describe('没有 JS', () => {
   test.use({ javaScriptEnabled: false });
 
-  test('“目录”是链接，点击到达首页的完整目录；≥1100px 的侧边栏是静态 HTML，照样能点', async ({ page }) => {
+  test('“目录”是链接，点击到达首页的完整目录；≥720px 的侧边栏是静态 HTML，照样能点', async ({ page }) => {
     await page.goto('./overview/');
     await expect(page.getByRole('button', { name: '目录', exact: true })).toHaveCount(0);
     if (hasSidebar(page)) {

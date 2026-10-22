@@ -5,7 +5,7 @@ const START = '从第 00 章开始';
 const TAGLINE = '下面每一步，其实都在做同一件事：让每一项信息都不露出“我在国内”，而且像一个普通用户。';
 
 const width = (page: Page) => page.viewportSize()?.width ?? 0;
-const isDesktop = (page: Page) => width(page) >= 1100;
+const isDesktop = (page: Page) => width(page) >= 960;
 
 // AC-01（FR-18，design v2.1 §4.4）：在新浏览器打开首页 → 看到 logo、站名、五章目录和“从第 00 章开始”，没有“继续上次”；
 // 点“从第 00 章开始” → 进入“前言”。
@@ -127,9 +127,9 @@ test('版式：桌面索引和主区顶部对齐；logo 加右下方的小形象
   }
 });
 
-// v2.2 D2：紫色只用在链接、当前位置、眉题和“已选”上，不做大块底色；首屏唯一的实心块是黑色主按钮（--primary-bg）。
-// 所以首屏除 logo 的“Re”外，没有哪个元素的底色、边框或图形用 --accent（眉题、链接的文字可以是紫色）。
-test('首屏的主按钮是墨色，logo 的“Re”是 --accent，没有紫色的块', async ({ page }) => {
+// 紫色只用在链接、当前位置和“推荐/当前选择”上，不做大块底色（design v3 §2 第 4 条）。v3 起主按钮用主色（design §3.1 V4，
+// FR-72 去掉了 v2.2 的黑色主按钮），所以首屏除 logo 的“Re”和主按钮外，没有哪个元素的底色、边框或图形用 --accent。
+test('首屏的主按钮是紫色（--primary-bg = --accent），logo 的“Re”是 --accent，没有别的紫色块', async ({ page }) => {
   await page.goto('./');
   const result = await page.evaluate(() => {
     const probe = document.createElement('div');
@@ -148,7 +148,7 @@ test('首屏的主按钮是墨色，logo 的“Re”是 --accent，没有紫色�
       if (rect.width === 0 || rect.height === 0 || rect.bottom <= 0 || rect.top >= innerHeight) continue;
       const style = getComputedStyle(el);
       if (style.visibility === 'hidden' || style.display === 'none') continue;
-      if (el.closest('.logo-re')) continue;
+      if (el.closest('.logo-re') || el.closest('.home-start')) continue;
       const colors: string[] = [style.backgroundColor];
       for (const side of ['Top', 'Right', 'Bottom', 'Left'] as const) {
         if (parseFloat(style[`border${side}Width`]) > 0) colors.push(style[`border${side}Color`]);
@@ -165,6 +165,7 @@ test('首屏的主按钮是墨色，logo 的“Re”是 --accent，没有紫色�
     };
   });
   expect(result.start).toBe(result.primary);
+  expect(result.primary).toBe(result.accent);
   expect(result.re).toBe(result.accent);
   expect(result.offenders).toEqual([]);
 });

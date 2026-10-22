@@ -7,7 +7,7 @@ import { builtPages } from './built-pages';
 
 const PAGES = builtPages();
 
-/** 每页都要能点到的导航控件（只取当前可见的）：页眉的首页链接、目录按钮和视图切换，底部导航，页面上的按钮。 */
+/** 每页都要能点到的导航控件（只取当前可见的）：顶栏的首页链接、目录按钮、昼夜切换和联系方式，底部导航，页面上的按钮。 */
 const NAV_CONTROLS = [
   '.site-header a',
   '.site-header button',
@@ -37,24 +37,17 @@ async function expectControlsClickable(page: Page) {
 for (const path of PAGES) {
   test(`/${path} 没有页面级横向滚动，导航按钮都能点到`, async ({ page }) => {
     await page.goto(`./${path}`, { waitUntil: 'load' });
-    await expectNoPageScroll(page, '操作视图');
+    // 原来两版正文各量一次；用户 2026-10-22 决定去掉视图切换、固定原理视图，页面上只有原理版，量一次
+    await expectNoPageScroll(page, '原理视图');
     await expectControlsClickable(page);
-
-    // 两版正文都在页面里（ADR-0004）：切到原理版再量一次。切换控件由 #26 接上，这里直接改 data-view
-    if ((await page.locator('[data-body="principle"]').count()) > 0) {
-      await page.evaluate(() => (document.documentElement.dataset.view = 'principle'));
-      await expect(page.locator('[data-body="principle"]')).toBeVisible();
-      await expectNoPageScroll(page, '原理视图');
-      await expectControlsClickable(page);
-    }
   });
 }
 
-// 三档断点（design §3.2、§3.3：<720 / 720–1099 / ≥1100）的字号和边距，三个宽度各由一个 project 提供
+// 三档断点（design v3 §3.2、§3.3：<720 / 720–959 / ≥960）的字号和正文栏左右内边距，三个宽度各由一个 project 提供
 const TIERS = [
-  { min: 1100, body: '18px', h1: '32px', gutter: '32px' },
-  { min: 720, body: '18px', h1: '30px', gutter: '32px' },
-  { min: 0, body: '17px', h1: '26px', gutter: '16px' },
+  { min: 960, body: '16px', h1: '34px', gutter: '40px' },
+  { min: 720, body: '16px', h1: '34px', gutter: '40px' },
+  { min: 0, body: '16px', h1: '28px', gutter: '16px' },
 ];
 
 test('步骤页和参考页：正文、h1 字号和左右边距按当前档位', async ({ page }) => {
@@ -66,31 +59,44 @@ test('步骤页和参考页：正文、h1 字号和左右边距按当前档位',
       page.locator(selector).first().evaluate((el) => getComputedStyle(el).fontSize);
     expect(await size('.prose p'), path).toBe(tier.body);
     expect(await size('h1'), path).toBe(tier.h1);
-    // 色带占满正文区，左右边距在色带里的 .band-inner 上（和正文栏一致，v2.2 W2）
-    const gutter = await page.locator('.band-inner').evaluate((el) => getComputedStyle(el).paddingLeft);
+    // 左右内边距在正文栏上（步骤页 .step-body，参考页 .page-body）
+    const gutter = await page.locator('.step-body, .page-body').first().evaluate((el) => getComputedStyle(el).paddingLeft);
     expect(gutter, path).toBe(tier.gutter);
   }
 });
 
-// design §4.5、v2.2 D8：≥1100px 的侧边栏常驻、当前页高亮、自己能滚；侧边栏加上正文没有横向滚动。
-test('1280 宽：左侧目录常驻、当前页高亮、能独立滚动，页面没有横向滚动', async ({ page }) => {
+// design v3 §4.5：≥720px 的侧边栏常驻（平板 256px、桌面 300px）、sticky top 0、最高 100vh、当前页高亮、自己能滚；
+// 侧边栏加上正文没有横向滚动。
+test('≥720 宽：左侧目录常驻、当前页高亮、能独立滚动，页面没有横向滚动', async ({ page }) => {
   const width = page.viewportSize()!.width;
   await page.goto('./check-ip/');
   const aside = page.locator('[data-toc-sidebar]');
-  if (width < 1100) {
+  if (width < 720) {
     await expect(aside).toBeHidden();
     return;
   }
   await expect(aside).toBeVisible();
   await expect(page.getByRole('button', { name: '目录', exact: true })).toBeHidden();
+  // 打开页面时侧边栏自己滚到当前项，页面本身不动：顶栏和 h1 仍在首屏（顶栏不固定，滚走页面就看不到它们）
+  await expect(page.locator('[data-toc-ready]').first()).toBeAttached();
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  await expect(page.locator('.site-header')).toBeInViewport();
+  const inAside = await aside.evaluate((el) => {
+    const current = el.querySelector('[aria-current="page"]')!.getBoundingClientRect();
+    const box = el.getBoundingClientRect();
+    return current.top >= box.top && current.bottom <= Math.min(box.bottom, innerHeight);
+  });
+  expect(inAside).toBe(true);
   const box = await aside.evaluate((el) => {
     const style = getComputedStyle(el);
     const rect = el.getBoundingClientRect();
     return {
       position: style.position,
+      stickyTop: style.top,
+      // 页面在顶部时侧边栏从顶栏下面开始
       top: Math.round(rect.top - document.querySelector('.site-header')!.getBoundingClientRect().bottom),
       height: Math.round(rect.height),
-      viewport: innerHeight - document.querySelector('.site-header')!.getBoundingClientRect().height,
+      viewport: innerHeight,
       scrollable: el.scrollHeight > el.clientHeight,
       overflowY: style.overflowY,
       borderRight: style.borderRightWidth,
@@ -98,8 +104,10 @@ test('1280 宽：左侧目录常驻、当前页高亮、能独立滚动，页面
     };
   });
   expect(box.position).toBe('sticky');
+  expect(box.stickyTop).toBe('0px');
   expect(box.top).toBe(0);
   expect(box.height).toBeCloseTo(box.viewport, 0);
+  expect(box.width).toBe(width >= 960 ? 300 : 256);
   expect(box.overflowY).toBe('auto');
   expect(box.borderRight).toBe('1px');
   expect(box.scrollable).toBe(true);
@@ -137,6 +145,12 @@ test('1280 宽：左侧目录常驻、当前页高亮、能独立滚动，页面
   expect(scroll.pageYAfter).toBe(scroll.pageY);
 
   await expectNoPageScroll(page, '侧边栏 + 正文');
+
+  // 往下滚：顶栏随页面滚走（不固定），侧边栏贴着视口顶边
+  await page.evaluate(() => window.scrollTo(0, 400));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
+  expect(await page.locator('.site-header').evaluate((el) => el.getBoundingClientRect().bottom)).toBeLessThanOrEqual(0);
+  expect(await aside.evaluate((el) => Math.round(el.getBoundingClientRect().top))).toBe(0);
 });
 
 // 宽表格（design §4.7）：表头不折行，窄屏上整张表在自己的容器里横向滚动，第一列粘性固定

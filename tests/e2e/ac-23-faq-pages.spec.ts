@@ -21,7 +21,7 @@ test('/faq/ 按重写稿的顺序列出 8 条问题，每条链到 /faq/<id>/', 
   const links = page.locator('.prose li a');
   await expect(links).toHaveText(ITEMS.map((item) => item.title));
   for (const [i, item] of ITEMS.entries()) await expect(links.nth(i)).toHaveAttribute('href', new RegExp(`/faq/${item.id}/$`));
-  await expect(page.locator('.band .eyebrow')).toHaveText('附录 · 常见问题');
+  await expect(page.locator('main .eyebrow')).toHaveText('附录 · 常见问题');
   await expect(page.getByRole('link', { name: '回到：附录' })).toHaveAttribute('href', /\/appendix\/$/);
 });
 
@@ -29,7 +29,7 @@ for (const { id, title } of ITEMS) {
   test(`${id}：h1 是问题原文，眉题“附录 · 常见问题”，页脚“回到：常见问题”`, async ({ page }) => {
     await page.goto(`./faq/${id}/`);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(title);
-    await expect(page.locator('.band .eyebrow')).toHaveText('附录 · 常见问题');
+    await expect(page.locator('main .eyebrow')).toHaveText('附录 · 常见问题');
     await expect(page.getByRole('link', { name: '回到：常见问题' })).toHaveAttribute('href', /\/faq\/$/);
     await expect(page.locator('.prose')).not.toBeEmpty();
   });

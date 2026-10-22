@@ -8,7 +8,7 @@ import type { Element, ElementContent, Root, RootContent } from 'hast';
  * 每篇正文单独处理，所以原理版、操作版各自从 1 编号。
  *
  * 编号前半的步骤号（“图 02-1”的 `02-`）取决于路线和视图，这里只留空的 FIGURE_STEP_SLOT：
- * PageLayout 构建时用 fillFigureSteps 按操作视图填上，route-enhance 按当前视图和选择改写；
+ * PageLayout 构建时用 fillFigureSteps 按原理视图填上，route-enhance 按本机选择改写；
  * 参考页、选择页、旁支页和数不清步数的页面留空，只用序号（架构 §11.4 W-4）。
  *
  * 截图原本是段落里的图片：段落只能装行内内容，所以把段落从截图处拆开，截图前后的文字仍是段落，空白段落丢掉。

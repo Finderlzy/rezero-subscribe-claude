@@ -2,7 +2,7 @@ import { getCollection, type CollectionEntry } from 'astro:content';
 import { parseDocument } from 'yaml';
 import routeText from '../content/route.yaml?raw';
 import { buildRouteMap, RouteValidationError } from './route/route-map';
-import type { PageMeta, RouteData, RouteError, RouteMap, Stop } from './route/types';
+import type { PageMeta, RouteMap, Stop } from './route/types';
 
 /**
  * 构建时装配（架构 §3 M3）：读取 M1 的三个内容集合和 route.yaml，交给 M2 编译成 RouteMap。
@@ -74,7 +74,7 @@ export function pageTitle(body: string | undefined, file: string): string {
 }
 
 /**
- * 把原理版条目映射成 M2 的输入并编译，再核对各章的 intro。路线图有错时抛出 `RouteValidationError`（第三层校验，FR-61），
+ * 把原理版条目映射成 M2 的输入并编译。路线图有错时抛出 `RouteValidationError`（第三层校验，FR-61），
  * 它的 message 每行一条“文件：说明”，构建输出里直接可读。
  */
 export function assembleRoute(spec: unknown, entries: readonly PrincipleEntry[]): RouteMap {
@@ -87,39 +87,14 @@ export function assembleRoute(spec: unknown, entries: readonly PrincipleEntry[])
     // 对象键按书写顺序；选项标识以字母开头，不会被 JS 按整数键重排（schemas.ts ID_PATTERN）。
     ...(data.options !== undefined && { options: Object.entries(data.options).map(([option, { title }]) => ({ id: option, title })) }),
   }));
-  const route = buildRouteMap(spec, pages);
-  const errors = checkChapterIntros(route.data, new Map(entries.map(({ id, body }) => [id, body ?? ''])));
-  if (errors.length > 0) throw new RouteValidationError(errors);
-  return route;
-}
-
-/**
- * 章节标题卡的一句话只能从重写稿取（design §4.1、ADR-0005）：它必须原样出现在这一章第一页（普通页或选择页）的
- * 原理版正文里。M2 不读正文，所以在这里核对（架构 §11.4 W-3）。按 Markdown 原文核对，页面把 intro 当纯文本输出，
- * 所以只摘不带加粗、双链等写法的句子。
- */
-function checkChapterIntros(data: RouteData, bodies: ReadonlyMap<string, string>): RouteError[] {
-  const errors: RouteError[] = [];
-  for (const chapter of data.chapters) {
-    if (chapter.intro === undefined) continue;
-    const first = chapter.items[0];
-    if (first === undefined || first.kind === 'branch') {
-      errors.push({ file: 'route.yaml', message: `章节 ${chapter.id} 的第一项是分支段，没有显示 intro 的章首页` });
-    } else if (!bodies.get(first.id)?.includes(chapter.intro)) {
-      errors.push({
-        file: 'route.yaml',
-        message: `章节 ${chapter.id} 的 intro“${chapter.intro}”没有原样出现在这一章第一页 principle/${first.id}.md 的正文里`,
-      });
-    }
-  }
-  return errors;
+  return buildRouteMap(spec, pages);
 }
 
 /** 路线的第一页。路线图校验保证第一项是普通页面。 */
 export function startOf(route: RouteMap): Stop {
   const first = route.data.chapters[0]?.items[0];
   if (first?.kind !== 'step') throw new Error('route.yaml：路线图的第一项必须是普通页面');
-  return route.view(first.id, {}, 'operation').current;
+  return route.view(first.id, {}, 'principle').current;
 }
 
 let cached: Promise<Site> | undefined;

@@ -54,7 +54,7 @@
 .prose pre {
   overflow-x: auto;
   padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-panel);
+  border-radius: var(--radius);
   background: var(--surface-muted);
   line-height: var(--lh-code);
   white-space: pre;
@@ -163,7 +163,7 @@
 .prose .callout {
   padding: 14px 16px;
   background: var(--accent-soft);
-  border-radius: var(--radius-panel);
+  border-radius: var(--radius);
 }
 
 .prose .callout[data-callout='caution'] {
@@ -191,23 +191,12 @@
   margin-bottom: 0;
 }
 
-/*
- * 两版正文（ADR-0004）：<html data-view="principle"> 时显示原理版，其他情况（操作视图、没有 JS 时没有 data-view）
- * 显示操作版。只有一版正文的页面（原理独有、操作版还在写）不带 data-body，两种视图都显示，
- * 操作视图下另有一行 .view-notice 说明。
- */
-:root[data-view='principle'] [data-body='operation'],
-:root:not([data-view='principle']) [data-body='principle'],
-:root[data-view='principle'] .view-notice {
-  display: none;
-}
-
 /* 正文里的“作者待补”（design §4.7，FR-21）：两种视图都显示。v2.2：浅底、圆角，第一行是 13px 标签。 */
 .prose .author-todo {
   display: block;
   padding: 14px 16px;
   background: var(--todo-bg);
-  border-radius: var(--radius-panel);
+  border-radius: var(--radius);
 }
 
 .prose .author-todo-label {
@@ -216,14 +205,6 @@
   font-size: var(--fs-caption);
   line-height: var(--lh-meta);
   font-weight: var(--fw-heading);
-}
-
-/* 只有原理版时的提示条（design §4.1，FR-21、FR-30），在正文上、页头色带下方。 */
-.view-notice {
-  margin: 0 0 var(--space-5);
-  padding: 14px 16px;
-  background: var(--accent-soft);
-  border-radius: var(--radius-panel);
 }
 
 /*
@@ -269,7 +250,7 @@
   padding: 14px var(--space-4);
   background: var(--bg);
   border: var(--border-width) solid var(--border);
-  border-radius: var(--radius-control);
+  border-radius: var(--radius);
 }
 
 @media (min-width: 720px) {

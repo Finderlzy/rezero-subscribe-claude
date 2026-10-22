@@ -11,10 +11,9 @@ const PAGES = [
   { path: './check-ip/', name: '方案一：为什么只有 ipinfo.io 看得到 ISP 的 IP' },
 ];
 
+/** 页面固定原理视图（用户 2026-10-22 决定去掉视图切换、固定原理视图），等页面脚本跑完即可 */
 async function showPrinciple(page: Page) {
   await expectScriptRan(page);
-  const toggle = page.getByRole('group', { name: '视图' }).getByRole('button', { name: '原理' });
-  if ((await toggle.count()) > 0 && (await toggle.getAttribute('aria-pressed')) !== 'true') await toggle.click();
 }
 
 for (const { path, name } of PAGES) {
@@ -73,10 +72,12 @@ for (const { path, name } of PAGES) {
   });
 }
 
-test('操作版没有说明图（测 IP 质量）', async ({ page }) => {
+// 原来核对“操作版没有说明图”；用户 2026-10-22 决定去掉视图切换、固定原理视图，页面上不再输出操作版，改成核对整页只有原理版的那一张
+test('页面只输出原理版，说明图只有一张（测 IP 质量）', async ({ page }) => {
   await page.goto('./check-ip/');
   await expectScriptRan(page);
-  await expect(page.locator('[data-body="operation"] figure.diagram')).toHaveCount(0);
+  await expect(page.locator('[data-body]')).toHaveCount(0);
+  await expect(page.locator('figure.diagram')).toHaveCount(1);
 });
 
 test.describe('深色模式', () => {

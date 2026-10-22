@@ -8,11 +8,12 @@ test('直接打开“iPhone：下载 Gmail”：上一步“iPhone：导入代�
   await expectScriptRan(page);
 
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('iPhone：下载 Gmail');
-  // 进度按 iPhone 这条路线计数（FR-10）：眉题写第 3 步、“共 15 步”，读屏读“注册和订阅，第 3 步，共 15 步”（design §4.1）
-  await expect(page.locator('[data-route-eyebrow]')).toHaveText('第 2 章 · 注册和订阅 · 第 3 步，共 15 步');
+  // 进度按 iPhone 这条路线、原理视图计数（FR-10；用户 2026-10-22 决定去掉视图切换、固定原理视图，原理独有的“为什么用美区 Apple ID”也算一步）：
+  // 眉题写第 3 步、“共 16 步”，读屏读“注册和订阅，第 3 步，共 16 步”（design §4.1）
+  await expect(page.locator('[data-route-eyebrow]')).toHaveText('第 2 章 · 注册和订阅 · 第 3 步，共 16 步');
   expect(await stepNo(page)).toBe('3');
-  expect(await stepTotal(page)).toBe('共 15 步');
-  await expect(page.locator('[data-route-progress]')).toHaveText('注册和订阅，第 3 步，共 15 步');
+  expect(await stepTotal(page)).toBe('共 16 步');
+  await expect(page.locator('[data-route-progress]')).toHaveText('注册和订阅，第 3 步，共 16 步');
   await expect(stepNav(page).getByRole('link', { name: /上一步.*iPhone：导入代理软件/ })).toHaveAttribute('href', /\/iphone-proxy\/$/);
   await expect(stepNav(page).getByRole('link', { name: /下一步.*注册 Gmail/ })).toHaveAttribute('href', /\/register-gmail\/$/);
 });
@@ -25,12 +26,12 @@ test('打开过“iPhone：下载 Gmail”之后，汇合点和“订阅”都�
   await expectScriptRan(page);
   await expect(stepNav(page).getByRole('link', { name: /上一步.*iPhone：下载 Gmail/ })).toHaveAttribute('href', /\/iphone-gmail\/$/);
 
-  // 操作视图绕过原理独有的“为什么用美区 Apple ID”
+  // 固定原理视图（用户 2026-10-22 决定去掉视图切换、固定原理视图）：经过原理独有的“为什么用美区 Apple ID”
   await page.goto('./subscribe/');
   await expectScriptRan(page);
-  await expect(stepNav(page).getByRole('link', { name: /下一步.*iPhone：注册美区 Apple ID/ })).toHaveAttribute(
+  await expect(stepNav(page).getByRole('link', { name: /下一步.*iPhone：为什么用美区 Apple ID/ })).toHaveAttribute(
     'href',
-    /\/iphone-apple-id\/$/,
+    /\/iphone-why-us-apple-id\/$/,
   );
 });
 
@@ -42,7 +43,7 @@ test.describe('没有 JS', () => {
     await expect(stepNav(page).getByRole('link', { name: /上一步.*iPhone：导入代理软件/ })).toHaveAttribute('href', /\/iphone-proxy\/$/);
     await expect(stepNav(page).getByRole('link', { name: /下一步.*注册 Gmail/ })).toHaveAttribute('href', /\/register-gmail\/$/);
     // 眉题构建时就写好并显示（不等页面脚本）
-    await expect(page.locator('[data-route-eyebrow]')).toHaveText('第 2 章 · 注册和订阅 · 第 3 步，共 15 步');
+    await expect(page.locator('[data-route-eyebrow]')).toHaveText('第 2 章 · 注册和订阅 · 第 3 步，共 16 步');
     expect(await stepNo(page)).toBe('3');
   });
 });

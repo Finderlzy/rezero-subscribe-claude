@@ -1,19 +1,9 @@
-import { READER_STATE_KEY, WINDOW_NAME_PREFIX } from './reader-store';
-
 /**
- * 步骤页 `<head>` 里的内联脚本（架构 §3 M3“视图”）：在首次绘制前按本机保存的视图偏好设置
- * `<html data-view="operation|principle">`，原理视图的读者不会先看到操作版正文再换掉（ADR-0004）。
+ * 步骤页 `<head>` 里的内联脚本（架构 §3 M3“视图”）：在首次绘制前设置 `<html data-view="principle">`。
  *
- * 内联脚本不能导入模块，这里按 M4 的格式和兜底顺序只取 `view` 一个字段：localStorage 可用就只看它，
- * 访问或读取抛异常（禁用存储）时看 `window.name` 里本站写的值；其余校验仍由 M4 负责。
- * 取不到、值不是 JSON、`view` 不合法时一律用操作视图（FR-30 默认值，AC-18）。
- * 没有 JS 时不会有 `data-view`，CSS 按操作视图显示，并隐藏切换控件（design §5）。
+ * 用户 2026-10-22 决定去掉“操作｜原理”视图切换，页面固定原理视图（ADR-0004 的切换机制暂停使用，
+ * 内容集合里的操作版数据暂不删）。所以这里不再读本机保存的视图偏好，一律写 principle；
+ * route-enhance、toc 的视图也固定为 principle，不读这个属性。它现在只表示“页面脚本会运行”：PageLayout 按它先隐藏
+ * 构建时的眉题步数，等 route-enhance 重算完再露出。没有 JS 时没有 `data-view`，页面同样是原理版。
  */
-const KEY = JSON.stringify(READER_STATE_KEY);
-const PREFIX = JSON.stringify(WINDOW_NAME_PREFIX);
-
-export const VIEW_BOOT_SCRIPT =
-  `(function(){var r=null,v="operation";` +
-  `try{r=localStorage.getItem(${KEY})}catch(e){try{var n=window.name;r=n.indexOf(${PREFIX})===0?n.slice(${PREFIX}.length):null}catch(e){}}` +
-  `try{if(JSON.parse(r).view==="principle")v="principle"}catch(e){}` +
-  `document.documentElement.dataset.view=v})()`;
+export const VIEW_BOOT_SCRIPT = `document.documentElement.dataset.view="principle"`;

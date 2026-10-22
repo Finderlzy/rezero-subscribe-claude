@@ -1,14 +1,12 @@
 ---
-import ChapterSubtitle from '../components/ChapterSubtitle.astro';
 import CodeCopy from '../components/CodeCopy.astro';
 import ImageZoom from '../components/ImageZoom.astro';
-import Mascot from '../components/Mascot.astro';
 import SiteHeader from '../components/SiteHeader.astro';
 import StepNav from '../components/StepNav.astro';
 import Toc from '../components/Toc.astro';
 import { hasZoomableImage } from '../lib/code-zoom/labels';
 import { fillFigureSteps } from '../lib/content/rehype-figures';
-import { eyebrowText, figurePrefix, isChapterStart, progressText } from '../lib/nav-text';
+import { eyebrowText, figurePrefix, progressText } from '../lib/nav-text';
 import { VIEW_BOOT_SCRIPT } from '../lib/reader-state/view-boot';
 import type { RouteData, RouteView } from '../lib/route/types';
 import type { TocReference } from '../lib/site';
@@ -16,97 +14,58 @@ import BaseLayout from './BaseLayout.astro';
 import '../styles/prose.css';
 
 /**
- * 步骤页、选择页、旁支页的骨架（design §4.1、§4.2，架构 §3 M3）：页头色带（眉题和 h1），视频，正文，底部导航。
+ * 步骤页、选择页、旁支页的骨架（design v3 §4.1、§4.2，架构 §13.3）：顶栏 + 两栏（侧边栏 | 正文区）。
+ * 正文区里是正文栏（--content-width，在剩余宽度里居中）：h1 上方一行灰色眉题，纯文字 h1，视频，正文，底部导航。
+ * v2.2 的页头色带、章首页的副标题/章名/一句话都去掉了（FR-72），小形象挪到顶栏站名旁（SiteHeader）。
  *
- * 页头色带（v2.2 D4、D10）：<main> 顶部一块 --accent-soft 色的全宽色带，上下内边距 --band-pad-y，内容和正文栏左对齐。
- * 一个页面处在哪一步只看这一行的文字：`第 1 章 · 准备节点和住宅 IP · 第 2 步，共 10 步`；选择页写“· 选择”，旁支页写“· 旁支”。
- * 每章第一页（含选择页）的色带加高，眉题之前多一组：副标题 `− CHAPTER 0n −`、章名、route.yaml 里这一章的 intro
- * （构建时已核对它原样摘自章首页的原理版正文），一条 1px --border 细线，再接眉题——这时眉题省掉章的部分。
- * 小形象（D6）贴在色带右下角，脚底贴着色带下沿。
- * 眉题看得见的部分不进无障碍树，读屏读它自己那一句（progressText）；步数和眉题由 route-enhance 按当前路线和视图改写。
+ * 眉题一行写“第 1 章 · 准备节点和住宅 IP · 第 2 步，共 10 步”；选择页写“· 选择”，旁支页写“· 旁支”。
+ * 看得见的部分不进无障碍树，读屏读它自己那一句（progressText）；步数和眉题由 route-enhance 按当前路线改写
+ * （挂载点 `[data-route-eyebrow]`、`[data-route-progress]` 名字不变）。
  *
- * 两版正文（ADR-0004）：`principle`、`operation` 两个 slot 分别渲染进 `data-body="principle|operation"`，
- * 由 `<html data-view>` 决定显示哪一个（prose.css）；`<head>` 里的 VIEW_BOOT_SCRIPT 在首次绘制前设置它，
- * 没有 JS 时没有 data-view，固定显示操作版。只有原理版的页面传 `notice`：只输出原理版，
- * 操作视图下在正文上方显示这句说明（FR-21、FR-30）。
+ * 只显示原理版正文（用户 2026-10-22 决定：去掉“操作｜原理”视图切换，页面固定原理视图；内容集合里的操作版数据暂不删，
+ * 等 docs/v3-rewrite 的单版本重写统一处理）。`<head>` 里的 VIEW_BOOT_SCRIPT 固定写 `data-view="principle"`，
+ * 只用来标记“页面脚本会运行”（route-enhance、toc 的视图固定为 principle）；没有 JS 时没有 data-view，
+ * 构建时的导航本来就按原理视图写好。
  *
- * 导航按“操作视图 + 未选”在构建时写好；页面脚本 route-enhance 读内嵌的 RouteData（`#route-data`），
- * 按本机选择和当前视图改写导航；view-toggle 处理页眉的“操作｜原理”切换（架构 §3 M3）。
- * 目录（design §4.5，v2.2 D8）：≥1100px 是左侧常驻的侧边栏（Toc.astro 的 aside），独立滚动；
- * <1100px 是抽屉，由页眉的“目录”打开（toc.ts）。没有 JS 时侧边栏是静态 HTML，照样能点。
+ * 导航按“原理视图 + 未选”在构建时写好；页面脚本 route-enhance 读内嵌的 RouteData（`#route-data`），
+ * 按本机选择改写导航。
+ * 目录（design §4.5）：≥720px 是左侧常驻的侧边栏（Toc.astro 的 aside），sticky、独立滚动；
+ * <720px 是抽屉，由顶栏的“目录”打开（toc.ts）。没有 JS 时侧边栏是静态 HTML，照样能点。
  */
 interface Props {
   title: string;
-  /** `routeMap.view(id, {}, 'operation')` */
+  /** `routeMap.view(id, {}, 'principle')` */
   view: RouteView;
   /** `routeMap.data`：内嵌进页面，浏览器用它重算导航 */
   routeData: RouteData;
   /** `site.tocReferences`：目录末尾附录分组里的参考页 */
   tocReferences: TocReference[];
   skipLabel?: string | undefined;
-  /** 只有原理版时传：操作视图下正文上方的说明。传了就不渲染 `operation` slot */
-  notice?: string | undefined;
 }
 
-const { title, view, routeData, tocReferences, skipLabel, notice } = Astro.props;
+const { title, view, routeData, tocReferences, skipLabel } = Astro.props;
 // 内嵌在 <script> 里的 JSON 不能出现 `</script>`，把 `<` 转义掉。
 const routeJson = JSON.stringify(routeData).replace(/</g, '\\u003c');
-const chapterStart = isChapterStart(routeData.chapters, view.progress, view.current);
-const chapterIntro = routeData.chapters.find((chapter) => chapter.id === view.progress.chapterId)?.intro;
-// 截图编号的步骤号（design §4.7）：构建时按操作视图写，没有 JS 时就是它；route-enhance 按当前视图和选择改写
-// （没传的 slot 渲染出 undefined，原样保留）
-const fill = (html: string | undefined) => html && fillFigureSteps(html, figurePrefix(view.progress, view.current));
-const principle = fill(await Astro.slots.render('principle'));
-// 不能用 Astro.slots.has 判断：页面里写成条件渲染的 slot 即使为空也算“有”
-const operation = notice === undefined ? fill(await Astro.slots.render('operation')) : undefined;
-const hasZoom = [principle, operation].some((html) => html !== undefined && hasZoomableImage(html));
+// 截图编号的步骤号（design §4.7）：构建时按原理视图写，没有 JS 时就是它；route-enhance 按当前选择改写
+const principle = fillFigureSteps(await Astro.slots.render('principle'), figurePrefix(view.progress, view.current));
+const hasZoom = hasZoomableImage(principle);
 ---
 
 <BaseLayout title={title}>
   <script is:inline slot="head" set:html={VIEW_BOOT_SCRIPT} />
-  <SiteHeader views toc />
+  <SiteHeader toc />
   <Toc outline={view.outline} references={tocReferences} />
   <div class="page-view">
-    <main
-      id="main"
-      class="step"
-      data-route-at={view.current.kind === 'home' ? undefined : view.current.id}
-      data-chapter-start={chapterStart ? '' : undefined}
-    >
-      <header class="band" data-band={chapterStart ? 'chapter' : undefined}>
-        <div class="band-inner">
-          <Mascot />
-          {
-            chapterStart && (
-              <div class="chapter-head">
-                <ChapterSubtitle chapter={view.progress.chapterNo} />
-                <p class="chapter-title">{view.progress.chapter}</p>
-                {chapterIntro !== undefined && <p class="chapter-intro">{chapterIntro}</p>}
-              </div>
-            )
-          }
-          <p class="eyebrow">
-            <span aria-hidden="true" data-route-eyebrow set:text={eyebrowText(view.progress, view.current, chapterStart)} />
-            <span class="visually-hidden" data-route-progress>{progressText(view.progress, view.current)}</span>
-          </p>
-          <h1 class="step-title">{title}</h1>
-        </div>
-      </header>
+    <main id="main" class="step" data-route-at={view.current.kind === 'home' ? undefined : view.current.id}>
       <div class="step-body">
+        {/* 眉题的样式是 base.css 的全局 .eyebrow（design §4.1） */}
+        <p class="eyebrow">
+          <span aria-hidden="true" data-route-eyebrow set:text={eyebrowText(view.progress, view.current)} />
+          <span class="visually-hidden" data-route-progress>{progressText(view.progress, view.current)}</span>
+        </p>
+        <h1 class="step-title">{title}</h1>
         <slot name="video" />
-        {
-          operation === undefined ? (
-            <>
-              <p class="view-notice">{notice}</p>
-              <div class="prose" set:html={principle} />
-            </>
-          ) : (
-            <>
-              <div class="prose" data-body="principle" set:html={principle} />
-              <div class="prose" data-body="operation" set:html={operation} />
-            </>
-          )
-        }
+        <div class="prose" set:html={principle} />
         <slot name="after" />
         <StepNav prev={view.prev} next={view.next} returnTo={view.returnTo} skipTo={view.skipTo} skipLabel={skipLabel} />
       </div>
@@ -122,13 +81,10 @@ const hasZoom = [principle, operation].some((html) => html !== undefined && hasZ
   import { pageReaderStore, readRouteData } from '../scripts/reader-store';
   import { initRouteEnhance } from '../scripts/route-enhance';
   import { initToc } from '../scripts/toc';
-  import { initViewToggle } from '../scripts/view-toggle';
 
   const data = readRouteData(document);
   const store = pageReaderStore(data);
-  // 先 view-toggle：从往返缓存恢复时它先把视图改回本机保存的值，route-enhance 再按它重算；
   // route-enhance 在目录之前：它先记下这一页所属的选项，目录再按这条路线画。
-  initViewToggle(document, store);
   if (data) {
     initRouteEnhance(document, data, store);
     initToc(document, data, store);
@@ -137,105 +93,30 @@ const hasZoom = [principle, operation].some((html) => html !== undefined && hasZ
 </script>
 
 <style>
-  /*
-   * 桌面（≥1100px）：目录侧边栏常驻在左边（Toc.astro 的 aside，base.css 的页面网格），正文区在剩余宽度里居中；
-   * 色带是正文区里的全宽块，不伸进侧边栏。
-   */
   .page-view {
     min-width: 0;
   }
 
-  /*
-   * 页头色带（design §4.1，v2.2 D4）：--accent-soft 底，上下内边距 --band-pad-y（手机 24px，平板起 32px），
-   * 内容和正文栏左对齐（左右边距由 .band-inner 给）。色带占满正文区的全宽，右下角贴小形象（D6）。
-   */
-  .band {
-    position: relative;
-    background: var(--accent-soft);
-  }
-
-  /*
-   * 小形象贴在色带右下角（D6）：脚底贴着色带下沿，右边在正文栏右缘往里 --space-5（手机上空间小，贴着正文栏右缘）。
-   * 它在 .band-inner 里绝对定位（.band-inner 撑满色带的高度，下沿就是色带下沿）；
-   * .band-inner 右边按小形象的宽度留出位置，标题不会压到它。
-   */
-  .band-inner {
-    --mascot-right: calc(var(--gutter) + var(--space-5));
-    position: relative;
-    /* 宽度连同左右边距一共 --content-width（和正文栏一样），左缘才和正文对齐；右边多留的小形象位置算在里面 */
+  /* 正文栏（design §3.3）：宽 --content-width，在正文区里居中；上内边距手机 24px、平板起 32px，左右 --gutter */
+  .step-body {
     box-sizing: border-box;
     max-width: var(--content-width);
     margin: 0 auto;
-    padding: var(--band-pad-y) calc(var(--mascot-right) + var(--mascot-width) + var(--space-3)) var(--band-pad-y) var(--gutter);
+    padding: var(--content-pad-top) var(--gutter) var(--space-7);
   }
 
-  .band-inner > :global(.mascot) {
-    position: absolute;
-    right: var(--mascot-right);
-    bottom: 0;
-  }
-
-  @media (max-width: 719px) {
-    .band-inner {
-      --mascot-right: var(--gutter);
-    }
-  }
-
-  /* 章首页：副标题、章名、一句话在眉题之前，下面一条 1px --border 细线（副标题到章节号 16px，章名到一句话 16px） */
-  .band[data-band='chapter'] .chapter-head {
-    margin-bottom: var(--space-5);
-    padding-bottom: var(--space-5);
-    border-bottom: var(--border-width) solid var(--border);
-  }
-
-  .band[data-band='chapter'] :global(.chapter-subtitle) {
-    display: block;
-    color: var(--accent);
-  }
-
-  .chapter-title {
-    margin: var(--space-4) 0 0;
-    font-size: var(--fs-chapter-title);
-    line-height: var(--lh-title);
-    font-weight: var(--fw-heading);
-  }
-
-  /* 一句话（route.yaml 的 intro）：--text-muted，正文字号，最宽 24em */
-  .chapter-intro {
-    max-width: 24em;
-    margin: var(--space-4) 0 0;
-    color: var(--text-muted);
-  }
-
-  /* 眉题（design §4.1，v2.2 D10）：14px --accent，一行写“第 1 章 · 章名 · 第 2 步，共 10 步”，不加两端短横 */
-  .eyebrow {
-    margin: 0 0 var(--space-2);
-    color: var(--accent);
-    font-size: var(--fs-meta);
-    line-height: var(--lh-meta);
-    font-weight: var(--fw-heading);
-    letter-spacing: var(--tracking-meta);
-  }
-
+  /* h1（design §3.2、§4.1）：大号纯文字，背后没有色带，下面不画线 */
   .step-title {
     min-width: 0;
-    margin: 0;
+    margin: 0 0 var(--space-5);
     font-size: var(--fs-title);
     line-height: var(--lh-title);
     font-weight: var(--fw-heading);
   }
 
-  /* 正文栏：色带下留出上边距，左右边距和色带里的内容一致 */
-  .step-body {
-    box-sizing: border-box;
-    max-width: var(--content-width);
-    margin: 0 auto;
-    padding: var(--space-6) var(--gutter) var(--space-7);
-  }
-
   /*
-   * 构建时的眉题和截图编号的步骤号按“操作视图 + 未选”算；有 JS 时（VIEW_BOOT_SCRIPT 总会设 data-view）先占位不显示，
-   * 等 route-enhance 按本机视图和选择重算完（data-route-ready）再露出，原理视图的读者不会看到步数跳变（design §4.3）。
+   * 构建时的眉题和截图编号的步骤号按“原理视图 + 未选”算；有 JS 时（VIEW_BOOT_SCRIPT 总会设 data-view）先占位不显示，
+   * 等 route-enhance 按本机选择重算完（data-route-ready）再露出，选过分叉点的读者不会看到步数跳变。
    * 没有 JS 时没有 data-view，构建时的文字照常显示。
    */
   :global(:root[data-view]) .step:not([data-route-ready]) [data-route-eyebrow],
@@ -243,7 +124,7 @@ const hasZoom = [principle, operation].some((html) => html !== undefined && hasZ
     visibility: hidden;
   }
 
-  /* 手机上吸底底栏：正文末尾预留等高留白，最后一段不被挡住（design §5）；底栏高度见 tokens.css 的 --mobile-bar-height */
+  /* 手机上吸底底栏：正文末尾预留等高留白，最后一段不被挡住（design §5）；底栏高度见 tokens.css 的 --mobile-bar-height（V04 去掉吸底后删） */
   @media (max-width: 719px) {
     .step-body {
       padding-bottom: calc(var(--mobile-bar-height) + var(--space-7) + env(safe-area-inset-bottom));

@@ -2,8 +2,8 @@
 import { CONTACTS } from '../lib/contact';
 
 /**
- * 页眉右侧的作者联系方式（design §4.0）：GitHub、X、哔哩哔哩、抖音，数据在 src/lib/contact.ts。
- * ≥720px 是一排单色图标链接（可点区域 44×44px）；<720px 页眉放不下四个图标，收成一个“联系”按钮，
+ * 顶栏右侧的作者联系方式（design v3 §4.0）：GitHub、X、哔哩哔哩、抖音，数据在 src/lib/contact.ts。
+ * ≥720px 是一排单色图标链接（可点区域 44×44px）；<720px 顶栏放不下四个图标，收成一个“联系”按钮，
  * 点开是带平台名的列表。按钮用 <details>，没有 JS 也能开合；有 JS 时点别处或按 Esc 收起。
  */
 ---
@@ -59,10 +59,9 @@ import { CONTACTS } from '../lib/contact';
 </script>
 
 <style>
-  /* 推到页眉右侧；≥720px 和视图切换之间多留 8px，手机上页眉放不下，不留 */
+  /* 排在顶栏右边一组的最后（SiteHeader 的 .site-header-tools 负责推到右缘和间距） */
   .contact {
     flex: none;
-    margin-left: auto;
   }
 
   .contact ul {
@@ -92,20 +91,19 @@ import { CONTACTS } from '../lib/contact';
     position: relative;
   }
 
-  /* 同“目录”按钮：次按钮样式（design §5）；左右内边距收到 8px，360px 宽的页眉才放得下 */
+  /* <720px 的“联系”文字按钮（design v3 §3.2、§4.0）：15px 400 --text，不描边，可点区域 44×44；悬停、展开时 --accent */
   .contact-menu summary {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     min-width: 44px;
     min-height: 44px;
     box-sizing: border-box;
     padding: 0 var(--space-2);
-    border: var(--border-width) solid var(--control-border);
-    border-radius: var(--radius-control);
-    background: var(--surface);
+    border-radius: var(--radius);
     color: var(--text);
-    font-size: var(--fs-meta);
-    font-weight: var(--fw-heading);
+    font-size: var(--fs-header);
+    line-height: 1;
     list-style: none;
     cursor: pointer;
   }
@@ -121,7 +119,7 @@ import { CONTACTS } from '../lib/contact';
 
   .contact-menu summary:hover,
   .contact-menu[open] summary {
-    border-color: var(--text);
+    color: var(--accent);
   }
 
   .contact-panel {
@@ -131,8 +129,9 @@ import { CONTACTS } from '../lib/contact';
     min-width: 10em;
     padding: var(--space-1) 0;
     border: var(--border-width) solid var(--border);
-    border-radius: var(--radius-control);
-    background: var(--bg);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--overlay-shadow);
   }
 
   .contact-row {
@@ -157,10 +156,6 @@ import { CONTACTS } from '../lib/contact';
   }
 
   @media (min-width: 720px) {
-    .contact {
-      margin-right: var(--space-2);
-    }
-
     .contact-inline {
       display: flex;
     }

@@ -72,46 +72,6 @@ chapters:
     });
   });
 
-  it('章节的 intro 在这一章第一页的原理版正文里原样出现时带进 RouteData', () => {
-    const spec = parseRouteYaml(START_ONLY.replace('title: 开始', 'title: 开始\n    intro: 正文'));
-    const route = assembleRoute(spec, [entry('preface'), entry('afterword')]);
-    expect(route.data.chapters[0]!.intro).toBe('正文');
-  });
-
-  it('intro 不在这一章第一页的原理版正文里时报出 route.yaml（守住 ADR-0005）', () => {
-    const spec = parseRouteYaml(START_ONLY.replace('title: 开始', 'title: 开始\n    intro: 另写的一句'));
-    const run = () => assembleRoute(spec, [entry('preface'), entry('afterword')]);
-    expect(run).toThrow(RouteValidationError);
-    expect(run).toThrow(/route\.yaml：章节 start 的 intro“另写的一句”没有原样出现在这一章第一页 principle\/preface\.md 的正文里/);
-  });
-
-  it('intro 只在别的页面里出现也算错：只认这一章第一页', () => {
-    const spec = parseRouteYaml(START_ONLY.replace('title: 开始', 'title: 开始\n    intro: 后记的话'));
-    const afterword = { ...entry('afterword'), body: '# 后记\n\n后记的话' };
-    expect(() => assembleRoute(spec, [entry('preface'), afterword])).toThrow(/章节 start 的 intro/);
-  });
-
-  it('第一项是分支段的章节不能写 intro', () => {
-    const spec = parseRouteYaml(`
-chapters:
-  - id: start
-    title: 开始
-    items:
-      - preface
-      - { choose: node-plan, page: choose-plan }
-  - id: node
-    title: 方案
-    intro: 正文
-    items:
-      - branch: node-plan
-        options: { plan-1: [a] }
-      - afterword
-`);
-    const options = { 'plan-1': { title: '方案一', heading: '一' } };
-    const run = () => assembleRoute(spec, [entry('preface'), entry('choose-plan', { options }), entry('a'), entry('afterword')]);
-    expect(run).toThrow(/route\.yaml：章节 node 的第一项是分支段/);
-  });
-
   it('路线图有错时抛出 RouteValidationError，列出出错的文件', () => {
     const run = () => assembleRoute(parseRouteYaml(START_ONLY), [entry('preface'), entry('afterword'), entry('orphan')]);
     expect(run).toThrow(RouteValidationError);
@@ -205,14 +165,9 @@ describe('真实 route.yaml', () => {
     }
   });
 
-  it('五章都有标题卡的一句话（作者 2026-10-16 确认，实施计划 v2.1 §6；附录 2026-10-17 加入）', () => {
-    expect(route.data.chapters.map((c) => c.intro)).toEqual([
-      '每一步我都会努力去讲清楚为什么要这么做，这样就算哪天某个细节失效了，你也知道该往哪个方向去调，请多包涵。',
-      '三个方案的目的都一样：让 claude 看到一个静态住宅 IP，而且只有你自己在用。',
-      '所以手机也是 claude 会看到的一台设备。',
-      '也感谢所有我没能记住名字、但确实帮到我的人。',
-      '卡住了再来查，不看也能照着正文做完。',
-    ]);
+  // v3 去掉了章节标题卡（FR-72，架构 §13.1），route.yaml 的 intro 随之删除
+  it('章节不再带标题卡的一句话 intro', () => {
+    for (const chapter of route.data.chapters) expect(chapter).not.toHaveProperty('intro');
   });
 
   it('faq、ip-tests 是保留字，没有页面占用', () => {

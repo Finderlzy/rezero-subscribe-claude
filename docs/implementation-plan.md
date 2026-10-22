@@ -13,7 +13,7 @@
 
 | 里程碑 | 任务 | 交付的可用能力 | 覆盖 |
 | --- | --- | --- | --- |
-| MS11 骨架 | V01 | 全站换成 v3 令牌；顶栏（logo、站名、小形象、视图切换、联系方式）；≥720px 常驻侧边栏、<720px 抽屉；页头色带和章首页一组去掉，眉题 + 纯文字 h1；页脚 | FR-72（顶栏、正文栏、主色）、FR-16（断点）、FR-23；AC-26（搜索框除外） |
+| MS11 骨架 | V01 | 全站换成 v3 令牌；顶栏（logo、站名、小形象、昼夜切换（用户 2026-10-22 决定取代视图切换）、联系方式）；≥720px 常驻侧边栏、<720px 抽屉；页头色带和章首页一组去掉，眉题 + 纯文字 h1；页脚 | FR-72（顶栏、正文栏、主色）、FR-16（断点）、FR-23；AC-26（搜索框除外） |
 | MS12 侧边栏 | V02 | 只展开当前章、点章名开合；当前页下列出当前视图的 h2，切视图跟着换；当前项紫字 + 左边线 | FR-16；AC-27 |
 | MS13 正文排版 | V03 | h1–h4、链接、代码、表格、提示块、截图按 design §3.2、§4.7 | FR-72（正文栏）、FR-21 |
 | MS14 翻页和选择页 | V04 | 文字链接翻页（≥44px）、跳过小字、回到/返回刚才的步骤；手机不再吸底；选项卡片 | FR-72、FR-10、FR-15、FR-12、FR-19、FR-20；AC-30 |
@@ -52,7 +52,7 @@ V02 ─────────────────────────�
 
 | 任务 | 标题 | 依赖 | 档位 | 细化 | Issue |
 | --- | --- | --- | --- | --- | --- |
-| V01 | 换成文档站的令牌、顶栏和两栏骨架 | 无 | 强 | 已细化 | 待发布 |
+| V01 | 换成文档站的令牌、顶栏和两栏骨架 | 无 | 强 | 已实施（2026-10-22，分支未合并） | 待发布 |
 | V02 | 侧边栏按章折叠并列出当前页小节 | V01 | 标准 | 已细化 | 待发布 |
 | V03 | 按 design v3 重排正文和内容组件 | V01 | 标准 | 已细化 | 待发布 |
 | V04 | 文字链接翻页和选择页卡片 | V03 | 标准 | 已细化 | 待发布 |
@@ -71,7 +71,9 @@ V02 ─────────────────────────�
 
 ### V01 换成文档站的令牌、顶栏和两栏骨架
 
-**目标**：全站换成 design v3 的外壳（FR-72、FR-16 的断点、FR-23）：令牌按 design §3 改；首页以外的页面是“顶栏 + 侧边栏 | 正文区”两栏，≥720px 侧边栏常驻、独立滚动，<720px 是抽屉；去掉页头色带和章首页一组，h1 上方一行灰色眉题；小形象挪到顶栏站名旁；视图切换改成两个文字按钮；页脚一行非官方声明。侧边栏的内容和样式先沿用 v2.2 的 `TocNav`（折叠和小节列表在 V02），正文排版沿用（V03），翻页沿用（V04）。
+> **用户决定（2026-10-22，以此为准）**：本节原定的“视图切换改成两个文字按钮”**不做**。顶栏原来放视图切换的位置换成**昼夜（浅色/深色）主题切换**：默认跟随系统 `prefers-color-scheme`，点击后在 `<html>` 上写 `data-theme="light|dark"` 并存进 localStorage 的一个键（`rezero-subscribe-claude:theme`，读写失败时照常跟随系统），`<head>` 内联脚本提前应用；没有 JS 时按钮隐藏。原理/操作视图切换的 UI 从页面上去掉，**页面固定显示原理视图**（只输出原理版正文，导航和步数按原理视图算；内容集合里的操作版数据暂不删，等 docs/v3-rewrite 的单版本重写统一处理）。因此 `ViewToggle.astro`、`view-toggle.ts` 删除，依赖视图切换或操作视图的 e2e/单元测试作为“功能移除”删除或改写（ac-06、ac-02-walk、ac-12、ac-19、ac-22、a11y、ac-16、nfr-02、design-diagrams、ac-18-storage-disabled、view-boot.test 等，每处注释写明原因），主题切换的 e2e 在 `ac-26-docs-style.spec.ts`。对后续任务的影响见架构 §13.12。
+
+**目标**：全站换成 design v3 的外壳（FR-72、FR-16 的断点、FR-23）：令牌按 design §3 改；首页以外的页面是“顶栏 + 侧边栏 | 正文区”两栏，≥720px 侧边栏常驻、独立滚动，<720px 是抽屉；去掉页头色带和章首页一组，h1 上方一行灰色眉题；小形象挪到顶栏站名旁；~~视图切换改成两个文字按钮~~ 换成昼夜切换、页面固定原理视图（见上方用户决定）；页脚一行非官方声明。侧边栏的内容和样式先沿用 v2.2 的 `TocNav`（折叠和小节列表在 V02），正文排版沿用（V03），翻页沿用（V04）。
 
 **涉及范围**：`src/styles/tokens.css`、`tokens.test.ts`、`base.css`、`toc.css`（断点 1100 → 720，抽屉宽度）；`src/components/SiteHeader.astro`、`ViewToggle.astro`、`ContactLinks.astro`、`Mascot.astro`（只改放置和尺寸令牌，不改画）、`SiteFooter.astro`、`Toc.astro`；`src/layouts/PageLayout.astro`、`ReferenceLayout.astro`、`BaseLayout.astro`；`src/scripts/toc.ts`（断点）；`src/content/route.yaml`、`src/lib/site.ts`、`src/lib/route/`（删除 `intro` 字段及其核对和测试，连同构建级坏内容用例 `tests/fixtures/intro-not-in-body/`，这是 FR-72 去掉的功能，架构 §13.1）；`src/lib/nav-text.ts`（`isChapterStart` 等不再用的导出删除）；`tests/e2e/ac-02-chapter-card.spec.ts` → `ac-26-docs-style.spec.ts`，以及因外壳改动失效的选择器；`docs/architecture.md` §13（改成现状）。
 
@@ -85,13 +87,13 @@ V02 ─────────────────────────�
 - 顶栏右侧为搜索留一个空挂载点（`<div data-search-slot hidden>`），V08 填。
 - 侧边栏：`Toc.astro` 现有的 `aside[data-toc-sidebar]` + `<dialog>` 两份结构保留（架构 §13.11 R-5），`position: sticky; top: 0; max-height: 100vh; overflow-y: auto`。
 - 眉题挂载点 `[data-route-progress]`、`[data-route-total]` 名字不变，`route-enhance.ts` 不改逻辑。
-- 边界：360px 顶栏全部元素放得下（design §4.0 预算），不出现横向滚动；没有 JS 时视图切换隐藏、≥720px 侧边栏可点、<720px“目录”是链接。
+- 边界：360px 顶栏全部元素放得下（design §4.0 预算），不出现横向滚动；没有 JS 时昼夜切换隐藏（原写“视图切换隐藏”）、≥720px 侧边栏可点、<720px“目录”是链接。
 
 **验收**：
 - [ ] 测试：`npm test`（`tokens.test.ts` 含 design §3.1 新增的对比度组合）
 - [ ] 构建：`npm run check`
 - [ ] e2e：`npx playwright test tests/e2e/ac-26-docs-style.spec.ts tests/e2e/ac-16-responsive.spec.ts tests/e2e/ac-25-contact.spec.ts tests/e2e/a11y.spec.ts`，再跑全量 `npm run test:e2e`
-- [ ] 手工验证：1280 打开 `/import-proxy/` → 顶栏白底细线，左边“Re:”标记、站名、小形象，右边视图切换和四个联系图标；没有浅紫色带；h1 上方有眉题；左侧侧边栏独立滚动。768 → 侧边栏仍常驻；719 → 没有侧边栏，点“目录”打开抽屉。360 → 顶栏不横向滚动
+- [ ] 手工验证：1280 打开 `/import-proxy/` → 顶栏白底细线，左边“Re:”标记、站名、小形象，右边昼夜切换（原写“视图切换”）和四个联系图标；没有浅紫色带；h1 上方有眉题；左侧侧边栏独立滚动。768 → 侧边栏仍常驻；719 → 没有侧边栏，点“目录”打开抽屉。360 → 顶栏不横向滚动
 
 ### V02 侧边栏按章折叠并列出当前页小节
 

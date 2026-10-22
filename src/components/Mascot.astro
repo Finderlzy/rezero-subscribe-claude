@@ -3,7 +3,7 @@
 // 是唯一引用 src/assets/mascot/ 的地方。SVG 由 scripts/trace-mascot.py 按参考图逐格取样生成（24×16 格）。
 // 参考图的 1 个大像素是 2 格；大像素画成 3px（手机 2px），即每格 1.5px（手机 1px），整体 36×24px（手机 24×16px），
 // 尺寸令牌是 --mascot-width / --mascot-height。身体只用 --mascot，眼睛用 --mascot-eye。
-// 位置由使用方决定：步骤页、选择页、旁支页、附录页贴在页头色带的右下角，首页在 logo 右下方，找不到页在 404 右边。
+// 位置由使用方决定：首页以外的页面在顶栏站名旁（SiteHeader，design v3 §4.0、V16），首页在 logo 右下方。
 import mascot from '../assets/mascot/mascot.svg?raw';
 
 const svg = mascot

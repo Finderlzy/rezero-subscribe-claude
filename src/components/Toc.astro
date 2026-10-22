@@ -5,10 +5,10 @@ import TocNav from './TocNav.astro';
 import '../styles/toc.css';
 
 /**
- * 步骤目录（design §4.5，v2.2 D8、D9，FR-16）：≥1100px 是左侧常驻的侧边栏，<1100px 是抽屉。
+ * 步骤目录（design v3 §4.5，FR-16）：≥720px 是左侧常驻的侧边栏，<720px 是抽屉（架构 §13.11 R-5：两份标记沿用）。
  *
  * 构建时按 `outline` 把全部章节和页面写两遍：一份在 `aside[data-toc-sidebar]`（静态 HTML，没有 JS 也照样能点），
- * 一份在 `<dialog>` 里。页眉的“目录”（`[data-toc-open]`，SiteHeader）只在 <1100px 显示（CSS），
+ * 一份在 `<dialog>` 里。顶栏的“目录”（`[data-toc-open]`，SiteHeader）只在 <720px 显示（CSS），
  * 没有 JS 时是指向首页完整目录的链接；页面脚本 toc.ts 把它换成打开抽屉的按钮。
  * 两份用同一套标记契约（见下），toc.ts 对两份都按当前路线和视图重画。
  *

@@ -1,8 +1,8 @@
 /* 全站基础：页面底色、正文字体、焦点环，以及几个跨页面共用的小样式。 */
 
-/* 吸顶的页眉不挡住锚点跳转的目标（“跳到正文”、常见问题条目）。 */
-:root:has(.site-header) {
-  scroll-padding-top: calc(var(--header-height) + var(--space-4));
+/* 顶栏不固定（design v3 §4.0），锚点跳转的目标上方只留 16px（§3.2 的 scroll-margin-top） */
+:root {
+  scroll-padding-top: var(--space-4);
 }
 
 body {
@@ -49,7 +49,7 @@ button:active,
   white-space: nowrap;
 }
 
-/* “跳到正文”：平时隐藏，键盘聚焦时出现（design §5）；z-index 要高过页眉（2）和手机上的吸底底栏（1）。 */
+/* “跳到正文”：平时隐藏，键盘聚焦时出现（design §5）；z-index 要高过手机上的吸底底栏（1）和浮层。 */
 .skip-link {
   position: absolute;
   top: var(--space-2);
@@ -58,7 +58,7 @@ button:active,
   padding: var(--space-2) var(--space-3);
   background: var(--surface);
   border: var(--border-width) solid var(--control-border);
-  border-radius: var(--radius-control);
+  border-radius: var(--radius);
   transform: translateY(-200%);
 }
 
@@ -66,19 +66,20 @@ button:active,
   transform: none;
 }
 
-/* 首页以外的普通页面（参考页、找不到页）：内容和正文栏一样宽（--content-width），左对齐 */
+/* 首页以外没有侧边栏的页面（找不到页）：内容和正文栏一样宽（--content-width），在页面里居中 */
 .page {
+  box-sizing: border-box;
   max-width: var(--content-width);
   margin: 0 auto;
-  padding: var(--space-7) var(--gutter);
+  padding: var(--content-pad-top) var(--gutter) var(--space-7);
 }
 
 /*
- * 桌面（≥1100px）左侧常驻的目录侧边栏（design §4.5，v2.2 D8）：目录是页面里的第一个元素，
- * 右边一条竖线，正文区（.page-view / .page）排在剩余宽度里居中，最大宽度仍是正文栏。
- * 侧边栏自己吸在页眉下沿、占满视口剩余高度、独立滚动（toc.css 的 .toc-sidebar）；页脚横跨整个宽度。
+ * 两栏骨架（design v3 §3.3、§4.5）：≥720px 时顶栏全宽，下面是“侧边栏 | 正文区”，侧边栏右边一条竖线，
+ * 正文区（.page-view / .page）里的正文栏在剩余宽度里居中，最大宽度仍是正文栏。
+ * 侧边栏 sticky、最高 100vh、独立滚动（toc.css 的 aside.toc-sidebar）；页脚只在正文区下面。<720px 只有正文区。
  */
-@media (min-width: 1100px) {
+@media (min-width: 720px) {
   :root:has(> body > aside.toc-sidebar) body {
     display: grid;
     grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
@@ -104,12 +105,11 @@ button:active,
   }
 
   /*
-   * 页脚和竖线之间没有上边框：竖线一直画到页脚，页脚里那条 1px --border 只横跨正文区（SiteFooter）。
+   * 页脚只在正文区下面，上边那条 1px --border 只横跨正文区（SiteFooter）。
    * <main> 在网格里会被行高拉伸，正文按内容高度排（页脚紧跟正文），不把正文区撑满。
    */
   :root:has(> body > aside.toc-sidebar) .site-footer {
     grid-area: footer;
-    /* 竖线（侧边栏的右边框）一直画到页脚底；页脚上边那条线只横跨正文区 */
     margin-top: 0;
   }
 
@@ -125,17 +125,12 @@ button:active,
   font-weight: var(--fw-heading);
 }
 
-/*
- * 眉题（design §4.1、§4.6，v2.2 D4）：14px，加宽字距，不加两端短横（短横只留给章首页的英文副标题）。
- * 页头色带里的眉题用 --accent（PageLayout），参考页的用 --text-muted（ReferenceLayout）。
- */
+/* 眉题（design v3 §4.1、§4.6）：h1 上方一行 14px --text-muted，下边距 8px（步骤页、参考页共用） */
 .eyebrow {
   margin: 0 0 var(--space-2);
   color: var(--text-muted);
   font-size: var(--fs-meta);
   line-height: var(--lh-meta);
-  font-weight: var(--fw-heading);
-  letter-spacing: var(--tracking-meta);
 }
 
 .page-actions {
@@ -146,7 +141,7 @@ button:active,
 }
 
 /*
- * 主按钮（design §4.7，v2.2 D1）：墨色实心，一屏只有它是实心的。高 48px、16px 600、圆角 8px。
+ * 主按钮（design v3 §4.7、V4）：主色实心，一屏只有它是实心的。高 48px、16px 600、圆角 6px。
  * 悬停时表面提亮一档（--primary-bg-hover），并把箭头（.button-arrow）右移 --nudge（§5）。
  */
 .button {
@@ -159,7 +154,7 @@ button:active,
   background: var(--primary-bg);
   color: var(--primary-fg);
   border: var(--border-width) solid var(--primary-bg);
-  border-radius: var(--radius-control);
+  border-radius: var(--radius);
   font: inherit;
   font-size: var(--fs-button);
   font-weight: var(--fw-heading);

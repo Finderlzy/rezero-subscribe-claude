@@ -20,8 +20,9 @@ function block(after: string): string {
 }
 
 const light = hexTokens(block(':root {'));
-// 深色只覆盖颜色，没写的令牌沿用浅色值
+// 深色只覆盖颜色，没写的令牌沿用浅色值。深色写两遍（跟随系统、顶栏手动选深色），两块要一样
 const darkOnly = hexTokens(block('@media (prefers-color-scheme: dark)'));
+const darkManual = hexTokens(block(":root[data-theme='dark'] {"));
 const dark = { ...light, ...darkOnly };
 
 /** WCAG 2.x 相对亮度 */
@@ -37,22 +38,23 @@ function contrast(a: string, b: string): number {
 }
 
 /**
- * [前景令牌, 背景令牌, 最低对比度, 用在哪里]（design §3.1，v2.2 的白底令牌）。
- * 橙色（--mascot）只画小形象、不上文字，这里只核对它和页头色带底色的区分度。
+ * [前景令牌, 背景令牌, 最低对比度, 用在哪里]（design v3 §3.1）。
+ * 橙色（--mascot）只画小形象、不上文字，这里只核对它和顶栏底色的区分度。
  */
 const PAIRS: [string, string, number, string][] = [
   ['--text', '--bg', 4.5, '正文'],
   ['--text', '--surface', 4.5, '抽屉、浮层里的文字'],
   ['--text-muted', '--bg', 4.5, '次要文字、弱化的其他路线'],
   ['--text-muted', '--surface', 4.5, '浮层里的次要文字'],
-  ['--text', '--surface-muted', 4.5, '行悬停、代码块里的文字'],
-  ['--text', '--accent-soft', 4.5, '页头色带里的标题'],
-  ['--text-muted', '--accent-soft', 4.5, '页头色带里的次要文字和一句话'],
+  ['--text', '--surface-muted', 4.5, '行悬停、代码块、提示块、表格隔行里的文字'],
+  ['--accent', '--surface-muted', 4.5, '提示块、表格隔行里的链接'],
+  ['--text', '--accent-soft', 4.5, '当前选择的卡片、搜索选中行里的文字'],
+  ['--text-muted', '--accent-soft', 4.5, '当前选择的卡片说明、搜索选中行的小标题'],
   ['--text-faint', '--bg', 4.5, '白底上的元信息（页脚、截图编号、目录章标题）'],
   ['--text-faint', '--surface-muted', 4.5, '代码块上的复制按钮'],
   ['--accent', '--bg', 4.5, '链接、文字按钮'],
   ['--accent', '--surface', 4.5, '浮层里的链接'],
-  ['--accent', '--accent-soft', 4.5, '页头色带上的眉题、“已选”标签'],
+  ['--accent', '--accent-soft', 4.5, '“当前选择”标签、搜索选中行的标题'],
   ['--primary-fg', '--primary-bg', 4.5, '主按钮上的文字'],
   ['--primary-fg', '--primary-bg-hover', 4.5, '主按钮悬停时的文字'],
   ['--todo-rule', '--todo-bg', 4.5, '“作者待补”标签（13px）'],
@@ -66,14 +68,14 @@ const PAIRS: [string, string, number, string][] = [
   ['--video-fg', '--video-bg', 4.5, '视频门面上的文字'],
   ['--control-border', '--bg', 3, '控件边界'],
   ['--control-border', '--surface', 3, '控件边界（浮层上）'],
-  ['--control-border', '--accent-soft', 3, '编号圆圈'],
+  ['--control-border', '--accent-soft', 3, '当前选择卡片里的控件边界'],
   ['--focus', '--bg', 3, '键盘焦点环'],
   ['--focus', '--surface', 3, '键盘焦点环（浮层上）'],
-  ['--focus', '--accent-soft', 3, '键盘焦点环（页头色带、已选的选项行）'],
-  ['--focus', '--surface-muted', 3, '键盘焦点环（代码块、视图切换）'],
+  ['--focus', '--accent-soft', 3, '键盘焦点环（当前选择的卡片、搜索选中行）'],
+  ['--focus', '--surface-muted', 3, '键盘焦点环（代码块、提示块）'],
   ['--focus', '--todo-bg', 3, '键盘焦点环（提示里）'],
   ['--focus', '--caution-bg', 3, '键盘焦点环（风险提示里）'],
-  ['--mascot', '--accent-soft', 3, '小形象趴在页头色带下沿'],
+  ['--mascot', '--bg', 3, '小形象在顶栏站名旁'],
 ];
 
 it('浅色、深色两块令牌都读到了', () => {
@@ -81,6 +83,20 @@ it('浅色、深色两块令牌都读到了', () => {
   expect(Object.keys(light).length).toBeGreaterThanOrEqual(15);
   expect(Object.keys(darkOnly).length).toBeGreaterThanOrEqual(15);
   expect(darkOnly['--bg']).not.toBe(light['--bg']);
+});
+
+// 昼夜切换（用户 2026-10-22 决定）：跟随系统的深色块和手动选深色的块必须写同样的值，否则两种进入深色的方式颜色不一样
+it('跟随系统的深色和手动选的深色两块令牌完全一致', () => {
+  expect(darkManual).toEqual(darkOnly);
+  const full = (sel: string) => block(sel).replace(/\s+/g, ' ').trim();
+  expect(full(":root[data-theme='dark'] {")).toBe(full('@media (prefers-color-scheme: dark)'));
+  expect(css).toMatch(/@media \(prefers-color-scheme: dark\) \{\s*:root:not\(\[data-theme='light'\]\) \{/);
+});
+
+// design §3.1：主按钮从 v2.2 的墨色改成主色（V4）
+it('主按钮用主色', () => {
+  expect(light['--primary-bg']).toBe(light['--accent']);
+  expect(darkOnly['--primary-bg']).toBe(darkOnly['--accent']);
 });
 
 // design §5（D11）：开启“减少动态效果”时去掉所有过渡和位移。组件里的过渡时长和位移都取这几个令牌，
@@ -98,12 +114,13 @@ it('减少动态效果时，动效时长和位移令牌都归零', () => {
   }
 });
 
-// design v2.2 §2（W1）：按钮、行、视图切换 8px，提示框和代码块 10px，截图 8px。
-it('圆角按 v2.2 的三种用途分开：控件 8px、面板 10px、图片 8px', () => {
+// design v3 §3.3（V10）：按钮、卡片、代码块、提示块、下拉 6px，截图 4px，搜索框是唯一的胶囊。
+it('圆角收小：--radius 6px、截图 4px、胶囊 999px（v2.2 的 control/panel 合并）', () => {
   const radii = Object.fromEntries(
     [...block(':root {').matchAll(/(--radius-[\w-]+):\s*([^;]+);/g)].map(([, name, value]) => [name, value!.trim()]),
   );
-  expect(radii).toEqual({ '--radius-control': '8px', '--radius-panel': '10px', '--radius-image': '8px' });
+  expect(radii).toEqual({ '--radius-image': '4px', '--radius-pill': '999px' });
+  expect(block(':root {')).toMatch(/--radius:\s*6px;/);
 });
 
 describe.each([

@@ -1,16 +1,13 @@
 # 路线图：章节、分叉点、页面顺序和旁支页的唯一来源（架构 §3 M1/M2、需求 §5.2）。
 # 页面标识是 principle/<id>.md 的文件名，也是 URL /<id>/；v2.0 发布后不能改（ADR-0002）。
-# 章节的 intro 是标题卡下的一句话（design §4.1）：必须原样摘自这一章第一页的原理版正文，构建时核对（ADR-0005）。
 # 选择页可写 default：本机没选时按这个选项计算导航和目录（节点方案默认方案二）；没有 default 的分叉点没选时，
 # 它的分支段两侧的页面指向它的选择页（FR-13）。
 chapters:
   - id: start
     title: 开始
-    intro: 每一步我都会努力去讲清楚为什么要这么做，这样就算哪天某个细节失效了，你也知道该往哪个方向去调，请多包涵。
     items: [preface, disclaimer, overview, clean-up]
   - id: node-and-ip
     title: 准备节点和住宅 IP
-    intro: 三个方案的目的都一样：让 claude 看到一个静态住宅 IP，而且只有你自己在用。
     items:
       - { choose: node-plan, page: choose-plan, default: plan-2 }
       - branch: node-plan
@@ -27,7 +24,6 @@ chapters:
       - timezone
   - id: register-and-subscribe
     title: 注册和订阅
-    intro: 所以手机也是 claude 会看到的一台设备。
     items:
       - { choose: phone, page: choose-phone }
       - branch: phone
@@ -50,12 +46,10 @@ chapters:
       - after-subscribe
   - id: ending
     title: 结尾
-    intro: 也感谢所有我没能记住名字、但确实帮到我的人。
     items: [thanks, afterword]
   # 后记的下一步；常见问题和 IP 质量实测合集是参考页，从这一页进去
   - id: appendix
     title: 附录
-    intro: 卡住了再来查，不看也能照着正文做完。
     items: [appendix]
 # 旁支页：不在序列里，页脚是“回到：<returnTo>”和 returnTo 的下一步（FR-19）
 side:

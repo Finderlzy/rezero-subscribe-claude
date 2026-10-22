@@ -8,7 +8,7 @@ import {
 import type { RouteData } from '../lib/route/types';
 
 /**
- * 页面脚本共用的本机状态（架构 §3 M4）：route-enhance、view-toggle（以及之后的目录、选择页脚本）
+ * 页面脚本共用的本机状态（架构 §3 M4）：route-enhance、目录、选择页脚本
  * 都从这里取 ReaderStore，并用这里的事件名互相通知。
  */
 
@@ -54,5 +54,3 @@ export function pageReaderStore(data: RouteData | null): ReaderStore {
  */
 export const CHOICES_CHANGED_EVENT = 'reader-choices-changed';
 
-/** 切换视图后由 view-toggle 在 document 上派发；route-enhance 收到后按新视图重算导航（FR-11）。 */
-export const VIEW_CHANGED_EVENT = 'reader-view-changed';

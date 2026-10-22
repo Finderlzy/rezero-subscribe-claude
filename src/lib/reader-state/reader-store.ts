@@ -41,7 +41,8 @@ export const READER_STATE_KEY = 'rezero-subscribe-claude:v2';
 /** 写进 `window.name` 的值的前缀，后面接 JSON；不以它开头的 `window.name` 不是本站写的，当作空。 */
 export const WINDOW_NAME_PREFIX = `${READER_STATE_KEY}=`;
 
-// 改默认视图、视图取值或兜底顺序时，同步 view-boot.ts 里的内联脚本（它不能导入本模块）。
+// 视图字段暂留：用户 2026-10-22 决定页面固定原理视图后没有地方再写它、页面也不读它（架构 §13.12），
+// 等单版本重写时连同操作版一起清理。
 const DEFAULT_VIEW: View = 'operation';
 
 /** 存储接缝：只关心本站这一个值。 */

@@ -2,23 +2,29 @@
 import { withBase } from '../lib/with-base';
 import ContactLinks from './ContactLinks.astro';
 import Logo from './Logo.astro';
-import ViewToggle from './ViewToggle.astro';
+import Mascot from './Mascot.astro';
+import ThemeToggle from './ThemeToggle.astro';
 
 /**
- * 页眉（design §4.0，v2.2）：首页以外的所有页面都有，吸顶，高 56px，--bg 底，底边一条 1px --border 细线（没有视图色带）。
- * 左边是“目录”（只在 <1100px 显示，≥1100px 由常驻侧边栏代替，v2.2 D8）和链到首页的 logo 标记 + 站名（<480px 时只留标记）。
+ * 顶栏（design v3 §4.0）：首页以外的所有页面都有。高 56px（含底边一条 1px --border 细线），--bg 底，**不固定**，随页面滚走。
+ *
+ * 左边：<720px 先是“目录”（菜单图标，44×44，可访问名称“目录”；≥720px 由常驻侧边栏代替，CSS 隐藏），
+ * 然后是链到首页的 logo“Re:”标记（高 28px）+ 站名（<480px 隐藏），再是 Claude Code 小形象（D6、D7：原尺寸、
+ * 不改色不放大、对读屏隐藏，不在链接里、不可点）。
  * “目录”（`toc`）构建时是指向首页完整目录 `/#home-chapters` 的链接，没有 JS 也能到达目录（design §5，FR-16），
  * 页面脚本 toc.ts 把它换成打开抽屉的按钮（换元素时保留这里的属性，样式照样选得中）。
- * 右边是作者的联系方式（ContactLinks.astro，FR-23；首页没有页眉，所以也没有），再往右是“操作｜原理”切换（`views`），没有视图的页面（参考页、找不到页）不显示。
+ *
+ * 右边依次：站内搜索的挂载点（`[data-search-slot]`，V08 填，现在是空的、hidden）、昼夜切换（ThemeToggle，
+ * 用户 2026-10-22 决定放在原来视图切换的位置）、作者的联系方式（ContactLinks，FR-23）。
+ * 360px 预算（design §4.0、需求 Q-17）：内边距 12×2 + 目录 44 + 标记 28 + 间距 6 + 小形象 24
+ * + 搜索 44 + 昼夜 44 + 联系约 46 + 间距 4×3 ≈ 272px（搜索在 V08 之前是空的，现在更宽松）。
  */
 interface Props {
-  /** 页面有两种视图：显示切换控件，色带跟视图换色 */
-  views?: boolean;
-  /** 页面内嵌了目录抽屉（Toc.astro）：显示“目录”（≥1100px 由 CSS 隐藏） */
+  /** 页面内嵌了目录（Toc.astro）：显示“目录”（≥720px 由 CSS 隐藏） */
   toc?: boolean;
 }
 
-const { views = false, toc = false } = Astro.props;
+const { toc = false } = Astro.props;
 ---
 
 <header class="site-header">
@@ -29,118 +35,132 @@ const { views = false, toc = false } = Astro.props;
           <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
             <path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
           </svg>
-          目录
+          <span class="visually-hidden">目录</span>
         </a>
       )
     }
-    <a class="site-home" href={withBase('/')} aria-label="Re:从零开始订阅 claude 首页">
-      <span class="site-mark" aria-hidden="true"><Logo variant="mark" /></span>
-      <span class="site-name" aria-hidden="true">从零开始订阅 claude</span>
-    </a>
-    <ContactLinks />
-    {views && <ViewToggle />}
+    <div class="site-brand">
+      <a class="site-home" href={withBase('/')} aria-label="Re:从零开始订阅 claude 首页">
+        <span class="site-mark" aria-hidden="true"><Logo variant="mark" /></span>
+        <span class="site-name" aria-hidden="true">从零开始订阅 claude</span>
+      </a>
+      <Mascot />
+    </div>
+    <div class="site-header-tools">
+      <div class="site-search-slot" data-search-slot hidden></div>
+      <ThemeToggle />
+      <ContactLinks />
+    </div>
   </div>
 </header>
 
 <style>
   .site-header {
-    position: sticky;
-    top: 0;
-    z-index: 2;
     background: var(--bg);
     border-bottom: var(--border-width) solid var(--border);
   }
 
-  /* 页眉的两侧边距和正文栏一致：手机 --gutter（16px），平板起 32px（design §4.0、§3.3），目录按钮的图标和正文左缘对齐 */
   .site-header-bar {
     display: flex;
     align-items: center;
-    gap: var(--space-2);
-    /* 页眉连同底边的 1px 细线一共 --header-height（56px）：侧边栏和吸顶元素都按 --header-height 贴在它下沿 */
+    gap: var(--space-1);
+    /* 顶栏连同底边的 1px 细线一共 --header-height（56px） */
     height: calc(var(--header-height) - var(--border-width));
-    padding: 0 var(--gutter);
+    padding: 0 var(--header-pad-x);
   }
 
-  /* 站名在左，联系方式和切换控件在右：联系方式的 margin-left: auto 把右边一组推到右缘（ContactLinks.astro） */
+  /*
+   * 标记、站名整块是链接；小形象紧跟其后，不在链接里（design §4.0）。
+   * 两层都按基线对齐：SVG 没有文字基线，以底边对齐，所以“Re:”标记和小形象的底边都落在站名的基线上。
+   */
+  .site-brand {
+    display: flex;
+    flex: none;
+    align-items: baseline;
+    gap: var(--header-brand-gap);
+  }
+
   .site-home {
     display: inline-flex;
-    align-items: center;
+    align-items: baseline;
     gap: var(--space-2);
-    min-height: 44px;
-    /* 图标和站名离按钮 16px（--space-4），不是普通的 8px */
-    margin: 0 var(--space-4) 0 var(--space-4);
+    /* 标记高 28px，上下各 8px 凑够 44px 的可点区域；不用 min-height，否则基线对齐时内容贴在顶上、整块偏高 */
+    padding: var(--space-2) 0;
     color: var(--text);
     text-decoration: none;
   }
 
-  @media (min-width: 1100px) {
-    .site-home {
-      margin-left: 0;
-      flex: 1 1 auto;
-    }
-  }
-
-  /* logo 的 SVG 自带按字号算出的宽高，这里按高度缩放（Logo.astro）；高 24px、站名 16px 都按 design §4.0 */
+  /* logo 的 SVG 自带按字号算出的宽高，这里按高度缩放（Logo.astro） */
   .site-mark :global(svg) {
     display: block;
     width: auto;
-    height: 24px;
+    height: var(--header-mark-height);
   }
 
   .site-name {
-    font-size: 16px;
+    font-size: var(--fs-site-name);
     line-height: 1;
     font-weight: var(--fw-heading);
     white-space: nowrap;
   }
 
-  /* 手机上只留标记，左右边距也收到 8px：页眉还要放“联系”（ContactLinks.astro），360px 宽才放得下 */
+  .site-home:hover .site-name {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+
   @media (max-width: 479px) {
     .site-name {
       display: none;
     }
-
-    .site-home {
-      margin: 0 var(--space-2);
-    }
   }
 
+  /* 右边一组推到右缘；间距 --header-gap（平板起 20px，手机 4px，design §4.0） */
+  .site-header-tools {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: var(--header-gap);
+    margin-left: auto;
+  }
+
+  .site-search-slot[hidden] {
+    display: none;
+  }
+
+  /* “目录”：44×44 的菜单图标按钮（design §4.0），没有 JS 时是链接 */
   .toc-open {
     display: inline-flex;
     flex: none;
     align-items: center;
-    gap: var(--space-1);
-    min-width: 44px;
-    min-height: 44px;
-    box-sizing: border-box;
-    padding: 0 var(--space-3) 0 var(--space-2);
-    border: var(--border-width) solid var(--control-border);
-    border-radius: var(--radius-control);
-    background: var(--surface);
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin-left: calc(-1 * var(--space-2));
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius);
+    background: transparent;
     color: var(--text);
-    font: inherit;
-    font-size: var(--fs-meta);
-    font-weight: var(--fw-heading);
     text-decoration: none;
     cursor: pointer;
   }
 
-  /* ≥1100px：左侧常驻侧边栏就是目录，页眉不再放“目录”按钮（v2.2 D8 第 5 条）。
-     没有 JS 时它是链到首页目录的链接，也一起藏起来，侧边栏里的目录照样能点。
-     要写在 .toc-open 的基础规则后面：同样的优先级，写在前面会被 display: inline-flex 盖掉。 */
-  @media (min-width: 1100px) {
-    .toc-open {
-      display: none;
-    }
-  }
-
-  /* 悬停时边框变 --text，同次按钮（design §5） */
   .toc-open:hover {
-    border-color: var(--text);
+    background: var(--surface-muted);
   }
 
   /* 没有 JS 时它是链接，按下反馈要自己加（base.css 只管 button 和 .button） */
   .toc-open:active {
     translate: 0 var(--press-shift);
+  }
+
+  /* ≥720px：左侧常驻侧边栏就是目录，顶栏不放“目录”（design §4.5）。
+     要写在 .toc-open 的基础规则后面：同样的优先级，写在前面会被 display: inline-flex 盖掉。 */
+  @media (min-width: 720px) {
+    .toc-open {
+      display: none;
+    }
   }
 </style>

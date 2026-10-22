@@ -66,7 +66,10 @@ test.describe('代码块复制', () => {
 
   test('复制按钮的可点区域至少 44×44px（design §5）', async ({ page }) => {
     await page.goto('./plan1-make-node/');
-    const box = (await page.locator('.code-copy').filter({ visible: true }).first().boundingBox())!;
+    // 原理版的第一个代码块在 360 宽时落在首屏以下，先滚进视口中间再量（elementFromPoint 只看视口内，手机上吸底的翻页栏会压住视口底边）
+    const copy = page.locator('.code-copy').filter({ visible: true }).first();
+    await copy.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+    const box = (await copy.boundingBox())!;
     // v2.2 W4c：看得见的按钮是 28px 高的幽灵按钮，::after 上下各扩 8px，可点区域仍是 44px 高
     expect(box.width).toBeGreaterThanOrEqual(44);
     expect(box.height).toBeGreaterThanOrEqual(28);
@@ -243,16 +246,19 @@ test.describe('截图看大图', () => {
 // 截图图版（design §4.7）：统一边框，编号“图 02-1”（本页步骤号-序号）；三种宽度都写在截图下方
 // （v2.2 去掉了桌面页边栏）。参考页只用序号“图 1”（常见问题没有截图，用实测页）。
 test.describe('截图图版', () => {
-  /** 当前可见正文里第 n 个图版的编号文字和位置 */
+  /**
+   * 当前可见正文里第 n 个图版的编号文字和位置。说明图（figure.plate.diagram，和截图一起编号）里是内联 SVG、没有 <img>，
+   * 固定原理视图后测 IP 质量的第一个图版就是说明图，所以滚动和量位置都按图里的 img 或 svg。
+   */
   async function plate(page: import('@playwright/test').Page, n = 0) {
     const figure = page.locator('.prose').filter({ visible: true }).locator('figure.plate').nth(n);
-    await figure.locator('img').scrollIntoViewIfNeeded();
+    await figure.locator('img, svg').first().scrollIntoViewIfNeeded();
     return figure.evaluate((el) => {
       const rect = (node: Element | null) => {
         const r = node!.getBoundingClientRect();
         return { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
       };
-      const img = el.querySelector('img')!;
+      const img = el.querySelector('img') ?? el.querySelector('svg')!;
       return {
         text: el.querySelector('.plate-no')!.textContent,
         caption: rect(el.querySelector('.plate-no')),
@@ -285,11 +291,11 @@ test.describe('截图图版', () => {
 
   test.describe('没有 JS', () => {
     test.use({ javaScriptEnabled: false });
-    test('编号按构建时的操作视图写好步骤号', async ({ page }) => {
+    test('编号按构建时的原理视图写好步骤号', async ({ page }) => {
       await page.goto('./clean-up/');
-      const caption = page.locator('[data-body="operation"] figure.plate .plate-no').first();
+      const caption = page.locator('.prose figure.plate .plate-no').first();
       await expect(caption).toBeVisible();
-      // 构建时按操作视图写好的眉题里就有步骤号（补足两位进“图 02-1”）
+      // 构建时按原理视图写好的眉题里就有步骤号（补足两位进“图 02-1”）
       const no = /第 (\d+) 步，共 \d+ 步/.exec((await page.locator('[data-route-eyebrow]').textContent()) ?? '')?.[1];
       expect(no).toMatch(/^\d+$/);
       await expect(caption).toHaveText(`图 ${no!.padStart(2, '0')}-1`);
@@ -313,14 +319,13 @@ test.describe('截图图版', () => {
     expect((await plate(page, 1)).text).toBe(`图 ${first.stepNo!.padStart(2, '0')}-2`);
   });
 
-  test('切到原理视图后编号跟着原理视图的步骤号（清理旧账号前面多一个原理独有步骤）', async ({ page }) => {
+  // 原来是“切到原理视图后编号跟着变”；用户 2026-10-22 决定去掉视图切换、固定原理视图，改成核对编号就是原理视图的步骤号
+  test('编号是原理视图的步骤号（清理旧账号前面有原理独有的整体思路，是第 4 步）', async ({ page }) => {
     await page.goto('./clean-up/');
     await expectScriptRan(page);
-    const operation = await plate(page);
-    await page.getByRole('group', { name: '视图' }).getByRole('button', { name: '原理' }).click();
-    await expect.poll(async () => (await plate(page)).stepNo).not.toBe(operation.stepNo);
     const principle = await plate(page);
-    expect(principle.text).toBe(`图 ${principle.stepNo!.padStart(2, '0')}-1`);
+    expect(principle.stepNo).toBe('4');
+    expect(principle.text).toBe('图 04-1');
   });
 
   test('参考页只用序号“图 1”', async ({ page }) => {

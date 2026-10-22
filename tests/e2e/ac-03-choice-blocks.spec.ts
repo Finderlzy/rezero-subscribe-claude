@@ -40,8 +40,7 @@ test('回到选择页：所选的块标“已选”和 aria-current，其他块�
   await expect(page.getByRole('main').getByText('已选').filter({ visible: true })).toHaveCount(1);
   await expect(stepNav(page).getByRole('link', { name: /下一步.*方案二：住宅 IP 服务器/ })).toHaveAttribute('href', /\/plan2-residential-server\/$/);
 
-  // 切到原理视图，原理版正文里的同一块也标着
-  await page.getByRole('group', { name: '视图' }).getByRole('button', { name: '原理' }).click();
+  // 页面固定原理视图（用户 2026-10-22 决定去掉视图切换、固定原理视图）：原理版正文里的这一块标着
   await expect(optionBlock(page, '方案二')).toHaveAttribute('aria-current', 'true');
 });
 

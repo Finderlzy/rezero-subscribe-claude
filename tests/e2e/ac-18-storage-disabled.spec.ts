@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { chooseOption, collectErrors, expectScriptRan, nextUntil, pageId, stepNav } from './route-helpers';
 
 // AC-18（禁用本机存储部分）：浏览器禁用本机存储时，在选择页选好后走完 AC-02 的一条路线，导航正常、不报错。
@@ -30,8 +30,6 @@ const DISABLERS: [string, () => void][] = [
   ],
 ];
 
-const toggle = (page: Page) => page.getByRole('group', { name: '视图' });
-
 for (const [name, disable] of DISABLERS) {
   test.describe(name, () => {
     test.beforeEach(async ({ page }) => {
@@ -58,30 +56,29 @@ for (const [name, disable] of DISABLERS) {
       await expect(stepNav(page).getByRole('link', { name: /下一步.*回到首页/ })).toBeVisible();
 
       expect(seen).toEqual([
-        'preface', 'disclaimer', 'clean-up', 'choose-plan',
-        'plan3-residential-node', 'import-proxy', 'check-ip', 'leak-protection', 'timezone', 'choose-phone',
+        // 固定原理视图（用户 2026-10-22 决定去掉视图切换、固定原理视图）：经过原理独有的整体思路、小结、为什么用美区 Apple ID
+        'preface', 'disclaimer', 'overview', 'clean-up', 'choose-plan',
+        'plan3-residential-node', 'import-proxy', 'check-ip', 'recap', 'leak-protection', 'timezone', 'choose-phone',
         'iphone-app-store-austria', 'iphone-proxy', 'iphone-gmail',
         'register-gmail', 'chrome-sign-in', 'use-two-days', 'google-region', 'register-claude', 'subscribe',
-        'iphone-apple-id', 'iphone-app-store-login', 'iphone-gift-card', 'iphone-subscribe', 'iphone-purchase-failed',
+        'iphone-why-us-apple-id', 'iphone-apple-id', 'iphone-app-store-login', 'iphone-gift-card', 'iphone-subscribe', 'iphone-purchase-failed',
         'after-subscribe', 'thanks', 'afterword', 'appendix',
       ]);
       expect(errors).toEqual([]);
     });
 
-    test('切换视图照常生效，换页后仍是原理视图、不报错', async ({ page }) => {
+    // 原来是“切换视图照常生效”；用户 2026-10-22 决定去掉视图切换、固定原理视图，改成核对换页后仍是原理视图、不报错
+    test('换页后仍是原理视图、不报错', async ({ page }) => {
       const errors = collectErrors(page);
       await page.goto('./leak-protection/');
       await expectScriptRan(page);
-
-      await expect(toggle(page).getByRole('button', { name: '操作' })).toHaveAttribute('aria-pressed', 'true');
-      await toggle(page).getByRole('button', { name: '原理' }).click();
-      await expect(page.locator('[data-body="principle"]')).toBeVisible();
+      await expect(page.locator('html')).toHaveAttribute('data-view', 'principle');
 
       await stepNav(page).getByRole('link', { name: /下一步/ }).click();
       await expect(page).toHaveURL(/\/timezone\/$/);
       await expectScriptRan(page);
-      await expect(toggle(page).getByRole('button', { name: '原理' })).toHaveAttribute('aria-pressed', 'true');
-      await expect(page.locator('[data-body="principle"]')).toBeVisible();
+      await expect(page.locator('html')).toHaveAttribute('data-view', 'principle');
+      await expect(page.locator('.prose')).toBeVisible();
       expect(errors).toEqual([]);
     });
   });

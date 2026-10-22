@@ -513,8 +513,8 @@ function search(index: SearchEntry[], query: string, view: ViewMode, limit = 10)
 [design.md](design.md) v3（2026-10-21 定稿）给出令牌、尺寸、断点、深色配色和 Q-17 的 360px 顶栏预算，M3 的实现以它为准；本节只定结构和接口。
 
 - **断点**：`720px` 一档取代 `1100px` 的“常驻目录”档；具体令牌由 design 定，`tokens.css` 和 `tokens.test.ts` 同步。
-- **顶栏**：`SiteHeader.astro` 改为文档站顶栏，左边 `Logo`（小号）+ 站名 + `Mascot`，右边 `SiteSearch`、`ViewToggle`（文字链接风格）、`ContactLinks`；<720px 左边多“目录”按钮。不吸顶。首页不用顶栏（FR-18）。
-- **页面骨架**：`PageLayout`、`ReferenceLayout` 改成“顶栏 + 两栏（侧边栏 | 正文栏）”，≥720px 侧边栏 `position: sticky`、独立滚动，<720px 只有正文栏、目录在抽屉里。页头色带、`ChapterSubtitle`、章节标题卡、`.step-heading` 的编号挂栏删除；眉题改为 h1 上方一行灰色小字，进度文字仍由 `nav-text.ts` 和 `route-enhance` 的 `renderProgress` 给出（挂载点名字不变）。`Numeral`、`numerals/` 只在 design v3 还用到时保留，不用就连同 `build-logo.mjs` 的对应输出一起删。
+- **顶栏**（V01 现状）：`SiteHeader.astro` 改为文档站顶栏，左边 `Logo`（“Re:”标记）+ 站名 + `Mascot`，右边搜索挂载点 `[data-search-slot]`（V08 填 `SiteSearch`）、`ThemeToggle`（昼夜切换，用户 2026-10-22 决定取代 `ViewToggle`，见 13.12）、`ContactLinks`；<720px 左边多“目录”按钮。不吸顶。首页不用顶栏（FR-18）。
+- **页面骨架**（V01 现状）：`PageLayout`、`ReferenceLayout` 改成“顶栏 + 两栏（侧边栏 | 正文栏）”，≥720px 侧边栏 `position: sticky`、独立滚动，<720px 只有正文栏、目录在抽屉里。页头色带、`ChapterSubtitle`、章节标题卡、`.step-heading` 的编号挂栏删除；眉题改为 h1 上方一行灰色小字，进度文字仍由 `nav-text.ts` 和 `route-enhance` 的 `renderProgress` 给出（挂载点名字不变）。`Numeral`、`numerals/` 只在 design v3 还用到时保留，不用就连同 `build-logo.mjs` 的对应输出一起删。
 - **目录 / 侧边栏**（FR-16）：`TocNav` 每章是一个 `<details>`，当前页所在章 `open`，其余折叠；折叠只在 DOM 里，不写本机。当前页下面列出它两版正文的 h2，构建时写成两个列表，分别带 `data-view-only="principle|operation"`，由 `<html data-view>` 的 CSS 决定显示哪一个（不需要脚本，切视图后自动跟着换）；链接锚点用各自视图的 id。`toc.ts` 照旧按本机选择改写弱化和当前项。首页的目录用不折叠的变体。抽屉和侧边栏仍是同一套 `TocNav` 标记（v2.2 的做法）。
 - **翻页** `StepNav`：正文末尾细线下，左“← 标题”、右“标题 →”，“跳过”在“下一步”下面一行；参考页、旁支页的“回到：……”用同样的链接样式。导航数据和改写逻辑不变。
 - **首页** `index.astro`：VuePress 首页的 hero（居中 logo、站名、英文副标题、主按钮、QQ 群小字）+ 按章目录，没有顶栏的搜索、没有侧边栏。首屏“一句话摘自整体思路”的构建核对随首屏改版是否保留由 design v3 定；保留就照旧核对。
@@ -595,6 +595,14 @@ tests/fixtures/moved-*/         跳转表的坏内容用例（目标不存在、
 5. `merge-rewrite.mjs`（不等 Q-18，用测试重写稿验证）。
 6. Q-18 定后：按清单合并、导入、改路线图和跳转表、同步 Writing 和大肥鱼。
 7. v3 整体验收（AC-26–AC-33、AC-31 回归），版本升到 3.0.0。
+
+### 13.12 用户决定：去掉视图切换、改成昼夜切换（2026-10-22，V01 已实施）
+
+用户在 V01 实施时决定：顶栏原来放“操作｜原理”视图切换的位置换成**昼夜（浅色/深色）主题切换**，视图切换的 UI 去掉，**页面固定原理视图**。以此为准，取代本节 13.3“顶栏”里的 `ViewToggle`、design §3.1 的“不提供手动切换”和 §4.3。
+
+- **主题**（现状）：`src/lib/theme.ts`（`THEME_KEY`、`THEME_BOOT_SCRIPT`、`effectiveTheme`/`nextTheme` 纯函数）、`src/components/ThemeToggle.astro`（44×44 图标按钮，可访问名称“深色模式”，`aria-pressed` = 当前是深色，构建时 `hidden`）、`src/scripts/theme-toggle.ts`。`BaseLayout` 的 `<head>` 里内联 `THEME_BOOT_SCRIPT`，所有页面（含首页）首次绘制前按存过的选择写 `data-theme`；没存过时没有 `data-theme`，跟随系统。`tokens.css` 的深色令牌写两块：`:root[data-theme='dark']` 和 `@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) }`，`tokens.test.ts` 核对两块一致。只存这一个 localStorage 键，和 M4 无关。
+- **固定原理视图**（现状）：`[page].astro` 只渲染原理版正文，构建时导航按 `view(id, {}, 'principle')`；`PageLayout` 不再有 `operation` slot、`notice` 和 `data-body`；`VIEW_BOOT_SCRIPT` 固定写 `data-view="principle"`（只作“页面脚本会运行”的标记，PageLayout 按它先隐藏眉题步数）；`route-enhance`、`toc` 的视图固定为 `principle`，`VIEW_CHANGED_EVENT` 删除；`ViewToggle.astro`、`view-toggle.ts` 删除。M2 的 `view`/`outline` 仍接受两种视图，M4 仍有 `view` 字段（没人写），内容集合里的操作版数据暂不删，等 docs/v3-rewrite 的单版本重写统一处理。
+- **对后续任务的影响**（待用户或下一轮规划确认）：13.4 的 `section-hash` 不再需要“切视图”，双链和搜索结果的锚点可以只取原理版 id（V07、V08 的“先切视图再滚动”部分可以去掉）；R-2（`initViewToggle` 返回 `setView`）作废；R-7 的“按 M4 视图选锚点”改为固定原理版；13.3 的侧边栏小节列表只需一份（原理版的 h2）。
 
 ### 13.11 v3 实施前评审（2026-10-21）
 

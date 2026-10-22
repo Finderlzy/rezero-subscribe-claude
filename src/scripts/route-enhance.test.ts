@@ -44,8 +44,8 @@ describe('forkOfChoosePage：选择页对应的分叉点（FR-12）', () => {
 });
 
 describe('renderProgress：改写眉题、步数和读屏文字（FR-10，design §4.1，v2.2 D4、D10）', () => {
-  const render = (at: string, choices: Record<string, string>, mode: 'operation' | 'principle', chapterStart = false) => {
-    const slots = { eyebrow: { textContent: '' as string | null }, text: { textContent: '' as string | null }, chapterStart };
+  const render = (at: string, choices: Record<string, string>, mode: 'operation' | 'principle') => {
+    const slots = { eyebrow: { textContent: '' as string | null }, text: { textContent: '' as string | null } };
     renderProgress(slots, map.view(at, choices, mode));
     return { eyebrow: slots.eyebrow.textContent, text: slots.text.textContent };
   };
@@ -56,9 +56,10 @@ describe('renderProgress：改写眉题、步数和读屏文字（FR-10，design
     expect(render('clean-up', {}, 'principle')).toEqual({ eyebrow: '第 0 章 · 开始 · 第 3 步，共 3 步', text: '开始，第 3 步，共 3 步' });
   });
 
-  it('章首页省掉章的部分：色带上面已经写了副标题和章名，眉题只写步数', () => {
-    expect(render('preface', {}, 'operation', true)).toEqual({ eyebrow: '第 1 步，共 2 步', text: '开始，第 1 步，共 2 步' });
-    expect(render('choose-plan', {}, 'operation', true)).toEqual({ eyebrow: '选择', text: '准备节点和住宅 IP' });
+  // v3 去掉了章节标题卡（FR-72）：章首页的眉题和别的页一样写全
+  it('章首页的眉题也写全章号和章名', () => {
+    expect(render('preface', {}, 'principle')).toEqual({ eyebrow: '第 0 章 · 开始 · 第 1 步，共 3 步', text: '开始，第 1 步，共 3 步' });
+    expect(render('choose-plan', {}, 'principle')).toEqual({ eyebrow: '第 1 章 · 准备节点和住宅 IP · 选择', text: '准备节点和住宅 IP' });
   });
 
   it('改选分叉点后重算：没选时汇合点数不清第几步，选了之后有步数', () => {
@@ -71,7 +72,7 @@ describe('renderProgress：改写眉题、步数和读屏文字（FR-10，design
 
   it('附录页（本章唯一一页，也是章首页）：眉题和读屏都只写“附录”，不写“第 1 步，共 1 步”（W5 第 1 条）', () => {
     for (const mode of ['operation', 'principle'] as const) {
-      expect(render('appendix', {}, mode, true)).toEqual({ eyebrow: '附录', text: '附录' });
+      expect(render('appendix', {}, mode)).toEqual({ eyebrow: '附录', text: '附录' });
     }
   });
 
@@ -83,7 +84,7 @@ describe('renderProgress：改写眉题、步数和读屏文字（FR-10，design
   it('截图编号的步骤号随视图和选择改写；数不清、选择页只用序号（design §4.7）', () => {
     const figures = (at: string, choices: Record<string, string>, mode: 'operation' | 'principle') => {
       const list = [{ textContent: '' as string | null }, { textContent: '' as string | null }];
-      renderProgress({ figures: list, chapterStart: false }, map.view(at, choices, mode));
+      renderProgress({ figures: list }, map.view(at, choices, mode));
       return list.map((f) => f.textContent);
     };
     expect(figures('clean-up', {}, 'operation')).toEqual(['02-', '02-']);
@@ -94,6 +95,6 @@ describe('renderProgress：改写眉题、步数和读屏文字（FR-10，design
   });
 
   it('挂载点缺了也不报错', () => {
-    expect(() => renderProgress({ chapterStart: false }, map.view('preface', {}, 'operation'))).not.toThrow();
+    expect(() => renderProgress({}, map.view('preface', {}, 'operation'))).not.toThrow();
   });
 });

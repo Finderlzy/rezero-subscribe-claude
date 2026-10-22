@@ -21,18 +21,16 @@ test('后记 → 附录 → 回到首页；附录的上一步是后记', async (
   await expect(page.getByRole('link', { name: '从第 00 章开始' })).toBeVisible();
 });
 
-test('附录在两种视图下都链到常见问题和 IP 质量实测合集；眉题只写“附录”，不显示步数', async ({ page }) => {
+// 原来两种视图各核对一遍；用户 2026-10-22 决定去掉视图切换、固定原理视图，只核对原理版正文。v3 去掉了页头色带（FR-72），眉题在 h1 上方
+test('附录链到常见问题和 IP 质量实测合集；眉题只写“附录”，不显示步数', async ({ page }) => {
   await page.goto('./appendix/');
   await expectScriptRan(page);
-  for (const view of ['原理', '操作']) {
-    await page.getByRole('button', { name: view, exact: true }).click();
-    // W5 第 1 条：附录不计入“共 m 步”，看得见的眉题和读屏文字都只写“附录”
-    await expect(page.locator('.band [data-route-eyebrow]')).toHaveText('附录');
-    await expect(page.locator('.band [data-route-progress]')).toHaveText('附录');
-    const prose = page.locator('.prose').filter({ visible: true });
-    await expect(prose.getByRole('link', { name: '常见问题' })).toHaveAttribute('href', /\/faq\/\?from=appendix$/);
-    await expect(prose.getByRole('link', { name: 'IP 质量实测合集' })).toHaveAttribute('href', /\/ip-tests\/\?from=appendix$/);
-  }
+  // W5 第 1 条：附录不计入“共 m 步”，看得见的眉题和读屏文字都只写“附录”
+  await expect(page.locator('.eyebrow [data-route-eyebrow]')).toHaveText('附录');
+  await expect(page.locator('.eyebrow [data-route-progress]')).toHaveText('附录');
+  const prose = page.locator('.prose').filter({ visible: true });
+  await expect(prose.getByRole('link', { name: '常见问题' })).toHaveAttribute('href', /\/faq\/\?from=appendix$/);
+  await expect(prose.getByRole('link', { name: 'IP 质量实测合集' })).toHaveAttribute('href', /\/ip-tests\/\?from=appendix$/);
 });
 
 test('目录的最后一章是附录，常见问题和 IP 质量实测合集列在附录页下面', async ({ page }) => {
@@ -53,6 +51,6 @@ for (const path of ['./faq/', './faq/reinstall/', './ip-tests/', './ip-tests/dec
     await page.goto(path);
     await expect(page.locator('main[data-reference-ready]')).toHaveCount(1);
     await expect(stepNav(page)).toHaveCount(0);
-    await expect(page.locator('.band .eyebrow')).toHaveText(/^附录 · (常见问题|IP 质量实测合集)$/);
+    await expect(page.locator('main .eyebrow')).toHaveText(/^附录 · (常见问题|IP 质量实测合集)$/);
   });
 }

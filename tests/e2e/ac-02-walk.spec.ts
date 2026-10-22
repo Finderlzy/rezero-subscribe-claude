@@ -1,8 +1,9 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { chooseOption, collectErrors, expectScriptRan, nextUntil, pageId, stepLabel, stepNav, stepNo, stepTotal } from './route-helpers';
 
-// AC-02（FR-10、FR-11）：6 种选择组合（方案一/二/三 × iPhone/安卓）× 两种视图，从“前言”一直点“下一步”经“后记”走到“附录”，
-// 中途没有断链；操作视图下不经过整体思路、小结、为什么用美区 Apple ID，原理视图下经过。
+// AC-02（FR-10、FR-11）：6 种选择组合（方案一/二/三 × iPhone/安卓），从“前言”一直点“下一步”经“后记”走到“附录”，
+// 中途没有断链；经过原理独有的整体思路、小结、为什么用美区 Apple ID。
+// 用户 2026-10-22 决定去掉视图切换、固定原理视图：操作视图的 6 条走法随功能移除，只走原理视图。
 // 分叉点处在选择页点选项块（FR-12）。不运行 JS 的静态走法见 ac-02-static-walk.spec.ts。
 // 一路上的步骤编号是本章进度（FR-10）：眉题每章从第 1 步数到 m，“共 m 步”一致；选择页不计步数，写“选择”；
 // 附录不计步数（v2.2 计划 W5 第 1 条，眉题只写“附录”，见 ac-22-appendix.spec.ts）。
@@ -19,11 +20,9 @@ const PHONES = {
   },
   安卓: { first: ['android-proxy', 'android-google-play', 'android-gmail'], subscribe: ['android-subscribe'] },
 };
-/** 原理独有步骤：操作视图绕过 */
-const PRINCIPLE_ONLY = ['overview', 'recap', 'iphone-why-us-apple-id'];
-
-function expected(plan: keyof typeof PLANS, phone: keyof typeof PHONES, view: 'operation' | 'principle'): string[] {
-  const all = [
+/** 一条路线经过的全部页面，含原理独有的整体思路、小结、为什么用美区 Apple ID */
+function expected(plan: keyof typeof PLANS, phone: keyof typeof PHONES): string[] {
+  return [
     'preface', 'disclaimer', 'overview', 'clean-up', 'choose-plan',
     ...PLANS[plan],
     'import-proxy', 'check-ip', 'recap', 'leak-protection', 'timezone', 'choose-phone',
@@ -32,19 +31,12 @@ function expected(plan: keyof typeof PLANS, phone: keyof typeof PHONES, view: 'o
     ...PHONES[phone].subscribe,
     'after-subscribe', 'thanks', 'afterword', 'appendix',
   ];
-  return view === 'principle' ? all : all.filter((id) => !PRINCIPLE_ONLY.includes(id));
 }
 
-async function setView(page: Page, view: 'operation' | 'principle'): Promise<void> {
-  const button = page.getByRole('group', { name: '视图' }).getByRole('button', { name: view === 'principle' ? '原理' : '操作' });
-  await button.click();
-  await expect(button).toHaveAttribute('aria-pressed', 'true');
-}
-
-for (const view of ['operation', 'principle'] as const) {
+for (const view of ['principle'] as const) {
   for (const plan of Object.keys(PLANS) as (keyof typeof PLANS)[]) {
     for (const phone of Object.keys(PHONES) as (keyof typeof PHONES)[]) {
-      test(`${view === 'operation' ? '操作' : '原理'}视图：${plan} × ${phone}，前言一路“下一步”经后记到附录`, async ({ page }) => {
+      test(`原理视图：${plan} × ${phone}，前言一路“下一步”经后记到附录`, async ({ page }) => {
         const errors = collectErrors(page);
         const broken: string[] = [];
         page.on('response', (r) => {
@@ -57,7 +49,7 @@ for (const view of ['operation', 'principle'] as const) {
         };
         await page.goto('./preface/');
         await expectScriptRan(page);
-        await setView(page, view);
+        await expect(page.locator('html')).toHaveAttribute('data-view', view);
         await record();
 
         await nextUntil(page, 'choose-plan', seen, record);
@@ -74,7 +66,7 @@ for (const view of ['operation', 'principle'] as const) {
         await expect(home).toBeVisible();
         await expect(home).toHaveAttribute('href', /^\/$/);
 
-        expect(seen).toEqual(expected(plan, phone, view));
+        expect(seen).toEqual(expected(plan, phone));
         expect(marks.map(([id]) => id)).toEqual(seen);
         // 选择页写“选择”，附录不写步数；其余页按章从第 1 步起连续编号，一章的最后一步编号等于步数
         let next = 1;

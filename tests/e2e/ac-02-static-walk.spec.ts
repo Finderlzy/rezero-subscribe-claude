@@ -56,9 +56,10 @@ test('关掉 JS：首页 → 方案三 → iPhone → 后记 → 附录 → 首�
   await expect(page.getByRole('heading', { level: 1 })).toHaveAccessibleName('Re:从零开始订阅 claude');
 
   expect(responses).toEqual([]);
+  // 构建时按原理视图写导航（用户 2026-10-22 决定去掉视图切换、固定原理视图）：经过原理独有的整体思路和小结
   expect(seen).toEqual([
-    'preface', 'disclaimer', 'clean-up', 'choose-plan',
-    'plan3-residential-node', 'import-proxy', 'check-ip', 'leak-protection', 'timezone', 'choose-phone',
+    'preface', 'disclaimer', 'overview', 'clean-up', 'choose-plan',
+    'plan3-residential-node', 'import-proxy', 'check-ip', 'recap', 'leak-protection', 'timezone', 'choose-phone',
     'iphone-app-store-austria', 'iphone-proxy', 'iphone-gmail',
     'register-gmail', 'chrome-sign-in', 'use-two-days', 'google-region', 'register-claude', 'subscribe',
     'iphone-apple-id', 'iphone-app-store-login', 'iphone-gift-card', 'iphone-subscribe', 'iphone-purchase-failed',

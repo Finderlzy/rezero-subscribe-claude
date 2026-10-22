@@ -390,21 +390,12 @@ describe('RouteData 与 routeMapFromData', () => {
   });
 });
 
-describe('章节的一句话 intro（design §4.1、架构 §11.4 W-3）', () => {
-  it('写了 intro 的章节在 RouteData 里带上它，没写的没有这个字段', () => {
+// v3 去掉了章节标题卡（FR-72，架构 §13.1）：intro 字段跟着删除，写了就是未知字段
+describe('章节的 intro 已删除', () => {
+  it('章节写 intro 时报出未知字段', () => {
     const spec = sampleSpec();
-    chapter(spec, 'start').intro = '这一章的一句话。';
-    const { data } = buildRouteMap(spec, samplePages());
-    expect(data.chapters.find((c) => c.id === 'start')!.intro).toBe('这一章的一句话。');
-    expect(data.chapters.find((c) => c.id === 'ending')!).not.toHaveProperty('intro');
-  });
-
-  it('intro 不是非空字符串时报出 route.yaml', () => {
-    for (const intro of ['', '  ', 42]) {
-      const spec = sampleSpec();
-      (chapter(spec, 'start') as { intro?: unknown }).intro = intro;
-      expectError(errorsOf(spec), 'route.yaml', /第 1 个章节的 intro 必须是非空的一段文字/);
-    }
+    (chapter(spec, 'start') as { intro?: unknown }).intro = '这一章的一句话。';
+    expectError(errorsOf(spec), 'route.yaml', /第 1 个章节有未知字段 intro/);
   });
 });
 

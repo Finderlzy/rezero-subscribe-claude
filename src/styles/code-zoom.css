@@ -31,7 +31,7 @@
   height: 28px;
   padding: 0 var(--space-2);
   border: 0;
-  border-radius: var(--radius-control);
+  border-radius: var(--radius);
   background: transparent;
   /* 复制按钮下面压着 --surface-muted 的代码块：--text-muted 对 --surface-muted 只有 3.5:1，用 --text-faint
      对 --surface-muted 才达到 4.5:1（tokens.test.ts 里有这条组合） */
@@ -123,7 +123,7 @@
   margin: auto;
   padding: var(--space-4);
   border: var(--border-width) solid var(--border);
-  border-radius: var(--radius-panel);
+  border-radius: var(--radius);
   background: var(--surface);
   color: var(--text);
   overflow: auto;
@@ -187,7 +187,7 @@
   height: 44px;
   padding: 0;
   border: var(--border-width) solid var(--control-border);
-  border-radius: var(--radius-control);
+  border-radius: var(--radius);
   background: var(--surface);
   color: var(--text-muted);
   cursor: pointer;

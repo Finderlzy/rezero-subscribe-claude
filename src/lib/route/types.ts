@@ -32,8 +32,6 @@ export interface RouteSpec {
 export interface RouteSpecChapter {
   id: string;
   title: string;
-  /** 章节标题卡下的一句话（design §4.1）：这一章第一页原理版正文里原样出现的一段文字，由 assembleRoute 核对（架构 §11.4 W-3） */
-  intro?: string;
   items: RouteSpecItem[];
 }
 
@@ -79,8 +77,6 @@ export interface RouteData {
 export interface RouteDataChapter {
   id: string;
   title: string;
-  /** 章节标题卡下的一句话；没写时没有这个字段 */
-  intro?: string;
   items: RouteDataItem[];
 }
 

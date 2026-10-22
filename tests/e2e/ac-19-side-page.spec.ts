@@ -22,13 +22,11 @@ test('从“先用两天”进入旁支页，页脚是“回到：先用两天�
   expect(pageId(page)).toBe('use-two-days');
 });
 
-for (const view of ['operation', 'principle'] as const) {
-  test(`${view === 'operation' ? '操作' : '原理'}视图：沿“先用两天”的“下一步”走，不经过申诉页`, async ({ page }) => {
-    await page.goto('./use-two-days/');
-    await expectScriptRan(page);
-    if (view === 'principle') await page.getByRole('group', { name: '视图' }).getByRole('button', { name: '原理' }).click();
-    const seen: string[] = [];
-    await nextUntil(page, 'google-region', seen);
-    expect(seen).toEqual(['google-region']);
-  });
-}
+// 原来两种视图各走一遍；用户 2026-10-22 决定去掉视图切换、固定原理视图，只走原理视图
+test('沿“先用两天”的“下一步”走，不经过申诉页', async ({ page }) => {
+  await page.goto('./use-two-days/');
+  await expectScriptRan(page);
+  const seen: string[] = [];
+  await nextUntil(page, 'google-region', seen);
+  expect(seen).toEqual(['google-region']);
+});

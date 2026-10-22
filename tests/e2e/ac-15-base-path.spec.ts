@@ -65,6 +65,9 @@ test('从首页点进去，沿“下一步”和选择页走几步，地址一�
   await expectAt('./preface/');
   await nav.getByRole('link', { name: /下一步/ }).click();
   await expectAt('./disclaimer/');
+  // 固定原理视图（用户 2026-10-22 决定去掉视图切换、固定原理视图）：经过原理独有的整体思路
+  await nav.getByRole('link', { name: /下一步/ }).click();
+  await expectAt('./overview/');
   await nav.getByRole('link', { name: /下一步/ }).click();
   await expectAt('./clean-up/');
   await nav.getByRole('link', { name: /下一步/ }).click();

@@ -4,32 +4,26 @@
  */
 
 /*
- * 抽屉：所有宽度都是抽屉，不常驻（D5）。手机上全屏，更宽时是贴左边、宽 400px 的一栏。
- * 只有浮层可以加一层很淡的阴影（design §3.3）。
+ * 抽屉（design v3 §4.5）：<720px 时目录在这里，从左侧滑入，宽 min(300px, 85vw)，右侧是遮罩。
+ * ≥720px 由常驻侧边栏代替，顶栏没有“目录”按钮，抽屉打不开。只有浮层可以加一层很淡的阴影（design §3.3）。
  */
 .toc-dialog {
   /* 位置不靠浏览器给 :modal 的默认样式：close() 后 :modal 立刻失效，滑出的 150ms 里仍要钉在视口左边 */
   position: fixed;
   inset: 0 auto 0 0;
-  width: 100%;
+  width: var(--drawer-width);
   max-width: none;
   height: 100%;
   max-height: none;
   margin: 0;
   padding: 0;
   border: 0;
-  background: var(--bg);
+  border-right: var(--border-width) solid var(--border);
+  background: var(--surface);
   color: var(--text);
   box-sizing: border-box;
   overflow-y: auto;
-}
-
-@media (min-width: 720px) {
-  .toc-dialog {
-    width: 400px;
-    border-right: var(--border-width) solid var(--border);
-    box-shadow: var(--overlay-shadow);
-  }
+  box-shadow: var(--overlay-shadow);
 }
 
 .toc-dialog::backdrop {
@@ -90,7 +84,7 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--space-2) var(--space-4);
-  background: var(--bg);
+  background: var(--surface);
 }
 
 /* 留白放在内层：点到 dialog 自身才算点背景（toc.ts 按这个判断）。 */
@@ -112,7 +106,7 @@
   height: 44px;
   padding: 0;
   border: 0;
-  border-radius: var(--radius-control);
+  border-radius: var(--radius);
   background: transparent;
   color: var(--text);
   cursor: pointer;
@@ -168,7 +162,7 @@
   min-height: 44px;
   padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
   box-sizing: border-box;
-  border-radius: var(--radius-control);
+  border-radius: var(--radius);
   color: var(--text);
   font-size: 15px;
   line-height: var(--lh-meta);
@@ -238,7 +232,7 @@
   min-height: 44px;
   padding: 0 var(--space-3);
   border: var(--border-width) solid var(--control-border);
-  border-radius: var(--radius-control);
+  border-radius: var(--radius);
   background: var(--surface);
   color: var(--accent);
   font: inherit;
@@ -247,11 +241,12 @@
 }
 
 /*
- * 桌面常驻的侧边栏（design §4.5，v2.2 D8）：宽 --sidebar-width，吸在页眉下沿，占满视口剩余高度、独立滚动，
- * 右边一条 1px --sidebar-rule 竖线。≥1100px 由 base.css 的页面网格排在左侧，从页眉下沿一直画到页脚；
- * <1100px 时不显示，目录只有抽屉。首页和找不到页不放侧边栏（那一页本身就是目录）。
+ * 常驻的侧边栏（design v3 §4.5）：宽 --sidebar-width（平板 256px、桌面 300px），sticky、top: 0、最高 100vh、
+ * 独立滚动，右边一条 1px --sidebar-rule 竖线。≥720px 由 base.css 的页面网格排在顶栏下面的左侧：
+ * 页面在顶部时它从顶栏下面开始，往下滚后贴着视口顶边（顶栏不固定，随页面滚走）。
+ * <720px 时不显示，目录只有抽屉。首页和找不到页不放侧边栏（那一页本身就是目录）。
  */
-@media (max-width: 1099px) {
+@media (max-width: 719px) {
   .toc-sidebar {
     display: none;
   }
@@ -265,9 +260,10 @@
  */
 aside.toc-sidebar {
   position: sticky;
-  top: var(--header-height);
-  height: calc(100vh - var(--header-height));
-  height: calc(100dvh - var(--header-height));
+  top: 0;
+  align-self: start;
+  max-height: 100vh;
+  max-height: 100dvh;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
@@ -283,7 +279,7 @@ aside.toc-sidebar:focus-within {
 }
 
 .toc-sidebar-inner {
-  padding: var(--space-6) var(--space-4) var(--space-8) var(--space-5);
+  padding: var(--space-5) var(--space-4) var(--space-5) var(--space-5);
 }
 
 /* 侧边栏里的目录列表：章标题两行（13px --text-faint 的“第 1 章”，下面 15px 600 的章名） */
@@ -344,7 +340,7 @@ aside.toc-sidebar:focus-within {
   text-decoration: none;
 }
 
-/* “或”分组：保留下面的短竖线；272px 宽的侧边栏里选项名和“切换”按钮要能并排（按钮还没按过时是本机没选，见 toc.ts） */
+/* “或”分组：保留下面的短竖线；256px 宽的侧边栏里选项名和“切换”按钮要能并排（按钮还没按过时是本机没选，见 toc.ts） */
 .toc-sidebar .toc-option-head {
   min-height: var(--space-6);
   padding-left: var(--space-2);

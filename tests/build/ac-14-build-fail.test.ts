@@ -98,12 +98,6 @@ describe('AC-14 坏内容让构建失败并报出文件', () => {
       ],
     },
     {
-      // 章节标题卡的一句话（design §4.1）改成正文里没有的句子（ADR-0005：不另写）
-      fixture: 'intro-not-in-body',
-      file: 'route.yaml',
-      messages: ['route.yaml：章节 ending 的 intro“感谢每一位帮过我的人。”没有原样出现在这一章第一页 principle/thanks.md 的正文里'],
-    },
-    {
       fixture: 'title-mismatch',
       file: 'src/content/operation/thanks.md',
       messages: ['操作版标题“感谢”与原理版“致谢”不同'],

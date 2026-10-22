@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chapterNoText, chapterText, eyebrowSuffix, eyebrowText, figurePrefix, isChapterStart, progressText, stepNumber, stopTitle } from './nav-text';
+import { chapterNoText, eyebrowText, figurePrefix, progressText, stopTitle } from './nav-text';
 
 describe('nav-text：导航文案，构建时和浏览器共用', () => {
   const chapter = { chapterId: 'node-and-ip', chapter: '准备节点和住宅 IP', chapterNo: 1 };
@@ -12,42 +12,39 @@ describe('nav-text：导航文案，构建时和浏览器共用', () => {
     const progress = { ...chapter, index: 2, total: 10 };
     expect(eyebrowText(progress, step)).toBe('第 1 章 · 准备节点和住宅 IP · 第 2 步，共 10 步');
     expect(progressText(progress, step)).toBe('准备节点和住宅 IP，第 2 步，共 10 步');
-    expect(stepNumber(progress, step)).toEqual({ index: 2, total: 10 });
-    // 章号和首页、目录、章首页的 CHAPTER 00 一样从 0 起，只是不补零（v2.2 计划 W2 第 1 条：“第 1 章 · 准备节点和住宅 IP”）
+    // 章号和首页、目录一样从 0 起，只是不补零（v2.2 计划 W2 第 1 条：“第 1 章 · 准备节点和住宅 IP”）
     expect(eyebrowText({ chapterId: 'start', chapter: '开始', chapterNo: 0, index: 1, total: 4 }, step)).toBe('第 0 章 · 开始 · 第 1 步，共 4 步');
   });
 
-  it('章首页省掉章的部分（色带里已经写了副标题和章名），只写“第 n 步，共 m 步”', () => {
+  // v3 去掉了章节标题卡（FR-72），章首页的眉题和别的页一样写全章号和章名
+  it('章首页的眉题也写全：“第 1 章 · 章名 · 第 1 步，共 m 步”，选择页“… · 选择”', () => {
     const progress = { ...chapter, index: 1, total: 10 };
-    expect(eyebrowText(progress, step, true)).toBe('第 1 步，共 10 步');
-    expect(eyebrowText(progress, choose, true)).toBe('选择');
+    expect(eyebrowText(progress, step)).toBe('第 1 章 · 准备节点和住宅 IP · 第 1 步，共 10 步');
+    expect(eyebrowText(progress, choose)).toBe('第 1 章 · 准备节点和住宅 IP · 选择');
     expect(progressText(progress, step)).toBe('准备节点和住宅 IP，第 1 步，共 10 步');
   });
 
   it('数不清第几步：眉题只有章和章名，读屏也只读章名（FR-10）', () => {
     expect(eyebrowText(chapter, step)).toBe('第 1 章 · 准备节点和住宅 IP');
     expect(progressText(chapter, step)).toBe('准备节点和住宅 IP');
-    expect(stepNumber(chapter, step)).toBeNull();
+    expect(figurePrefix(chapter, step)).toBe('');
   });
 
   it('选择页写“· 选择”，旁支页写“· 旁支”，都不计步数（design §4.2、§4.6）', () => {
     expect(eyebrowText(chapter, choose)).toBe('第 1 章 · 准备节点和住宅 IP · 选择');
     expect(eyebrowText(chapter, side)).toBe('第 1 章 · 准备节点和住宅 IP · 旁支');
     expect(progressText(chapter, side)).toBe('准备节点和住宅 IP · 旁支');
-    expect(eyebrowSuffix(side)).toBe(' · 旁支');
-    expect(eyebrowSuffix(step)).toBe('');
+    expect(progressText(chapter, step)).toBe('准备节点和住宅 IP');
     // 即使进度里带了序号，选择页也不算一步
-    expect(stepNumber({ ...chapter, index: 1, total: 3 }, choose)).toBeNull();
+    expect(figurePrefix({ ...chapter, index: 1, total: 3 }, choose)).toBe('');
     expect(progressText({ ...chapter, index: 1, total: 3 }, choose)).toBe('准备节点和住宅 IP');
   });
 
   it('附录页：眉题只写“附录”，读屏也只读“附录”，不计步数，截图编号不带步骤号（v2.2 计划 W5 第 1、6 条）', () => {
     const appendix = { chapterId: 'appendix', chapter: '附录', chapterNo: 4, index: 1, total: 1 };
     const page = { kind: 'step', id: 'appendix', title: '附录' } as const;
-    expect(eyebrowText(appendix, page, true)).toBe('附录');
     expect(eyebrowText(appendix, page)).toBe('附录');
     expect(progressText(appendix, page)).toBe('附录');
-    expect(stepNumber(appendix, page)).toBeNull();
     expect(figurePrefix(appendix, page)).toBe('');
   });
 
@@ -71,30 +68,12 @@ describe('nav-text：导航文案，构建时和浏览器共用', () => {
     expect(stopTitle({ kind: 'home' }, 'next')).toBe('回到首页');
   });
 
-  it('页头色带的章号不补零；目录和首页索引的章节号仍从 00 起、补足两位（design §2）', () => {
-    expect(chapterText({ chapterId: 'a', chapter: '甲', chapterNo: 0 })).toBe('第 0 章');
-    expect(chapterText({ chapterId: 'b', chapter: '乙', chapterNo: 3 })).toBe('第 3 章');
+  it('眉题的章号不补零；目录和首页索引的章节号仍从 00 起、补足两位（design §2）', () => {
+    expect(eyebrowText({ chapterId: 'a', chapter: '甲', chapterNo: 0 }, step)).toBe('第 0 章 · 甲');
+    expect(eyebrowText({ chapterId: 'b', chapter: '乙', chapterNo: 3 }, step)).toBe('第 3 章 · 乙');
     expect(chapterNoText(0)).toBe('00');
     expect(chapterNoText(3)).toBe('03');
     expect(chapterNoText(12)).toBe('12');
   });
 
-  it('章节第一页：普通页或选择页，不含旁支页和分支段（design §4.1）', () => {
-    const chapters = [
-      { id: 'start', title: '开始', items: [{ kind: 'step' as const, id: 'preface' }, { kind: 'step' as const, id: 'disclaimer' }] },
-      {
-        id: 'node',
-        title: '准备节点',
-        items: [{ kind: 'choose' as const, fork: 'plan', id: 'choose-plan' }, { kind: 'branch' as const, fork: 'plan', options: { a: ['a1'] } }],
-      },
-    ];
-    const at = (chapterId: string) => ({ chapterId, chapter: '', chapterNo: 0 });
-    expect(isChapterStart(chapters, at('start'), { kind: 'step', id: 'preface', title: '前言' })).toBe(true);
-    expect(isChapterStart(chapters, at('start'), { kind: 'step', id: 'disclaimer', title: '免责声明' })).toBe(false);
-    expect(isChapterStart(chapters, at('node'), { kind: 'choose', id: 'choose-plan', title: '选择方案' })).toBe(true);
-    expect(isChapterStart(chapters, at('node'), { kind: 'step', id: 'a1', title: '甲' })).toBe(false);
-    expect(isChapterStart(chapters, at('start'), { kind: 'side', id: 'preface', title: '旁支' })).toBe(false);
-    expect(isChapterStart(chapters, at('missing'), { kind: 'step', id: 'preface', title: '前言' })).toBe(false);
-    expect(isChapterStart(chapters, at('start'), { kind: 'home' })).toBe(false);
-  });
 });
