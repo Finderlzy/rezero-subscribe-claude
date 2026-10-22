@@ -114,12 +114,12 @@ it('减少动态效果时，动效时长和位移令牌都归零', () => {
   }
 });
 
-// design v3 §3.3（V10）：按钮、卡片、代码块、提示块、下拉 6px，截图 4px，搜索框是唯一的胶囊。
+// design v3 §3.3（V10）：按钮、卡片、代码块、提示块、下拉 6px，截图和行内代码 4px，搜索框是唯一的胶囊。
 it('圆角收小：--radius 6px、截图 4px、胶囊 999px（v2.2 的 control/panel 合并）', () => {
   const radii = Object.fromEntries(
     [...block(':root {').matchAll(/(--radius-[\w-]+):\s*([^;]+);/g)].map(([, name, value]) => [name, value!.trim()]),
   );
-  expect(radii).toEqual({ '--radius-image': '4px', '--radius-pill': '999px' });
+  expect(radii).toEqual({ '--radius-image': '4px', '--radius-inline': '4px', '--radius-pill': '999px' });
   expect(block(':root {')).toMatch(/--radius:\s*6px;/);
 });
 

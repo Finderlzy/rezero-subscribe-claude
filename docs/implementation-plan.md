@@ -17,7 +17,7 @@
 | --- | --- | --- | --- |
 | MS11 骨架 | V01 | 全站换成 v3 令牌；顶栏（logo、站名、小形象、昼夜切换（用户 2026-10-22 决定取代视图切换）、联系方式）；≥720px 常驻侧边栏、<720px 抽屉；页头色带和章首页一组去掉，眉题 + 纯文字 h1；页脚 | FR-72（顶栏、正文栏、主色）、FR-16（断点）、FR-23；AC-26（搜索框除外） |
 | MS12 侧边栏 | V02 | 只展开当前章、点章名开合；当前页下列出原理版正文的 h2；当前项紫字 + 左边线 | FR-16；AC-27 |
-| MS13 正文排版 | V03 | h1–h4、链接、代码、表格、提示块、截图按 design §3.2、§4.7 | FR-72（正文栏）、FR-21 |
+| MS13 正文排版 | V03 | h1–h4、链接、行内代码（4px 圆角）和代码块（6px 圆角）、表格、提示块、截图按 design §3.2、§4.7 | FR-72（正文栏）、FR-21 |
 | MS14 翻页和选择页 | V04 | 文字链接翻页（≥44px）、跳过小字、回到/返回刚才的步骤；手机不再吸底；选项卡片 | FR-72、FR-10、FR-15、FR-12、FR-19、FR-20；AC-30 |
 | MS15 首页和找不到页 | V05 | VuePress 式首屏 + 按章目录；找不到页换外壳；删掉章节副标题和多余的编号字形 | FR-18、FR-72；AC-29 |
 | MS16 搜索索引 | V06 | `src/lib/search/` 纯函数 + `search-index.json` 静态端点 | FR-24（数据部分）；AC-28 的单元测试 |
@@ -56,7 +56,7 @@ V02 ─────────────────────────�
 | --- | --- | --- | --- | --- | --- |
 | V01 | 换成文档站的令牌、顶栏和两栏骨架 | 无 | 强 | 已实施（2026-10-22，已合并 main） | 待发布 |
 | V02 | 侧边栏按章折叠并列出当前页小节 | V01 | 标准 | 已实施（2026-10-22，已合并 main） | 待发布 |
-| V03 | 按 design v3 重排正文和内容组件 | V01 | 标准 | 已细化 | 待发布 |
+| V03 | 按 design v3 重排正文和内容组件 | V01 | 标准 | 已实施（2026-10-22，分支未合并） | 待发布 |
 | V04 | 文字链接翻页和选择页卡片 | V03 | 标准 | 已细化 | 待发布 |
 | V05 | VuePress 式首页和找不到页 | V01 | 标准 | 已细化 | 待发布 |
 | V06 | 站内搜索的索引和匹配 | 无 | 标准 | 已细化 | 待发布 |
@@ -120,9 +120,9 @@ V02 ─────────────────────────�
 
 ### V03 按 design v3 重排正文和内容组件
 
-**目标**：正文栏的排版和内容组件按 design §3.2、§4.7（FR-72 的正文栏）：h1–h4 字号和 h2 下边线；正文 16px/1.75、最大 740px；正文链接下划线、导航链接不加；行内代码、代码块 6px 圆角；表格全格线 + 隔行；提示块“浅底 + 4px 左色条”（普通提示、作者待补、caution、正文上方的“只有原理版/操作版还在写”）；截图 4px 圆角 + 细边框；QQ 群入口改成提示块样式。
+**目标**：正文栏的排版和内容组件按 design §3.2、§4.7（FR-72 的正文栏）：h1–h4 字号和 h2 下边线；正文 16px/1.75、最大 740px；正文链接下划线、导航链接不加；行内代码 4px、代码块 6px 圆角；表格全格线 + 隔行；提示块“浅底 + 4px 左色条”（普通提示、作者待补、caution；视图提示随固定原理视图删除，架构 §13.12）；截图 4px 圆角 + 细边框；QQ 群入口改成提示块样式。
 
-**涉及范围**：`src/styles/prose.css`、`code-zoom.css`、`src/components/CodeCopy.astro`、`GroupInvite.astro`（只改样式和外层结构）、`src/lib/content/markdown.ts`（只在提示块标签需要改时）；`tests/e2e/ac-12-author-todo.spec.ts`、`ac-24-qq-group.spec.ts`、`nfr-02-copy-zoom.spec.ts` 的选择器。
+**涉及范围**：`src/styles/tokens.css`、`tokens.test.ts`、`src/styles/prose.css`、`code-zoom.css`、`src/components/CodeCopy.astro`、`GroupInvite.astro`（只改样式和外层结构）、`src/lib/content/markdown.ts`（只在提示块标签需要改时）；`tests/e2e/ac-12-author-todo.spec.ts`、`ac-24-qq-group.spec.ts`、`nfr-02-copy-zoom.spec.ts` 的选择器，`ac-26-docs-style.spec.ts` 补正文和内容组件的样式断言。
 
 **依赖**：依赖 V01
 
@@ -131,7 +131,7 @@ V02 ─────────────────────────�
 **参照**：design §4.7 的表逐行实现；对比度组合已在 V01 的 `tokens.test.ts` 里；表格第一列粘性固定和横向滚动沿用 `rehype-scrollable-tables.ts` 的输出。边界：360 下表格、代码块只在自己的容器里横向滚动；深色模式的隔行和提示块底色对比度。
 
 **验收**：
-- [ ] e2e：`npx playwright test tests/e2e/ac-12-author-todo.spec.ts tests/e2e/ac-24-qq-group.spec.ts tests/e2e/nfr-02-copy-zoom.spec.ts tests/e2e/ac-16-responsive.spec.ts tests/e2e/a11y.spec.ts`
+- [ ] e2e：`npx playwright test tests/e2e/ac-26-docs-style.spec.ts tests/e2e/ac-12-author-todo.spec.ts tests/e2e/ac-24-qq-group.spec.ts tests/e2e/nfr-02-copy-zoom.spec.ts tests/e2e/ac-16-responsive.spec.ts tests/e2e/a11y.spec.ts`
 - [ ] 手工验证：浅色和深色下看 `/ip-tests/`（表格）、一页有“作者待补”的页面、`/plan2-residential-server/`（代码块和截图）→ 和 design §4.7 一致
 
 ### V04 文字链接翻页和选择页卡片

@@ -35,27 +35,39 @@ const { compact = false } = Astro.props;
 </section>
 
 <style>
+  /*
+   * 附录和参考页里是 §4.7 的普通提示块：--surface-muted 底、4px --accent 左色条、右侧 6px 圆角，
+   * 内边距 12px 16px（几何和 prose.css 的 .callout 一致；QQ 群入口在 .prose 外面，所以这里再写一遍）。
+   * 首页的紧凑版（§4.4）是一行 14px 小字，不带提示块的外壳。
+   */
   .group-invite {
     display: flex;
     align-items: center;
     gap: var(--space-5);
-    margin: var(--space-7) 0 0;
-    padding: var(--space-4) 0;
-    border-top: var(--border-width) solid var(--border);
-    border-bottom: var(--border-width) solid var(--border);
+    margin: var(--space-5) 0 0;
+    padding: var(--space-3) var(--space-4);
+    border-left: var(--space-1) solid var(--accent);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    background: var(--surface-muted);
   }
 
   .group-invite-compact {
     margin-top: var(--space-5);
     padding: 0;
     border: 0;
+    border-radius: 0;
+    background: none;
   }
 
   .group-invite p {
     margin: 0;
   }
 
+  /* 提示块的第一行标签：13px 600 --accent（和 callout-title 一样） */
   .group-invite-lead {
+    color: var(--accent);
+    font-size: var(--fs-caption);
+    line-height: var(--lh-meta);
     font-weight: var(--fw-heading);
   }
 
@@ -63,6 +75,7 @@ const { compact = false } = Astro.props;
     color: var(--text-muted);
     font-size: var(--fs-meta);
     line-height: var(--lh-meta);
+    font-weight: 400;
   }
 
   .group-invite .group-invite-desc {

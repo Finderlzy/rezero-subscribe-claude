@@ -16,7 +16,7 @@
 }
 
 /*
- * 幽灵按钮（design §4.7，v2.2）：透明底、无边框，28px 高；悬停时 --border 底、--text 字色。
+ * 幽灵按钮（design v3 §4.7）：透明底、无边框，28px 高；悬停时 --border 底、--text 字色。
  * 点得到的高度仍是 44px（上下用伪元素补），只让看得见的面变小。
  */
 .code-copy {
@@ -67,12 +67,13 @@
 
 /*
  * 按钮在 `.code-block` 这一层（不是 pre 里面），`top/right` 都锚在容器上，
- * 所以它压在 pre 的内边距区域上方、横向滚动时也不动，不会遮住命令。
- * 这里仍然留一点右内边距：按钮浮在首行右侧，给首行让出视觉上的空白。
- * 数值按按钮的最小尺寸（44px）加右偏移估算，只是留白，不要求精确。
+ * 所以它压在 pre 的内边距区域上方、横向滚动时也不动。
+ * 预留的右内边距（用比 `.prose pre` 更高的选择器，否则会被它的 padding 简写覆盖）
+ * 让横向滚到最右时命令的最后一段停在按钮左边；首屏下长行仍会从按钮下面经过，
+ * 但滚一下就能看全。数值按按钮的最小尺寸（44px）加右偏移估算，只是留白，不要求精确。
  */
-.code-block > pre {
-  padding-right: calc(var(--space-2) + 44px + var(--space-2) + var(--space-4));
+.prose .code-block > pre {
+  padding-right: calc(var(--space-2) + 44px + var(--space-2) + var(--space-5));
 }
 
 /* 手机上按钮只留图标，命令的可读宽度更重要；文案收成 visually-hidden（clip 而不是 display:none，
@@ -92,7 +93,7 @@
   }
 
   /* 按钮仍是 44×44（design §5），这里只是把留白收窄到图标按钮的宽度。 */
-  .code-block > pre {
+  .prose .code-block > pre {
     padding-right: calc(var(--space-2) + 44px + var(--space-2));
   }
 }

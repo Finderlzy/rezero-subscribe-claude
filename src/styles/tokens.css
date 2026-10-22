@@ -77,7 +77,11 @@
   /* 标题一律用这个字重（D3：不写 500，Windows 的微软雅黑没有 500 会退回常规体） */
   --fw-heading: 600;
   --lh-title: 1.25;
+  /* §3.2：h2 1.3、h3 1.4、h4 1.5 */
+  --lh-h2: 1.3;
+  --lh-h3: 1.4;
   --lh-heading: 1.4;
+  --lh-h4: 1.5;
   --lh-body: 1.75;
   --lh-tagline: 1.6;
   --lh-meta: 1.5;
@@ -87,7 +91,8 @@
   --measure: 740px;
   /* 正文的字距；界面上的小字（标签、页脚）另用 --tracking-meta */
   --tracking-body: 0;
-  --paragraph-gap: 0.9em;
+  /* §3.2 段落上下 16px；列表项之间 0.4em */
+  --paragraph-gap: var(--space-4);
   --list-item-gap: 0.4em;
 
   /* §3.3 间距刻度（px）；--space-9 只用于首页顶部 */
@@ -151,6 +156,8 @@
    */
   --radius: 6px;
   --radius-image: 4px;
+  /* 行内代码和截图都是 4px（design §4.7），但用途不同，分开命名 */
+  --radius-inline: 4px;
   /* 只给 V08 的搜索框 */
   --radius-pill: 999px;
   --border-width: 1px;

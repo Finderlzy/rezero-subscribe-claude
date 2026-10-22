@@ -259,3 +259,255 @@ test.describe('没有 JS 时', () => {
     await expect(page.locator('.prose')).toBeVisible();
   });
 });
+
+// 正文栏和内容组件（design v3 §3.2、§4.7）：字号、h2 细线、正文链接下划线、代码、表格、
+// 截图图版、作者待补提示块和 QQ 群入口。AC-26 的 FR-72 把整站换成文档站排版，外壳之外这些也要一起核对。
+// h2/h3/h4 和合并页的小节在 v3 重写稿导入后才有（V11），这里在正文里临时插入三个标题量样式，
+// 不依赖当时的内容；其余组件都用真实页面。
+test('正文：字号、行高、标题层级和链接下划线（design §3.2、§4.7）', async ({ page }) => {
+  const width = page.viewportSize()!.width;
+  await page.goto('./plan1-make-node/');
+  const styles = await page.evaluate(() => {
+    const prose = document.querySelector('.prose')!;
+    const read = (el: Element) => {
+      const s = getComputedStyle(el);
+      return {
+        fontSize: s.fontSize,
+        lineHeight: s.lineHeight,
+        marginTop: s.marginTop,
+        paddingBottom: s.paddingBottom,
+        borderBottom: s.borderBottomWidth,
+      };
+    };
+    const h2 = document.createElement('h2');
+    h2.textContent = '小节';
+    const h3 = document.createElement('h3');
+    h3.textContent = '小节';
+    const h4 = document.createElement('h4');
+    h4.textContent = '小节';
+    prose.append(h2, h3, h4);
+    // 段落上下 16px：取一个不是首个子元素的段落（首段的 margin-top 会被 .prose > :first-child 清掉）
+    const paragraph = [...prose.querySelectorAll(':scope > p')].find((p) => p !== prose.firstElementChild) ?? prose.querySelector('p')!;
+    const link = getComputedStyle(prose.querySelector('a')!);
+    const result = {
+      h2: read(h2),
+      h3: read(h3),
+      h4: read(h4),
+      body: read(paragraph),
+      linkColor: link.color,
+      decoration: link.textDecorationLine,
+      thickness: link.textDecorationThickness,
+      offset: link.textUnderlineOffset,
+    };
+    h2.remove();
+    h3.remove();
+    h4.remove();
+    return result;
+  });
+
+  // §3.2：手机 h2 22 / h3 18 / h4 16，平板起 26 / 21 / 17；正文 16px、行高 1.75（28px）
+  expect(styles.h2.fontSize).toBe(width >= 720 ? '26px' : '22px');
+  expect(styles.h3.fontSize).toBe(width >= 720 ? '21px' : '18px');
+  expect(styles.h4.fontSize).toBe(width >= 720 ? '17px' : '16px');
+  expect(parseFloat(styles.h2.lineHeight)).toBeCloseTo(parseFloat(styles.h2.fontSize) * 1.3, 1);
+  expect(parseFloat(styles.h3.lineHeight)).toBeCloseTo(parseFloat(styles.h3.fontSize) * 1.4, 1);
+  expect(parseFloat(styles.h4.lineHeight)).toBeCloseTo(parseFloat(styles.h4.fontSize) * 1.5, 1);
+  expect(styles.body.fontSize).toBe('16px');
+  expect(styles.body.lineHeight).toBe('28px');
+  expect(styles.body.marginTop).toBe('16px');
+  // h2 上方 40px、下方 1px 细线加 5px 内边距；h3 上方 28px
+  expect(styles.h2.marginTop).toBe('40px');
+  expect(styles.h2.paddingBottom).toBe('5px');
+  expect(styles.h2.borderBottom).toBe('1px');
+  expect(styles.h3.marginTop).toBe('28px');
+  // §4.7：正文链接是 --accent + 1px 下划线（不能只靠颜色区分），离字 0.2em（16px 字下是 3.2px），悬停 2px
+  expect(styles.linkColor).toBe(await tokenColor(page, '--accent'));
+  expect(styles.decoration).toBe('underline');
+  expect(styles.thickness).toBe('1px');
+  expect(parseFloat(styles.offset)).toBeCloseTo(3.2, 1);
+  const link = page.locator('.prose a').first();
+  await link.hover();
+  expect(await link.evaluate((el) => getComputedStyle(el).textDecorationThickness)).toBe('2px');
+});
+
+test('内容组件：代码、提示块、表格、截图、作者待补和 QQ 群入口（design §4.7）', async ({ page }) => {
+  // 先打开站点页面，再读令牌（about:blank 上没有 tokens.css，读出来是透明色）
+  await page.goto('./plan1-make-node/');
+  const token = (name: string, prop: 'color' | 'background-color') => tokenColor(page, name, prop);
+  const surfaceMuted = await token('--surface-muted', 'background-color');
+
+  // 代码块：--surface-muted 底、无边框、6px 圆角、内边距 16px 20px；右边多留出复制按钮的位置
+  const code = await page.locator('.prose pre').first().evaluate((el) => {
+    const s = getComputedStyle(el);
+    return {
+      bg: s.backgroundColor,
+      border: s.borderWidth,
+      radius: s.borderRadius,
+      paddingTop: s.paddingTop,
+      paddingRight: s.paddingRight,
+      paddingBottom: s.paddingBottom,
+      paddingLeft: s.paddingLeft,
+    };
+  });
+  expect(code).toMatchObject({ bg: surfaceMuted, border: '0px', radius: '6px', paddingTop: '16px', paddingBottom: '16px', paddingLeft: '20px' });
+  // 复制按钮浮在右上角，右边留白必须真的生效（选择器要压过 .prose pre 的 padding 简写）
+  expect(parseFloat(code.paddingRight)).toBeGreaterThan(parseFloat(code.paddingLeft));
+  // 至少放得下 44px 的按钮加两侧间距（手机 60px、桌面 84px），防止退回 20px
+  expect(parseFloat(code.paddingRight)).toBeGreaterThanOrEqual(56);
+  // 行内代码：浅底、上下 2px 左右 6px、4px 圆角
+  const inline = await page.locator('.prose :not(pre) > code').first().evaluate((el) => {
+    const s = getComputedStyle(el);
+    return { bg: s.backgroundColor, radius: s.borderRadius, padding: s.padding };
+  });
+  expect(inline).toEqual({ bg: surfaceMuted, radius: '4px', padding: '2px 6px' });
+
+  // 提示块：普通提示 --surface-muted 底 + --accent 条，caution 用 --caution-bg + --caution-rule 条；
+  // 都是左边 4px、右侧 6px 圆角、内边距 12px 16px，标签 13px 600。
+  // 现有正文没有 callout（v3 重写稿导入后才会出现），这里按 rehype-callouts 的标记临时插入。
+  const callout = await page.evaluate(() => {
+    const prose = document.querySelector('.prose')!;
+    const make = (type: string) => {
+      const block = document.createElement('div');
+      block.className = 'callout';
+      block.dataset.callout = type;
+      block.innerHTML = `<div class="callout-title"><div class="callout-title-text">${type === 'caution' ? '注意' : '提示'}</div></div><div class="callout-content"><p>内容</p></div>`;
+      return block;
+    };
+    const note = make('note');
+    const caution = make('caution');
+    prose.append(note, caution);
+    const read = (el: Element) => {
+      const s = getComputedStyle(el);
+      const title = getComputedStyle(el.querySelector('.callout-title')!);
+      return {
+        bg: s.backgroundColor,
+        border: s.borderLeftWidth,
+        borderColor: s.borderLeftColor,
+        radius: s.borderRadius,
+        padding: s.padding,
+        titleSize: title.fontSize,
+        titleWeight: title.fontWeight,
+        titleColor: title.color,
+      };
+    };
+    const result = { note: read(note), caution: read(caution) };
+    note.remove();
+    caution.remove();
+    return result;
+  });
+  expect(callout.note).toMatchObject({ bg: surfaceMuted, border: '4px', padding: '12px 16px', titleSize: '13px', titleWeight: '600' });
+  expect(callout.note.borderColor).toBe(await tokenColor(page, '--accent'));
+  expect(callout.note.titleColor).toBe(await tokenColor(page, '--accent'));
+  expect(callout.note.radius).toBe('0px 6px 6px 0px');
+  expect(callout.caution).toMatchObject({ bg: await token('--caution-bg', 'background-color'), border: '4px', padding: '12px 16px' });
+  expect(callout.caution.borderColor).toBe(await tokenColor(page, '--caution-rule'));
+  expect(callout.caution.titleColor).toBe(await tokenColor(page, '--caution-rule'));
+
+  // 表格：每格 1px 格线、内边距 8px 14px，表头 600 --text + 浅底，隔行浅底，第一列粘性固定且底色跟所在行
+  await page.goto('./ip-tests/');
+  const table = await page.locator('.prose table').first().evaluate((el) => {
+    const th = el.querySelector('th')!;
+    const oddFirst = el.querySelector('tbody tr:nth-child(1) td:first-child')!;
+    const evenFirst = el.querySelector('tbody tr:nth-child(2) td:first-child')!;
+    const even = el.querySelector('tbody tr:nth-child(2) td:nth-child(2)')!;
+    const read = (node: Element) => {
+      const s = getComputedStyle(node);
+      return {
+        border: s.borderTopWidth,
+        borderRight: s.borderRightWidth,
+        borderBottom: s.borderBottomWidth,
+        borderLeft: s.borderLeftWidth,
+        padding: s.padding,
+        bg: s.backgroundColor,
+        weight: s.fontWeight,
+        color: s.color,
+        position: s.position,
+      };
+    };
+    return { th: read(th), oddFirst: read(oddFirst), evenFirst: read(evenFirst), even: read(even) };
+  });
+  expect(table.th).toMatchObject({ border: '1px', borderRight: '1px', borderBottom: '1px', borderLeft: '1px', padding: '8px 14px', weight: '600' });
+  expect(table.th.color).toBe(await tokenColor(page, '--text'));
+  expect(table.th.bg).toBe(surfaceMuted);
+  expect(table.even.bg).toBe(surfaceMuted);
+  expect(table.oddFirst).toMatchObject({ position: 'sticky', bg: await token('--bg', 'background-color') });
+  expect(table.evenFirst).toMatchObject({ position: 'sticky', bg: surfaceMuted });
+
+  // 截图：1px 边框、4px 圆角，图版上下各 24px；编号 13px 400 --text-faint
+  await page.goto('./clean-up/');
+  const plate = await page.locator('.prose figure.plate').first().evaluate((el) => {
+    const img = el.querySelector('img')!;
+    const no = el.querySelector('.plate-no')!;
+    const s = getComputedStyle(el);
+    const i = getComputedStyle(img);
+    const n = getComputedStyle(no);
+    return {
+      margin: s.marginTop,
+      marginBottom: s.marginBottom,
+      border: i.borderTopWidth,
+      radius: i.borderRadius,
+      noSize: n.fontSize,
+      noWeight: n.fontWeight,
+      noColor: n.color,
+    };
+  });
+  expect(plate).toEqual({
+    margin: '24px',
+    marginBottom: '24px',
+    border: '1px',
+    radius: '4px',
+    noSize: '13px',
+    noWeight: '400',
+    noColor: await tokenColor(page, '--text-faint'),
+  });
+
+  // 作者待补：浅黄底 + 4px 左边线、右侧 6px 圆角，标签 13px 600
+  await page.goto('./android-subscribe/');
+  const todo = await page.locator('.prose aside.author-todo').evaluate((el) => {
+    const s = getComputedStyle(el);
+    const label = getComputedStyle(el.querySelector('.author-todo-label')!);
+    return {
+      bg: s.backgroundColor,
+      border: s.borderLeftWidth,
+      borderColor: s.borderLeftColor,
+      radius: s.borderRadius,
+      padding: s.padding,
+      labelSize: label.fontSize,
+      labelWeight: label.fontWeight,
+      labelColor: label.color,
+    };
+  });
+  expect(todo).toMatchObject({ bg: await token('--todo-bg', 'background-color'), border: '4px', padding: '12px 16px', labelSize: '13px', labelWeight: '600' });
+  expect(todo.borderColor).toBe(await token('--todo-rule', 'color'));
+  expect(todo.labelColor).toBe(await token('--todo-rule', 'color'));
+  expect(todo.radius).toBe('0px 6px 6px 0px');
+
+  // QQ 群入口：普通提示块的形状（浅底 + 4px --accent 左边线），标签 13px 600
+  await page.goto('./faq/');
+  const invite = await page.locator('.group-invite').evaluate((el) => {
+    const s = getComputedStyle(el);
+    const lead = getComputedStyle(el.querySelector('.group-invite-lead')!);
+    return {
+      bg: s.backgroundColor,
+      border: s.borderLeftWidth,
+      radius: s.borderRadius,
+      padding: s.padding,
+      leadSize: lead.fontSize,
+      leadWeight: lead.fontWeight,
+      leadColor: lead.color,
+    };
+  });
+  expect(invite).toMatchObject({ bg: surfaceMuted, border: '4px', padding: '12px 16px', leadSize: '13px', leadWeight: '600' });
+  expect(invite.leadColor).toBe(await tokenColor(page, '--accent'));
+  expect(invite.radius).toBe('0px 6px 6px 0px');
+
+  // 首页的紧凑版只是一行 14px --text-muted 小字，不带提示块外壳（§4.4）
+  await page.goto('./');
+  const compact = await page.locator('.group-invite-compact').evaluate((el) => {
+    const s = getComputedStyle(el);
+    const lead = getComputedStyle(el.querySelector('.group-invite-lead')!);
+    return { bg: s.backgroundColor, border: s.borderLeftWidth, padding: s.padding, leadSize: lead.fontSize, leadWeight: lead.fontWeight, leadColor: lead.color };
+  });
+  expect(compact).toMatchObject({ bg: 'rgba(0, 0, 0, 0)', border: '0px', padding: '0px', leadSize: '14px', leadWeight: '400' });
+  expect(compact.leadColor).toBe(await tokenColor(page, '--text-muted'));
+});

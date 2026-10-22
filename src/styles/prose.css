@@ -1,6 +1,6 @@
 /*
- * 正文排版（design §3.2、§4.7）：步骤、首页前言、完成页里由 Markdown 渲染出的内容。
- * 代码复制、看大图由各自的任务补上。末尾是两种视图下原理块的显示规则（design §4.3）。
+ * 正文排版（design v3 §3.2、§4.7）：步骤、首页前言、完成页里由 Markdown 渲染出的内容。
+ * v3 的字号、行高、间距和组件外观都在这里；代码复制和看大图在 code-zoom.css。
  */
 .prose > :first-child {
   margin-top: 0;
@@ -10,22 +10,32 @@
 .prose ul,
 .prose ol,
 .prose pre,
-.prose table,
-.prose .callout {
+.prose table {
   margin: var(--paragraph-gap) 0;
 }
 
+/* §3.2：h2 上方 40px、下方 1px 细线加 5px 内边距；h3 上方 28px；h4 是合并页里原来的 h3 */
 .prose h2 {
-  margin: var(--space-6) 0 var(--space-3);
+  margin: calc(var(--space-6) + var(--space-2)) 0 var(--space-3);
+  /* 内边距 5px（--space-1 + --border-width），下面另画 1px 线 */
+  padding-bottom: calc(var(--space-1) + var(--border-width));
+  border-bottom: var(--border-width) solid var(--border);
   font-size: var(--fs-h2);
-  line-height: var(--lh-heading);
+  line-height: var(--lh-h2);
   font-weight: var(--fw-heading);
 }
 
 .prose h3 {
-  margin: var(--space-5) 0 var(--space-2);
+  margin: calc(var(--space-5) + var(--space-1)) 0 var(--space-2);
   font-size: var(--fs-h3);
-  line-height: var(--lh-heading);
+  line-height: var(--lh-h3);
+  font-weight: var(--fw-heading);
+}
+
+.prose h4 {
+  margin: var(--space-5) 0 var(--space-2);
+  font-size: var(--fs-h4);
+  line-height: var(--lh-h4);
   font-weight: var(--fw-heading);
 }
 
@@ -44,16 +54,23 @@
   margin-top: var(--list-item-gap);
 }
 
+/* §4.7 行内代码：浅底、0.875em、上下 2px 左右 6px、4px 圆角 */
 .prose code {
   font-family: var(--font-mono);
   font-size: var(--fs-code);
 }
 
-/* 代码块：长行在块内横向滚动，不折行，命令必须原样复制（NFR-02）。
-   v2.2：--surface-muted 底、无边框、圆角 10px（design §4.7）。 */
+.prose :not(pre) > code {
+  padding: 2px 6px;
+  border-radius: var(--radius-inline);
+  background: var(--surface-muted);
+}
+
+/* §4.7 代码块：--surface-muted 底、无边框、6px 圆角、内边距 16px 20px；
+   长行在块内横向滚动，不折行，命令必须原样复制（NFR-02）。 */
 .prose pre {
   overflow-x: auto;
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-4) calc(var(--space-4) + var(--space-1));
   border-radius: var(--radius);
   background: var(--surface-muted);
   line-height: var(--lh-code);
@@ -71,7 +88,7 @@
 }
 
 /*
- * 截图图版（design v2.1 §4.7、D4）：rehype-figures 把独占一行的截图包成 figure.plate，编号 figcaption 在截图前面。
+ * 截图图版（design v3 §4.7（截图规则沿用 v2.1、D4））：rehype-figures 把独占一行的截图包成 figure.plate，编号 figcaption 在截图前面。
  * 截图保持原文宽度（不超过正文栏），1px --border 边框、4px 圆角，上下各留 24px。
  * 编号在所有宽度下都排到截图下方作图注（v2.2 去掉了桌面的页边栏，W2 第 3 条）。
  */
@@ -90,14 +107,14 @@
 
 .prose .plate-no {
   order: 1;
-  color: var(--text-muted);
+  color: var(--text-faint);
   font-size: var(--fs-caption);
   line-height: var(--lh-meta);
-  font-weight: 500;
+  font-weight: 400;
 }
 
 /*
- * 说明图（design v2.1 §4.7）：内联的单色线稿，上下各留 32px，编号和截图一样。
+ * 说明图（design v3 §4.7）：内联的单色线稿，上下各留 32px，编号和截图一样。
  * 按 1:1 显示（宽高属性是 viewBox 的宽高，不超过手机正文栏，见 diagram.ts），图中文字始终 14px；
  * 线条和文字用 currentColor 跟着 --text，本页讲的那一环（class="accent"）用 --accent。没有边框。
  */
@@ -122,8 +139,8 @@
   color: var(--accent);
 }
 
-/* 表格在自己的容器里横向滚动（NFR-01）。v2.2：没有竖线，只在行与行之间留一条横向细线；
-   表头 13px、--text-muted（design §4.7）。 */
+/* §4.7 表格：全格线 + 隔行底色；表头 600 --text、--surface-muted 底；每格内边距 8px 14px。
+   表格在自己的容器里横向滚动（NFR-01），第一列粘性固定、底色跟所在行。 */
 .prose table {
   display: block;
   overflow-x: auto;
@@ -132,41 +149,54 @@
 
 .prose th,
 .prose td {
-  padding: var(--space-2) var(--space-3);
-  border: 0;
-  border-bottom: var(--border-width) solid var(--border);
+  /* 14px：design §4.7 的精确值，不在 4 的间距刻度里 */
+  padding: var(--space-2) calc(var(--space-3) + 2px);
+  border: var(--border-width) solid var(--border);
   text-align: left;
 }
 
 .prose th {
-  color: var(--text-muted);
-  font-size: var(--fs-caption);
+  color: var(--text);
+  background: var(--surface-muted);
   font-weight: var(--fw-heading);
 }
 
-/* 表头不折行，窄屏上列宽不会被挤成一字一行，整张表改在容器里横向滚动；第一列粘性固定（design §4.7） */
+/* 表头不折行，窄屏上列宽不会被挤成一字一行，整张表改在容器里横向滚动 */
 .prose th {
   white-space: nowrap;
 }
 
+/* 第一列粘性固定；表头沿用 --surface-muted，正文的奇数行用页面底色、偶数行用 --surface-muted（隔行） */
 .prose :is(th, td):first-child {
   position: sticky;
   left: 0;
   z-index: 1;
+}
+
+.prose td:first-child {
   background: var(--bg);
 }
 
+.prose tbody tr:nth-child(even) > * {
+  background: var(--surface-muted);
+}
+
 /*
- * 提示框（rehype-callouts 输出 .callout[data-callout]，design §4.7 v2.2）：没有边框和左侧色条，整块浅底、圆角 10px；
- * 第一行是 13px 600 的小标签，颜色用对应的 rule 色。note 用 --accent-soft，caution 用 --caution-bg。
+ * §4.7 提示块（rehype-callouts 输出 .callout[data-callout]）：学 VuePress 的 tip/warning/danger——
+ * 整块浅底 + 左边 4px 色条，右侧 6px 圆角（左侧贴色条，是直角），内边距 12px 16px，上下 16px。
+ * 第一行是 13px 600 的小标签，颜色同色条。普通提示 --surface-muted 底 + --accent 条，caution 用 --caution-bg。
  */
-.prose .callout {
-  padding: 14px 16px;
-  background: var(--accent-soft);
-  border-radius: var(--radius);
+.prose .callout,
+.prose .author-todo {
+  margin: var(--space-4) 0;
+  padding: var(--space-3) var(--space-4);
+  border-left: var(--space-1) solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--surface-muted);
 }
 
 .prose .callout[data-callout='caution'] {
+  border-left-color: var(--caution-rule);
   background: var(--caution-bg);
 }
 
@@ -191,12 +221,11 @@
   margin-bottom: 0;
 }
 
-/* 正文里的“作者待补”（design §4.7，FR-21）：两种视图都显示。v2.2：浅底、圆角，第一行是 13px 标签。 */
+/* 正文里的“作者待补”（design §4.7，FR-21）：同提示块的形状，浅黄底 + 4px 左边线，第一行是 13px 标签。 */
 .prose .author-todo {
   display: block;
-  padding: 14px 16px;
+  border-left-color: var(--todo-rule);
   background: var(--todo-bg);
-  border-radius: var(--radius);
 }
 
 .prose .author-todo-label {
