@@ -224,10 +224,10 @@ test.describe('截图看大图', () => {
   });
 
   test('一页有多张截图时，各自打开自己的那张', async ({ page }) => {
-    // 两台服务器各两张：ipinfo、scamalytics
+    // 前三台各两张（ipinfo、scamalytics），第三台另加一张 IPPure
     await page.goto('./ip-tests/voyracloud/');
     const openers = page.locator('[data-image-zoom-opener]');
-    await expect(openers).toHaveCount(4);
+    await expect(openers).toHaveCount(7);
 
     const dialog = page.locator('dialog[data-image-zoom]');
     await openers.nth(1).click();

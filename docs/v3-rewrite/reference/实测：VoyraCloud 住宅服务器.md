@@ -20,9 +20,9 @@
 
 ![[VoyraCloud住宅服务器实测-scamalytics.png|600]]
 
-## 我的第二台（现在用的）
+## 我的第二台
 
-后来我又在 VoyraCloud 买了一台住宅服务器，测出来是 **ISP 类型**，现在用的就是这一台。
+后来我又在 VoyraCloud 买了一台住宅服务器，测出来是 **ISP 类型**，之前在用的就是这一台。
 
 | 项目 | 结果 |
 | --- | --- |
@@ -38,6 +38,39 @@ ipinfo 这一关算过了，Privacy 也是 false，没被识别成代理。不�
 ![[VoyraCloud住宅服务器实测2-ipinfo.png|600]]
 
 ![[VoyraCloud住宅服务器实测2-scamalytics.png|600]]
+
+## 我的第三台（现在用的）
+
+很多读者反馈，洛杉矶的住宅服务器有时候质量很差：同样的配置，用一段时间就连不上 Claude，或者访问速度忽快忽慢。所以我后来又测了一台**华盛顿**的住宅服务器。
+
+| 项目 | 结果 |
+| --- | --- |
+| ipinfo：ASN | AS48529 Quantumbeam Communications Limited |
+| ipinfo：AS Type | **ISP** |
+| ipinfo：Privacy | false |
+| ipinfo：位置 | Washington, District of Columbia, US |
+| IPPure：IP 来源 | 原生 IP |
+| IPPure：IP 属性 | 住宅 IP |
+| IPPure 系数 | 10%，极度纯净 |
+| IPPure：人机流量比 | human 43.93%，bot 56.07% |
+| Scamalytics | 0 分，Low Risk |
+
+这一台质量不错，现在用的就是它。ipinfo 是 ISP 类型、Privacy 为 false，IPPure 认成了原生住宅 IP、系数只有 10%，Scamalytics 是 0 分，几个网站的结论都很干净。
+
+几点要注意：
+
+- 这台在华盛顿。IPPure 里有几个数据库给的是纽约，但 ipinfo 和 MaxMind 都显示华盛顿，以这两个为准。
+- ipinfo 和 IPPure 都显示这台机器的 ASN 属于 Quantumbeam，Scamalytics 的说明里写的是 Bunny Communications。两家对同一个 IP 的归属判断不一样，以 ipinfo 为准，不影响使用。
+- 和另外两台一样，严格说它是“ISP IP”，不是家庭宽带。
+- 换 IP 之后，账号上该做的检查还是要做一遍（见 [[日常维护、风控应对与常见故障]]），不要以为换了 IP 就没事了。
+
+截图（IP 已遮盖）：
+
+![[voyra-washington-ipinfo.png|600]]
+
+![[voyra-washington-scamalytics.png|600]]
+
+![[voyra-washington-ippure.png|600]]
 
 ---
 

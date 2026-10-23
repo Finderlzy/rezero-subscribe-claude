@@ -116,7 +116,7 @@ test('实测子页有 h2：小节列在上级参考页下面，点一个滚到�
   // 小节挂在“IP 质量实测合集”这一项下面，不是附录页或别的项
   const parent = toc.locator('li.toc-step:has(a[href$="/ip-tests/"])');
   const sections = parent.locator('.toc-sections a');
-  await expect(sections).toHaveCount(2);
+  await expect(sections).toHaveCount(3);
   await expect(sections.first()).toHaveAttribute('href', '#我的第一台');
   await sections.first().click();
   await expect.poll(() => page.evaluate(() => decodeURIComponent(location.hash))).toBe('#我的第一台');

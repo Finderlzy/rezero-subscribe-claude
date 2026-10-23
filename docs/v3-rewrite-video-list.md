@@ -17,7 +17,7 @@
 | 03-4 | 03 方案二 | 运行脚本：“住宅代理 IP”直接回车跳过 → 等完成 → 保存节点和面板信息 |  |
 | 03-5 | 03 方案二 | 打开面板 | 与 02-6 共用，不用重录 |
 | 04-1 | 04 电脑端 | v2rayN 下载解压 → 管理员运行 → 从剪贴板导入 → 选主节点 → 清除系统代理 → 启用 Tun |  |
-| 04-2 | 04 电脑端 | 规则集 V4-绕过大陆(Whitelist) → 域名解析策略 AsIs → DNS 基础设置按表填 → 检查规则顺序 | 规则部分已录：`v2rayn-rules.mp4`（2026-10-23）；DNS 部分待录 |
+| 04-2 | 04 电脑端 | 规则集 V4-绕过大陆(Whitelist) → 域名解析策略 AsIs → DNS 基础设置按表填 → 检查规则顺序 | 已录（2026-10-23）：规则部分拆成两段，`v2rayn-rules.mp4`（进入路由设置、加两条 Claude 规则）和 `v2rayn-rules-order.mp4`（拖动检查顺序）；DNS 部分待录 |
 | 04-3 | 04 电脑端 | browserleaks WebRTC → 关 WebRTC → ipleak 看 IPv6 → 关 IPv6 → 复测 |  |
 | 04-4 | 04 电脑端 | 关闭自动时区 → 手动选台湾/新加坡/住宅 IP 城市 → browserleaks 确认 |  |
 | 05-1 | 05 iOS 端 | App Store 头像 → 账户名 → 国家/地区 → 奥地利 → 继续 → 同意 → EPS / Bank Austria → PLZ 1010 → 保存 |  |
@@ -50,6 +50,7 @@
    ```
 
    录屏默认是 webm（Obsidian 的录屏可能没正常收尾，解码报错时加 `-err_detect ignore_err`）；只提交转好的 mp4 和封面 jpg，源文件不进仓库。1600 宽、CRF 28 的 80 秒录屏约 1 MB，封面约 60 KB。
+
 3. 把占位行换成“引导语 + `![[名字.mp4]]`”，嵌入单独占一行：
 
    ```text
@@ -57,4 +58,16 @@
 
    ![[v2rayn-rules.mp4]]
    ```
-4. 删掉该小节里已经不再需要的过渡文字（如果有），跑 `node scripts/import-rewrite.mjs` 导入、`npm run build` 确认页面里的视频能播。
+4. 删掉该小节里已经不再需要的过渡文字（如果有），跑 `node scripts/import-rewrite.mjs` 导入、`npm run build` 确认页面里的视频能播。引用表里把这个占位行的状态改掉。
+
+   时长超过一两分钟、或者要逐帧处理的录屏，用显卡编码（NVIDIA 的 `h264_nvenc`）快很多，素质够用：
+
+   ```sh
+   ffmpeg -i "录屏.mp4" -vf "crop=584:1154:0:64,fps=25,scale=1600:-2:flags=lanczos" \\
+     -c:v h264_nvenc -preset p7 -tune hq -rc constqp -qp 34 -b:v 0 -pix_fmt yuv420p \\
+     -movflags +faststart -c:a aac -b:a 40k public/videos/名字.mp4
+   ```
+
+   `crop` 是把手机录屏上下多余的部分剪掉，只看应用画面；`qp` 越大文件越小，34 左右文字仍然清楚。
+
+5. **脱敏**（必做）：录屏里不要露出服务器 IP、节点名、项目名。开头和结尾露出节点列表或日志的，直接剪掉；漏在画面中间的，涂掉那几帧上的字符（不要只画一块灰，看起来太刻意）。做完再全片抽帧 OCR 一遍，确认搜不到 `66.`、IP 段、节点名和标签页里的项目名。

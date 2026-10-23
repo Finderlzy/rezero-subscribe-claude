@@ -54,7 +54,9 @@ IP 不只是一个地址，它还能看出两件事：
 
 我第一次买的 VoyraCloud 美国住宅服务器，测出来 ipinfo.io 显示 ASN 属于 Bunny Communications，类型是 **Hosting（机房）**，Privacy 为 `true`，Scamalytics 16 分。分数不算高，但它不是住宅 IP。
 
-这只是我一次购买的结果，不代表每家、每次都会这样。我后来又在 VoyraCloud 买了一台，测出来是 ISP 类型，Scamalytics 3 分，现在用的就是这一台。所以买完之后第一件事是测 IP；如果开出的是机房 IP，找商家换一台，或者退款。
+这只是我一次购买的结果，不代表每家、每次都会这样。我后来又在 VoyraCloud 买了一台，测出来是 ISP 类型，Scamalytics 3 分。所以买完之后第一件事是测 IP；如果开出的是机房 IP，找商家换一台，或者退款。
+
+后来很多读者反馈，洛杉矶的住宅服务器有时候质量很差，所以我另外测了一台**华盛顿**的。ipinfo 是 ISP 类型、Privacy 为 false，IPPure 认成原生住宅 IP，Scamalytics 0 分，现在用的就是这一台。三台的完整数据在[[实测：VoyraCloud 住宅服务器]]里。不过你拿到的 IP 和我的一定不同，还是要自己测。
 
 ## 先测服务器 IP
 ---

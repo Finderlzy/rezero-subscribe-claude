@@ -6,8 +6,8 @@ import { expect, test, type Page } from '@playwright/test';
  * V11 换成 11 页后同一套脚本覆盖步骤页（`/maintenance/#…`）。
  */
 const PAGE = './ip-tests/voyracloud/';
-const HEADING = '我的第二台（现在用的）';
-const SLUG = '我的第二台现在用的';
+const HEADING = '我的第三台（现在用的）';
+const SLUG = '我的第三台现在用的';
 
 const target = (page: Page) => page.getByRole('heading', { level: 2, name: HEADING });
 
