@@ -49,7 +49,7 @@
    ffmpeg -ss 20 -i public/videos/v2rayn-rules.mp4 -frames:v 1 -vf scale=1200:-2 -q:v 4 public/videos/v2rayn-rules.jpg
    ```
 
-   录屏默认是 webm（Obsidian 的录屏可能没正常收尾，解码报错时加 `-err_detect ignore_err`）；只提交转好的 mp4 和封面 jpg，源文件不进仓库。1600 宽、CRF 28 的 80 秒录屏约 1 MB，封面约 60 KB。
+   录屏默认是 webm（Obsidian 的录屏可能没正常收尾，解码报错时加 `-err_detect ignore_err`）；只提交转好的 mp4 和封面 jpg，源文件不进仓库。上面那条是 CPU 的兜底命令，有显卡用下面的脚本。
 
 3. 把占位行换成“引导语 + `![[名字.mp4]]`”，嵌入单独占一行：
 
@@ -60,14 +60,14 @@
    ```
 4. 删掉该小节里已经不再需要的过渡文字（如果有），跑 `node scripts/import-rewrite.mjs` 导入、`npm run build` 确认页面里的视频能播。引用表里把这个占位行的状态改掉。
 
-   时长超过一两分钟、或者要逐帧处理的录屏，用显卡编码（NVIDIA 的 `h264_nvenc`）快很多，素质够用：
+   有显卡就用 `node scripts/encode-video.mjs`，裁剪、GPU 缩放、编码和封面一条命令搞定：
 
    ```sh
-   ffmpeg -i "录屏.mp4" -vf "crop=584:1154:0:64,fps=25,scale=1600:-2:flags=lanczos" \\
-     -c:v h264_nvenc -preset p7 -tune hq -rc constqp -qp 34 -b:v 0 -pix_fmt yuv420p \\
-     -movflags +faststart -c:a aac -b:a 40k public/videos/名字.mp4
+   node scripts/encode-video.mjs ~/视频/"录屏 2026-10-23 13-45-41.webm" v2rayn-rules --poster 8
+   # 一次转多条：清单里一行“源文件 输出名 [封面第几秒]”，默认同时跑 6 条
+   node scripts/encode-video.mjs --batch 清单.txt
    ```
 
-   `crop` 是把手机录屏上下多余的部分剪掉，只看应用画面；`qp` 越大文件越小，34 左右文字仍然清楚。
+   整条链路都在显卡上（先 `hwupload_cuda`，用 `scale_cuda` 缩放），CPU 基本不干活；只在最后编码、前面用 CPU 的 `scale` 时，20 核会被占掉 90% 以上，编码器反而在等帧。并行默认 6 条：实测 4 条 NVENC 88%、6 条 94%（峰值 100%），再多不再涨。没有可用显卡时脚本自己退回 `libx264`。`--preset phone` 裁的是安卓竖屏录屏（状态栏和窗口边框），别的分辨率用 `--crop w:h:x:y` 自己指定；`--qp` 越大文件越小，34 左右文字仍然清楚。
 
 5. **脱敏**（必做）：录屏里不要露出服务器 IP、节点名、项目名。开头和结尾露出节点列表或日志的，直接剪掉；漏在画面中间的，涂掉那几帧上的字符（不要只画一块灰，看起来太刻意）。做完再全片抽帧 OCR 一遍，确认搜不到 `66.`、IP 段、节点名和标签页里的项目名。
