@@ -20,7 +20,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # 取全部历史：sitemap 的 lastmod 取源文件最后一次提交的日期（src/lib/sitemap/lastmod.ts），
+      # 默认的浅克隆（depth 1）里大部分文件没有历史，会退化成不写 lastmod。
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v5
         with:
           node-version: 22

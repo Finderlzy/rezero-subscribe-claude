@@ -1,5 +1,16 @@
 # 交付记录
 
+## 2026-10-23 站点地图补 lastmod（谷歌收录）
+
+v3 上线后线上 sitemap 已经是 v3 的网址，但每条没有 `lastmod`。本轮补上，让谷歌知道每页最后一次真的改动是什么时候。
+
+- **范围**：`sitemap-index.xml` 和 `sitemap-0.xml` 的地址不变，只给每条 `<url>` 加 `<lastmod>`；跳转页和 404 照旧不进 sitemap。
+- **改法**：`astro.config.mjs` 的 sitemap 集成加 `serialize`；[`src/lib/sitemap/lastmod.ts`](../src/lib/sitemap/lastmod.ts) 按“网址路径 → 源文件”的约定（首页 `src/pages/index.astro`、`src/content/principle/<id>.md`、`src/content/reference/<id>.md` 和 `reference/<id>/<id>.md`）取 `git log -1 --format=%cs`，写 `YYYY-MM-DD`（`@astrojs/sitemap` 输出成 ISO 时间）。
+- **不用构建时间**：CI 每次 checkout 的 mtime 和构建时刻都在变，会把所有页面写成同一个“今天”，谷歌会因为 lastmod 不准而不再相信它。没有 git 历史的构建（`tests/build/` 的临时目录、源码压缩包）就不写这一条，而不是写假的日期。
+- **部署**：[`deploy.yml`](../.github/workflows/deploy.yml) 的 `actions/checkout` 改为 `fetch-depth: 0`，默认的浅克隆里大部分文件取不到历史。
+- **核对**：`SITE_URL=https://re0claude.us.ci npm run build` 的 `dist/sitemap-0.xml` 19 条都有 `lastmod`（都是 2026-10-22，v3 内容的提交日期），跳转页仍然不在里面；`BASE_PATH=/sub/` 的构建同样 19 条；`npm run check` 通过（astro check 0 错误，单元测试 548 个，构建级用例 27 个，构建 67 页）。
+- **控制台**：sitemap 地址没变，Search Console 里不用新增，只要重新提交一次 `https://re0claude.us.ci/sitemap-index.xml`（“站点地图”页点已提交那条右侧的“重新提交”，或删掉再提交同一地址），再用“网址检查”对重点页逐个“请求编入索引”。
+
 ## 2026-10-22 v3 正式上线（3.0.0）
 
 v3.0.0 验收通过后，本轮把交付收口并正式上线：清理 v2 遗留资源、重做 README、校准文档日期和验收文字。站点版本保持 **3.0.0**，本次就是 v3 的正式上线。
