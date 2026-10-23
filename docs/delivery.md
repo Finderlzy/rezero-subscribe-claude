@@ -1,5 +1,18 @@
 # 交付记录
 
+## 2026-10-23 正文视频（自托管）
+
+作者开始给正文配录屏（一条小节一个小视频），决定不放 B 站——分成很多条小视频，放外站反而难找——改成站点自己托管。
+
+- **写法**：正文 `![[名字.mp4]]` 独占一行，文件放 `public/videos/`，只认 mp4（H.264，Safari 和 iPhone 也能播）。渲染成原生 `<video controls preload="none" playsinline>`，占满正文栏、1px 边框、不编号；同名的 `.jpg` 当封面，点了播放才开始下载。
+- **代码**：`link-index` 扫 `public/videos`（新增 `videosDir`、`videos`）；`remark-obsidian` 的 `convertVideo` 校验文件名（小写英文和连字符）和文件存在；`rehype-figures` 把独占一行的视频包成 `figure.video`（不参与图版编号）；`prose.css` 加视频块和 2px 焦点环；`import-rewrite.mjs` 不把 `.mp4` 当截图复制。
+- **标记用 `data-body-video`**：不占 VideoFacade 的 `data-video`——那个属性存的是平台和地址 JSON，空的会让它的脚本 `JSON.parse('')` 抛错（AC-07、AC-17 会跟着失败）。
+- **为什么 `preload="none"`**：`preload="metadata"` 时 Chrome 拿到元数据后会自己中断请求，预览服务器把它记成 `ERR_ABORTED`，AC-17“没有失败的请求”会挂；一页一个视频，打开页面就预取也不划算。封面补上预览。
+- **第一条视频**：作者录的 v2rayN 规则配置（82 秒、5.8 MB 的 webm）转成 `public/videos/v2rayn-rules.mp4`（1600 宽、CRF 28、1.0 MB）和封面 `v2rayn-rules.jpg`（59 KB），嵌进《客户端配置与环境验证：电脑端》的“配置v2rayN 规则集”。源 webm 不进仓库（Obsidian 的本地提交已撤销，没推送过）。
+- **连带修正**：作者把小节标题改成“配置v2rayN 规则集”，`09` 里指向旧标题的双链会让构建失败，同步改成新标题后导入。
+- **核对**：`npm run check` 通过（astro check 0 错误、单元测试 559 个、构建级 27 个、构建 67 页）；`npx playwright test` 950 通过、20 跳过、0 失败；1280 和 360 宽截图看了视频块和封面；`dist/videos/v2rayn-rules.mp4` 和封面在；页面里是 `<figure class="video"><video src="/videos/…" preload="none" poster="/videos/….jpg">`；子路径构建的地址带 `/sub/`（单元测试）。
+- **仓库体积**：82 秒录屏 1.0 MB + 封面 59 KB；30 条约 30 MB。视频进了 Git 历史，删了也不会变小，所以只提交转好的 mp4。
+
 ## 2026-10-23 站点地图补 lastmod（谷歌收录）
 
 v3 上线后线上 sitemap 已经是 v3 的网址，但每条没有 `lastmod`。本轮补上，让谷歌知道每页最后一次真的改动是什么时候。
