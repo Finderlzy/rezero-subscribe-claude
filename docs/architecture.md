@@ -457,7 +457,7 @@ v2.0 → v2.1 的代码差距（现状 → 目标）：
 | M2 路线 | 数据改动 + 小改 | `route.yaml` 随作者改完的重写稿重建（Q-18 定后）；`moved:` 段和校验（V09 现状，取代 `REMOVED_PAGES`，ADR-0006：单段旧标识、`faq/<id>` 多段参考页路径、`choice` 按分叉点分流）；章节的 `intro` 字段和 `site.ts` 里对它的核对随章节标题卡一起删除（FR-72 去掉了它的显示位置，不是放宽校验）；新增可选的 `summary`（首页五栏简介的导航文案，M2 只校验非空） | `buildRouteMap`/`view`/`outline` 的算法和接口，分叉、汇合、默认方案二 |
 | M3 页面 | 重做外观 | 顶栏、正文栏、侧边栏、翻页、首页、选择页卡片按 design.md v3 重做（13.3）；跳转页 `MovedPage`（V09 现状）、页面脚本 `section-hash`（V07 现状）、搜索框（V08） | 视图切换机制（ADR-0004）、导航改写、视频门面、复制、看大图、QQ 群和联系方式的数据来源 |
 | M4 本机状态 | 不变 | — | 全部 |
-| M5 构建 | 小改 | 删掉 `astro.config.mjs` 的 `redirects`、sitemap 过滤跳转页（V09 现状）；新增静态端点 `search-index.json`（V06 现状） | 构建校验、内容提示、`BASE_PATH` |
+| M5 构建 | 小改 | 删掉 `astro.config.mjs` 的 `redirects`、sitemap 过滤跳转页（V09 现状）；sitemap 每条写 `lastmod`（源文件最后一次提交的日期，2026-10-23，`src/lib/sitemap/lastmod.ts`，部署改成 `fetch-depth: 0`）；新增静态端点 `search-index.json`（V06 现状） | 构建校验、内容提示、`BASE_PATH` |
 | **M6 搜索（新增）** | 新增 | 构建时生成索引，浏览器里匹配（13.2） | — |
 | 开发脚本 | 新增 | ~~`scripts/merge-rewrite.mjs`：机械合并~~（13.5 已取消，作者直接交来合并稿）；保留 `import-rewrite.mjs`、`compare-migration.mjs` | `import-rewrite.mjs`、`compare-migration.mjs` 的规则 |
 
