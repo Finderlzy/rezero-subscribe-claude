@@ -20,6 +20,9 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFi
 import { basename, dirname, extname, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+/** 正文视频（2026-10-23）：文件自己放在 public/videos/，不从附件复制、也不按截图去找 */
+const VIDEO_EXTENSIONS = new Set(['.mp4', '.webm', '.mov', '.m4v']);
+
 /** 重写稿里指向同目录文件的相对 Markdown 链接；`!` 开头的是图片嵌入，不算 */
 const RELATIVE_LINK = /(?<!!)\[([^\]\n]*)\]\(([^)\s]+\.md)(#[^)\s]*)?\)/g;
 const FRONTMATTER = /^---\n[\s\S]*?\n---(?:\n|$)/;
@@ -183,7 +186,10 @@ export function importRewrite({ repoRoot, rewriteDir }) {
 
   // 截图只复制缺的（站内的可能是打码后的版本）；说明图跟着附件里的原稿更新
   for (const name of [...embeds].sort()) {
-    const diagram = extname(name).toLowerCase() === '.svg';
+    const extension = extname(name).toLowerCase();
+    // 视频不复制也不找：它由作者（或代理）转成 mp4 后直接放进 public/videos/
+    if (VIDEO_EXTENSIONS.has(extension)) continue;
+    const diagram = extension === '.svg';
     const target = join(diagram ? diagramsDir : screenshotsDir, name);
     if (!diagram && existsSync(target)) continue;
     const source = join(attachments, name);

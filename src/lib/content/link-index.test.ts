@@ -32,6 +32,13 @@ describe('createLinkIndex', () => {
     expect(index.contentRoot).toBe(fx.contentRoot);
   });
 
+  it('视频目录默认是 public/videos（正文视频，第 4 个参数可改）', () => {
+    fx.video('v2rayn-rules.mp4');
+    const index = createLinkIndex(fx.contentRoot, fx.screenshotsDir, fx.diagramsDir, fx.videosDir);
+    expect(index.videosDir).toBe(fx.videosDir);
+    expect([...index.videos]).toEqual(['v2rayn-rules.mp4']);
+  });
+
   it('说明图目录默认是 assets/diagrams（design §4.7）', () => {
     fx.diagram('说明图-整体思路.svg', '<svg/>');
     const index = createLinkIndex(fx.contentRoot);

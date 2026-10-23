@@ -21,6 +21,10 @@ export interface LinkIndex {
   readonly diagramsDir: string;
   /** 说明图文件名（`.svg`） */
   readonly diagrams: ReadonlySet<string>;
+  /** 正文视频目录（绝对路径），即 `public/videos`（2026-10-23：视频自托管，见 remark-obsidian 的 convertVideo） */
+  readonly videosDir: string;
+  /** 视频文件名（`.mp4`，原样交给浏览器，不走 Astro 的图片管线） */
+  readonly videos: ReadonlySet<string>;
   /** `principle/`、`reference/` 下的全部页面文件（ADR-0005） */
   readonly pages: readonly IndexedPage[];
   /** 标题 → 页面；标题重复时保留先扫描到的 */
@@ -55,13 +59,14 @@ export interface IndexedPage {
 }
 
 /**
- * 扫描 `contentRoot` 下的两个内容集合、`blog-links.yaml`、截图目录和说明图目录，目录不存在时视为空。
+ * 扫描 `contentRoot` 下的两个内容集合、`blog-links.yaml`、截图目录、说明图目录和视频目录，目录不存在时视为空。
  * 标识取相对集合目录、去掉 `.md` 的路径；标题取正文第一行的 `# 标题`（缺失由 checkPages 报错）。
  */
 export function createLinkIndex(
   contentRoot: string,
   screenshotsDir: string = resolve(contentRoot, '../assets/screenshots'),
   diagramsDir: string = resolve(contentRoot, '../assets/diagrams'),
+  videosDir: string = resolve(contentRoot, '../../public/videos'),
 ): LinkIndex {
   const root = resolve(contentRoot);
   const pages = COLLECTIONS.flatMap((kind) => listMarkdownDeep(join(root, kind)).map((id) => scanPage(kind, id, join(root, kind, `${id}.md`))));
@@ -75,6 +80,8 @@ export function createLinkIndex(
     screenshots: new Set(listFiles(resolve(screenshotsDir))),
     diagramsDir: resolve(diagramsDir),
     diagrams: new Set(listFiles(resolve(diagramsDir))),
+    videosDir: resolve(videosDir),
+    videos: new Set(listFiles(resolve(videosDir))),
     pages,
     titles,
     ...readBlogLinks(join(root, 'blog-links.yaml')),

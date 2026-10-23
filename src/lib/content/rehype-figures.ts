@@ -5,6 +5,7 @@ import type { Element, ElementContent, Root, RootContent } from 'hast';
  * `<figure class="plate" data-figure="n">`，编号写在 `<figcaption class="plate-no">图 1</figcaption>`，放在截图前面：
  * 桌面上它绝对定位到页边栏、竖向位置就是截图顶边；平板和手机由 CSS 排到截图下方（prose.css）。
  * 说明图（remark-obsidian 内联的 `svg[data-diagram]`，design §4.7）同样包成图版，多一个 `diagram` 类，和截图一起编号。
+ * 正文视频（`video[data-body-video]`，2026-10-23）也独占一行包成 `figure.video`，但不编号——图版编号只给截图和说明图。
  * 每篇正文单独处理，所以原理版、操作版各自从 1 编号。
  *
  * 编号前半的步骤号（“图 02-1”的 `02-`）取决于路线和视图，这里只留空的 FIGURE_STEP_SLOT：
@@ -33,6 +34,17 @@ function isScreenshot(node: ElementContent): node is Element {
 
 function isDiagram(node: Element): boolean {
   return node.tagName === 'svg' && 'dataDiagram' in node.properties;
+}
+
+/** 正文视频（`video[data-body-video]`，remark-obsidian 的 convertVideo 输出）：独占一行时包成 figure.video，不编号。
+ * 用单独的标记，不用 `data-video`：那是 VideoFacade 存平台和地址 JSON 的属性，正文视频空着会让它的脚本解析失败。 */
+function isVideo(node: ElementContent): node is Element {
+  return node.type === 'element' && node.tagName === 'video' && 'dataBodyVideo' in node.properties;
+}
+
+/** 要独占一行、包成块级容器的媒体：截图、说明图和正文视频 */
+function isMedia(node: ElementContent): node is Element {
+  return isScreenshot(node) || isVideo(node);
 }
 
 /** 截图是否独占一行：到前后的换行（或父元素的边界）之间只有空白 */
@@ -70,7 +82,10 @@ function wrap(children: ElementContent[], split: Element | null, plates: WeakSet
     run = [];
   };
   children.forEach((node, i) => {
-    if (isScreenshot(node) && ownLine(children, i)) {
+    if (isVideo(node) && ownLine(children, i)) {
+      flush();
+      out.push({ type: 'element', tagName: 'figure', properties: { className: ['video'] }, children: [node] });
+    } else if (isScreenshot(node) && ownLine(children, i)) {
       flush();
       out.push(plate(node, plates));
     } else run.push(node);
@@ -101,7 +116,7 @@ export default function rehypeFigures() {
     const restructure = (node: Root | Element) => {
       if (node.type === 'root' || FLOW.has(node.tagName)) {
         const children = (node.children as ElementContent[]).flatMap((child) =>
-          child.type === 'element' && child.tagName === 'p' && child.children.some(isScreenshot) ? wrap(child.children, child, plates) : [child],
+          child.type === 'element' && child.tagName === 'p' && child.children.some(isMedia) ? wrap(child.children, child, plates) : [child],
         );
         node.children = (node.type === 'root' ? children : wrap(children, null, plates)) as RootContent[] & ElementContent[];
       }

@@ -110,7 +110,7 @@ location /sub/ {
 node scripts/import-rewrite.mjs
 ```
 
-截图放在 `src/assets/screenshots/`，正文里写 `![[文件名|宽度]]`；说明图由导入脚本从重写稿的 `附件/` 复制到 `src/assets/diagrams/`，改图就改附件里的原稿再导入。页面标识、旧网址去向和迁移口径见 [docs/migration-checklist.md](docs/migration-checklist.md)。
+截图放在 `src/assets/screenshots/`，正文里写 `![[文件名|宽度]]`；说明图由导入脚本从重写稿的 `附件/` 复制到 `src/assets/diagrams/`，改图就改附件里的原稿再导入；正文视频转成 mp4 后放 `public/videos/`，正文里写 `![[名字.mp4]]`（转码命令见 [docs/v3-rewrite-video-list.md](docs/v3-rewrite-video-list.md)）。页面标识、旧网址去向和迁移口径见 [docs/migration-checklist.md](docs/migration-checklist.md)。
 
 ## 开发命令
 

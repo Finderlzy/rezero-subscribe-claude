@@ -138,6 +138,7 @@ moved:                              # 旧网址 → 目标页；也可按分叉�
 | `[文字](#小标题)` | 同页链接，片段换成渲染后的 slug | 同上 |
 | 指向参考页的链接 | 从页面链出时自动加 `?from=<当前页标识>`（FR-20） | — |
 | `![[文件名\|宽度]]` | 图片进 Astro 图片处理，生成 `src/assets/screenshots/` 的导入副本；说明图 `.svg` 由 `diagram.ts` 白名单内联 | 构建失败 |
+| `![[名字.mp4]]` | 正文视频（2026-10-23）：文件放在 `public/videos/`，渲染成原生 `<video>`（`preload="none"`、点击才下载、同名 `.jpg` 当封面、占满正文栏、不编号）；只认 mp4，转码命令见 `docs/v3-rewrite-video-list.md` | 构建失败，报出文件和行号 |
 | `TODO：` | 显示成“作者待补”提示，构建结束列出（FR-21） | — |
 
 ### M2 路线（`src/lib/route/`）
@@ -317,7 +318,7 @@ function getNameHost(scope?): { name: string } | null;   // 浏览器里是 wind
 │   ├── components/                  Logo、Mascot、SiteHeader、ThemeToggle、ContactLinks、SiteFooter、StepNav、Toc、TocNav、TocItems、TocSections、Numeral、NumeralSprite、GroupInvite、CodeCopy、ImageZoom、VideoFacade
 │   ├── pages/                       index、[page]、faq/index、faq/[question]、ip-tests/index、ip-tests/[test]、404
 │   └── styles/                      tokens.css、base.css、prose.css、toc.css、code-zoom.css
-├── public/                          favicon.svg
+├── public/                          favicon.svg、videos/（正文视频，2026-10-23）
 ├── scripts/                         一次性开发脚本：import-rewrite.mjs（+ 测试）、build-logo.mjs、compare-migration.mjs（v2.0 改写）
 └── tests/
     ├── e2e/                         Playwright，按 v2 的 AC 编号命名
@@ -453,7 +454,7 @@ v2.0 → v2.1 的代码差距（现状 → 目标）：
 
 | 模块 | 影响 | v3 改动 | 不变 |
 | --- | --- | --- | --- |
-| M1 内容 | 小改 | 双链的小节锚点解析（V07 现状，页面固定原理视图，只有原理版）；给 M6 提供原理版和参考页的 h2、h3（Astro `render()` 返回的 `headings`）；合并页本身仍是“一页 = 重写稿一个文件”，导入规则不变 | 导入脚本、Obsidian 插件、校验三层 |
+| M1 内容 | 小改 | 双链的小节锚点解析（V07 现状，页面固定原理视图，只有原理版）；给 M6 提供原理版和参考页的 h2、h3（Astro `render()` 返回的 `headings`）；正文视频 `![[名字.mp4]]`（2026-10-23，`public/videos/` 自托管，导入脚本不复制视频）；合并页本身仍是“一页 = 重写稿一个文件”，导入规则不变 | 导入脚本、Obsidian 插件、校验三层 |
 | M2 路线 | 数据改动 + 小改 | `route.yaml` 随作者改完的重写稿重建（Q-18 定后）；`moved:` 段和校验（V09 现状，取代 `REMOVED_PAGES`，ADR-0006：单段旧标识、`faq/<id>` 多段参考页路径、`choice` 按分叉点分流）；章节的 `intro` 字段和 `site.ts` 里对它的核对随章节标题卡一起删除（FR-72 去掉了它的显示位置，不是放宽校验）；新增可选的 `summary`（首页五栏简介的导航文案，M2 只校验非空） | `buildRouteMap`/`view`/`outline` 的算法和接口，分叉、汇合、默认方案二 |
 | M3 页面 | 重做外观 | 顶栏、正文栏、侧边栏、翻页、首页、选择页卡片按 design.md v3 重做（13.3）；跳转页 `MovedPage`（V09 现状）、页面脚本 `section-hash`（V07 现状）、搜索框（V08） | 视图切换机制（ADR-0004）、导航改写、视频门面、复制、看大图、QQ 群和联系方式的数据来源 |
 | M4 本机状态 | 不变 | — | 全部 |

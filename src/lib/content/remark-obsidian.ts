@@ -28,6 +28,12 @@ const TODO_START = /^TODO[：:]/;
 const SCREENSHOTS_HINT = 'src/assets/screenshots/';
 /** 说明图目录在仓库里的位置，只用于错误提示 */
 const DIAGRAMS_HINT = 'src/assets/diagrams/';
+/** 正文视频目录在仓库里的位置，只用于错误提示（视频自托管，2026-10-23） */
+const VIDEOS_HINT = 'public/videos/';
+/** 视频文件名：小写英文、数字和连字符，扩展名固定 `.mp4`（H.264，iPhone 也能播；文件名直接进 HTML 属性） */
+const VIDEO_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*\.mp4$/;
+/** 这些扩展名按视频处理：只有 `.mp4` 能用，其余在 convertVideo 里报错（录屏默认是 webm，要先转码） */
+const VIDEO_EXTS = new Set(['.mp4', '.webm', '.mov', '.m4v']);
 /** 原文章的附件目录前缀：迁移时要去掉（评审 R5） */
 const LEGACY_ATTACHMENT_PREFIX = '09附件/';
 
@@ -434,6 +440,7 @@ function convertEmbed(raw: string, source: string, at: Point | undefined, ctx: D
     ctx.report(`截图文件名不能含 #、?、%，请改名后再嵌入：${source}`, at);
     return undefined;
   }
+  if (VIDEO_EXTS.has(extname(name).toLowerCase())) return convertVideo(name, widthRaw, source, at, ctx);
   if (extname(name).toLowerCase() === '.svg') return convertDiagram(name, widthRaw, source, at, ctx);
   let width: number | undefined;
   if (widthRaw !== undefined) {
@@ -501,6 +508,48 @@ function convertDiagram(name: string, widthRaw: string | undefined, source: stri
         ariaLabel: diagram.title,
         className: ['diagram-svg'],
         dataDiagram: '',
+      },
+    },
+  };
+}
+
+/**
+ * 正文视频（2026-10-23）：`![[名字.mp4]]` 输出一个 `<video controls preload="none" playsinline>`，
+ * 文件放在 `public/videos/`，由浏览器直接请求（视频体积大、不走 Astro 的图片管线）；同名的 `.jpg` 当封面，
+ * 点了播放才开始下载。
+ * 和截图一样只认裸文件名；扩展名只认 `.mp4`（H.264，Safari 和 iPhone 也能播），录屏的 webm 要先转码。
+ * rehype-figures 把独占一行的视频包成 `figure.video`（不编号，图版只给截图和说明图）。
+ */
+function convertVideo(name: string, widthRaw: string | undefined, source: string, at: Point | undefined, ctx: DocContext): Html | undefined {
+  if (widthRaw !== undefined) {
+    ctx.report(`视频按正文栏宽度显示，不写宽度：${source}`, at);
+    return undefined;
+  }
+  if (!VIDEO_NAME.test(name)) {
+    ctx.report(`视频要转成 mp4（H.264）、文件名用小写英文和连字符，例如 v2rayn-rules.mp4；现在写的是“${name}”：${source}`, at);
+    return undefined;
+  }
+  if (!ctx.index.videos.has(name)) {
+    ctx.report(`找不到视频“${name}”（应放在 ${VIDEOS_HINT}）：${source}`, at);
+    return undefined;
+  }
+  // 封面用同名的 .jpg（可选）：先取视频里的一帧，读者点开前看到的是配置界面而不是黑框
+  const poster = name.replace(/\.mp4$/, '.jpg');
+  return {
+    type: 'html',
+    value: '',
+    // hName/hProperties 让 mdast 直接产出 <video> 元素（和说明图一样），rehype-figures 才能把它包成 figure.video
+    data: {
+      hName: 'video',
+      hProperties: {
+        src: joinBase(ctx.base, `/videos/${name}`),
+        controls: true,
+        // 不在打开页面时预取：一页一个视频，几十 MB 的流量没必要花在没人点的视频上，也免得预览服务器把
+        // preload=metadata 的请求当成失败（AC-17）；点播放才开始下载。
+        preload: 'none',
+        playsInline: true,
+        dataBodyVideo: '',
+        ...(ctx.index.videos.has(poster) ? { poster: joinBase(ctx.base, `/videos/${poster}`) } : {}),
       },
     },
   };

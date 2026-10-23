@@ -34,7 +34,7 @@ async function renderFile(path: string, body: string, base = '/'): Promise<Rende
   const images: Image[] = [];
   const pipeline = markdownPipeline({
     base,
-    linkIndex: () => createLinkIndex(fx.contentRoot),
+    linkIndex: () => createLinkIndex(fx.contentRoot, fx.screenshotsDir, fx.diagramsDir, fx.videosDir),
     onProblems: (found) => problems.push(...found),
   });
   const collect = () => (tree: Root) => {
@@ -117,6 +117,60 @@ describe('嵌入', () => {
     fx.shot('a#b.png');
     const r = await renderStep('![[a#b.png]]');
     expect(r.problems[0].message).toContain('不能含 #、?、%');
+  });
+
+  describe('正文视频（2026-10-23）', () => {
+    it('独占一行的 mp4 渲染成点击播放的视频，src 带部署根路径，不编号', async () => {
+      fx.video('v2rayn-rules.mp4');
+      const r = await renderStep('看下面的演示。\n\n![[v2rayn-rules.mp4]]');
+      expect(r.problems).toEqual([]);
+      expect(r.html).toContain('<figure class="video"><video ');
+      expect(r.html).toContain('src="/videos/v2rayn-rules.mp4"');
+      expect(r.html).toContain('preload="none"');
+      expect(r.html).not.toContain('图 ');
+    });
+
+    it('子路径部署时 src 带上 base', async () => {
+      fx.video('v2rayn-rules.mp4');
+      const r = await renderStep('![[v2rayn-rules.mp4]]', '/sub/');
+      expect(r.html).toContain('src="/sub/videos/v2rayn-rules.mp4"');
+    });
+
+    it('同名 jpg 存在时当封面；没有就不写 poster', async () => {
+      fx.video('v2rayn-rules.mp4');
+      const withoutPoster = await renderStep('![[v2rayn-rules.mp4]]');
+      expect(withoutPoster.html).not.toContain('poster=');
+
+      fx.video('v2rayn-rules.jpg');
+      const withPoster = await renderStep('![[v2rayn-rules.mp4]]');
+      expect(withPoster.html).toContain('poster="/videos/v2rayn-rules.jpg"');
+    });
+
+    it('和文字同一行时留在段落里，不包成 figure', async () => {
+      fx.video('v2rayn-rules.mp4');
+      const r = await renderStep('看 ![[v2rayn-rules.mp4]] 演示');
+      expect(r.html).toMatch(/^<p>看 <video[^>]*><\/video> 演示<\/p>$/);
+    });
+
+    it('录屏的 webm 报错：要先转成 mp4、文件名用小写英文和连字符', async () => {
+      fx.video('录屏 2026-10-23.webm');
+      const r = await renderStep('![[录屏 2026-10-23.webm]]');
+      expect(r.problems).toHaveLength(1);
+      expect(r.problems[0]!.message).toContain('视频要转成 mp4（H.264）');
+    });
+
+    it('缺文件时报出文件和行号', async () => {
+      const r = await renderStep('文字\n\n![[missing.mp4]]');
+      expect(r.problems).toEqual([
+        expect.objectContaining({ line: BODY_LINE + 2, message: expect.stringContaining('找不到视频“missing.mp4”') }),
+      ]);
+    });
+
+    it('写宽度报错（视频占满正文栏）', async () => {
+      fx.video('v2rayn-rules.mp4');
+      const r = await renderStep('![[v2rayn-rules.mp4|600]]');
+      expect(r.problems[0]!.message).toContain('视频按正文栏宽度显示，不写宽度');
+    });
   });
 
   describe('说明图（.svg，design §4.7）', () => {

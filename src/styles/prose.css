@@ -132,6 +132,31 @@
 }
 
 /*
+ * 正文视频（2026-10-23，remark-obsidian 的 convertVideo → rehype-figures 包成 figure.video）：
+ * 占满正文栏、1px --border 边框，上下各留 24px，和截图一样的块间距；不编号。
+ * 播放器原生控件，点击才加载（preload="metadata"），手机上可以全屏。
+ */
+.prose .video {
+  margin: var(--space-5) 0;
+}
+
+.prose .video video {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: var(--border-width) solid var(--border);
+  background: var(--surface-muted);
+}
+
+/* Chrome 的默认样式让视频拿到焦点时没有外框（控件画在自己的影子树里，宿主元素不算 :focus），
+   这里补上和链接、按钮一样的 2px 焦点环（design §5）；:focus-within 覆盖焦点进到控件里的情况。 */
+.prose .video video:focus,
+.prose .video video:focus-within {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/*
  * 说明图（design v3 §4.7）：内联的单色线稿，上下各留 32px，编号和截图一样。
  * 按 1:1 显示（宽高属性是 viewBox 的宽高，不超过手机正文栏，见 diagram.ts），图中文字始终 14px；
  * 线条和文字用 currentColor 跟着 --text，本页讲的那一环（class="accent"）用 --accent。没有边框。

@@ -17,7 +17,7 @@
 | 03-4 | 03 方案二 | 运行脚本：“住宅代理 IP”直接回车跳过 → 等完成 → 保存节点和面板信息 |  |
 | 03-5 | 03 方案二 | 打开面板 | 与 02-6 共用，不用重录 |
 | 04-1 | 04 电脑端 | v2rayN 下载解压 → 管理员运行 → 从剪贴板导入 → 选主节点 → 清除系统代理 → 启用 Tun |  |
-| 04-2 | 04 电脑端 | 规则集 V4-绕过大陆(Whitelist) → 域名解析策略 AsIs → DNS 基础设置按表填 → 检查规则顺序 |  |
+| 04-2 | 04 电脑端 | 规则集 V4-绕过大陆(Whitelist) → 域名解析策略 AsIs → DNS 基础设置按表填 → 检查规则顺序 | 规则部分已录：`v2rayn-rules.mp4`（2026-10-23）；DNS 部分待录 |
 | 04-3 | 04 电脑端 | browserleaks WebRTC → 关 WebRTC → ipleak 看 IPv6 → 关 IPv6 → 复测 |  |
 | 04-4 | 04 电脑端 | 关闭自动时区 → 手动选台湾/新加坡/住宅 IP 城市 → browserleaks 确认 |  |
 | 05-1 | 05 iOS 端 | App Store 头像 → 账户名 → 国家/地区 → 奥地利 → 继续 → 同意 → EPS / Bank Austria → PLZ 1010 → 保存 |  |
@@ -38,6 +38,23 @@
 
 ## 录完后怎么替换
 
+视频自托管在站点里，不放 B 站（2026-10-23 定）：分成很多条小录屏，一条对应一个小节，放外站反而难找。
+
 1. 找到对应的 `**视频 XX-X：...**` 占位行。
-2. 把占位行换成“引导语 + 视频嵌入”，例如“下面的视频演示整个换区过程：”。平台和站点组件还没定；如果放 B 站/YouTube，需要先把站点的“每页一个视频门面”扩展成正文内可用的视频组件；如果放本地 mp4，需要先定 mp4 的存放位置。
-4. 删掉该小节里已经不再需要的过渡文字（如果有）。
+2. 录好的视频转成 mp4（H.264）再放进仓库，文件名用小写英文和连字符，例如 `v2rayn-rules.mp4`：
+
+   ```sh
+   ffmpeg -err_detect ignore_err -i "录屏.webm" -an -vf "scale=1600:-2" -c:v libx264 -preset slow -crf 28 -pix_fmt yuv420p -movflags +faststart public/videos/v2rayn-rules.mp4
+   # 封面（可选）：挑一帧能看出在讲什么的画面，没有封面时播放器是黑底
+   ffmpeg -ss 20 -i public/videos/v2rayn-rules.mp4 -frames:v 1 -vf scale=1200:-2 -q:v 4 public/videos/v2rayn-rules.jpg
+   ```
+
+   录屏默认是 webm（Obsidian 的录屏可能没正常收尾，解码报错时加 `-err_detect ignore_err`）；只提交转好的 mp4 和封面 jpg，源文件不进仓库。1600 宽、CRF 28 的 80 秒录屏约 1 MB，封面约 60 KB。
+3. 把占位行换成“引导语 + `![[名字.mp4]]`”，嵌入单独占一行：
+
+   ```text
+   具体操作看下面的视频（以 v2rayN 为例）：
+
+   ![[v2rayn-rules.mp4]]
+   ```
+4. 删掉该小节里已经不再需要的过渡文字（如果有），跑 `node scripts/import-rewrite.mjs` 导入、`npm run build` 确认页面里的视频能播。

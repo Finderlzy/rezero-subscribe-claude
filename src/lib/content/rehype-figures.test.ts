@@ -121,3 +121,31 @@ describe('fillFigureSteps：编号前半的步骤号', () => {
     expect(fillFigureSteps(html, '')).toBe(html);
   });
 });
+
+describe('rehype-figures：正文视频（2026-10-23）', () => {
+  /** 视频目录要显式传给链接索引：和截图、说明图一样，先确认文件存在 */
+  const renderWithVideo = async (source: string): Promise<string> => {
+    const file = fx.write('principle/rules.md', source);
+    const content = parseFrontmatter(readFileSync(file, 'utf8'), { frontmatter: 'empty-with-spaces' }).content;
+    const index = createLinkIndex(fx.contentRoot, fx.screenshotsDir, fx.diagramsDir, fx.videosDir);
+    const p = await createMarkdownProcessor({ ...markdownPipeline({ base: '/', linkIndex: index }), syntaxHighlight: false });
+    return (await p.render(content, { fileURL: pathToFileURL(file) })).code;
+  };
+
+  it('独占一行的视频包成 figure.video，不编号；后面的截图仍从 1 编号', async () => {
+    fx.video('v2rayn-rules.mp4');
+    const html = await renderWithVideo('# 规则\n\n![[v2rayn-rules.mp4]]\n\n![[a.png]]\n');
+
+    expect(html).toContain('<figure class="video"><video ');
+    expect(html).not.toContain('data-figure="1"><video');
+    expect(plates(html)).toEqual([{ no: '1', file: 'a.png' }]);
+  });
+
+  it('和文字同一行时不包成 figure，留在段落里', async () => {
+    fx.video('v2rayn-rules.mp4');
+    const html = await renderWithVideo('# 规则\n\n看 ![[v2rayn-rules.mp4]] 演示\n');
+
+    expect(html).not.toContain('<figure class="video">');
+    expect(html).toMatch(/^<p>看 <video[^>]*><\/video> 演示<\/p>$/);
+  });
+});

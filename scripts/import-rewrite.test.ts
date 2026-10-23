@@ -104,6 +104,14 @@ describe('importRewrite', () => {
     expect(report.missingImages).toEqual(['缺失.png']);
   });
 
+  it('正文视频（.mp4）不按截图找、也不报告缺文件：视频自己放在 public/videos/', () => {
+    write('docs/v3-rewrite/01-整体思路与方案选型.md', '# 整体思路与方案选型\n\n![[v2rayn-rules.mp4]]\n');
+    const report = run();
+
+    expect(report.copied.filter((path: string) => path.endsWith('.mp4'))).toEqual([]);
+    expect(report.missingImages).toEqual([]);
+  });
+
   it('说明图（.svg）复制到 src/assets/diagrams/，附件里的是原稿，内容变了就更新；附件里没有的报告出来', () => {
     write(
       'docs/v3-rewrite/01-整体思路与方案选型.md',
