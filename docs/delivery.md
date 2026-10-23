@@ -12,6 +12,7 @@
 - **连带修正**：作者把小节标题改成“配置v2rayN 规则集”，`09` 里指向旧标题的双链会让构建失败，同步改成新标题后导入。
 - **核对**：`npm run check` 通过（astro check 0 错误、单元测试 559 个、构建级 27 个、构建 67 页）；`npx playwright test` 950 通过、20 跳过、0 失败；1280 和 360 宽截图看了视频块和封面；`dist/videos/v2rayn-rules.mp4` 和封面在；页面里是 `<figure class="video"><video src="/videos/…" preload="none" poster="/videos/….jpg">`；子路径构建的地址带 `/sub/`（单元测试）。
 - **仓库体积**：82 秒录屏 1.0 MB + 封面 59 KB；30 条约 30 MB。视频进了 Git 历史，删了也不会变小，所以只提交转好的 mp4。
+- **线上**：部署后 `/client-desktop/` 里是 `<figure class="video"><video src="/videos/v2rayn-rules.mp4" preload="none" poster="/videos/v2rayn-rules.jpg">`；两个文件都返回 200（mp4 1,054,476 字节、封面 60,403 字节）。
 
 ## 2026-10-23 站点地图补 lastmod（谷歌收录）
 
