@@ -1,0 +1,21 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1200
+PlayResY: 2594
+ScaledBorderAndShadow: yes
+WrapStyle: 0
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Cine,Noto Serif CJK SC,54,&H00F0E9DC,&H000000FF,&H00120F09,&H8C000000,-1,0,0,0,100,100,2,0,1,0,5,7,0,0,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.50,0:00:02.80,Cine,,0,0,0,,{\fad(200,240)\pos(600,440)}打开 V2Box
+Dialogue: 0,0:00:02.80,0:00:04.90,Cine,,0,0,0,,{\fad(200,240)\pos(600,440)}进入“路由”设置
+Dialogue: 0,0:00:04.90,0:00:08.20,Cine,,0,0,0,,{\fad(200,240)\pos(600,440)}点“添加规则”
+Dialogue: 0,0:00:08.20,0:00:10.20,Cine,,0,0,0,,{\fad(200,240)\pos(600,440)}Remarks 填 claude
+Dialogue: 0,0:00:10.20,0:00:14.80,Cine,,0,0,0,,{\fad(200,240)\pos(600,440)}域名填 geosite:anthropic
+Dialogue: 0,0:00:14.80,0:00:17.50,Cine,,0,0,0,,{\fad(200,240)\pos(600,440)}Outbound Tag 保持 proxy
+Dialogue: 0,0:00:17.50,0:00:18.90,Cine,,0,0,0,,{\fad(200,240)\pos(600,440)}点 Save 保存
+Dialogue: 0,0:00:18.90,0:00:20.50,Cine,,0,0,0,,{\fad(200,240)\pos(600,440)}规则排在最上面
