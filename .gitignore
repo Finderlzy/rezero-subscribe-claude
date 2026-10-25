@@ -29,9 +29,13 @@ npm-debug.log*
 # logo 转曲用的字体（scripts/build-logo.mjs，不提交）
 .cache/
 
-# Obsidian 录屏的源文件（.webm）：正文视频只提交转好的 mp4 和封面（docs/v3-rewrite-video-list.md），
-# 录完先转码；放在仓库根目录也不会被 Obsidian 的自动备份提交进去
+# Obsidian 录屏的源文件：正文视频只提交转好的 mp4 和封面（docs/v3-rewrite-video-list.md），录完先转码
 *.webm
+# Obsidian 录屏的原始 mp4（中文名、放在仓库根目录的那种）：入库要按 video 流程转码、脱敏、改名后放 public/videos/，
+# 根目录的源文件一律不提交。只匹配根目录，不影响 public/videos/ 里转好的成品
+/*.mp4
+# 编辑时粘进仓库根的临时图片（Pasted image ...png），不是站点素材；截图走 src/assets/screenshots/
+/Pasted image *.png
 
 # 重写稿的附件：只导入被引用、核对过打码的截图到 src/assets/screenshots/（#23）
 docs/rewrite/附件/
