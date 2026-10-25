@@ -6,7 +6,8 @@ import { hashFragment } from '../lib/section-anchor';
  * v3 的页面固定原理视图、只有一版正文（用户 2026-10-22 决定），所以这里不再切视图：
  * 正文容器 `.prose` 里找得到这个 id 就滚过去；`#main` 这类不是小节的地址不处理，交给浏览器原生跳转。
  * 没有 JS 时浏览器原生锚点照常工作；这个脚本在其它页面脚本改完 DOM 之后补一次滚动，
- * 避免返回块、代码块包装等布局变化把原生锚点带偏。
+ * 避免返回块、代码块包装等布局变化把原生锚点带偏。顶栏固定在视口顶端（作者 2026-10-25），
+ * 落点由 base.css 的 scroll-margin-top（--anchor-offset）退到顶栏下面，scrollIntoView 会把这段边距算进去。
  */
 export function applySectionHash(doc: Document, hash: string): boolean {
   const id = hashFragment(hash);

@@ -80,7 +80,7 @@ test('≥720 宽：左侧目录常驻、当前页高亮、能独立滚动，页�
   }
   await expect(aside).toBeVisible();
   await expect(page.getByRole('button', { name: '目录', exact: true })).toBeHidden();
-  // 打开页面时侧边栏自己滚到当前项，页面本身不动：顶栏和 h1 仍在首屏（顶栏不固定，滚走页面就看不到它们）
+  // 打开页面时侧边栏自己滚到当前项，页面本身不动：顶栏和 h1 仍在首屏
   await expect(page.locator('[data-toc-ready]').first()).toBeAttached();
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
   await expect(page.locator('.site-header')).toBeInViewport();
@@ -102,7 +102,7 @@ test('≥720 宽：左侧目录常驻、当前页高亮、能独立滚动，页�
     return {
       position: style.position,
       stickyTop: style.top,
-      // 页面在顶部时侧边栏从顶栏下面开始
+      // 侧边栏从顶栏下沿开始（顶栏固定）
       top: Math.round(rect.top - document.querySelector('.site-header')!.getBoundingClientRect().bottom),
       // 侧边栏的可视高度 = 视口高度 - 顶栏高度（v0.13 起底部那行入口要留在视口里）
       bodyViewport: innerHeight - document.querySelector('.site-header')!.getBoundingClientRect().height,
@@ -118,8 +118,8 @@ test('≥720 宽：左侧目录常驻、当前页高亮、能独立滚动，页�
     };
   });
   expect(box.position).toBe('sticky');
-  // 顶栏不固定，侧边栏 sticky 到视口顶边（design §4.5）：页面在顶部时它从顶栏下面开始，滚下去后贴到 0
-  expect(box.stickyTop).toBe('0px');
+  // 顶栏固定在视口顶端（作者 2026-10-25），侧边栏 sticky 在顶栏下沿：页面在顶部时从顶栏下面开始，滚下去也停在顶栏下面
+  expect(box.stickyTop).toBe('56px');
   expect(box.top).toBe(0);
   expect(box.height).toBeCloseTo(box.bodyViewport, 0);
   expect(box.width).toBe(width >= 960 ? 300 : 256);
@@ -177,11 +177,11 @@ test('≥720 宽：左侧目录常驻、当前页高亮、能独立滚动，页�
 
   await expectNoPageScroll(page, '侧边栏 + 正文');
 
-  // 往下滚：顶栏随页面滚走（不固定），侧边栏贴着视口顶边
+  // 往下滚：顶栏固定在视口顶端、一直看得见（作者 2026-10-25），侧边栏贴着顶栏下沿
   await page.evaluate(() => window.scrollTo(0, 400));
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
-  expect(await page.locator('.site-header').evaluate((el) => el.getBoundingClientRect().bottom)).toBeLessThanOrEqual(0);
-  expect(await aside.evaluate((el) => Math.round(el.getBoundingClientRect().top))).toBe(0);
+  expect(await page.locator('.site-header').evaluate((el) => el.getBoundingClientRect().bottom)).toBeCloseTo(56, 0);
+  expect(await aside.evaluate((el) => Math.round(el.getBoundingClientRect().top))).toBe(56);
 });
 
 // 宽表格（design §4.7）：表头不折行，窄屏上整张表在自己的容器里横向滚动，第一列粘性固定

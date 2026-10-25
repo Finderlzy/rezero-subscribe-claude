@@ -157,8 +157,10 @@
   --border-width: 1px;
   --overlay-shadow: 0 0 24px rgb(0 0 0 / 12%);
 
-  /* §4.0 顶栏：高 56px（含底边一条 1px --border 细线），不固定，随页面滚走 */
+  /* §4.0 顶栏：高 56px（含底边一条 1px --border 细线），固定在视口顶端（作者 2026-10-25；原来是随页面滚走） */
   --header-height: 56px;
+  /* §3.2 锚点落点：顶栏固定后，页内跳转的目标要落在顶栏下沿下面，再留 16px（--space-4） */
+  --anchor-offset: calc(var(--header-height) + var(--space-4));
 }
 
 @media (min-width: 720px) {

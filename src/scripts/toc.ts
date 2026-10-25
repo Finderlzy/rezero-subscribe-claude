@@ -29,7 +29,8 @@ export function initToc(doc: Document, data: RouteData, store: ReaderStore): voi
 /**
  * 侧边栏：打开页面时把当前项滚进侧边栏的可见范围。只滚侧边栏**自己的滚动区**（`.toc-sidebar-scroll`；
  * v0.13 起 aside 是两行，底部还钉着“更新日志”入口）：
- * v3 的顶栏不固定、侧边栏 sticky，用 scrollIntoView 会连页面一起往下滚，读者一打开页面就看不到顶栏和 h1。
+ * 侧边栏是在页面网格里跟着滚的，用 scrollIntoView 会连页面一起往下滚。顶栏已经固定（作者 2026-10-25），
+ * 滚了页面也不会看不到它，但会把 h1 推出首屏，所以还是只动侧边栏自己的滚动区。
  */
 function revealInSidebar(doc: Document): void {
   const aside = doc.querySelector<HTMLElement>('aside[data-toc-sidebar]');
@@ -37,7 +38,7 @@ function revealInSidebar(doc: Document): void {
   const current = scroll?.querySelector<HTMLElement>('[aria-current="page"]');
   if (!aside || !scroll || !current || scroll.clientHeight === 0) return;
   const box = scroll.getBoundingClientRect();
-  // 页面在顶部时侧边栏从顶栏下面开始、高 100vh，下面一截在视口外：只按看得见的那段高度算
+  // 侧边栏高 100vh - 顶栏高度（toc.css），页面在顶部时整块都在视口里；万一没排好，只按看得见的那段高度算
   const visible = Math.min(scroll.clientHeight, (doc.defaultView?.innerHeight ?? scroll.clientHeight) - box.top);
   const top = current.getBoundingClientRect().top - box.top + scroll.scrollTop;
   const bottom = top + current.offsetHeight;

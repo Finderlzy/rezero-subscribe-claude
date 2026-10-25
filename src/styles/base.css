@@ -1,12 +1,23 @@
 /* 全站基础：页面底色、正文字体、焦点环，以及几个跨页面共用的小样式。 */
 
-/* 顶栏不固定（design v3 §4.0），锚点跳转的目标上方只留 16px（§3.2 的 scroll-margin-top） */
+/*
+ * 顶栏固定在视口顶端（作者 2026-10-25，原为随页面滚走），见 SiteHeader.astro。不带常驻侧边栏的页面
+ * （<720px 的所有页面，≥720px 的找不到页）用 body 的上内边距给它让出 --header-height，内容从顶栏下沿开始；
+ * 常驻侧边栏的页面由下面的两栏骨架用网格第一行让位。
+ *
+ * 为什么不是给顶栏或第一个子元素加外边距：顶栏前面永远有一份“跳到正文”（绝对定位），body 的第一个内联框
+ * 就是它，写在外边的上外边距带不进 body，正文会被顶栏盖住 56px（两种写法 2026-10-25 在 360px 下都踩过）。
+ *
+ * 页内跳转的落点退到顶栏下面再留 16px（--anchor-offset，§3.2）。这里不写目标的 scroll-margin-top：
+ * 滚动容器的 scroll-padding 和目标的 scroll-margin 会叠加，落点会多退一整个顶栏（实测 144px，预期 72px）。
+ */
 :root {
-  scroll-padding-top: var(--space-4);
+  scroll-padding-top: var(--anchor-offset);
 }
 
 body {
   margin: 0;
+  padding-top: var(--header-height);
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
@@ -82,8 +93,10 @@ button:active,
 @media (min-width: 720px) {
   :root:has(> body > aside.toc-sidebar) body {
     display: grid;
+    /* 侧边栏的页面在这里不再用 body 上内边距，改由第一行让位（顶栏在网格里占一行） */
+    padding-top: 0;
     grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-rows: var(--header-height) minmax(0, 1fr) auto;
     grid-template-areas:
       'header header'
       'sidebar view'

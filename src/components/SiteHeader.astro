@@ -7,7 +7,9 @@ import SiteSearch from './SiteSearch.astro';
 import ThemeToggle from './ThemeToggle.astro';
 
 /**
- * 顶栏（design v3 §4.0）：首页以外的所有页面都有。高 56px（含底边一条 1px --border 细线），--bg 底，**不固定**，随页面滚走。
+ * 顶栏（design v3 §4.0）：首页以外的所有页面都有。高 56px（含底边一条 1px --border 细线），--bg 底，
+ * **固定在视口顶端**：滑动文章时一直看得见（作者 2026-10-25；原为随页面滚走）。页面内容从它下面开始
+ * （base.css 的 body 上内边距；常驻侧边栏的页面用网格第一行）。
  *
  * 左边：<720px 先是“目录”（菜单图标，44×44，可访问名称“目录”；≥720px 由常驻侧边栏代替，CSS 隐藏），
  * 然后是链到首页的 logo“Re:”标记（高 28px）+ 站名（<480px 隐藏），再是 Claude Code 小形象（D6、D7：原尺寸、
@@ -56,7 +58,19 @@ const { toc = false } = Astro.props;
 </header>
 
 <style>
+  /*
+   * 固定在视口顶端：滑动文章时顶栏不消失（作者 2026-10-25）。正文从它下面开始，靠 body 的上内边距
+   * （常驻侧边栏的页面改用网格第一行，见 styles/base.css）。
+   *
+   * 注意别用“顶栏自己的上外边距”或“第一个子元素的上外边距”给顶栏让位：每个带顶栏的页面在顶栏前面都有
+   * “跳到正文”（绝对定位），body 的第一个内联框就是它的框，body 拿不到上外边距；顶栏自己的外边距则会和
+   * 后面同级元素的上外边距合并，正文会被顶栏盖住 56px（2026-10-25 两种写法都在 360px 下踩过）。
+   */
   .site-header {
+    position: fixed;
+    inset: 0 0 auto;
+    /* 盖住正文：搜索下拉（z-index 3）、表格第一列的 sticky 列、看大图都在它下面 */
+    z-index: 10;
     background: var(--bg);
     border-bottom: var(--border-width) solid var(--border);
   }

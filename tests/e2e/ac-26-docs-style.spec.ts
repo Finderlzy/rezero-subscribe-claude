@@ -28,18 +28,32 @@ async function tokenColor(page: Page, name: string, prop: 'color' | 'background-
 const CHAPTER_STARTS = ['./preface/', './overview/', './client-desktop/', './maintenance/', './afterword/'];
 const OTHER_PAGES = ['./plan1/', './iphone-subscription/'];
 
-test('顶栏：白底、1px 细线、不固定；左边标记、站名、小形象，右边搜索、昼夜切换、联系方式（design §4.0）', async ({ page }) => {
+test('顶栏：白底、1px 细线、固定在顶端；左边标记、站名、小形象，右边搜索、昼夜切换、联系方式（design §4.0）', async ({ page }) => {
   const width = page.viewportSize()!.width;
   await page.goto('./plan1/');
   const header = page.locator('header.site-header');
   const style = await header.evaluate((el) => {
     const s = getComputedStyle(el);
-    return { position: s.position, background: s.backgroundColor, border: s.borderBottomWidth, height: el.getBoundingClientRect().height };
+    return { position: s.position, top: s.top, background: s.backgroundColor, border: s.borderBottomWidth, height: el.getBoundingClientRect().height };
   });
-  expect(style.position).toBe('static');
+  // 固定在视口顶端（作者 2026-10-25：滑动文章时顶栏不消失）
+  expect(style.position).toBe('fixed');
+  expect(style.top).toBe('0px');
   expect(style.background).toBe(await tokenColor(page, '--bg', 'background-color'));
   expect(style.border).toBe('1px');
   expect(style.height).toBe(56);
+  // 正文从顶栏下面开始，不被盖住（页头本身也从顶栏下面开始）
+  const gap = await page.evaluate(() => {
+    const main = document.querySelector('#main')!;
+    const eyebrow = main.querySelector('.eyebrow')!;
+    return {
+      main: Math.round(main.getBoundingClientRect().top),
+      eyebrow: Math.round(eyebrow.getBoundingClientRect().top),
+      headerBottom: Math.round(document.querySelector('.site-header')!.getBoundingClientRect().bottom),
+    };
+  });
+  expect(gap.main).toBe(56);
+  expect(gap.eyebrow).toBeGreaterThan(gap.headerBottom);
 
   const home = header.getByRole('link', { name: 'Re:从零开始订阅 claude 首页' });
   await expect(home).toBeVisible();
@@ -126,6 +140,31 @@ for (const path of [...CHAPTER_STARTS, ...OTHER_PAGES]) {
     await expect(page.locator('.prose')).toHaveCount(1);
   });
 }
+
+test('滑动文章时顶栏一直停在视口顶端，页内小节跳转落在顶栏下面', async ({ page }) => {
+  await page.goto('./plan1/');
+  const header = page.locator('header.site-header');
+  // 页面在顶部：顶栏在视口最上面，正文从它下面开始
+  expect(await header.evaluate((el) => Math.round(el.getBoundingClientRect().top))).toBe(0);
+  // 往下滚一大段：顶栏还在原位、盖住正文（作者 2026-10-25：滑动文章时顶栏不要消失）
+  await page.evaluate(() => window.scrollTo(0, 1200));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(1000);
+  expect(await header.evaluate((el) => Math.round(el.getBoundingClientRect().top))).toBe(0);
+  expect(await header.evaluate((el) => Math.round(el.getBoundingClientRect().bottom))).toBe(56);
+  // 顶栏压在正文上面：正文第一个元素已经滚到顶栏底下，但点得到的是顶栏
+  expect(await page.evaluate(() => document.elementFromPoint(20, 28)!.closest('.site-header') !== null)).toBe(true);
+  // 页内小节跳转：目标落在顶栏下面，不被盖住（scroll-padding-top: 顶栏 + 16px）
+  const heading = page.locator('.prose h2').nth(1);
+  const id = await heading.getAttribute('id');
+  await page.evaluate((hash) => {
+    location.hash = hash;
+  }, `#${id}`);
+  await expect.poll(async () => heading.evaluate((el) => Math.round(el.getBoundingClientRect().top))).toBe(72);
+  // 侧边栏（≥720px）也停在顶栏下沿，不被顶栏盖住
+  if (page.viewportSize()!.width >= 720) {
+    expect(await page.locator('[data-toc-sidebar]').evaluate((el) => Math.round(el.getBoundingClientRect().top))).toBe(56);
+  }
+});
 
 test('参考页也是眉题 + 纯文字 h1，没有色带', async ({ page }) => {
   for (const path of ['./ip-tests/', './ip-tests/voyracloud/']) {
