@@ -28,6 +28,18 @@
 | 视觉 | 1280 深浅两色 + 360 逐张看 | 分类、条目两栏、当前态入口、首页“最近更新”都符合 design §4.9 |
 | 内容提示 | `npm run build` | 仍只剩 1 条作者待补：`ip-tests/qsu-residential` |
 
+### 上线
+
+- **推送**：`5b30c47`（`main`），附注标签 `v3.1.0` 指向版本提交 `c63cafd`。远端 `main` 已包含两次提交。
+- **CI**：推送 `main` 触发的「部署到 GitHub Pages」`40169723429` build 和 deploy 都成功。
+  **顺带发现并修好的事**：上一次推送（`a4e62d5`，Obsidian 的 vault backup）的部署 `40100402301` 是**失败**的（`npm run build` 退出码 1），
+  线上因此停在更早的一版；本次推送重新构建成功，线上已经是最新的。
+- **线上核对**：`/`、`/update-log/`、`/search-index.json`、`/sitemap-0.xml`、`/plan1/` 都返回 200；
+  `/update-log/` 有四个分类按钮（全部/公告/内容/站点）和 5 条条目；首页有 5 条“最近更新”；`/plan1/` 侧边栏有 2 处“更新日志”入口；
+  sitemap 里有 `/update-log/`，lastmod 是 2026-10-25。
+- **Release**：`gh release create v3.1.0 --verify-tag` 已创建（非草稿、非预发布），说明按 v3.0.0 以来的提交整理成“新增 / 修复 / 其他”：<https://github.com/Finderlzy/rezero-subscribe-claude/releases/tag/v3.1.0>。
+  注：`gh auth status` 同时报令牌失效，但写操作实际可用；以后遇到这条提示先试一次只读命令确认。
+
 ### 未解决项
 
 | 项 | 影响 | 去向 |
