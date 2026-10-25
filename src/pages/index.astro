@@ -278,10 +278,29 @@ function chapterEntryId(chapter: (typeof chapters)[number]): string {
     text-underline-offset: 0.2em;
   }
 
+  /*
+   * 最近更新（作者 2026-10-25）：和五章简介一样横着排 5 列，每列里日期、类型、标题竖着排。
+   * 栅格和 .home-chapter-list 同断点（平板 3 栏 3 + 2、手机一栏），保证两块的节奏一致。
+   */
   .home-updates-list {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-5) var(--space-4);
     margin: 0;
     padding: 0;
     list-style: none;
+  }
+
+  @media (min-width: 720px) {
+    .home-updates-list {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 960px) {
+    .home-updates-list {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
   }
 
   .home-updates-empty {

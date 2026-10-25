@@ -112,6 +112,45 @@ test.describe('AC-37：首页的最近更新', () => {
     expect(box.updates.top).toBeGreaterThan(box.chapters.bottom);
     expect(box.scrollWidth).toBeLessThanOrEqual(box.clientWidth);
   });
+
+  // 作者 2026-10-25：和五章简介一样横着排（桌面 5 列、平板 3 列、手机一列），每列里日期/类型/标题竖着放
+  test('最近更新横着排：桌面 5 列同一行、平板 3 列、手机一列；每列内竖排', async ({ page }) => {
+    const width = page.viewportSize()!.width;
+    await page.goto('./');
+    const box = await page.evaluate(() => {
+      const row = (el: Element) => Math.round(el.getBoundingClientRect().top);
+      const cards = [...document.querySelectorAll('#home-updates [data-update-entry]')].map((el) => {
+        const rect = el.getBoundingClientRect();
+        const meta = el.querySelector('.update-meta')!.getBoundingClientRect();
+        const title = el.querySelector('.update-title')!.getBoundingClientRect();
+        return { left: rect.left, top: rect.top, metaBottom: meta.bottom, titleTop: title.top };
+      });
+      return { cards, row };
+    });
+    expect(box.cards).toHaveLength(5);
+
+    const sameRow = (a: number, b: number) => Math.abs(a - b) < 1;
+    const tops = box.cards.map((card) => Math.round(card.top));
+    if (width >= 960) {
+      // 桌面：5 列一行，从左到右
+      for (const top of tops) expect(sameRow(top, tops[0]!)).toBe(true);
+      for (let i = 1; i < box.cards.length; i++) expect(box.cards[i]!.left).toBeGreaterThan(box.cards[i - 1]!.left);
+    } else if (width >= 720) {
+      // 平板：3 列一行，剩下 2 列换到第二行
+      for (const card of box.cards.slice(0, 3)) expect(sameRow(Math.round(card.top), tops[0]!)).toBe(true);
+      expect(box.cards[3]!.top).toBeGreaterThan(box.cards[0]!.top);
+      expect(box.cards[3]!.left).toBeCloseTo(box.cards[0]!.left, 0);
+      expect(box.cards[4]!.left).toBeGreaterThan(box.cards[3]!.left);
+    } else {
+      // 手机：一列
+      for (let i = 1; i < box.cards.length; i++) {
+        expect(box.cards[i]!.top).toBeGreaterThan(box.cards[i - 1]!.top);
+        expect(box.cards[i]!.left).toBeCloseTo(box.cards[0]!.left, 0);
+      }
+    }
+    // 每一列内部：日期/类型一行在上面，标题在它下面（竖排）
+    for (const card of box.cards) expect(card.titleTop).toBeGreaterThanOrEqual(card.metaBottom - 0.5);
+  });
 });
 
 test.describe('AC-38：360px 下分类可横向滚，没有页面级横向滚动', () => {

@@ -23,8 +23,14 @@ test('AC-34：打开 /update-log/，四个分类、默认「全部」，没有�
   await expect(page.locator('[data-update-tab="notice"]')).toHaveAttribute('aria-selected', 'false');
   expect(new URL(page.url()).search).toBe('');
 
-  // 正文里没有上一步/下一步（FR-80）
+  // 正文里没有上一步/下一步（FR-80），也没有底部的“回到”指引（作者 2026-10-25 要求删掉）
   await expect(page.getByRole('navigation', { name: '上一步和下一步' })).toHaveCount(0);
+  // 正文末尾没有“← 回到 …”的导航块（条目正文里出现“回到”两个字不算，所以按元素和可访问名称判断）
+  await expect(page.locator('nav.update-log-nav')).toHaveCount(0);
+  await expect(page.getByRole('link', { name: /^←? ?回到/ })).toHaveCount(0);
+  await expect(page.locator('main .step-nav-title')).toHaveCount(0);
+  // h1 就是“更新日志”，上面没有重复的眉题（作者 2026-10-25）
+  await expect(page.locator('.eyebrow')).toHaveCount(0);
   await expect(page.locator('[data-update-panel="all"]')).toBeVisible();
 
   await page.reload();

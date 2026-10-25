@@ -2,10 +2,8 @@
 import SiteHeader from '../components/SiteHeader.astro';
 import Toc from '../components/Toc.astro';
 import UpdateEntry from '../components/UpdateEntry.astro';
-import { pathOf } from '../lib/route/route-map';
 import { loadSite } from '../lib/site';
 import { entriesByCategory, UPDATE_CATEGORY_LABEL, UPDATE_LOG_PATH, type UpdateCategory } from '../lib/update-log';
-import { withBase } from '../lib/with-base';
 import BaseLayout from './BaseLayout.astro';
 
 /**
@@ -18,12 +16,9 @@ import BaseLayout from './BaseLayout.astro';
  * 有 JS 时 src/scripts/update-log.ts 把它们收成 tab，只显示选中的那个。分类是 <button role="tab">，
  * 不改 URL、不写本机（FR-81）：刷新或再进来都是“全部”。
  *
- * 更新日志不在上一步/下一步序列里，页脚只有回到第一页的文字链接（FR-80）。
+ * 更新日志不在上一步/下一步序列里，也没有上一步/下一步，正文末尾不加“回到”指引（作者 2026-10-25）。
  */
 const site = await loadSite();
-// 第一页（前言）：页脚的“回到”指向它，文字用路线图里的页面标题（和参考页的“回到：”同一写法）
-const start = pathOf(site.start);
-const startTitle = site.start.kind === 'home' ? '首页' : site.start.title;
 const groups = entriesByCategory(site.updateLog);
 const total = site.updateLog.length;
 const tabs: { category: UpdateCategory; label: string; count: number }[] = groups.map((group) => ({
@@ -47,7 +42,6 @@ const routeJson = JSON.stringify(site.route.data).replace(/</g, '\\u003c');
   <div class="page-view">
     <main id="main" class="update-log-page">
       <div class="page-body">
-        <p class="eyebrow">更新日志</p>
         <h1 class="step-title">更新日志</h1>
         <p class="update-log-intro">
           这里记着引导站上线以后改了什么，共 {total} 条，按时间倒序排。公告是最要紧的须知，内容指正文改了哪里，站点指网站本身的改动。
@@ -101,13 +95,6 @@ const routeJson = JSON.stringify(site.route.data).replace(/</g, '\\u003c');
             </section>
           ))
         }
-
-        <nav class="update-log-nav" aria-label="返回">
-          <a class="update-log-back" href={withBase(start)}>
-            <span class="step-nav-dir"><span aria-hidden="true">←</span> 回到</span>
-            <span class="step-nav-title">{startTitle}</span>
-          </a>
-        </nav>
       </div>
     </main>
   </div>
@@ -232,41 +219,5 @@ const routeJson = JSON.stringify(site.route.data).replace(/</g, '\\u003c');
     padding: var(--space-4) 0;
     color: var(--text-muted);
     font-size: var(--fs-meta);
-  }
-
-  /* 页脚：和参考页的“回到”同样的文字链接（≥44px 可点区域） */
-  .update-log-nav {
-    display: flex;
-    margin-top: var(--space-7);
-    padding-top: var(--space-4);
-    border-top: var(--border-width) solid var(--border);
-  }
-
-  .update-log-back {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-    min-height: 44px;
-    padding: var(--space-1) 0;
-    box-sizing: border-box;
-    text-decoration: none;
-  }
-
-  .step-nav-dir {
-    color: var(--text-muted);
-    font-size: var(--fs-caption);
-    line-height: var(--lh-meta);
-  }
-
-  .step-nav-title {
-    color: var(--accent);
-    font-size: var(--fs-body);
-    line-height: var(--lh-heading);
-    font-weight: var(--fw-heading);
-  }
-
-  .update-log-back:hover .step-nav-title {
-    text-decoration: underline;
-    text-underline-offset: 0.2em;
   }
 </style>

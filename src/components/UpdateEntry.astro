@@ -121,26 +121,28 @@ const label = UPDATE_TYPE_LABEL[entry.type];
     line-height: var(--lh-tagline);
   }
 
-  /* 首页的紧凑版：一行，和首页“五章简介”的排版一致，不新造卡片 */
+  /*
+   * 首页的紧凑版（作者 2026-10-25）：横着排 5 列时，每列里日期、类型、标题竖着排，
+   * 和五章简介的“章名 + 一句简介”同一节奏；不画分隔线、不新造卡片。
+   */
   .update-entry-compact {
     display: flex;
-    align-items: baseline;
-    gap: var(--space-3);
-    padding: var(--space-2) 0;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: 0;
+    border-bottom: 0;
   }
 
-  @media (max-width: 719px) {
-    .update-entry-compact {
-      flex-wrap: wrap;
-      gap: var(--space-1) var(--space-2);
-    }
+  .update-entry-compact .update-meta {
+    gap: var(--space-1) var(--space-2);
   }
 
   .update-entry-compact .update-main {
     min-width: 0;
   }
 
-  .update-entry-compact .update-meta {
-    flex: none;
+  /* 窄栏（五栏时每栏约 190px）：标题按需折行，不断词、不撑破栅格 */
+  .update-entry-compact .update-title {
+    overflow-wrap: anywhere;
   }
 </style>
