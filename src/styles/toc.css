@@ -22,8 +22,19 @@
   background: var(--surface);
   color: var(--text);
   box-sizing: border-box;
-  overflow-y: auto;
+  /* 三行：标题、可滚动的目录、底部固定的“更新日志”（v0.13、FR-88） */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   box-shadow: var(--overlay-shadow);
+}
+
+/* 抽屉的滚动区：标题和底部入口都不滚 */
+.toc-dialog-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .toc-dialog::backdrop {
@@ -43,22 +54,34 @@
   transition-behavior: allow-discrete;
 }
 
+/*
+ * display 和 overlay 要写 "none" 的退出值和 allow-discrete，才能推迟到过渡结束再移出顶层；
+ * v0.13 加抽屉底部入口时漏了这两行，关掉后 <dialog> 一直停在画面上（Esc、点链接都关不上视觉）。
+ */
 .toc-dialog {
   transform: translateX(-100%);
   transition-property: transform, display, overlay;
+  display: none;
+  overlay: none;
 }
 
 .toc-dialog::backdrop {
   opacity: 0;
   transition-property: opacity, display, overlay;
+  display: none;
+  overlay: none;
 }
 
 .toc-dialog[open] {
   transform: none;
+  display: flex;
+  overlay: auto;
 }
 
 .toc-dialog[open]::backdrop {
   opacity: 1;
+  display: block;
+  overlay: auto;
 }
 
 .toc-dialog[open],
@@ -88,8 +111,10 @@
 }
 
 /* 留白放在内层：点到 dialog 自身才算点背景（toc.ts 按这个判断）。 */
+/* 抽屉里的内边距：左右 16px、底部留白（滚动区自身，FR-88 之后滚动只发生在这里） */
 .toc-dialog-body {
   padding: 0 var(--space-4) var(--space-6);
+  box-sizing: border-box;
 }
 
 .toc-dialog-title {
@@ -324,40 +349,97 @@
  * 页面在顶部时它从顶栏下面开始，往下滚后贴着视口顶边（顶栏不固定，随页面滚走）。
  * <720px 时不显示，目录只有抽屉。首页和找不到页不放侧边栏（那一页本身就是目录）。
  */
-@media (max-width: 719px) {
-  .toc-sidebar {
-    display: none;
-  }
-}
-
 /*
- * 滚动容器只有 aside 这一层。TocNav 给侧边栏里的 <nav> 也加了 .toc-sidebar（下面的列表样式靠它），
- * 所以这里必须写 aside.toc-sidebar：之前写成 .toc-sidebar 时 <nav> 也成了吸顶、满高、overflow:auto 的容器，
- * 外层 aside 又多出内边距的高度，桌面上出现两条竖向滚动条和两条竖线。
- * 滚动条用细的样式，只在内容超出时出现；overscroll-behavior 让滚到头时不带动页面。
+ * 侧边栏是两行（v0.13、FR-88 之后）：上面 .toc-sidebar-scroll 是可滚动的目录，下面 .toc-sidebar-foot 是常驻的
+ * “更新日志”入口。所以要写 aside.toc-sidebar：TocNav 给侧边栏里的 <nav> 也加了 .toc-sidebar（列表样式靠它），
+ * 之前写成 .toc-sidebar 时 <nav> 也成了吸顶、满高、overflow:auto 的容器，外层 aside 又多出内边距的高度，
+ * 桌面上出现两条竖向滚动条和两条竖线。滚动条只出现在内层滚动区上（.toc-sidebar-scroll）。
  */
 aside.toc-sidebar {
   position: sticky;
+  /* 顶栏不固定、随页面滚走：页面滚下去后侧边栏贴到视口顶边（design §4.5） */
   top: 0;
   align-self: start;
-  max-height: 100vh;
-  max-height: 100dvh;
-  overflow-y: auto;
+  /* 两行：上面是可滚动的目录，下面是固定的“更新日志”入口（v0.13、FR-88） */
+  display: flex;
+  flex-direction: column;
+  /*
+   * 高度按“顶栏下面剩下的那一点视口”算：页面在顶部时侧边栏从顶栏下面开始（网格第二行），
+   * 按 100vh 给高度的话底部那行入口会掉到视口外（v0.13 踩过）。顶部偏移用 --header-height 抵掉。
+   */
+  max-height: calc(100vh - var(--header-height));
+  max-height: calc(100dvh - var(--header-height));
+  overflow: hidden;
   overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
   border-right: var(--border-width) solid var(--sidebar-rule);
   box-sizing: border-box;
 }
 
-/* 平时滑块是很淡的细线，指针移到侧边栏上才加深 */
-aside.toc-sidebar:hover,
-aside.toc-sidebar:focus-within {
+/* 目录的滚动区（v0.13、FR-88）：侧边栏里只有这一块能滚，底部入口固定在它下面 */
+.toc-sidebar-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.toc-sidebar-scroll:hover,
+.toc-sidebar-scroll:focus-within {
   scrollbar-color: var(--control-border) transparent;
 }
 
 .toc-sidebar-inner {
   padding: var(--space-5) var(--space-4);
+}
+
+/*
+ * 侧边栏/抽屉底部的“更新日志”入口（v0.13、FR-88）：常驻、不跟着目录滚走。
+ * 和目录里的页面项同样的 15px，上面一条 1px 细线；当前页（更新日志自己）用主色字 + 左边一条主色竖线，
+ * 和侧边栏当前项（toc.css 的 a[aria-current=page]）同一套辨认方式。
+ */
+.toc-sidebar-foot,
+.toc-dialog-foot {
+  flex: none;
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  border-top: var(--border-width) solid var(--border);
+}
+
+.toc-dialog-foot {
+  border-top: var(--border-width) solid var(--border);
+  background: var(--surface);
+}
+
+.toc-update-log {
+  display: block;
+  padding: 8px var(--space-2) 8px var(--space-4);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: var(--lh-heading);
+  text-decoration: none;
+}
+
+.toc-update-log:hover {
+  color: var(--accent);
+  background: var(--surface-muted);
+}
+
+.toc-update-log[aria-current='page'] {
+  color: var(--accent);
+  font-weight: var(--fw-heading);
+  box-shadow: inset 4px 0 0 var(--accent);
+}
+
+/*
+ * <720px：没有常驻侧边栏，目录在抽屉里（design §4.5）。写在 aside.toc-sidebar 的基础规则**之后**：
+ * 两条特异性相同，靠顺序生效（v0.13 挪过位置时被后面的 display:flex 盖住过）。
+ */
+@media (max-width: 719px) {
+  aside.toc-sidebar {
+    display: none;
+  }
 }
 
 /* 侧边栏里的目录列表：页面 15px，小节 14px（design §3.2） */

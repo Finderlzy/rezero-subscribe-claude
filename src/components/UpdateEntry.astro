@@ -1,0 +1,146 @@
+---
+import { UPDATE_TYPE_LABEL, type ResolvedUpdateEntry } from '../lib/update-log';
+import { withBase } from '../lib/with-base';
+
+/**
+ * 一条更新条目（v0.13、FR-83）：左边日期和类型一行，右边是标题和内容。
+ * 有 page 时标题链到被改动的那一页，没有时链到 fallbackHref（更新日志页自己或首页传 /update-log/，FR-87）。
+ *
+ * 标记契约（e2e 和首页用）：
+ *   [data-update-entry]：一条条目；data-entry-date、data-entry-type 用来核对排序和分类。
+ */
+interface Props {
+  entry: ResolvedUpdateEntry;
+  /** 没有 page 的条目点标题去哪儿：更新日志页传自己的地址，首页传更新日志地址 */
+  fallbackHref: string;
+  /** 首页的紧凑版：日期、类型和标题排成一行，不显示内容（FR-87） */
+  compact?: boolean;
+}
+
+const { entry, fallbackHref, compact = false } = Astro.props;
+const href = entry.page === undefined ? withBase(fallbackHref) : withBase(`/${entry.page}/`);
+const label = UPDATE_TYPE_LABEL[entry.type];
+---
+
+<li
+  class:list={['update-entry', { 'update-entry-pinned': entry.pinned, 'update-entry-compact': compact }]}
+  data-update-entry
+  data-entry-date={entry.date}
+  data-entry-type={entry.type}
+>
+  <p class="update-meta">
+    <time class="update-date" datetime={entry.date}>{entry.date}</time>
+    <span class:list={['update-type', `update-type-${entry.type}`]}>{label}</span>
+    {entry.pinned && <span class="update-pinned">置顶</span>}
+  </p>
+  <div class="update-main">
+    <h3 class="update-title"><a href={href}>{entry.title}</a></h3>
+    {!compact && <p class="update-body">{entry.body}</p>}
+  </div>
+</li>
+
+<style>
+  .update-entry {
+    display: grid;
+    grid-template-columns: 8.5em minmax(0, 1fr);
+    gap: var(--space-3);
+    padding: var(--space-3) 0;
+    border-bottom: var(--border-width) solid var(--border);
+  }
+
+  /* 手机：日期和类型一行，标题、内容在下面（FR-89） */
+  @media (max-width: 719px) {
+    .update-entry {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--space-1);
+    }
+  }
+
+  .update-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-2);
+    margin: 0;
+    line-height: var(--lh-meta);
+  }
+
+  .update-date {
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: var(--fs-caption);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* 类型标签只有边框和弱化色，不用主色块（design §2：主色不做大块底色） */
+  .update-type {
+    padding: 0 var(--space-1);
+    border: var(--border-width) solid var(--control-border);
+    border-radius: var(--radius-inline);
+    color: var(--text-muted);
+    font-size: var(--fs-caption);
+    line-height: 1.4;
+  }
+
+  .update-pinned {
+    color: var(--text-muted);
+    font-size: var(--fs-caption);
+  }
+
+  .update-pinned::before {
+    content: '·';
+    margin-right: var(--space-1);
+  }
+
+  .update-main {
+    min-width: 0;
+  }
+
+  .update-title {
+    margin: 0;
+    font-size: var(--fs-body);
+    line-height: var(--lh-heading);
+    font-weight: var(--fw-heading);
+  }
+
+  .update-title a {
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  .update-title a:hover {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .update-body {
+    margin: var(--space-1) 0 0;
+    color: var(--text-muted);
+    font-size: var(--fs-meta);
+    line-height: var(--lh-tagline);
+  }
+
+  /* 首页的紧凑版：一行，和首页“五章简介”的排版一致，不新造卡片 */
+  .update-entry-compact {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+    padding: var(--space-2) 0;
+  }
+
+  @media (max-width: 719px) {
+    .update-entry-compact {
+      flex-wrap: wrap;
+      gap: var(--space-1) var(--space-2);
+    }
+  }
+
+  .update-entry-compact .update-main {
+    min-width: 0;
+  }
+
+  .update-entry-compact .update-meta {
+    flex: none;
+  }
+</style>

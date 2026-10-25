@@ -1,0 +1,10 @@
+---
+import UpdateLogLayout from '../layouts/UpdateLogLayout.astro';
+
+/**
+ * 更新日志页（v0.13，FR-80）：/update-log/。地址写死在 src/lib/update-log 的 UPDATE_LOG_PATH，
+ * 发布后不能改（ADR-0002 的口径）；它不进上一步/下一步、不进目录条目和站内搜索，进 sitemap。
+ */
+---
+
+<UpdateLogLayout />

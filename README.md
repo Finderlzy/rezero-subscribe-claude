@@ -103,6 +103,7 @@ location /sub/ {
 - `route.yaml`：路线图（章节、分叉点、页面顺序、旧网址跳转表）。
 - `principle/<标识>.md`：11 页正文；页面元数据写在 frontmatter，选择页写 `options`。
 - `reference/`：只放 IP 质量实测合集和 6 篇实测。
+- `update-log.yaml`：更新日志（公告 / 内容 / 站点三类）。加一条更新就改这个文件：`date`、`type`、`title`、`body` 必填，`page` 可选（挂到某页时显示成链接），公告可以 `pinned: true`。字段规则和样例都写在文件开头的注释里，写错时构建会指出第几条。
 
 **正文不手改。** 改 `docs/v3-rewrite/` 的重写稿，再运行：
 

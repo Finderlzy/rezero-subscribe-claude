@@ -27,22 +27,24 @@ export function initToc(doc: Document, data: RouteData, store: ReaderStore): voi
 }
 
 /**
- * 侧边栏：打开页面时把当前项滚进侧边栏的可见范围。只滚侧边栏自己（`aside` 是独立滚动的容器）：
+ * 侧边栏：打开页面时把当前项滚进侧边栏的可见范围。只滚侧边栏**自己的滚动区**（`.toc-sidebar-scroll`；
+ * v0.13 起 aside 是两行，底部还钉着“更新日志”入口）：
  * v3 的顶栏不固定、侧边栏 sticky，用 scrollIntoView 会连页面一起往下滚，读者一打开页面就看不到顶栏和 h1。
  */
 function revealInSidebar(doc: Document): void {
   const aside = doc.querySelector<HTMLElement>('aside[data-toc-sidebar]');
-  const current = aside?.querySelector<HTMLElement>('[aria-current="page"]');
-  if (!aside || !current || aside.clientHeight === 0) return;
-  const box = aside.getBoundingClientRect();
+  const scroll = aside?.querySelector<HTMLElement>('.toc-sidebar-scroll');
+  const current = scroll?.querySelector<HTMLElement>('[aria-current="page"]');
+  if (!aside || !scroll || !current || scroll.clientHeight === 0) return;
+  const box = scroll.getBoundingClientRect();
   // 页面在顶部时侧边栏从顶栏下面开始、高 100vh，下面一截在视口外：只按看得见的那段高度算
-  const visible = Math.min(aside.clientHeight, (doc.defaultView?.innerHeight ?? aside.clientHeight) - box.top);
-  const top = current.getBoundingClientRect().top - box.top + aside.scrollTop;
+  const visible = Math.min(scroll.clientHeight, (doc.defaultView?.innerHeight ?? scroll.clientHeight) - box.top);
+  const top = current.getBoundingClientRect().top - box.top + scroll.scrollTop;
   const bottom = top + current.offsetHeight;
   // 当前项下面留出侧边栏的下内边距（.toc-sidebar-inner），不贴着视口底边
-  const pad = parseFloat(getComputedStyle(aside.firstElementChild ?? aside).paddingBottom) || 0;
-  if (top < aside.scrollTop) aside.scrollTop = top;
-  else if (bottom > aside.scrollTop + visible) aside.scrollTop = bottom - visible + pad;
+  const pad = parseFloat(getComputedStyle(scroll.firstElementChild ?? scroll).paddingBottom) || 0;
+  if (top < scroll.scrollTop) scroll.scrollTop = top;
+  else if (bottom > scroll.scrollTop + visible) scroll.scrollTop = bottom - visible + pad;
 }
 
 /**
@@ -62,13 +64,22 @@ function initDrawer(doc: Document, nav: HTMLElement): void {
     if (event.target === dialog) dialog.close();
   });
   dialog.querySelector('[data-toc-close]')?.addEventListener('click', () => dialog.close());
-  // 点当前页的小节是页内跳转，抽屉不会因导航自己关掉：先关抽屉，再让浏览器滚到锚点（V02）
-  nav.addEventListener('click', (event) => {
-    if ((event.target as Element | null)?.closest?.('a[href^="#"]')) dialog.close();
+  // 点目录里的链接都不会让抽屉自己关：先关抽屉，再照常导航。
+  // 小节锚点是页内跳转（V02），关掉后焦点还给“目录”按钮；点页面链接（含底部“更新日志”，v0.13）会换页，
+  // 焦点留在即将卸载的文档上没有意义，所以不还。
+  dialog.addEventListener('click', (event) => {
+    const link = (event.target as Element | null)?.closest?.('a');
+    if (!link) return;
+    returnFocus = link.getAttribute('href')?.startsWith('#') ?? false;
+    dialog.close();
   });
   let opener: HTMLElement | null = null;
+  // 关掉后要不要把焦点还给“目录”按钮（默认还；点页面链接离开时不还）
+  let returnFocus = true;
   dialog.addEventListener('close', () => {
-    opener?.focus();
+    if (returnFocus) opener?.focus();
+    else (doc.activeElement as HTMLElement | null)?.blur();
+    returnFocus = true;
     opener = null;
   });
 

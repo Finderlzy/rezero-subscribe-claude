@@ -1,0 +1,272 @@
+---
+import SiteHeader from '../components/SiteHeader.astro';
+import Toc from '../components/Toc.astro';
+import UpdateEntry from '../components/UpdateEntry.astro';
+import { pathOf } from '../lib/route/route-map';
+import { loadSite } from '../lib/site';
+import { entriesByCategory, UPDATE_CATEGORY_LABEL, UPDATE_LOG_PATH, type UpdateCategory } from '../lib/update-log';
+import { withBase } from '../lib/with-base';
+import BaseLayout from './BaseLayout.astro';
+
+/**
+ * 更新日志页的骨架（v0.13，design §4.8，FR-80–FR-82、FR-89）。
+ *
+ * 和参考页一样是“顶栏 + 侧边栏 | 正文区”，但内容不是导入的正文：
+ * h1 是“更新日志”，下面一排分类（全部 / 公告 / 内容 / 站点，默认“全部”），再下面是条目列表。
+ *
+ * 分类的四份列表**构建时全写进 HTML**（FR-82）：没有 JS 时四个分类依次展开、都能读到；
+ * 有 JS 时 src/scripts/update-log.ts 把它们收成 tab，只显示选中的那个。分类是 <button role="tab">，
+ * 不改 URL、不写本机（FR-81）：刷新或再进来都是“全部”。
+ *
+ * 更新日志不在上一步/下一步序列里，页脚只有回到第一页的文字链接（FR-80）。
+ */
+const site = await loadSite();
+// 第一页（前言）：页脚的“回到”指向它，文字用路线图里的页面标题（和参考页的“回到：”同一写法）
+const start = pathOf(site.start);
+const startTitle = site.start.kind === 'home' ? '首页' : site.start.title;
+const groups = entriesByCategory(site.updateLog);
+const total = site.updateLog.length;
+const tabs: { category: UpdateCategory; label: string; count: number }[] = groups.map((group) => ({
+  category: group.category,
+  label: UPDATE_CATEGORY_LABEL[group.category],
+  count: group.entries.length,
+}));
+// 目录按“未选”画（和参考页一样，更新日志不上路线图）；浏览器里的目录脚本要这份数据
+const outline = site.route.outline({}, null, 'principle');
+const routeJson = JSON.stringify(site.route.data).replace(/</g, '\\u003c');
+---
+
+<BaseLayout title="更新日志" description="Re:从零开始订阅 claude 的更新日志：公告、正文更新和站点更新。">
+  <SiteHeader toc />
+  <Toc
+    outline={outline}
+    references={site.tocReferences}
+    referencesChapter={site.referenceChapter.id}
+    currentUpdateLog
+  />
+  <div class="page-view">
+    <main id="main" class="update-log-page">
+      <div class="page-body">
+        <p class="eyebrow">更新日志</p>
+        <h1 class="step-title">更新日志</h1>
+        <p class="update-log-intro">
+          这里记着引导站上线以后改了什么，共 {total} 条，按时间倒序排。公告是最要紧的须知，内容指正文改了哪里，站点指网站本身的改动。
+        </p>
+
+        <!--
+          分类（FR-81）：构建时写四个；有 JS 时的显隐由脚本（src/scripts/update-log.ts）负责，所以**构建产物里四个面板
+          都展开**（FR-82：没有 JS 时全都能读到，脚本晚到或报错也不丢内容）。
+        -->
+        <div class="update-tabs" role="tablist" aria-label="更新分类" data-update-tabs>
+          {
+            tabs.map((tab) => (
+              <button
+                type="button"
+                class="update-tab"
+                role="tab"
+                id={`update-tab-${tab.category}`}
+                aria-controls={`update-panel-${tab.category}`}
+                aria-selected={tab.category === 'all' ? 'true' : 'false'}
+                tabindex={tab.category === 'all' ? 0 : -1}
+                data-update-tab={tab.category}
+              >
+                {tab.label}
+                <span class="update-tab-count">{tab.count}</span>
+              </button>
+            ))
+          }
+        </div>
+
+        {
+          groups.map((group) => (
+            <section
+              class="update-panel"
+              role="tabpanel"
+              id={`update-panel-${group.category}`}
+              aria-labelledby={`update-tab-${group.category}`}
+              data-update-panel={group.category}
+            >
+              <h2 class="update-panel-title">{UPDATE_CATEGORY_LABEL[group.category]}更新</h2>
+              {group.entries.length === 0 ? (
+                <p class="update-empty" data-update-empty>
+                  这一类还没有更新。
+                </p>
+              ) : (
+                <ol class="update-list">
+                  {group.entries.map((entry) => (
+                    <UpdateEntry entry={entry} fallbackHref={UPDATE_LOG_PATH} />
+                  ))}
+                </ol>
+              )}
+            </section>
+          ))
+        }
+
+        <nav class="update-log-nav" aria-label="返回">
+          <a class="update-log-back" href={withBase(start)}>
+            <span class="step-nav-dir"><span aria-hidden="true">←</span> 回到</span>
+            <span class="step-nav-title">{startTitle}</span>
+          </a>
+        </nav>
+      </div>
+    </main>
+  </div>
+  <script type="application/json" id="route-data" set:html={routeJson} />
+</BaseLayout>
+
+<script>
+  import { initToc } from '../scripts/toc';
+  import { pageReaderStore, readRouteData } from '../scripts/reader-store';
+  import { initUpdateLog } from '../scripts/update-log';
+
+  // 更新日志页也有目录：<720px 的抽屉、“目录”按钮和侧边栏当前项都靠目录脚本（和参考页一样）
+  const data = readRouteData(document);
+  if (data) initToc(document, data, pageReaderStore(data));
+  initUpdateLog(document);
+</script>
+
+<style>
+  /* 正文栏：和参考页一样的宽度和边距（design §3.3、§4.6） */
+  .page-body {
+    box-sizing: border-box;
+    max-width: var(--content-width);
+    margin: 0 auto;
+    padding: var(--content-pad-top) var(--gutter) var(--space-7);
+  }
+
+  .step-title {
+    margin: 0 0 var(--space-4);
+    font-size: var(--fs-title);
+    line-height: var(--lh-title);
+    font-weight: var(--fw-heading);
+  }
+
+  .page-view {
+    min-width: 0;
+  }
+
+  .update-log-intro {
+    margin: 0 0 var(--space-5);
+    color: var(--text-muted);
+    font-size: var(--fs-meta);
+    line-height: var(--lh-tagline);
+  }
+
+  /*
+   * 分类那一排（FR-89）：桌面一行，360px 放不下时横向滚动，不换行、不撑破页面。
+   * <button> 的默认样式全部清掉，只留主色文字和下面一条 2px 细线。
+   */
+  .update-tabs {
+    display: flex;
+    gap: var(--space-1);
+    margin: 0 0 var(--space-5);
+    border-bottom: var(--border-width) solid var(--border);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+  }
+
+  .update-tab {
+    flex: none;
+    min-height: 44px;
+    padding: var(--space-2) var(--space-3);
+    border: 0;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: var(--fs-meta);
+    line-height: var(--lh-meta);
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .update-tab:hover {
+    color: var(--accent);
+  }
+
+  /* 选中的分类：主色字 + 下面的主色细线（和侧边栏当前项同一套辨认方式） */
+  .update-tab[aria-selected='true'] {
+    border-bottom-color: var(--accent);
+    color: var(--accent);
+    font-weight: var(--fw-heading);
+  }
+
+  .update-tab-count {
+    margin-left: var(--space-1);
+    color: var(--text-faint);
+    font-size: var(--fs-caption);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .update-panel-title {
+    margin: 0 0 var(--space-2);
+    font-size: var(--fs-h3);
+    line-height: var(--lh-h3);
+    font-weight: var(--fw-heading);
+  }
+
+  /* 有 JS 时 tab 已经说明了分类，给读屏看的面板标题收起来 */
+  :global([data-update-log-ready]) .update-panel-title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .update-panel[hidden] {
+    display: none;
+  }
+
+  .update-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .update-empty {
+    margin: 0;
+    padding: var(--space-4) 0;
+    color: var(--text-muted);
+    font-size: var(--fs-meta);
+  }
+
+  /* 页脚：和参考页的“回到”同样的文字链接（≥44px 可点区域） */
+  .update-log-nav {
+    display: flex;
+    margin-top: var(--space-7);
+    padding-top: var(--space-4);
+    border-top: var(--border-width) solid var(--border);
+  }
+
+  .update-log-back {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-height: 44px;
+    padding: var(--space-1) 0;
+    box-sizing: border-box;
+    text-decoration: none;
+  }
+
+  .step-nav-dir {
+    color: var(--text-muted);
+    font-size: var(--fs-caption);
+    line-height: var(--lh-meta);
+  }
+
+  .step-nav-title {
+    color: var(--accent);
+    font-size: var(--fs-body);
+    line-height: var(--lh-heading);
+    font-weight: var(--fw-heading);
+  }
+
+  .update-log-back:hover .step-nav-title {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+</style>

@@ -2,9 +2,11 @@
 import GroupInvite from '../components/GroupInvite.astro';
 import Logo from '../components/Logo.astro';
 import Mascot from '../components/Mascot.astro';
+import UpdateEntry from '../components/UpdateEntry.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { pathOf } from '../lib/route/route-map';
 import { loadSite } from '../lib/site';
+import { latestEntries, UPDATE_LOG_PATH } from '../lib/update-log';
 import { withBase } from '../lib/with-base';
 
 /**
@@ -18,9 +20,15 @@ import { withBase } from '../lib/with-base';
  * 首页没有“继续上次”、已读标记和进度（需求 Never），也没有 v2.2 的眉题、小字信息行、桌面章级索引和固定字形章节号。
  *
  * 一句话仍要求原样摘自整体思路的原理版正文（ADR-0005，design V14）：构建时核对，不通过就失败。
+ *
+ * v0.13（FR-87）：五章简介下面、页脚上面再加一节“最近更新”，列出「全部」分类排在最前的 5 条
+ * （含置顶公告），标题旁“查看全部 →”进 /update-log/。首屏和五章简介块不动（作者 2026-10-23 要求），
+ * 排版沿用首页现有风格，不新造卡片。
  */
 const site = await loadSite();
 const chapters = site.route.data.chapters;
+// 首页的“最近更新”：和 /update-log/ 的「全部」分类排在最前的 5 条完全一致（FR-87）
+const latest = latestEntries(site.updateLog);
 
 /** 进入整体思路的文字链接不再放在首屏；下面的章节简介里也不列页面。 */
 const OVERVIEW_ID = 'overview';
@@ -87,6 +95,26 @@ function chapterEntryId(chapter: (typeof chapters)[number]): string {
           ))
         }
       </ol>
+    </section>
+
+    <section id="home-updates" class="home-updates" aria-labelledby="home-updates-title" data-home-updates>
+      <div class="home-updates-head">
+        <h2 class="home-updates-title" id="home-updates-title">最近更新</h2>
+        <a class="home-updates-more" href={withBase(UPDATE_LOG_PATH)} data-home-updates-more>
+          查看全部<span aria-hidden="true"> →</span>
+        </a>
+      </div>
+      {
+        latest.length === 0 ? (
+          <p class="home-updates-empty">还没有更新。</p>
+        ) : (
+          <ol class="home-updates-list">
+            {latest.map((entry) => (
+              <UpdateEntry entry={entry} fallbackHref={UPDATE_LOG_PATH} compact />
+            ))}
+          </ol>
+        )
+      }
     </section>
   </main>
 </BaseLayout>
@@ -209,5 +237,56 @@ function chapterEntryId(chapter: (typeof chapters)[number]): string {
     color: var(--text-muted);
     font-size: var(--fs-body);
     line-height: var(--lh-tagline);
+  }
+
+  /*
+   * 最近更新（v0.13、FR-87）：和五章简介之间一条细线隔开，标题和“查看全部 →”一行，
+   * 下面 5 条和五章简介同一内容宽度（--content-width），左缘对齐。
+   */
+  .home-updates {
+    max-width: var(--content-width);
+    margin: var(--space-7) auto 0;
+    padding-top: var(--space-6);
+    border-top: var(--border-width) solid var(--border);
+    text-align: left;
+  }
+
+  .home-updates-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-4);
+    margin-bottom: var(--space-2);
+  }
+
+  .home-updates-title {
+    margin: 0;
+    font-size: var(--fs-h3);
+    line-height: var(--lh-h3);
+    font-weight: var(--fw-heading);
+  }
+
+  .home-updates-more {
+    color: var(--accent);
+    font-size: var(--fs-meta);
+    text-decoration: none;
+  }
+
+  .home-updates-more:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .home-updates-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .home-updates-empty {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--fs-meta);
   }
 </style>

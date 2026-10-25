@@ -2,6 +2,8 @@
 import type { OutlineChapter } from '../lib/route/types';
 import type { TocReference } from '../lib/site';
 import type { TocSection } from '../lib/toc-sections';
+import { UPDATE_LOG_PATH } from '../lib/update-log';
+import { withBase } from '../lib/with-base';
 import TocNav from './TocNav.astro';
 import '../styles/toc.css';
 
@@ -18,6 +20,9 @@ import '../styles/toc.css';
  * 标记契约：
  *   [data-toc-step]：每个步骤；
  *   [data-toc-choose]：选择页；[data-toc-option]：当前选项（或找不到页里的每个选项）。
+ *
+ * 更新日志入口（v0.13，FR-88）：侧边栏最底部和抽屉最底部各一条，**不跟着目录滚走**（侧边栏里它和滚动区
+ * .toc-sidebar-scroll 是兄弟节点，滚动条只滚上面的列表），在更新日志页自己上是当前态（aria-current="page"）。
  */
 interface Props {
   outline: OutlineChapter[];
@@ -30,24 +35,35 @@ interface Props {
   referencesChapter?: string;
   /** 要展开的章（旁支页不在 outline 里时由 PageLayout 传入） */
   openChapterId?: string;
+  /** 当前页就是更新日志（v0.13、FR-88）：侧边栏底部的入口显示成当前态 */
+  currentUpdateLog?: boolean;
 }
 
-const { outline, references, sections = [], currentReference, referencesChapter, openChapterId } = Astro.props;
+const { outline, references, sections = [], currentReference, referencesChapter, openChapterId, currentUpdateLog = false } = Astro.props;
+// 更新日志入口的文字：和分类名同一个来源（CONTEXT.md 的“更新日志”）
+const UPDATE_LOG_LABEL = '更新日志';
 ---
 
 <aside class="toc-sidebar" data-toc-sidebar aria-label="步骤目录">
-  <div class="toc-sidebar-inner">
-    <TocNav
-      outline={outline}
-      references={references}
-      label="步骤目录（侧边栏）"
-      sidebar
-      collapsible
-      sections={sections}
-      currentReference={currentReference}
-      referencesChapter={referencesChapter}
-      openChapterId={openChapterId}
-    />
+  <div class="toc-sidebar-scroll">
+    <div class="toc-sidebar-inner">
+      <TocNav
+        outline={outline}
+        references={references}
+        label="步骤目录（侧边栏）"
+        sidebar
+        collapsible
+        sections={sections}
+        currentReference={currentReference}
+        referencesChapter={referencesChapter}
+        openChapterId={openChapterId}
+      />
+    </div>
+  </div>
+  <div class="toc-sidebar-foot">
+    <a class="toc-update-log" href={withBase(UPDATE_LOG_PATH)} data-toc-update-log aria-current={currentUpdateLog ? 'page' : undefined}>
+      {UPDATE_LOG_LABEL}
+    </a>
   </div>
 </aside>
 
@@ -70,5 +86,10 @@ const { outline, references, sections = [], currentReference, referencesChapter,
       referencesChapter={referencesChapter}
       openChapterId={openChapterId}
     />
+  </div>
+  <div class="toc-dialog-foot">
+    <a class="toc-update-log" href={withBase(UPDATE_LOG_PATH)} data-toc-update-log aria-current={currentUpdateLog ? 'page' : undefined}>
+      {UPDATE_LOG_LABEL}
+    </a>
   </div>
 </dialog>

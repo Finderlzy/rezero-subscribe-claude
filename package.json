@@ -1,6 +1,6 @@
 {
   "name": "rezero-subscribe-claude",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "private": true,
   "license": "MIT",
   "description": "Re:从零开始订阅 claude —— 分步引导静态网站",

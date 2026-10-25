@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
+import { UPDATE_LOG_PATH } from '../update-log';
 import { joinBase } from '../with-base';
 
 /**
@@ -11,6 +12,9 @@ import { joinBase } from '../with-base';
  * 谷歌发现 lastmod 总在变就不再相信它。源文件没有 git 历史时（浅克隆、构建夹具的临时目录）就不写这一条，
  * 宁可没有，也不写一个假的日期。
  */
+
+/** 更新日志页在 sitemap 里的路径（就是 UPDATE_LOG_PATH，单独取个别名让这里的用法更直白） */
+const UPDATE_LOG_SITEMAP_PATH = UPDATE_LOG_PATH;
 
 /** 一条 sitemap 网址和它的源文件。 */
 export interface SitemapSource {
@@ -51,6 +55,8 @@ export function sitemapSources(options: {
   };
 
   add(join(pagesRoot, 'index.astro'), joinBase(base, '/'));
+  // 更新日志页（v0.13、FR-80）：独立页面，源文件是路由；条目数据变了不算这一页改过
+  add(join(pagesRoot, 'update-log.astro'), joinBase(base, UPDATE_LOG_SITEMAP_PATH));
   for (const name of markdownNames(join(contentRoot, 'principle'))) {
     add(join(contentRoot, 'principle', name), joinBase(base, `/${name.slice(0, -'.md'.length)}/`));
   }

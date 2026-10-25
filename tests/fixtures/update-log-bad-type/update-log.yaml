@@ -1,0 +1,4 @@
+- date: 2026-10-20
+  type: news
+  title: 类型写错了
+  body: 这条会构建失败。

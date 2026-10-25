@@ -5,6 +5,8 @@ import { buildRouteMap, movedEntries, RouteValidationError } from './route/route
 import { parseRouteYaml } from './route/route-yaml';
 import type { ForkId, OptionId, PageId, PageMeta, RouteMap, RouteSpecMovedTarget, Stop } from './route/types';
 import { sectionAnchor, type AnchorHeading } from './section-anchor';
+import { loadUpdateLog } from './update-log/load';
+import type { ResolvedUpdateEntry } from './update-log';
 
 /**
  * 构建时装配（架构 §3 M3）：读取 M1 的内容集合和 route.yaml，交给 M2 编译成 RouteMap。
@@ -40,6 +42,12 @@ export interface Site {
   referenceChapter: { id: string; title: string };
   /** 跳转表的旧网址（FR-25、ADR-0006）：每个旧标识生成一页，不进目录、搜索和 sitemap */
   moved: MovedPage[];
+  /**
+   * 更新日志（M7，v0.13、FR-80–FR-89）：`src/content/update-log.yaml` 的全部条目，**未排序**，
+   * 每次要用时交给 src/lib/update-log 的 entriesOf()/latestEntries() 按分类和日期排。
+   * 条目里 `page` 已经解析出页面标题。它不进路线图，也不进目录、站内搜索和上一步/下一步。
+   */
+  updateLog: ResolvedUpdateEntry[];
 }
 
 /** 跳转的去向：构建时算好目标页标题和原理版小节锚点。 */
@@ -263,5 +271,21 @@ async function readSite(): Promise<Site> {
       return { id, title: reference.title };
     }),
     referenceChapter: referenceChapterOf(route),
+    // 更新日志（M7）：page 要按页面标题解析，所以放在路线图和参考页都读出来之后（FR-83、FR-86）。
+    // 可以指向路线图里的页面，也可以指向参考页（如 ip-tests），不能指向跳转页。
+    updateLog: loadUpdateLog(
+      new Map([
+        ...Object.entries(route.data.pages).map(([id, page]): [string, string] => [id, page.title]),
+        ...[...referenceById.values()].map((reference): [string, string] => [reference.id, reference.title]),
+      ]),
+      todayOfBuild(),
+    ),
   };
+}
+
+/** 构建当天的日期（本地时区），用于更新日志“不能写未来日期”的校验（FR-86） */
+function todayOfBuild(): string {
+  const now = new Date();
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }

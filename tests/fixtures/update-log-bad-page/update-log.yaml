@@ -1,0 +1,5 @@
+- date: 2026-10-20
+  type: content
+  title: 挂到不存在的页面
+  body: page 写错了。
+  page: no-such-page

@@ -107,6 +107,24 @@ describe('AC-14 坏内容让构建失败并报出文件', () => {
       messages: ['页面标识 preface 是跳转表的旧标识（旧地址跳到 overview），不能再分给新页面'],
     },
     {
+      // 更新日志（v0.13、FR-86）：类型不认识
+      fixture: 'update-log-bad-type',
+      file: 'src/content/update-log.yaml',
+      messages: ['src/content/update-log.yaml 第 1 条：type 只能是 notice、content、site（现在是 "news"）'],
+    },
+    {
+      // 更新日志不能写未来日期
+      fixture: 'update-log-future-date',
+      file: 'src/content/update-log.yaml',
+      messages: ['第 1 条：date（9999-01-01）晚于构建当天'],
+    },
+    {
+      // 更新日志挂到不存在的页面
+      fixture: 'update-log-bad-page',
+      file: 'src/content/update-log.yaml',
+      messages: ['第 1 条：page 写的 no-such-page 不是路线图里的页面或参考页'],
+    },
+    {
       fixture: 'bad-metadata',
       file: 'src/content/principle/maintenance.md',
       messages: ['principle → maintenance data does not match collection schema', 'Unrecognized key: "skipable"'],

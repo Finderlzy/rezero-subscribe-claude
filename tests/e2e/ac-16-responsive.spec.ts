@@ -97,30 +97,44 @@ test('≥720 宽：左侧目录常驻、当前页高亮、能独立滚动，页�
   const box = await aside.evaluate((el) => {
     const style = getComputedStyle(el);
     const rect = el.getBoundingClientRect();
+    // v0.13（FR-88）：aside 是两行，滚动的是里面的 .toc-sidebar-scroll，底部钉着“更新日志”入口
+    const scroll = el.querySelector<HTMLElement>('.toc-sidebar-scroll')!;
     return {
       position: style.position,
       stickyTop: style.top,
       // 页面在顶部时侧边栏从顶栏下面开始
       top: Math.round(rect.top - document.querySelector('.site-header')!.getBoundingClientRect().bottom),
+      // 侧边栏的可视高度 = 视口高度 - 顶栏高度（v0.13 起底部那行入口要留在视口里）
+      bodyViewport: innerHeight - document.querySelector('.site-header')!.getBoundingClientRect().height,
       height: Math.round(rect.height),
       viewport: innerHeight,
-      scrollable: el.scrollHeight > el.clientHeight,
+      scrollable: scroll.scrollHeight > scroll.clientHeight,
       overflowY: style.overflowY,
+      scrollOverflowY: getComputedStyle(scroll).overflowY,
       borderRight: style.borderRightWidth,
       width: Math.round(rect.width),
+      // 滚动区 + 底部入口正好占满 aside 的高度
+      rows: Math.round(scroll.getBoundingClientRect().height + el.querySelector('.toc-sidebar-foot')!.getBoundingClientRect().height),
     };
   });
   expect(box.position).toBe('sticky');
+  // 顶栏不固定，侧边栏 sticky 到视口顶边（design §4.5）：页面在顶部时它从顶栏下面开始，滚下去后贴到 0
   expect(box.stickyTop).toBe('0px');
   expect(box.top).toBe(0);
-  expect(box.height).toBeCloseTo(box.viewport, 0);
+  expect(box.height).toBeCloseTo(box.bodyViewport, 0);
   expect(box.width).toBe(width >= 960 ? 300 : 256);
-  expect(box.overflowY).toBe('auto');
+  // aside 自己不再滚（v0.13 起跨两行），滚动在 .toc-sidebar-scroll 上；两行加起来正好是侧边栏高度
+  expect(box.overflowY).toBe('hidden');
+  expect(box.scrollOverflowY).toBe('auto');
   expect(box.borderRight).toBe('1px');
   expect(box.scrollable).toBe(true);
-  // 只有 aside 这一层滚动：里面的目录 <nav> 等都不是滚动容器（之前 nav 也吸顶、满高、overflow:auto，出现两条竖向滚动条）
+  expect(box.rows).toBeCloseTo(box.height, 0);
+  // 只有 .toc-sidebar-scroll 这一层滚动：里面的目录 <nav> 等都不是滚动容器（之前 nav 也吸顶、满高、overflow:auto，出现两条竖向滚动条）
   const nestedScrollers = await aside.evaluate(
-    (el) => [...el.querySelectorAll('*')].filter((node) => /(auto|scroll)/.test(getComputedStyle(node).overflowY)).length,
+    (el) =>
+      [...el.querySelectorAll('*')].filter(
+        (node) => /(auto|scroll)/.test(getComputedStyle(node).overflowY) && !node.classList.contains('toc-sidebar-scroll'),
+      ).length,
   );
   expect(nestedScrollers).toBe(0);
 
@@ -151,11 +165,12 @@ test('≥720 宽：左侧目录常驻、当前页高亮、能独立滚动，页�
   expect(colors.shadow).toContain('4px');
   expect(colors.weight).toBe('600');
 
-  // 侧边栏自己滚：滚到底后页面本身没动，侧边栏滚了
+  // 侧边栏的滚动区自己滚：滚到底后页面本身没动，滚动区滚了（v0.13 起滚动发生在 .toc-sidebar-scroll 里）
   const scroll = await aside.evaluate((el) => {
     const pageY = window.scrollY;
-    el.scrollTop = el.scrollHeight;
-    return { pageY, pageYAfter: window.scrollY, scrollTop: el.scrollTop };
+    const inner = el.querySelector<HTMLElement>('.toc-sidebar-scroll')!;
+    inner.scrollTop = inner.scrollHeight;
+    return { pageY, pageYAfter: window.scrollY, scrollTop: inner.scrollTop };
   });
   expect(scroll.scrollTop).toBeGreaterThan(0);
   expect(scroll.pageYAfter).toBe(scroll.pageY);
