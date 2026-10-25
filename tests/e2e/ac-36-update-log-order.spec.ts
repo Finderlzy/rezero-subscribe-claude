@@ -151,6 +151,27 @@ test.describe('AC-37：首页的最近更新', () => {
     // 每一列内部：日期/类型一行在上面，标题在它下面（竖排）
     for (const card of box.cards) expect(card.titleTop).toBeGreaterThanOrEqual(card.metaBottom - 0.5);
   });
+
+  // 作者 2026-10-25：最近更新的 5 列要和五章简介的 5 栏左缘对齐（之前套了 --content-width 居中，整体右偏）
+  test('最近更新的列和五章简介的栏左缘对齐', async ({ page }) => {
+    await page.goto('./');
+    const lefts = await page.evaluate(() => {
+      const left = (el: Element | null) => Math.round(el!.getBoundingClientRect().left);
+      const chapters = [...document.querySelectorAll('.home-chapter')].map(left);
+      const updates = [...document.querySelectorAll('#home-updates [data-update-entry]')].map(left);
+      return {
+        chapters,
+        updates,
+        chaptersHead: left(document.querySelector('.home-chapters')),
+        updatesHead: left(document.querySelector('#home-updates')),
+      };
+    });
+    // 两块和页面同宽：标题的左缘一致
+    expect(lefts.updatesHead).toBe(lefts.chaptersHead);
+    // 第一列一定对齐；宽屏（≥960）五列一一对齐
+    expect(lefts.updates[0]).toBe(lefts.chapters[0]);
+    if ((page.viewportSize()?.width ?? 0) >= 960) expect(lefts.updates).toEqual(lefts.chapters);
+  });
 });
 
 test.describe('AC-38：360px 下分类可横向滚，没有页面级横向滚动', () => {

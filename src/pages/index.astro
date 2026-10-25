@@ -124,7 +124,7 @@ function chapterEntryId(chapter: (typeof chapters)[number]): string {
   .home {
     max-width: 1120px;
     margin: 0 auto;
-    padding: calc(var(--space-6) + var(--space-2)) var(--gutter) var(--space-7);
+    padding: calc(var(--space-6) + var(--space-2)) var(--gutter) var(--space-8);
   }
 
   @media (min-width: 720px) {
@@ -167,18 +167,18 @@ function chapterEntryId(chapter: (typeof chapters)[number]): string {
     bottom: 0;
   }
 
-  /* logo 到一句话 32px；一句话最宽 24em、居中、--text-muted（design §3.2、§4.4） */
+  /* logo 到一句话；一句话最宽 24em、居中、--text-muted（design §3.2、§4.4；2026-10-25 留白加一档） */
   .home-tagline {
     max-width: 24em;
-    margin: var(--space-6) auto 0;
+    margin: var(--space-7) auto 0;
     color: var(--text-muted);
     font-size: var(--fs-tagline);
     line-height: var(--lh-tagline);
   }
 
-  /* 一句话到主按钮 32px；按钮下 20px 是 QQ 群小字（GroupInvite 的紧凑版） */
+  /* 一句话到主按钮；按钮下面是 QQ 群小字（GroupInvite 的紧凑版） */
   .home-actions {
-    margin: var(--space-6) 0 0;
+    margin: var(--space-7) 0 0;
   }
 
   /*
@@ -186,8 +186,8 @@ function chapterEntryId(chapter: (typeof chapters)[number]): string {
    * 五章从左到右：手机一栏、平板三栏（3 + 2），桌面五栏一行；简介左对齐。
    */
   .home-chapters {
-    margin: var(--space-7) auto 0;
-    padding-top: var(--space-7);
+    margin: var(--space-8) auto 0;
+    padding-top: var(--space-8);
     border-top: var(--border-width) solid var(--border);
     text-align: left;
   }
@@ -195,7 +195,7 @@ function chapterEntryId(chapter: (typeof chapters)[number]): string {
   .home-chapter-list {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-6) var(--space-4);
+    gap: var(--space-7) var(--space-5);
     margin: 0;
     padding: 0;
     list-style: none;
@@ -215,7 +215,7 @@ function chapterEntryId(chapter: (typeof chapters)[number]): string {
 
   /* 章名是这一栏的标题（h2），链到这一章的第一页；不要“第 n 章” */
   .home-chapter-title {
-    margin: 0 0 var(--space-2);
+    margin: 0 0 var(--space-3);
     font-size: var(--fs-h3);
     line-height: var(--lh-h3);
     font-weight: var(--fw-heading);
@@ -243,10 +243,13 @@ function chapterEntryId(chapter: (typeof chapters)[number]): string {
    * 最近更新（v0.13、FR-87）：和五章简介之间一条细线隔开，标题和“查看全部 →”一行，
    * 下面 5 条和五章简介同一内容宽度（--content-width），左缘对齐。
    */
+  /*
+   * 最近更新（作者 2026-10-25）：和五章简介**同一内容宽度和同一套 5 栏栅格**，不再收窄到正文宽度——
+   * 之前套了 --content-width（820px）居中，第一列的日期比“开始”那一栏往右偏了一百多像素，两块对不齐。
+   */
   .home-updates {
-    max-width: var(--content-width);
-    margin: var(--space-7) auto 0;
-    padding-top: var(--space-6);
+    margin: var(--space-8) auto 0;
+    padding-top: var(--space-7);
     border-top: var(--border-width) solid var(--border);
     text-align: left;
   }
@@ -285,7 +288,7 @@ function chapterEntryId(chapter: (typeof chapters)[number]): string {
   .home-updates-list {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-5) var(--space-4);
+    gap: var(--space-7) var(--space-5);
     margin: 0;
     padding: 0;
     list-style: none;
