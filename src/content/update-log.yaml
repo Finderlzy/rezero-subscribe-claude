@@ -19,6 +19,16 @@
 # 不写多段正文、图片和代码块。更新日志是用来告诉读者“哪里变了”的，不是第二份教程。
 
 - date: 2026-10-25
+  type: content
+  title: 节点安装脚本升到 v2.0.1
+  body: 方案一和方案二里那条一键命令都换成了 v2.0.1，照正文重新复制一遍就行；已经装好的不用重装。
+  page: plan1
+- date: 2026-10-25
+  type: content
+  title: 方案一新增 SSH 连不上的两种排查
+  body: 把“连不上”拆成两节：提示 Connection refused 一般是端口不是 22；提示 Connection closed by 多半是挂着梯子。
+  page: plan1
+- date: 2026-10-25
   type: site
   title: 首页的留白放宽，最近更新和五章简介对齐
   body: 首页各块的间距都松了一档；最近更新原来收窄居中、和上面的五章简介对不齐，现在用同一套五栏栅格。
