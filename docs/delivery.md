@@ -1,5 +1,36 @@
 # 交付记录
 
+## 2026-10-25 顶栏固定在视口顶端
+
+作者要求“滑动文章的时候，顶部栏不要消失”。v3 定稿时顶栏本来定成随页面滚走（design 拒绝清单里写着“固定顶栏（作者没选）”），这次由作者改口。设计契约 [design.md](design.md) V19，需求 [requirements.md](requirements.md) §0.1 的顶栏一行同步改掉。
+
+### 做了什么
+
+- **顶栏**：`SiteHeader.astro` 改 `position: fixed; inset: 0 0 auto; z-index: 10`（盖过搜索下拉、表格粘性列和看大图）。高仍是 56px，白底加底边 1px `--border` 不变。
+- **让位**：不带常驻侧边栏的页面（<720px 的所有页面、≥720px 的找不到页）用 `body` 的 `padding-top: var(--header-height)`；常驻侧边栏的页面改用网格第一行行高，`body` 的内边距归零。首页没有顶栏，本来就不需要让位。
+- **侧边栏**：`aside.toc-sidebar` 改 `position: sticky; top: var(--header-height)`，滚下去也停在顶栏下沿，不被盖住；最高高度仍是 `calc(100vh - var(--header-height))`。
+- **锚点落点**：新令牌 `--anchor-offset`（顶栏高度 + 16px），写在根元素的 `scroll-padding-top`；跳小节时标题落在顶栏下面 16px，不再被挡住。
+- **注释和文档**：`toc.ts`、`section-hash.ts` 里“顶栏不固定”的说法改掉；design 的 V19、§4.0 示意、§3.2、§4.5、拒绝清单，`docs/requirements.md` §0.1 和 `<720px` 的顶栏说明，`CONTEXT.md` 的“顶栏”词条同步。
+
+### 过程中修掉的三个问题
+
+- **360px 下正文被顶栏盖住 56px**：给顶栏或“第一个子元素”加上外边距来让位都失败——顶栏前面永远有一份绝对定位的“跳到正文”，`body` 的第一个内联框就是它，`body` 拿不到上外边距；顶栏自己的下外边距又会和主内容的上外边距合并。最后 <720px 用 `body` 的 `padding-top`，≥720px 用网格行高。
+- **锚点落点多了 56px**：`scroll-padding-top` 和目标的 `scroll-margin-top` 叠加了，落到 144px（预期 72px）。只保留 `scroll-padding-top` 一处。
+- **侧边栏滚下去后贴着视口顶边 0px**：网格里的 sticky 不受网格行起点限制，`top: 0` 会顶到视口顶端。改 `top: var(--header-height)`。
+
+### 回归与构建
+
+| 检查 | 命令 | 结果 |
+| --- | --- | --- |
+| 类型、单元、构建级、构建 | `npm run check` | 通过：astro check 0 错误；单元测试 593 通过；构建级 32 个；构建 68 页 |
+| e2e | `npm run test:e2e` | 1025 通过、0 失败（360、768、1280 + `/sub/` 子路径）；新增“滑动文章时顶栏一直停在视口顶端，页内小节跳转落在顶栏下面”，改写了 AC-16、AC-26 里三处断言旧行为（顶栏 `static`、侧边栏 `top: 0`、滚走后侧边栏贴 0）的断言 |
+| 视觉 | 1280 和 360 宽在页面顶部、滚到 1600px 各截一张 | 顶栏都在视口顶端，侧边栏在顶栏下沿，正文不重叠 |
+
+### 上线
+
+- **提交**：`494fda4`（`main`），已推送；GitHub Pages 由 `deploy.yml` 按 `main` 重新构建。
+- **更新日志**：`src/content/update-log.yaml` 加了一条站点更新“顶栏不再跟着页面滑走”。
+
 ## 2026-10-25 SEO：逐页摘要、分享卡片和结构化数据
 
 作者要求“做一下 SEO”。先盘了一遍现状：canonical、sitemap（2026-10-23 已补 lastmod）、robots.txt、404 和 47 条跳转页的 noindex 早就有了；缺的是**每页的摘要**（只有首页和更新日志页写了，其余 17 页没有 `description`），以及分享卡片（Open Graph / Twitter）和结构化数据（JSON-LD）完全没有。范围由作者选定：三样都做；摘要来源选了新建 `seo.yaml`；分享图用站内素材生成。需求 [requirements.md](requirements.md) v0.14（FR-90–FR-95、AC-39），架构 [§15](architecture.md)。

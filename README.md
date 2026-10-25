@@ -11,7 +11,7 @@
 
 [![在线站点](https://img.shields.io/badge/%E5%9C%A8%E7%BA%BF%E7%AB%99%E7%82%B9-re0claude.us.ci-6F42C1?style=flat-square)](https://re0claude.us.ci/)
 [![QQ 群](https://img.shields.io/badge/QQ%E7%BE%A4-1131606770-12B7F5?style=flat-square&logo=tencentqq&logoColor=white)](https://qm.qq.com/q/a00aEmiu2I)
-[![版本](https://img.shields.io/badge/version-3.1.2-6F42C1?style=flat-square)](https://github.com/Finderlzy/rezero-subscribe-claude/releases)
+[![版本](https://img.shields.io/badge/version-3.1.3-6F42C1?style=flat-square)](https://github.com/Finderlzy/rezero-subscribe-claude/releases)
 [![许可](https://img.shields.io/badge/license-MIT%20%2B%20CC%20BY--NC%204.0-3DA639?style=flat-square)](LICENSE-CONTENT.md)
 
 [开始阅读](https://re0claude.us.ci/) · [QQ 群](#qq-群) · [许可](#许可)
