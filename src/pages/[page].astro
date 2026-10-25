@@ -65,6 +65,7 @@ const cards = page === undefined ? undefined : choiceCardsOf(site, page.id);
       referencesChapter={site.referenceChapter.id}
       sections={tocSections(rendered.headings)}
       skipLabel={page.principle.data.skipLabel}
+      description={page.description}
     >
       <VideoFacade slot="video" video={page.principle.data.video} stepTitle={page.title} />
       <Principle slot="principle" />

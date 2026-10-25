@@ -1,0 +1,82 @@
+# 每页的搜索摘要（description）和分享卡片用的标题，唯一来源；由作者直接改，不从重写稿导入。
+#
+# 用途：写进每个页面 <head> 的 <meta name="description">，以及 Open Graph / Twitter 卡片里当描述。
+# 搜索引擎拿它当搜索结果里的两行摘要，微信、Telegram、X 这类地方分享时也显示这几句。
+#
+# 写法：
+#   - 键就是页面标识：principle/<id>.md 和 reference/<id>.md 去掉 .md（参考页保留一层目录，如 ip-tests/decodo）。
+#     首页写 `/`，更新日志页写 `/update-log/`（它没有对应的正文文件）。
+#   - 每一页都必须有一条，少写一页、多写一个不存在的标识，构建都会失败。
+#   - 一段话，40–118 个字符（中文一个字算一个）：再短搜索引擎会另从正文里取，再长在结果列表里会被截断。
+#   - 写给还没打开这页的人看：说清这一页讲什么、看完能做什么，不重复页面标题（标题已经在搜索结果上方）。
+#   - 标题（可选）只在分享卡片里当大标题用；不写就用页面标题。站名由布局自动追加，这里不写。
+#
+# 改正文之后顺手看一眼对应的那一条：正文讲的范围变了，摘要也要跟着改。
+
+# 首页和更新日志页
+/:
+  description: 从买服务器、搭住宅 IP 节点到注册账号、订阅 Claude 的分步教程，每一步都写清为什么这么做，跟着点就能走完。
+  title: 从零开始订阅 Claude 的分步教程
+
+/update-log/:
+  description: 这里记着教程正文和站点本身都改了什么：哪一节新增了录屏、哪家商家失效了、哪里修过，按公告、内容、站点分类翻看。
+
+# 第 1 章：开始
+preface:
+  description: 为什么写这份教程、它解决的是什么问题，以及跟着做之前要知道的风险：哪些方法没验证过，失败了会付出什么代价。
+
+# 第 2 章：准备节点和住宅 IP
+overview:
+  description: 先弄清 Claude 的风控在看什么，再在方案一和方案二之间挑：自己搭住宅代理节点，还是直接买住宅 IP 服务器。
+
+plan1:
+  description: 买一台海外 VPS，配一个静态住宅 ISP 代理，用脚本把它变成专属节点，拿到 VLESS Reality 和 Hysteria2 两条节点链接。
+
+plan2-residential-server:
+  description: 买一台自带海外住宅 IP 的云服务器，跑一次脚本就变成节点，不用同时维护 VPS 和 ISP 两个服务商，步骤比方案一少。
+
+# 第 3 章：客户端配置与订阅
+client-desktop:
+  description: 把节点链接装进电脑的代理软件，处理 DNS、WebRTC、IPv6 三处容易漏的地方，再把系统时区改到 Claude 支持的地区。
+
+iphone-prepare:
+  description: 在 iPhone 或 iPad 上装 V2Box、导入节点，准备一个能下载代理软件的 App Store，让手机环境和小节里的节点对得上。
+
+iphone-subscription:
+  description: 走完 iPhone 上订阅 Claude 的全过程：注册 Gmail、准备美区 Apple ID、用礼品卡充值，最后在 App 里完成订阅。
+
+android-prepare:
+  description: 在安卓手机上装 v2rayNG、导入节点、准备 Google Play、改时区，最后做连通性测试，确认出口 IP 已经是对的地区。
+
+android-subscription:
+  description: 安卓端的账号到订阅流程：注册 Gmail、在 Chrome 登录并完善资料、注册 Claude、从 Google Play 安装，支付部分标明未验证。
+
+# 第 4 章：日常维护
+maintenance:
+  description: 订阅之后怎么用才不像机器、账号受限了怎么申诉、常见故障怎么一步步排查，都在这一章。
+
+# 第 5 章：结尾
+afterword:
+  description: 走到这里的一些话：这份教程的局限、遇到问题可以进群问，以及帮过这份教程的人和信息来源。
+
+# 参考页：IP 质量实测合集和 6 篇实测
+ip-tests:
+  description: 教程里出现过的商家，逐个实测 IP 质量和风险评分，给出截图和结论；选方案、选商家之前先看这几页。
+
+ip-tests/decodo:
+  description: Decodo 静态住宅 ISP 的实测记录：Proxyway 榜单排第一的商家，教程作者没有实测，价格偏高，买之前先看结论。
+
+ip-tests/ipequal:
+  description: ipequal 住宅节点的读者实测记录：出口是美国静态住宅 IP，作者一直没买到，质量数据来自一位读者的实际使用。
+
+ip-tests/lisahost:
+  description: 丽萨主机美国 9929 双 ISP 住宅 IP 服务器的实测：套餐、价格和各项 IP 质量检测的截图，配方案二用。
+
+ip-tests/qsu-free-isp:
+  description: proxy.qsu.hk 免费 ISP 代理的实测记录：2026-10-17 已断连、教程不再推荐，这里保留实测供对照和换 IP 参考。
+
+ip-tests/qsu-residential:
+  description: QSU 住宅服务器的实测记录：主站这台作者没有亲自用过，质量参考群友的说法，和子站的免费代理不是一回事。
+
+ip-tests/voyracloud:
+  description: VoyraCloud 美国住宅服务器的实测：从下单到拿到 IP 的全过程，配上各项 IP 质量检测的截图和结论。

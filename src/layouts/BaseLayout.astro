@@ -2,29 +2,58 @@
 import '../styles/tokens.css';
 import '../styles/base.css';
 import SiteFooter from '../components/SiteFooter.astro';
+import { articleJsonLd, breadcrumbJsonLd, serializeJsonLd, SITE_LANG, SITE_NAME, websiteJsonLd, type BreadcrumbItem } from '../lib/seo';
 import { THEME_BOOT_SCRIPT } from '../lib/theme';
 import { withBase } from '../lib/with-base';
 
+/**
+ * 所有页面的骨架和 `<head>`（SEO 2026-10-25：搜索结果摘要、分享卡片、结构化数据都在这里输出）。
+ *
+ * - 标题：页面自己的标题 + 站名；首页只用站名。
+ * - 摘要：每页从 `src/content/seo.yaml` 取（loadSite 校验过每一页都有），写进 description。
+ * - 规范网址：构建时给了 site（部署时的 SITE_URL）才写，同时用作 og:url。
+ *   找不到页和跳转页不写 canonical、不写分享卡片，只写 noindex。
+ * - 分享卡片（Open Graph + Twitter）：`og:image` 是 public/og-image.png（1200×630）。
+ * - 结构化数据（JSON-LD）：首页是 WebSite，正文页是 Article（带面包屑 BreadcrumbList）。
+ */
 interface Props {
   /** 页面自身的标题；省略时（首页）只用站名。 */
   title?: string;
-  /** 搜索结果里的摘要；省略时不写，由搜索引擎从正文里取。 */
+  /** 搜索结果里的摘要；省略时不写。页面都用 loadSite 里的 description，不从正文里现场截。 */
   description?: string;
-  /** 不该被搜索引擎收录的页面（找不到页）设为 true。 */
+  /** 不该被搜索引擎收录的页面（找不到页、跳转页）设为 true。 */
   noindex?: boolean;
   /** 首页的页脚居中（design §4.0、§4.4）；其他页左对齐于正文栏。 */
   footerCentered?: boolean;
+  /** 结构化数据的类型：首页 `website`，正文页 `article`；不传就不写（404、跳转页）。 */
+  jsonLd?: 'website' | 'article';
+  /** 正文页的面包屑（从首页到这一页）；首页不传。 */
+  breadcrumbs?: BreadcrumbItem[];
 }
 
-const SITE_NAME = 'Re:从零开始订阅 claude';
-const { title, description, noindex = false, footerCentered = false } = Astro.props;
-// 构建时给了 site（部署时的 SITE_URL）才写规范网址。
-const canonical = Astro.site && !noindex ? new URL(Astro.url.pathname, Astro.site).href : undefined;
+const { title, description, noindex = false, footerCentered = false, jsonLd, breadcrumbs = [] } = Astro.props;
+// 构建时给了 site（部署时的 SITE_URL）才写规范网址和绝对地址的分享卡片。
+const url = Astro.site && !noindex ? new URL(Astro.url.pathname, Astro.site).href : undefined;
 const fullTitle = title ? `${title} - ${SITE_NAME}` : SITE_NAME;
+// 分享卡片的大标题用页面标题（首页只有站名），摘要和 description 用同一句
+const shareTitle = title ?? SITE_NAME;
+const ogImage = url ? new URL(withBase('/og-image.png'), Astro.site!).href : undefined;
+const siteUrl = Astro.site && new URL(Astro.site).href;
+
+// 结构化数据：首页是 WebSite；正文页是 Article 加面包屑（面包屑第一条固定是首页）
+const structuredData =
+  jsonLd === 'website' && siteUrl && description
+    ? [websiteJsonLd({ siteUrl, description, lang: SITE_LANG })]
+    : jsonLd === 'article' && siteUrl && url && description
+      ? [
+          articleJsonLd({ headline: shareTitle, description, url, siteUrl, lang: SITE_LANG }),
+          ...(breadcrumbs.length > 0 ? [breadcrumbJsonLd(breadcrumbs)] : []),
+        ]
+      : [];
 ---
 
 <!doctype html>
-<html lang="zh-CN">
+<html lang={SITE_LANG}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -32,8 +61,28 @@ const fullTitle = title ? `${title} - ${SITE_NAME}` : SITE_NAME;
     <script is:inline set:html={THEME_BOOT_SCRIPT} />
     <title>{fullTitle}</title>
     {description && <meta name="description" content={description} />}
-    {canonical && <link rel="canonical" href={canonical} />}
+    {url && <link rel="canonical" href={url} />}
     {noindex && <meta name="robots" content="noindex" />}
+    {/* 分享卡片（微信、Telegram、X 等）：站名、语言和大图由平台决定卡片样式 */}
+    {url && description && ogImage && (
+      <meta property="og:type" content="article" />
+      <meta property="og:site_name" content={SITE_NAME} />
+      <meta property="og:locale" content="zh_CN" />
+      <meta property="og:title" content={shareTitle} />
+      <meta property="og:description" content={description} />
+      <meta property="og:url" content={url} />
+      <meta property="og:image" content={ogImage} />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
+      <meta property="og:image:alt" content={SITE_NAME} />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content={shareTitle} />
+      <meta name="twitter:description" content={description} />
+      <meta name="twitter:image" content={ogImage} />
+      <meta name="twitter:image:alt" content={SITE_NAME} />
+    )}
+    {/* 结构化数据：`<` 已经在 serializeJsonLd 里转义掉，摘要里出现尖括号也不会截断脚本 */}
+    {structuredData.map((data) => <script type="application/ld+json" set:html={serializeJsonLd(data)} />)}
     <link rel="icon" type="image/svg+xml" href={withBase('/favicon.svg')} />
     <slot name="head" />
   </head>

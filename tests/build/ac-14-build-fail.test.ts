@@ -125,6 +125,18 @@ describe('AC-14 坏内容让构建失败并报出文件', () => {
       messages: ['第 1 条：page 写的 no-such-page 不是路线图里的页面或参考页'],
     },
     {
+      // SEO 摘要（2026-10-25）：seo.yaml 少写一页，构建失败并指出是哪一页
+      fixture: 'seo-missing-page',
+      file: 'src/content/seo.yaml',
+      messages: ['页面摘要校验失败，共 1 处', 'src/content/seo.yaml 的 ip-tests/decodo：缺少这一页的摘要'],
+    },
+    {
+      // SEO 摘要太长，搜索结果里会被截断
+      fixture: 'seo-too-long',
+      file: 'src/content/seo.yaml',
+      messages: ['src/content/seo.yaml 的 preface：description 有 228 个字符，超过 118 个'],
+    },
+    {
       fixture: 'bad-metadata',
       file: 'src/content/principle/maintenance.md',
       messages: ['principle → maintenance data does not match collection schema', 'Unrecognized key: "skipable"'],

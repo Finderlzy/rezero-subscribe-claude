@@ -6,6 +6,8 @@ import StepNav from '../components/StepNav.astro';
 import Toc from '../components/Toc.astro';
 import { hasZoomableImage } from '../lib/code-zoom/labels';
 import { fillFigureSteps } from '../lib/content/rehype-figures';
+import { SITE_NAME } from '../lib/seo';
+import { withBase } from '../lib/with-base';
 import { eyebrowText, figurePrefix, progressText } from '../lib/nav-text';
 import { VIEW_BOOT_SCRIPT } from '../lib/reader-state/view-boot';
 import type { RouteData, RouteView } from '../lib/route/types';
@@ -47,9 +49,22 @@ interface Props {
   /** 当前页正文的 h2：列在侧边栏当前项下面（design §4.5，FR-16） */
   sections?: TocSection[];
   skipLabel?: string | undefined;
+  /** 这一页的搜索摘要（`site.pages.get(id).description`，来自 `src/content/seo.yaml`） */
+  description: string;
 }
 
-const { title, view, routeData, tocReferences, referencesChapter, sections = [], skipLabel } = Astro.props;
+const { title, view, routeData, tocReferences, referencesChapter, sections = [], skipLabel, description } = Astro.props;
+// 面包屑的结构化数据（SEO）：首页 › 所在章节（首页里链到这一章第一页的锚点） › 这一页
+const siteRoot = new URL(withBase('/'), Astro.site ?? Astro.url).href;
+const chapter = routeData.chapters.find((entry) => entry.id === view.progress.chapterId);
+// 当前页的站内路径（Astro.url.pathname 已经含部署根路径，直接跳过 base 那几段）
+const pagePath = Astro.url.pathname.slice(import.meta.env.BASE_URL.replace(/\/$/, '').length) || '/';
+const breadcrumbs = [
+  { name: SITE_NAME, url: siteRoot },
+  // 章节名：首页没有章级的锚点，指到首页的章节简介那一节
+  ...(chapter === undefined ? [] : [{ name: chapter.title, url: new URL(`${withBase('/')}#home-chapters`, Astro.site ?? Astro.url).href }]),
+  { name: title, url: new URL(withBase(pagePath), Astro.site ?? Astro.url).href },
+];
 // 内嵌在 <script> 里的 JSON 不能出现 `</script>`，把 `<` 转义掉。
 const routeJson = JSON.stringify(routeData).replace(/</g, '\\u003c');
 // 截图编号的步骤号（design §4.7）：构建时按原理视图写，没有 JS 时就是它；route-enhance 按当前选择改写
@@ -57,7 +72,7 @@ const principle = fillFigureSteps(await Astro.slots.render('principle'), figureP
 const hasZoom = hasZoomableImage(principle);
 ---
 
-<BaseLayout title={title}>
+<BaseLayout title={title} description={description} jsonLd="article" breadcrumbs={breadcrumbs}>
   <script is:inline slot="head" set:html={VIEW_BOOT_SCRIPT} />
   <SiteHeader toc />
   <Toc

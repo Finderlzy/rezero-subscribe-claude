@@ -5,6 +5,7 @@ import Mascot from '../components/Mascot.astro';
 import UpdateEntry from '../components/UpdateEntry.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { pathOf } from '../lib/route/route-map';
+import { describe, HOME_KEY } from '../lib/seo';
 import { loadSite } from '../lib/site';
 import { latestEntries, UPDATE_LOG_PATH } from '../lib/update-log';
 import { withBase } from '../lib/with-base';
@@ -63,10 +64,7 @@ function chapterEntryId(chapter: (typeof chapters)[number]): string {
 }
 ---
 
-<BaseLayout
-  description={`Re:从零开始订阅 claude 的分步教程，从准备材料到订阅成功，每一步都有原理和操作。${TAGLINE}`}
-  footerCentered
->
+<BaseLayout description={describe(site.seo, HOME_KEY)} footerCentered jsonLd="website">
   <main id="main" class="home">
     <section class="home-hero" aria-labelledby="home-title">
       <div class="home-logo">

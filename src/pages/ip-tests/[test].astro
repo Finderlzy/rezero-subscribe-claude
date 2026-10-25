@@ -25,6 +25,11 @@ const { Content, headings } = await render(report.entry);
   back={{ href: '/ip-tests/', title: collection.title }}
   currentReference="ip-tests"
   sections={tocSections(headings)}
+  description={report.description}
+  breadcrumbPath={[
+    { title: site.referenceChapter.title, path: `/${site.referenceChapter.id}/` },
+    { title: collection.title, path: '/ip-tests/' },
+  ]}
 >
   <Content />
 </ReferenceLayout>

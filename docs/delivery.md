@@ -1,5 +1,41 @@
 # 交付记录
 
+## 2026-10-25 SEO：逐页摘要、分享卡片和结构化数据
+
+作者要求“做一下 SEO”。先盘了一遍现状：canonical、sitemap（2026-10-23 已补 lastmod）、robots.txt、404 和 47 条跳转页的 noindex 早就有了；缺的是**每页的摘要**（只有首页和更新日志页写了，其余 17 页没有 `description`），以及分享卡片（Open Graph / Twitter）和结构化数据（JSON-LD）完全没有。范围由作者选定：三样都做；摘要来源选了新建 `seo.yaml`；分享图用站内素材生成。需求 [requirements.md](requirements.md) v0.14（FR-90–FR-95、AC-39），架构 [§15](architecture.md)。
+
+### 做了什么
+
+- **摘要**：`src/content/seo.yaml`，19 条，一条对应一个页面（首页用 `/`、更新日志用 `/update-log/`，其余同页面标识；参考页带一层目录如 `ip-tests/decodo`）。每页一段 40–118 字的摘要，写给还没打开这页的人看。文件开头写了字段规则和“改正文要顺手改摘要”的提醒。
+- **校验**：`src/lib/seo/index.ts` 的 `parseSeo()` 是纯函数，少写一页、多写不存在的键、不认识的字段、过短过长都报错；`loadSeo()` 读 YAML 并交给 `loadSite()`，**任何一处不合规构建失败**，报错带页面键。
+- **标签**：`BaseLayout.astro` 统一输出 `description`、canonical、Open Graph（`og:type=article`、站名、语言、标题、摘要、url、1200×630 分享图）和 Twitter 大图卡片；给了 `SITE_URL` 才输出绝对地址那几项。
+- **结构化数据**：首页 `WebSite`；正文页、参考页、更新日志输出 `Article` + `BreadcrumbList`（首页 › 章节 › 页面，参考页多一层实测合集）。不写 `datePublished`——没有可信的发布日，宁缺毋滥。
+- **分享图**：`scripts/build-og-image.mjs` 用站点自己的 logo（转曲 SVG）和设计令牌合成 1200×630 的 `public/og-image.png`（白底、顶部紫色细线、logo、两句说明、五章名字）。**不参与构建**，改 logo 或站名时重新跑一次脚本。
+- **不收录的页面**：404 和跳转页保持只有 `noindex`，不写 canonical、分享卡片和 JSON-LD（沿用 2026-10-23 的口径）。
+- **e2e 构建改带 `SITE_URL`**：canonical 和 sitemap 只在给了 site 时生成，`npm run test:e2e` 和 `playwright.config.ts` 的 `dist-sub/` 构建都补上，和线上一致。
+
+### 过程中修掉的问题
+
+- **面包屑最后一层变成了站点根**：用 `Astro.url.href` 再 `new URL()` 时拿到的是整条路径当 reference 解析，改用 `Astro.url.pathname`（已含部署根路径）。
+- **构建级夹具放错层**：`tests/fixtures/` 的目录是被复制**到** `src/content` 的，写成 `src/content/…` 会变成 `src/content/src/content`，坏内容不生效、构建照常成功。改成只放 `seo.yaml`。
+
+### 回归与构建
+
+| 检查 | 命令 | 结果 |
+| --- | --- | --- |
+| 类型、单元、构建级、构建 | `npm run check` | 通过：astro check 0 错误；单元测试 593 通过（新增 `src/lib/seo/index.test.ts` 15 个）；构建级 32 个（新增 `seo-missing-page`、`seo-too-long` 两个夹具）；构建 68 页 |
+| e2e | `npm run test:e2e` | 1022 通过、0 失败（360、768、1280 + `/sub/` 子路径），含新增的 `tests/e2e/seo.spec.ts` 5 个用例 |
+| 产物核对 | `SITE_URL=https://re0claude.us.ci npm run build` | 19 个收录页全有 description、canonical、og:*、twitter:*、JSON-LD；59 个跳转页和 404 只有 noindex；`og-image.png` 在 `dist/` 里 |
+| 子路径 | `BASE_PATH=/sub/ SITE_URL=… npm run build` | canonical、`og:image`、面包屑地址都带 `/sub/` |
+| 内容提示 | `npm run build` | 仍只剩 1 条作者待补：`ip-tests/qsu-residential` |
+
+### 待办与后续
+
+- **线上核对**：部署后看 `view-source:` 里 `/plan1/` 的 description、`og:image` 和两段 JSON-LD；`/og-image.png` 应返回 200（image/png）。
+- **Search Console**：sitemap 地址没变，不用新增；部署后对重点页用“网址检查 → 请求编入索引”，确认新摘要生效（可能要几天）。
+- **分享卡片验证**：用微信/Telegram/X 各贴一次链接，看卡片图是不是 `og-image.png`。
+
+
 ## 2026-10-23 更新日志模块（3.1.0，v3.1）
 
 作者要求加一个更新日志模块：公告、内容改动、站点改动各算一类，再有一个「全部」；进来默认看全部。首页要能知道最新更新了什么，侧边栏底部要有入口。需求在 [requirements.md](requirements.md) v0.13（FR-80–FR-89、AC-34–AC-38），架构 [§14](architecture.md)，设计 [§4.9](design.md)。

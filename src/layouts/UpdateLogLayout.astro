@@ -2,8 +2,10 @@
 import SiteHeader from '../components/SiteHeader.astro';
 import Toc from '../components/Toc.astro';
 import UpdateEntry from '../components/UpdateEntry.astro';
+import { describe, SITE_NAME, UPDATE_LOG_KEY } from '../lib/seo';
 import { loadSite } from '../lib/site';
 import { entriesByCategory, UPDATE_CATEGORY_LABEL, UPDATE_LOG_PATH, type UpdateCategory } from '../lib/update-log';
+import { withBase } from '../lib/with-base';
 import BaseLayout from './BaseLayout.astro';
 
 /**
@@ -29,9 +31,12 @@ const tabs: { category: UpdateCategory; label: string; count: number }[] = group
 // 目录按“未选”画（和参考页一样，更新日志不上路线图）；浏览器里的目录脚本要这份数据
 const outline = site.route.outline({}, null, 'principle');
 const routeJson = JSON.stringify(site.route.data).replace(/</g, '\\u003c');
+// 面包屑的结构化数据要绝对地址：首页和这一页（含部署根路径）
+const siteRoot = new URL(withBase('/'), Astro.site ?? Astro.url).href;
+const pageUrl = new URL(withBase(UPDATE_LOG_PATH), Astro.site ?? Astro.url).href;
 ---
 
-<BaseLayout title="更新日志" description="Re:从零开始订阅 claude 的更新日志：公告、正文更新和站点更新。">
+<BaseLayout title="更新日志" description={describe(site.seo, UPDATE_LOG_KEY)} jsonLd="article" breadcrumbs={[{ name: SITE_NAME, url: siteRoot }, { name: '更新日志', url: pageUrl }]}>
   <SiteHeader toc />
   <Toc
     outline={outline}

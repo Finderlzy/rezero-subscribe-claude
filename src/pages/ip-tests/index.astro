@@ -17,6 +17,8 @@ const { Content, headings } = await render(collection.entry);
   back={parent && { href: `/${site.referenceChapter.id}/`, title: parent.title }}
   currentReference="ip-tests"
   sections={tocSections(headings)}
+  description={collection.description}
+  breadcrumbPath={[{ title: site.referenceChapter.title, path: `/${site.referenceChapter.id}/` }]}
 >
   <Content />
 </ReferenceLayout>

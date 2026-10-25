@@ -5,9 +5,10 @@ import ImageZoom from '../components/ImageZoom.astro';
 import SiteHeader from '../components/SiteHeader.astro';
 import Toc from '../components/Toc.astro';
 import { hasZoomableImage } from '../lib/code-zoom/labels';
+import { SITE_NAME } from '../lib/seo';
+import { withBase } from '../lib/with-base';
 import { loadSite } from '../lib/site';
 import type { TocSection } from '../lib/toc-sections';
-import { withBase } from '../lib/with-base';
 import BaseLayout from './BaseLayout.astro';
 import '../styles/prose.css';
 
@@ -34,9 +35,21 @@ interface Props {
   currentReference: string;
   /** 这一页自己的 h2；各篇实测也传，小节挂在上级参考项下面 */
   sections?: TocSection[] | undefined;
+  /** 这一页的搜索摘要（`site.references.get(id).description`，来自 `src/content/seo.yaml`） */
+  description: string;
+  /** 面包屑里这一页上面还有哪几层（从首页往下），给结构化数据用 */
+  breadcrumbPath?: { title: string; path: string }[];
 }
 
-const { title, eyebrow, back, currentReference, sections = [] } = Astro.props;
+const { title, eyebrow, back, currentReference, sections = [], description, breadcrumbPath = [] } = Astro.props;
+// 面包屑的结构化数据（SEO）：首页 › 上层页面（从首页到这一页）› 这一页。
+// `breadcrumbPath` 由调用方按站点结构写死（合集是“日常维护”，各篇实测是“日常维护 › 合集”），不依赖 back（那是页脚链接）。
+const siteRoot = new URL(withBase('/'), Astro.site ?? Astro.url).href;
+const breadcrumbs = [
+  { name: SITE_NAME, url: siteRoot },
+  ...breadcrumbPath.map((item) => ({ name: item.title, url: new URL(withBase(item.path), Astro.site ?? Astro.url).href })),
+  { name: title, url: new URL(Astro.url.pathname, Astro.site ?? Astro.url).href },
+];
 const body = await Astro.slots.render('default');
 const hasZoom = hasZoomableImage(body);
 const site = await loadSite();
@@ -48,7 +61,7 @@ const pagesJson = JSON.stringify(pageTitles).replace(/</g, '\\u003c');
 const routeJson = JSON.stringify(site.route.data).replace(/</g, '\\u003c');
 ---
 
-<BaseLayout title={title}>
+<BaseLayout title={title} description={description} jsonLd="article" breadcrumbs={breadcrumbs}>
   <SiteHeader toc />
   <Toc
     outline={site.route.outline({}, null, 'principle')}

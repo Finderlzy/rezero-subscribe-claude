@@ -55,8 +55,9 @@ export default defineConfig({
     },
     {
       // 构建在 dist/ 的预览启动之后才开始（webServer 按顺序启动），两次构建不会同时写 Astro 缓存
+      // 和 npm run test:e2e 的 dist/ 构建一样带上 SITE_URL（canonical、sitemap、分享卡片只在给了 site 时生成）
       command: `npx astro build --outDir ${SUB_DIST} && node tests/e2e/static-server.mjs ${SUB_DIST} ${SUB_BASE} ${SUB_PORT}`,
-      env: { BASE_PATH: SUB_BASE },
+      env: { BASE_PATH: SUB_BASE, SITE_URL: 'https://re0claude.us.ci' },
       url: `http://localhost:${SUB_PORT}${SUB_BASE}`,
       reuseExistingServer: false,
       timeout: 180_000,

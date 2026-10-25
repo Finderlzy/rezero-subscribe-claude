@@ -5,6 +5,8 @@ import { buildRouteMap, movedEntries, RouteValidationError } from './route/route
 import { parseRouteYaml } from './route/route-yaml';
 import type { ForkId, OptionId, PageId, PageMeta, RouteMap, RouteSpecMovedTarget, Stop } from './route/types';
 import { sectionAnchor, type AnchorHeading } from './section-anchor';
+import { describe, HOME_KEY, UPDATE_LOG_KEY, type SeoEntry } from './seo';
+import { loadSeo } from './seo/load';
 import { loadUpdateLog } from './update-log/load';
 import type { ResolvedUpdateEntry } from './update-log';
 
@@ -17,6 +19,8 @@ import type { ResolvedUpdateEntry } from './update-log';
 export interface SitePage {
   id: string;
   title: string;
+  /** 搜索摘要（`src/content/seo.yaml`，SEO 2026-10-25）：写进 <meta name="description"> 和分享卡片 */
+  description: string;
   principle: CollectionEntry<'principle'>;
 }
 
@@ -24,6 +28,8 @@ export interface SitePage {
 export interface SiteReference {
   id: string;
   title: string;
+  /** 搜索摘要（`src/content/seo.yaml`） */
+  description: string;
   entry: CollectionEntry<'reference'>;
 }
 
@@ -48,6 +54,11 @@ export interface Site {
    * 条目里 `page` 已经解析出页面标题。它不进路线图，也不进目录、站内搜索和上一步/下一步。
    */
   updateLog: ResolvedUpdateEntry[];
+  /**
+   * 每页的搜索摘要（SEO 2026-10-25）：`src/content/seo.yaml` 的全部条目，按页面键查找。
+   * 首页和更新日志页的键是 `/`、`/update-log/`，其余同页面标识。缺任何一页时构建就失败（loadSeo）。
+   */
+  seo: ReadonlyMap<string, SeoEntry>;
 }
 
 /** 跳转的去向：构建时算好目标页标题和原理版小节锚点。 */
@@ -251,26 +262,40 @@ async function readSite(): Promise<Site> {
     if (error instanceof RouteValidationError) throw new Error(error.message);
     throw error;
   }
+  const referenceTitle = (entry: (typeof references)[number]) =>
+    pageTitle(entry.body, `src/content/reference/${entry.id}.md`);
   const referenceById = new Map(
-    references.map((entry) => [entry.id, { id: entry.id, title: pageTitle(entry.body, `src/content/reference/${entry.id}.md`), entry }]),
+    references.map((entry) => [entry.id, { id: entry.id, title: referenceTitle(entry), entry }]),
   );
   // 跳转表的 section 用 M1 的小标题扫描（和双链解析同一套规则，架构 §13.4）。直接扫内容集合里的正文：
   // Astro 构建把页面代码打包到 <outDir>/.prerender/ 再执行，不能靠 import.meta.url 找 src/content。
   const principleHeadings = new Map(principles.map((entry) => [entry.id, scanHeadings(entry.body ?? '')]));
+  // 搜索摘要（SEO 2026-10-25）：路线图页面、参考页、首页和更新日志页，每一页都必须有一条（loadSeo 校验）
+  // 参考页只有 IP 质量实测合集和各篇实测（SEARCH_REFERENCE_ROOT 那一支），其余不进目录也不进 sitemap
+  const referenceKeys = [...referenceById.keys()].filter(
+    (id) => id === SEARCH_REFERENCE_ROOT || id.startsWith(`${SEARCH_REFERENCE_ROOT}/`),
+  );
+  const seo = loadSeo([HOME_KEY, UPDATE_LOG_KEY, ...Object.keys(route.data.pages), ...referenceKeys]);
   return {
     route,
     start: startOf(route),
     moved: buildMovedPages(spec, route, (id) => principleHeadings.get(id), new Set(referenceById.keys())),
     pages: new Map(
-      principles.map((entry) => [entry.id, { id: entry.id, title: route.data.pages[entry.id]!.title, principle: entry }]),
+      principles.map((entry) => [
+        entry.id,
+        { id: entry.id, title: route.data.pages[entry.id]!.title, description: describe(seo, entry.id), principle: entry },
+      ]),
     ),
-    references: referenceById,
+    references: new Map(
+      [...referenceById].map(([id, reference]) => [id, { ...reference, description: describe(seo, id) }]),
+    ),
     tocReferences: TOC_REFERENCES.map((id) => {
       const reference = referenceById.get(id);
       if (!reference) throw new Error(`src/content/reference/${id}.md：缺少目录要列出的参考页`);
       return { id, title: reference.title };
     }),
     referenceChapter: referenceChapterOf(route),
+    seo,
     // 更新日志（M7）：page 要按页面标题解析，所以放在路线图和参考页都读出来之后（FR-83、FR-86）。
     // 可以指向路线图里的页面，也可以指向参考页（如 ip-tests），不能指向跳转页。
     updateLog: loadUpdateLog(

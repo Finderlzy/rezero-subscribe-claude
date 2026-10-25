@@ -418,3 +418,51 @@ function getNameHost(scope?): { name: string } | null;   // 浏览器里是 wind
 - **`<dialog>` 的关闭过渡需要显式的 `display: none; overlay: none`**：只写 `[open]` 的 `display: flex` 时，关掉后元素不再从顶层移出，视觉上关不掉。
 - **更新日志页也要跑目录脚本**（`initToc`），否则 <720px 的“目录”按钮不会换成能开抽屉的按钮。
 - **页面脚本里不要把参数命名成与模板中同名的变量**（例如 `document`）：Vite 压缩后会改名，但语义错误仍会留到产物里，表现为“脚本跑了一半、剩下的静默失效”。
+
+## 15. SEO 增量：搜索结果摘要、分享卡片和结构化数据（2026-10-25）
+
+在 v3.1 的基础上补齐站点的搜索引擎可见性。canonical、sitemap（含 lastmod）、robots.txt、404 和跳转页的 noindex 在 2026-10-23 之前已有，这一轮补的是**每页的摘要、分享卡片和结构化数据**，M1、M2、M7 都不改。
+
+### 15.1 增量影响分析
+
+| 模块 | 影响 | 位置 |
+| --- | --- | --- |
+| M1 内容 | **不改集合**：摘要不是正文，直接用 `?raw` 读 YAML，不进 Astro 内容缓存，不被导入脚本覆盖 | `src/content/seo.yaml` |
+| SEO 纯逻辑（新） | 校验、摘要查找、Article/WebSite/BreadcrumbList 的结构化数据、JSON-LD 序列化 | `src/lib/seo/index.ts`（单元测试在旁边） |
+| SEO 构建期读取 | 读 `seo.yaml`、按页面键校验 | `src/lib/seo/load.ts`（由 `loadSite()` 调用） |
+| `loadSite()` | 新字段 `seo`；`SitePage`、`SiteReference` 各多一个 `description`，页面不用再自己查表 | `src/lib/site.ts` |
+| M3 页面 | `BaseLayout` 统一输出 description、canonical、OG/Twitter、JSON-LD；`PageLayout`/`ReferenceLayout`/`UpdateLogLayout`/`index.astro` 传摘要、类型和面包屑 | `src/layouts/`、`src/pages/` |
+| 静态资源 | 分享图 1200×630，由 `node scripts/build-og-image.mjs` 生成（不进构建） | `public/og-image.png` |
+
+### 15.2 数据形状（`src/content/seo.yaml`）
+
+一组“页面键 → `{ description, title? }`”的映射：
+
+- 键：路线图的页面标识、参考页标识（`ip-tests/<id>`），以及两个没有正文文件的固定键 `/`（首页）、`/update-log/`（更新日志）。
+- `description`：一段话，40–118 个字符（按字符数，中文一个字算一个）。太短搜索引擎会改从正文里取，太长会被截断。
+- `title`：可选，只在分享卡片里当大标题；不写就用页面标题。
+
+校验在 `parseSeo()`（纯函数，覆盖全部错误分支）和 `loadSeo()`（YAML 语法）。**少写一页、多写一个不存在的键、长度不合规都让构建失败**，错误信息统一成 `src/content/seo.yaml 的 <页面键>：……`。
+
+### 15.3 输出的标签
+
+- `<meta name="description">`：来自 `seo.yaml`，所有收录的页面都有。
+- `<link rel="canonical">`、`og:url`、分享图：只在给了 `SITE_URL`（`Astro.site`）时输出。
+- Open Graph：`og:type=article`、`og:site_name`、`og:locale=zh_CN`、`og:title`、`og:description`、`og:url`、`og:image`（带 1200×630 尺寸和 alt）；Twitter 用 `summary_large_image`。
+- JSON-LD：首页是 `WebSite`；正文页、参考页、更新日志是 `Article`（`isPartOf` 指向 WebSite，不写没有可信来源的 `datePublished`）+ `BreadcrumbList`。面包屑是 首页 › 章节 › 页面，参考页多一层“IP 质量实测合集”。
+- 找不到页和跳转页：只有 `noindex`，不写 canonical、分享卡片和结构化数据。
+
+### 15.4 验收对应的验证方式
+
+| 范围 | 验证 |
+| --- | --- |
+| 摘要校验 | `src/lib/seo/index.test.ts`（缺页、多余键、长度上下界、未知字段、`title`、JSON-LD 序列化的尖括号转义） |
+| 写错时构建失败 | `tests/build/ac-14-build-fail.test.ts` 的 `seo-missing-page`、`seo-too-long` 两个夹具 |
+| 线上产物 | `tests/e2e/seo.spec.ts`（每页都有 description/canonical/og/JSON-LD；首页 WebSite、正文页 Article + 面包屑、参考页面包屑四层；404 和跳转页 noindex 且无分享卡片；sitemap 条数、lastmod、跳转页不在里面） |
+| 回归 | `npm run check`、`npm run test:e2e` 全量通过 |
+
+### 15.5 踩过的坑（写给后续维护）
+
+- **`npm run test:e2e` 的构建要带 `SITE_URL`**：canonical、`og:url`、sitemap 都只在给了 site 时生成，不带的话 SEO 用例没东西可测。`playwright.config.ts` 里 `dist-sub/` 那份构建同样带上。
+- **面包屑的当前页地址用 `Astro.url.pathname`**，不要拿 `Astro.url.href` 再 `new URL()`：前者已经含部署根路径，后者会把整条路径当成另一条网址的 reference 解析，最后一层会变成站点根。
+- **构建级用例的夹具只放要覆盖的文件**（如 `tests/fixtures/seo-missing-page/seo.yaml`），不要放 `src/content/` 整层：`buildProject()` 是把它复制**到** `src/content`，多一层会变成 `src/content/src/content`，坏内容根本不会生效。

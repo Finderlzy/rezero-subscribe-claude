@@ -47,7 +47,7 @@ v3（2026-10-21 需求定稿，2026-10-22 按作者新稿收口）把站点改�
 | --- | --- |
 | 任何任务前 | [CONTEXT.md](CONTEXT.md)：术语（步骤、路线、分叉点、小节……），命名和文案要用这里的词 |
 | 判断做不做、怎么验收 | [docs/requirements.md](docs/requirements.md)：范围、三级边界、FR/AC 编号 |
-| 改代码结构、接口、目录 | [docs/architecture.md](docs/architecture.md)（v3 的增量在 §13，v3.1 的更新日志在 §14）、[docs/adr/](docs/adr/) |
+| 改代码结构、接口、目录 | [docs/architecture.md](docs/architecture.md)（v3 的增量在 §13，v3.1 的更新日志在 §14，2026-10-25 的 SEO 在 §15）、[docs/adr/](docs/adr/) |
 | 改页面或样式 | [docs/design.md](docs/design.md)：设计令牌、页面结构、拒绝清单；**v3.1（更新日志，2026-10-23，§4.9）**：四个分类 tab、首页“最近更新”5 条、侧边栏底部入口。**v3（文档站风格，2026-10-21 定稿，V01–V12 已实施）**：昼夜切换、常驻侧边栏、正文组件、文字链接翻页、VuePress 式首页、站内搜索、小节锚点、11 页单版本内容和选项卡片。v2.2 的契约见 git 历史 |
 | 选依赖 | [docs/reuse-research.md](docs/reuse-research.md) |
 | 看交付状态、未解决项 | [docs/delivery.md](docs/delivery.md)：验收基线、结果和待补项；使用、部署和改内容的说明在下文对应小节（README 只给读者看，不写构建和部署） |
@@ -57,11 +57,11 @@ v3（2026-10-21 需求定稿，2026-10-22 按作者新稿收口）把站点改�
 
 工程配置在仓库根目录（`astro.config.mjs`、`tsconfig.json`、`vitest.config.ts`、`playwright.config.ts`）。站内链接一律经 `src/lib/with-base.ts` 的 `withBase()` 生成。标“计划”的目录由后续任务建立：
 
-- `src/content/`（集合定义在 `src/content.config.ts`）：内容。`route.yaml` 是路线图（章节、分叉点、页面顺序、跳转表 `moved:`）。现状（V10）：`principle/<id>.md` 是 11 页单版本正文，页面元数据写在它的 frontmatter（选择页写 `options`）；`reference/` 只留 `ip-tests.md` 和 `ip-tests/<id>.md` 共 7 个参考页；`blog-links.yaml` 是博客外链映射；`update-log.yaml` 是**更新日志**的条目（v3.1、M7，需求 FR-80–FR-89：公告/内容/站点三类，首页列最近 5 条，侧边栏底部有入口，页面在 `/update-log/`），它**不是正文**、不受 ADR-0005 约束，由作者直接改、不从 git 提交自动生成。正文由 `scripts/import-rewrite.mjs` 从 `docs/v3-rewrite/` 原样导入，不手改正文（ADR-0005）；页面标识、旧网址去向和迁移口径在 [docs/migration-checklist.md](docs/migration-checklist.md)。截图放在 `src/assets/screenshots/`，嵌入写裸文件名 `![[文件名|宽度]]`；说明图（`.svg`，design §4.7）由导入脚本从重写稿的 `附件/` 复制到 `src/assets/diagrams/`，改图就改附件里的原稿再导入；正文视频（`.mp4`，2026-10-23）自托管：文件直接放 `public/videos/`，正文写裸文件名 `![[名字.mp4]]`，导入脚本不复制视频（转码命令见 [docs/v3-rewrite-video-list.md](docs/v3-rewrite-video-list.md)）；logo 只放 `src/assets/logo/`，只由 `src/components/Logo.astro` 引用；README 顶部的深浅两版横幅也由 `node scripts/build-logo.mjs` 生成，放 `docs/assets/readme-logo-{light,dark}.svg`，由 README 用 `<picture>` 引用（不进站点构建）；README 的首页截图 `docs/assets/readme-home-{light,dark}.webp` 同样是交付用图，不参与站点构建；Claude Code 像素小形象只放 `src/assets/mascot/`，只由 `src/components/Mascot.astro` 引用（design D6、D7：不改色、不放大、不改画）；编号字形放 `src/assets/numerals/`，只由 `Numeral.astro`/`NumeralSprite.astro` 和 `src/lib/numeral.ts` 引用，只用在找不到页的大号 `404`（章节号一律写成文字）；这些 SVG、`metrics.json` 和 `public/favicon.svg` 由 `node scripts/build-logo.mjs` 生成，不手改（`scripts/build-logo.test.ts` 核对生成物和脚本输出一致）。
+- `src/content/`（集合定义在 `src/content.config.ts`）：内容。`route.yaml` 是路线图（章节、分叉点、页面顺序、跳转表 `moved:`）。现状（V10）：`principle/<id>.md` 是 11 页单版本正文，页面元数据写在它的 frontmatter（选择页写 `options`）；`reference/` 只留 `ip-tests.md` 和 `ip-tests/<id>.md` 共 7 个参考页；`blog-links.yaml` 是博客外链映射；`update-log.yaml` 是**更新日志**的条目（v3.1、M7，需求 FR-80–FR-89：公告/内容/站点三类，首页列最近 5 条，侧边栏底部有入口，页面在 `/update-log/`），它**不是正文**、不受 ADR-0005 约束，由作者直接改、不从 git 提交自动生成。`seo.yaml` 是**每页的搜索摘要**（2026-10-25，需求 FR-90–FR-95）：一条对应一个页面（首页用 `/`、更新日志用 `/update-log/`），写进 `<meta name="description">` 和分享卡片，40–118 字，**少写一页或写错构建就失败**；改正文之后顺手改对应那一条。正文由 `scripts/import-rewrite.mjs` 从 `docs/v3-rewrite/` 原样导入，不手改正文（ADR-0005）；页面标识、旧网址去向和迁移口径在 [docs/migration-checklist.md](docs/migration-checklist.md)。截图放在 `src/assets/screenshots/`，嵌入写裸文件名 `![[文件名|宽度]]`；说明图（`.svg`，design §4.7）由导入脚本从重写稿的 `附件/` 复制到 `src/assets/diagrams/`，改图就改附件里的原稿再导入；正文视频（`.mp4`，2026-10-23）自托管：文件直接放 `public/videos/`，正文写裸文件名 `![[名字.mp4]]`，导入脚本不复制视频（转码命令见 [docs/v3-rewrite-video-list.md](docs/v3-rewrite-video-list.md)）；logo 只放 `src/assets/logo/`，只由 `src/components/Logo.astro` 引用；README 顶部的深浅两版横幅也由 `node scripts/build-logo.mjs` 生成，放 `docs/assets/readme-logo-{light,dark}.svg`，由 README 用 `<picture>` 引用（不进站点构建）；README 的首页截图 `docs/assets/readme-home-{light,dark}.webp` 同样是交付用图，不参与站点构建；Claude Code 像素小形象只放 `src/assets/mascot/`，只由 `src/components/Mascot.astro` 引用（design D6、D7：不改色、不放大、不改画）；编号字形放 `src/assets/numerals/`，只由 `Numeral.astro`/`NumeralSprite.astro` 和 `src/lib/numeral.ts` 引用，只用在找不到页的大号 `404`（章节号一律写成文字）；这些 SVG、`metrics.json` 和 `public/favicon.svg` 由 `node scripts/build-logo.mjs` 生成，不手改（`scripts/build-logo.test.ts` 核对生成物和脚本输出一致）。
 - `src/lib/`：纯逻辑模块，单元测试放在旁边（`*.test.ts`；组件的渲染测试用 Astro Container API，放在组件旁边）。其中 `content/` 是 M1，`route/` 是 M2，`reader-state/` 是 M4；`search/` 是 M6 站内搜索（V06、V08 现状：构建时生成索引、浏览器里匹配，索引由静态端点 `src/pages/search-index.json.ts` 输出，顶栏的搜索框由 `src/components/SiteSearch.astro` 和 `src/scripts/search.ts` 接上）。
 - `src/pages/`、`src/layouts/`、`src/components/`、`src/styles/`：页面（M3）。`src/scripts/` 放打包进页面的浏览器脚本（如 `code-zoom.ts`），和根目录放一次性开发脚本的 `scripts/` 不是一回事。
 - `tests/e2e/`：Playwright 测试，文件按验收编号命名，如 `ac-09-unchosen.spec.ts`；`tests/build/`：构建级用例（AC-14）；`tests/fixtures/`：构建级用例用的坏内容，每个用例一个目录，按 `src/content/` 的相对路径覆盖。
-- `docs/`：文档；新的难以逆转的决策写进 `docs/adr/NNNN-slug.md`。`docs/v3-rewrite/` 是作者维护的重写稿（v3 素材来源），站点代码不直接读它；v1/v2 的 `docs/rewrite/` 已在 V11 删除。一次性的开发脚本放在 `scripts/`（`import-rewrite.mjs`，测试在旁边；`compare-migration.mjs` 对照新稿和产物；`build-logo.mjs`，生成 logo、README 横幅和编号转曲，字体放在不提交的 `.cache/fonts/`，下载地址写在脚本开头）。
+- `docs/`：文档；新的难以逆转的决策写进 `docs/adr/NNNN-slug.md`。`docs/v3-rewrite/` 是作者维护的重写稿（v3 素材来源），站点代码不直接读它；v1/v2 的 `docs/rewrite/` 已在 V11 删除。一次性的开发脚本放在 `scripts/`（`import-rewrite.mjs`，测试在旁边；`compare-migration.mjs` 对照新稿和产物；`build-logo.mjs`，生成 logo、README 横幅和编号转曲，字体放在不提交的 `.cache/fonts/`，下载地址写在脚本开头；`build-og-image.mjs`，生成分享卡片图 `public/og-image.png`）。
 
 ## 构建、测试与开发命令
 
@@ -110,6 +110,7 @@ location /sub/ {
 - `principle/<标识>.md`：11 页正文；页面元数据写在 frontmatter，选择页写 `options`。
 - `reference/`：只放 IP 质量实测合集和 6 篇实测。
 - `update-log.yaml`：更新日志（公告 / 内容 / 站点三类），写法见下文“更新日志”；字段规则和样例在文件开头的注释里，写错时构建会指出第几条。
+- `seo.yaml`：每页的搜索摘要（写在搜索结果和分享卡片里）。改完正文顺手改对应的那一条，漏写或过长构建会失败并指出是哪个页面。
 
 **正文不手改。** 改 `docs/v3-rewrite/` 的重写稿，再运行 `node scripts/import-rewrite.mjs`（ADR-0005）。截图放 `src/assets/screenshots/`，正文写 `![[文件名|宽度]]`；说明图改重写稿的 `附件/` 再导入；正文视频转成 mp4 后放 `public/videos/`，正文写 `![[名字.mp4]]`（转码命令见 [docs/v3-rewrite-video-list.md](docs/v3-rewrite-video-list.md)）。页面标识、旧网址去向和迁移口径见 [docs/migration-checklist.md](docs/migration-checklist.md)。
 
