@@ -1,4 +1,4 @@
-# 推送 main 后构建并部署到 GitHub Pages（自定义域名 re0claude.us.ci，见 README“部署”）。
+# 推送 main 后构建并部署到 GitHub Pages（自定义域名 re0claude.us.ci，见 AGENTS.md“部署”）。
 name: 部署到 GitHub Pages
 
 on:

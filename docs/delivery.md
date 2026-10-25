@@ -208,7 +208,7 @@ V12 按 design §7 和需求 §8 对 v3 做了逐页视觉对照和全量回归�
 
 2.0.0 部署到 GitHub Pages，正式地址 <https://re0claude.us.ci/>（需求 Q-01）。
 
-- **部署方式**：推送 `main` 后由 `.github/workflows/deploy.yml` 构建（`SITE_URL=https://re0claude.us.ci`，根路径）并发布；首次部署是 `3250287`。部署步骤见 [README](../README.md)。
+- **部署方式**：推送 `main` 后由 `.github/workflows/deploy.yml` 构建（`SITE_URL=https://re0claude.us.ci`，根路径）并发布；首次部署是 `3250287`。部署步骤见 [AGENTS.md](../AGENTS.md) 的“部署”一节（2026-10-25 起 README 只面向读者，构建和部署说明移到了 AGENTS.md）。
 - **域名**：`re0claude.us.ci` 是 DNSHE 的免费子域名，解析是一条 CNAME 指向 `finderlzy.github.io`；Pages 设置里填了自定义域名，Let's Encrypt 证书已签发（到 2027-01-17），开了强制 HTTPS。
 - **公开仓库前的历史扫描**：仓库改为公开前扫了全部 113 个提交（含所有本地分支）的差异：IP 只有示例、公共 DNS 和 GitHub Pages 地址；`vless://`、`hysteria2://` 只是正文里的前缀说明；没有密钥格式、UUID、密码或面板账号、带令牌的链接，没有提交过 `.env` 或证书文件。截图在 2.0.0 验收后没有新增，打码此前已逐张核对。
 - **上线核对**：首页、样式表正常返回，不存在的地址返回 `404.html`。
@@ -417,7 +417,7 @@ e2e 运行时本机 4321 端口被另一个 `astro dev` 占用（不是本次启
 ### 产物
 
 - 构建产物：`npm run build` 生成 `dist/`，子路径版本用 `BASE_PATH=<路径> npm run build`。产物不入库。
-- 使用与部署说明：[README](../README.md)。
+- 使用与部署说明：[AGENTS.md](../AGENTS.md) 的“本地运行与预览”“部署”“改内容”三节（2026-10-25 起从这里查）；README 只面向读者。
 
 ### 未解决项
 

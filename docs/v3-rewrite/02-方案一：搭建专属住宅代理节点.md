@@ -56,7 +56,7 @@ VPS 是整个节点的地基。在 [VoyraCloud](https://www.voyracloud.com/?ref_
 
 有的商家最高只提供 Debian 11。Debian 11 已经停止支持，软件源也用不了了；选 Debian 11 也可以，脚本会先把它原地升级到 Debian 12，再装节点，多花 5～15 分钟。
 
-**视频 02-1：购买海外 VPS**
+![[如何订阅claude（ios）.mp4]]（待修改：删除前言以及最开始点进博客的片段。直接黑屏文字展示"打开网站，点击文章中的链接”。然后直接跟着进入voyra官网的视频）
 
 ## 购买静态住宅 ISP 代理
 ---
@@ -98,7 +98,7 @@ ssh root@你的服务器IP
 
 第一次连接会问 `Are you sure you want to continue connecting (yes/no)?`，输入 `yes` 回车；出现 `password:` 时输入 root 密码，屏幕上不会显示任何字符，这是正常的。当提示符变成 `root@...:~#`，说明已经进入服务器。
 
-### 如果连不上
+### 如果提示 `Connection refused`
 
 提示 `Connection refused`，或者根本没出现 `password:`，说明 SSH 端口不是默认的 22。去商家后台看“端口”一栏，如果写的是别的数字，比如 38221，就在命令里加小写 `-p`：
 
@@ -106,9 +106,12 @@ ssh root@你的服务器IP
 ssh -p 38221 root@你的服务器IP
 ```
 
-提示 `Permission denied, please try again.`，说明服务器不认这个密码。先仔细再输一两次，注意不要多打空格；还是不行的话，在商家后台重置一次 root 密码，关掉当前命令行窗口，新开一个重试；或者直接用商家后台的“控制台 / VNC”登录，效果和 SSH 一样。
+提示 `Permission denied, please try again`，说明服务器不认这个密码。先仔细再输一两次，注意不要多打空格；还是不行的话，在商家后台重置一次 root 密码，关掉当前命令行窗口，新开一个重试；或者重启电脑后再次连接。如果还是不行，说明这台服务器有问题，退款之后买一台新的。
 
-**视频 02-3：SSH 连接服务器**
+### 如果提示`Connection closed by ......`
+
+提示`Connection closed by (你的服务器IP)`，说明你可能挂着梯子，把梯子关了就可以了。
+![[如何订阅claude（ios） 1.mp4]]（待修改：只放上第一节第三步的内容）
 
 ## 运行一键脚本
 ---
@@ -116,10 +119,10 @@ ssh -p 38221 root@你的服务器IP
 登录服务器后，复制下面这行命令，粘贴进去，回车：
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Finderlzy/reality-setup/v2.0.0/setup.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Finderlzy/reality-setup/v2.0.1/setup.sh)
 ```
 
-脚本会安装 Xray 和管理面板，然后把 ISP 代理套到节点上；安装过程中会在终端里问你几个问题。
+脚本会安装 Xray （把你的服务器作为代理节点）和管理面板（方便你自由配置管理节点），然后把 ISP 代理套到节点上；安装过程中会在终端里问你几个问题。
 
 | 终端提问 | 怎么填 |
 | --- | --- |
@@ -141,14 +144,14 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Finderlzy/reality-setup/v2.0
 
 最后脚本会打印两样东西，都要保存好：**主节点链接**以 `vless://` 开头，平时用这个，忘了可以在服务器上运行 `cat /root/vless.txt` 再看一次；**备用节点链接**以 `hysteria2://` 开头，主节点连不上或很慢时换它，忘了就运行 `cat /root/hy2.txt`。还有面板的登录信息，记下来，后面打开面板要用。
 
-**视频 02-4：运行一键脚本（方案一）**
+![[如何订阅claude（ios） 2.mp4]]（待修改：放上第一节的内容）
 
 > [!caution] 节点链接就是钥匙
 > 节点链接里写着服务器的地址和凭证。脚本会随机生成一个 UUID 作为凭证，只要你不把链接发给别人，别人就拿不到你的节点。不要截图发群，也不要放进公开的仓库。
 
 ### 端口和防火墙
 
-如果商家后台有“防火墙”或“安全组”，确认放行了 **TCP 443** 和 **UDP 443**，否则节点在外部连不上。
+如果商家后台有“防火墙”或“安全组”，确认放行了 **TCP 443** 和 **UDP 443**，否则节点在外部连不上。voyracloud和丽萨是放行了的。
 
 如果脚本把 Debian 11 升级到了 12，最后会提示你重启。找个方便的时候运行：
 
@@ -172,8 +175,6 @@ reboot
 ```bash
 ssh -L 8080:127.0.0.1:8080 root@你的服务器IP
 ```
-
-**视频 02-6：打开 3x-ui 面板**
 
 浏览器打开 `http://127.0.0.1:8080/访问路径`，用安装完成时打印的用户名和密码登录。如果忘了，在服务器上运行：
 
