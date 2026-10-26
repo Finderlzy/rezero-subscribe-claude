@@ -145,6 +145,34 @@ describe('AC-14 坏内容让构建失败并报出文件', () => {
       messages: ['和 docs/v3-rewrite/10-后记.md 对不上，运行 npm run skill 重新生成', '订阅 Skill 校验失败'],
     },
     {
+      // V15（AC-42）：参考文件整个缺失——diff 报少文件，checkSkill 再报引用不存在和缺参考文件
+      fixture: 'skill-missing-reference',
+      file: 'agent-skill/rezero-subscribe-claude/references/afterword.md',
+      messages: [
+        '缺少这个文件（由 docs/v3-rewrite/10-后记.md 生成）',
+        'agent-skill/rezero-subscribe-claude/SKILL.md：引用的 references/afterword.md 不存在',
+        'agent-skill/rezero-subscribe-claude/references/afterword.md：路线图页面或 ip-tests 缺少参考文件',
+      ],
+    },
+    {
+      // description 整行删掉
+      fixture: 'skill-no-description',
+      file: 'agent-skill/rezero-subscribe-claude/SKILL.md',
+      messages: ['frontmatter 缺少 description'],
+    },
+    {
+      // 参考文件里留着 Obsidian 图片嵌入
+      fixture: 'skill-leftover-embed',
+      file: 'agent-skill/rezero-subscribe-claude/references/preface.md',
+      messages: ['残留图片嵌入 ![['],
+    },
+    {
+      // 参考文件里混进一条节点分享链接
+      fixture: 'skill-node-link',
+      file: 'agent-skill/rezero-subscribe-claude/references/preface.md',
+      messages: ['有像节点凭据的链接（vless://'],
+    },
+    {
       fixture: 'bad-metadata',
       file: 'src/content/principle/maintenance.md',
       messages: ['principle → maintenance data does not match collection schema', 'Unrecognized key: "skipable"'],
