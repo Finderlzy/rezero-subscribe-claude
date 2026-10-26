@@ -469,7 +469,7 @@ function getNameHost(scope?): { name: string } | null;   // 浏览器里是 wind
 
 ## 16. v3.2 增量架构：M8 订阅 Skill（2026-10-26）
 
-需求 v0.15 的 FR-100–FR-117、NFR-07、AC-40–AC-49。复用调研见 [reuse-research.md §5.2](reuse-research.md#52-v32-补充订阅-skill2026-10-26)，生成物入库的决定见 [ADR-0007](adr/0007-agent-skill-generated-and-committed.md)。状态：**定稿，部分实现**。V14（#41，2026-10-26）建立了骨架：§16.11 R1 的重构、`src/lib/agent-skill/` 的生成和对照、`npm run skill`、构建开始时的对照、最小的 `SKILL.md` 模板和入库的生成物（§16.3、§16.4 第 1–2 步，下文标“现状”）；V15（#42）加了 `checkSkill` 和构建结束时的 zip（§16.4 现状）；方法文件和行为规则由 V16（#43，2026-10-26）建立，见 §16.5、§16.6 的现状段；Skill 页和入口仍是“计划”，由后续任务建立。
+需求 v0.15 的 FR-100–FR-117、NFR-07、AC-40–AC-49。复用调研见 [reuse-research.md §5.2](reuse-research.md#52-v32-补充订阅-skill2026-10-26)，生成物入库的决定见 [ADR-0007](adr/0007-agent-skill-generated-and-committed.md)。状态：**定稿，部分实现**。V14（#41，2026-10-26）建立了骨架：§16.11 R1 的重构、`src/lib/agent-skill/` 的生成和对照、`npm run skill`、构建开始时的对照、最小的 `SKILL.md` 模板和入库的生成物（§16.3、§16.4 第 1–2 步，下文标“现状”）；V15（#42）加了 `checkSkill` 和构建结束时的 zip（§16.4 现状）；方法文件和行为规则由 V16（#43，2026-10-26）建立，见 §16.5、§16.6 的现状段；Skill 页和两处入口由 V17（#44）建立，见 §16.7 的现状段。
 
 M8 是一个**生成器**：读重写稿（M1 的素材）、路线图（M2）和手写的 Skill 源稿，产出读者用的 Skill 目录；构建时重新生成一遍和入库的生成物逐字核对，再按 FR-113 校验并打成 zip。它不改 M1、M2、M4，也不被它们依赖；M3 只多一个独立页面和两处入口。
 
@@ -609,9 +609,9 @@ agent-skill/
 ### 16.7 Skill 页与入口
 
 - **路由**：`src/pages/agent-skill.astro` → `/agent-skill/`；zip 在 `/agent-skill/rezero-subscribe-claude.zip`（同一目录）。两个地址发布后不能改（ADR-0002 的口径，需求三级边界 Ask first）。常量 `AGENT_SKILL_PATH`、`AGENT_SKILL_ZIP_PATH` 放在 `src/lib/agent-skill/index.ts`，页面、目录和 sitemap 都从这里取。
-- **骨架**：和更新日志页一样是独立页面（顶栏 + 侧边栏 + 正文栏，没有上一步/下一步、没有眉题的章节信息）。具体版式由 design.md 补 §4.10（计划，实施前补）。
+- **骨架**：和更新日志页一样是独立页面（顶栏 + 侧边栏 + 正文栏，没有上一步/下一步、没有眉题的章节信息）。**现状（V17，`src/layouts/AgentSkillLayout.astro`）**：版式见 design.md §4.10（Q-27 已收口）——首屏引子 + 主按钮“下载 rezero-subscribe-claude.zip” + 版本行，下面四块各一个 h2（能做/不做两列清单、安装方法表格、装好以后、凭据和清理）。
 - **页面数据**：版本号读 `package.json`；安装方法写两个通用目录（`~/.agents/skills/`：Codex、Gemini CLI、Qwen Code、OpenCode；`~/.claude/skills/`：Claude Code、OpenCode），再列各家自己的目录（调研 §5.2）；开始语“带我订阅 Claude”；凭据和清理的说明；只能聊天的 Agent 只能用引导部分（Q-23）。文字写在页面代码里。
-- **入口**：`Toc.astro` 的 `.toc-sidebar-foot`、`.toc-dialog-foot` 在“更新日志”旁边加 `[data-toc-agent-skill]`，Skill 页上带 `aria-current="page"`；首页 `.home-actions` 主按钮旁加次要链接 `[data-home-agent-skill]`“让 AI Agent 带你做”。
+- **入口**：`Toc.astro` 的 `.toc-sidebar-foot`、`.toc-dialog-foot` 在“更新日志”旁边加 `[data-toc-agent-skill]`（现状 V17，两条入口共用 `.toc-update-log` 的样式），Skill 页上带 `aria-current="page"`；首页 `.home-actions` 主按钮旁加次要链接 `[data-home-agent-skill]`“让 AI Agent 带你做”（现状 V17，`.button-secondary`）。
 - **收录**：进 sitemap（来源文件是 `agent-skill.astro`）和 `seo.yaml`（键 `/agent-skill/`，必填）；JSON-LD 和更新日志页一样是 `Article` + 面包屑（首页 › Agent Skill）；不进目录的章节列表和站内搜索。
 
 ### 16.8 版本
@@ -636,7 +636,7 @@ agent-skill/
 | Q-22 | 源码核查通过（调研 §5.2）：提问都在安装前、从标准输入读，Debian 11 升级不弹窗。还没在真服务器上跑过 | AC-44 人工验收时确认；跑不通再走 Ask first 改 `reality-setup` | 否 |
 | Q-24 | 已定（2026-10-26）：Skill 页写 `~/.agents/skills/` 和 `~/.claude/skills/` 两个目录，覆盖 Claude Code、Codex、Gemini CLI、Qwen Code、OpenCode；人工验收用 Claude Code（接国内模型 API）和 Qwen Code | — | 否 |
 | Q-26 | Windows 自带的 OpenSSH 支不支持 `SSH_ASKPASS_REQUIRE=force`、askpass 能不能用 `.cmd`，没查到官方说明 | Windows 上首选做法可能不可用；退路（临时密钥）已经写进设计 | 否，AC-47 的 Windows 那次验证 |
-| Q-27 | Skill 页的版式（design.md §4.10）还没写 | Skill 页任务开工前要有 | 否，排在 Skill 页任务之前 |
+| Q-27 | 已定（V17，#44）：Skill 页的版式写在 design.md §4.10（首屏引子 + 下载主按钮 + 版本行，四块 h2；首页主按钮旁 `.button-secondary` 入口；侧边栏/抽屉底部两条入口并列） | — | 否，已收口 |
 
 ### 16.11 实施前评审（2026-10-26，project-plan）
 

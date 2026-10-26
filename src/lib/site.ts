@@ -6,7 +6,7 @@ import { movedEntries, RouteValidationError } from './route/route-map';
 import { parseRouteYaml } from './route/route-yaml';
 import type { ForkId, OptionId, PageId, RouteMap, RouteSpecMovedTarget, Stop } from './route/types';
 import { sectionAnchor, type AnchorHeading } from './section-anchor';
-import { describe, HOME_KEY, UPDATE_LOG_KEY, type SeoEntry } from './seo';
+import { describe, HOME_KEY, UPDATE_LOG_KEY, AGENT_SKILL_KEY, type SeoEntry } from './seo';
 import { loadSeo } from './seo/load';
 import { loadUpdateLog } from './update-log/load';
 import type { ResolvedUpdateEntry } from './update-log';
@@ -239,12 +239,12 @@ async function readSite(): Promise<Site> {
   // 跳转表的 section 用 M1 的小标题扫描（和双链解析同一套规则，架构 §13.4）。直接扫内容集合里的正文：
   // Astro 构建把页面代码打包到 <outDir>/.prerender/ 再执行，不能靠 import.meta.url 找 src/content。
   const principleHeadings = new Map(principles.map((entry) => [entry.id, scanHeadings(entry.body ?? '')]));
-  // 搜索摘要（SEO 2026-10-25）：路线图页面、参考页、首页和更新日志页，每一页都必须有一条（loadSeo 校验）
+  // 搜索摘要（SEO 2026-10-25）：路线图页面、参考页、首页、更新日志页和 Agent Skill 页，每一页都必须有一条（loadSeo 校验）
   // 参考页只有 IP 质量实测合集和各篇实测（SEARCH_REFERENCE_ROOT 那一支），其余不进目录也不进 sitemap
   const referenceKeys = [...referenceById.keys()].filter(
     (id) => id === SEARCH_REFERENCE_ROOT || id.startsWith(`${SEARCH_REFERENCE_ROOT}/`),
   );
-  const seo = loadSeo([HOME_KEY, UPDATE_LOG_KEY, ...Object.keys(route.data.pages), ...referenceKeys]);
+  const seo = loadSeo([HOME_KEY, UPDATE_LOG_KEY, AGENT_SKILL_KEY, ...Object.keys(route.data.pages), ...referenceKeys]);
   return {
     route,
     start: startOf(route),

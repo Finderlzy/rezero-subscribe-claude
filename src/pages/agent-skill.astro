@@ -1,0 +1,11 @@
+---
+import AgentSkillLayout from '../layouts/AgentSkillLayout.astro';
+
+/**
+ * Agent Skill 页（v0.16，FR-115）：/agent-skill/。地址写死在 src/lib/agent-skill/index.ts 的
+ * AGENT_SKILL_PATH，发布后不能改（ADR-0002 的口径）；它不进上一步/下一步、不进目录条目和站内搜索，
+ * 进 sitemap 和 seo.yaml。
+ */
+---
+
+<AgentSkillLayout />

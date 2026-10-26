@@ -1,0 +1,219 @@
+---
+import SiteHeader from '../components/SiteHeader.astro';
+import Toc from '../components/Toc.astro';
+import { AGENT_SKILL_PATH, AGENT_SKILL_ZIP_PATH } from '../lib/agent-skill/index';
+import { describe, AGENT_SKILL_KEY, SITE_NAME } from '../lib/seo';
+import { loadSite } from '../lib/site';
+import { withBase } from '../lib/with-base';
+import BaseLayout from './BaseLayout.astro';
+
+/**
+ * Agent Skill 页的骨架（v0.16，design §4.10，FR-115、FR-116）。
+ *
+ * 和更新日志页一样是“顶栏 + 侧边栏 | 正文区”的独立页面（design §4.10）：h1 是“Agent Skill”，
+ * 不进上一步/下一步、目录的章节列表和站内搜索，进 sitemap 和 seo.yaml（键 AGENT_SKILL_KEY）。
+ * 页面文字写在站点代码里，不从重写稿导入（FR-115）。
+ *
+ * 侧边栏/抽屉底部的两条常驻入口里，这一页自己的“Agent Skill”是当前态（currentAgentSkill）。
+ * 这一页没有浏览器脚本逻辑（没有 tab、没有进度），目录脚本照常跑（架构 §14.5：独立页面也要跑 initToc）。
+ */
+const site = await loadSite();
+// 目录按“未选”画（和更新日志页一样，Skill 页不上路线图）；浏览器里的目录脚本要这份数据
+const outline = site.route.outline({}, null, 'principle');
+const routeJson = JSON.stringify(site.route.data).replace(/</g, '\\u003c');
+// 面包屑的结构化数据要绝对地址：首页和这一页（含部署根路径）
+const siteRoot = new URL(withBase('/'), Astro.site ?? Astro.url).href;
+const pageUrl = new URL(withBase(AGENT_SKILL_PATH), Astro.site ?? Astro.url).href;
+// Skill 的版本和站点版本一致（架构 §16.8）：页面直接读 package.json，不和生成物另对一遍（构建对照已管）
+const { version } = await import('../../package.json');
+---
+
+<BaseLayout
+  title="Agent Skill"
+  description={describe(site.seo, AGENT_SKILL_KEY)}
+  jsonLd="article"
+  breadcrumbs={[{ name: SITE_NAME, url: siteRoot }, { name: 'Agent Skill', url: pageUrl }]}
+>
+  <SiteHeader toc />
+  <Toc outline={outline} references={site.tocReferences} referencesChapter={site.referenceChapter.id} currentAgentSkill />
+  <div class="page-view">
+    <main id="main" class="agent-skill-page">
+      <div class="page-body">
+        <h1 class="step-title">Agent Skill</h1>
+        <p class="agent-skill-intro">
+          把整份教程装进你自己的 AI Agent：它按路线带你走每一步，电脑上的命令、配置和收尾清理可以替你做，
+          手机、账号和付款只引导你自己操作。
+        </p>
+
+        <p class="agent-skill-download">
+          <a class="button" href={withBase(AGENT_SKILL_ZIP_PATH)} download data-agent-skill-download
+            >下载 rezero-subscribe-claude.zip</a
+          >
+        </p>
+        <p class="agent-skill-version">当前版本 {version}（和 zip 里的一致）</p>
+
+        <section class="agent-skill-section" aria-labelledby="agent-skill-can">
+          <h2 class="agent-skill-heading" id="agent-skill-can">它能做什么、不做什么</h2>
+          <div class="agent-skill-columns">
+            <div>
+              <h3 class="agent-skill-sub">能做（替你做）</h3>
+              <ul>
+                <li>按路线图一步步引导，记住你做到哪了（进度记在你本机的一个文件里）</li>
+                <li>电脑上的命令、配置文件和一键脚本的回答，经你确认后替你执行</li>
+                <li>装好代理软件后帮你查系统、改时区、核对节点自测结果</li>
+                <li>结束时清理临时文件、shell 历史里的密码和临时 SSH 密钥</li>
+              </ul>
+            </div>
+            <div>
+              <h3 class="agent-skill-sub">不做（只引导）</h3>
+              <ul>
+                <li>手机上的操作：订阅、代理 App 和系统设置都由你自己点</li>
+                <li>买服务器、付款、注册 Claude 账号：不代办购买、付款和 KYC</li>
+                <li>不操作你的浏览器和图形界面，代理软件的界面要你自己配</li>
+                <li>不改商家的命令、优惠码，也不推荐教程以外的商家</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="agent-skill-section" aria-labelledby="agent-skill-install">
+          <h2 class="agent-skill-heading" id="agent-skill-install">安装方法</h2>
+          <p>
+            解压 zip，把里面的 <code>rezero-subscribe-claude</code> 目录整个放进你所用 Agent 的 Skill 目录。
+            大部分 Agent 认下面两个目录之一：
+          </p>
+          <table>
+            <thead>
+              <tr><th>Agent</th><th>Skill 放的目录</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Codex</td><td><code>~/.agents/skills/</code></td></tr>
+              <tr><td>Gemini CLI</td><td><code>~/.agents/skills/</code>（或自己的 <code>~/.gemini/skills/</code>）</td></tr>
+              <tr><td>Qwen Code</td><td><code>~/.agents/skills/</code>（或自己的 <code>~/.qwen/skills/</code>）</td></tr>
+              <tr><td>OpenCode</td><td><code>~/.agents/skills/</code>、<code>~/.claude/skills/</code> 或 <code>~/.config/opencode/skills/</code></td></tr>
+              <tr><td>Claude Code</td><td><code>~/.claude/skills/</code></td></tr>
+            </tbody>
+          </table>
+          <p>
+            只能聊天、不能在你电脑上执行命令的 Agent（网页版聊天）装了也只能用引导部分：
+            它没法替你跑命令和清理，代办的部分要换能执行命令的 Agent。
+          </p>
+        </section>
+
+        <section class="agent-skill-section" aria-labelledby="agent-skill-start">
+          <h2 class="agent-skill-heading" id="agent-skill-start">装好以后</h2>
+          <p>对你的 Agent 说一句开始语：</p>
+          <p class="agent-skill-phrase"><code>带我订阅 Claude</code></p>
+          <p>它会先问你几个问题（确认风险提示、识别电脑系统、选节点方案和手机系统），然后按路线带你走。</p>
+        </section>
+
+        <section class="agent-skill-section" aria-labelledby="agent-skill-credentials">
+          <h2 class="agent-skill-heading" id="agent-skill-credentials">凭据和清理</h2>
+          <p>
+            替你登录服务器时需要服务器密码：密码只在本次对话里用，落在你电脑临时目录里的副本会在收尾时删掉。
+            收尾清理会删掉临时目录、临时 SSH 密钥和 shell 历史里带密码的行，服务器上的节点文件和面板信息不删。
+          </p>
+          <p>清不掉的：对话记录留在 Agent 和服务商那里，Skill 删不掉它们；介意的话结束时新建对话。</p>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script type="application/json" id="route-data" set:html={routeJson} />
+</BaseLayout>
+
+<script>
+  import { initToc } from '../scripts/toc';
+  import { pageReaderStore, readRouteData } from '../scripts/reader-store';
+
+  // Agent Skill 页也有目录：<720px 的抽屉、“目录”按钮和侧边栏当前项都靠目录脚本（和参考页一样）
+  const data = readRouteData(document);
+  if (data) initToc(document, data, pageReaderStore(data));
+</script>
+
+<style>
+  /* 正文栏：和参考页一样的宽度和边距（design §3.3、§4.6） */
+  .page-body {
+    box-sizing: border-box;
+    max-width: var(--content-width);
+    margin: 0 auto;
+    padding: var(--content-pad-top) var(--gutter) var(--space-7);
+  }
+
+  .step-title {
+    margin: 0 0 var(--space-4);
+    font-size: var(--fs-title);
+    line-height: var(--lh-title);
+    font-weight: var(--fw-heading);
+  }
+
+  .page-view {
+    min-width: 0;
+  }
+
+  .agent-skill-intro {
+    margin: 0 0 var(--space-5);
+    color: var(--text-muted);
+    font-size: var(--fs-meta);
+    line-height: var(--lh-tagline);
+  }
+
+  .agent-skill-download {
+    margin: 0;
+  }
+
+  .agent-skill-version {
+    margin: var(--space-2) 0 0;
+    color: var(--text-faint);
+    font-size: var(--fs-caption);
+  }
+
+  .agent-skill-section {
+    margin: var(--space-6) 0 0;
+  }
+
+  .agent-skill-heading {
+    margin: 0 0 var(--space-3);
+    font-size: var(--fs-h3);
+    line-height: var(--lh-h3);
+    font-weight: var(--fw-heading);
+  }
+
+  .agent-skill-section p {
+    margin: 0 0 var(--space-3);
+  }
+
+  /* 能做 / 不做：两列清单（design §4.10），<720px 一列堆叠 */
+  .agent-skill-columns {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-5);
+    margin: 0 0 var(--space-3);
+  }
+
+  @media (max-width: 719px) {
+    .agent-skill-columns {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .agent-skill-sub {
+    margin: 0 0 var(--space-2);
+    font-size: var(--fs-body);
+    font-weight: var(--fw-heading);
+  }
+
+  .agent-skill-columns ul {
+    margin: 0;
+    padding-inline-start: 1.4em;
+  }
+
+  .agent-skill-columns li {
+    margin: 0 0 var(--space-2);
+    line-height: var(--lh-body);
+  }
+
+  .agent-skill-phrase code {
+    font-size: var(--fs-h3);
+    font-weight: var(--fw-heading);
+  }
+</style>

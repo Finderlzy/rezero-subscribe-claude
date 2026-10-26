@@ -16,6 +16,8 @@ beforeEach(() => {
   writeFileSync(join(root, 'pages', 'index.astro'), '');
   // 更新日志页（v0.13、FR-80）：独立页面，源文件是路由文件
   writeFileSync(join(root, 'pages', 'update-log.astro'), '');
+  // Agent Skill 页（v0.16、FR-115）：同样是独立页面
+  writeFileSync(join(root, 'pages', 'agent-skill.astro'), '');
 });
 afterEach(() => fx.cleanup());
 
@@ -31,7 +33,15 @@ describe('sitemapSources', () => {
     fx.write('reference/ip-tests.md', '# IP 质量实测合集\n');
     fx.write('reference/ip-tests/decodo.md', '# 实测：Decodo ISP\n');
 
-    expect(paths()).toEqual(['/', '/ip-tests/', '/ip-tests/decodo/', '/plan1/', '/preface/', '/update-log/']);
+    expect(paths()).toEqual([
+      '/',
+      '/agent-skill/',
+      '/ip-tests/',
+      '/ip-tests/decodo/',
+      '/plan1/',
+      '/preface/',
+      '/update-log/',
+    ]);
   });
 
   it('源文件是相对仓库根的路径（git 认这个形式）', () => {
@@ -44,7 +54,7 @@ describe('sitemapSources', () => {
     fx.write('principle/preface.md', '# 前言\n');
     fx.write('reference/ip-tests/decodo.md', '# 实测：Decodo ISP\n');
 
-    expect(paths('/sub/')).toEqual(['/sub/', '/sub/ip-tests/decodo/', '/sub/preface/', '/sub/update-log/']);
+    expect(paths('/sub/')).toEqual(['/sub/', '/sub/agent-skill/', '/sub/ip-tests/decodo/', '/sub/preface/', '/sub/update-log/']);
   });
 
   it('只认 .md：其他文件和隐藏文件都不算一页', () => {
@@ -52,7 +62,7 @@ describe('sitemapSources', () => {
     fx.write('principle/notes.txt', 'x');
     fx.write('principle/.gitkeep', '');
 
-    expect(paths()).toEqual(['/', '/a/', '/update-log/']);
+    expect(paths()).toEqual(['/', '/a/', '/agent-skill/', '/update-log/']);
   });
 
   it('内容目录是空的或不存在时只输出首页，不报错', () => {
@@ -61,6 +71,7 @@ describe('sitemapSources', () => {
       mkdirSync(join(bare, 'pages'));
       writeFileSync(join(bare, 'pages', 'index.astro'), '');
       writeFileSync(join(bare, 'pages', 'update-log.astro'), '');
+      writeFileSync(join(bare, 'pages', 'agent-skill.astro'), '');
       const bareSources = sitemapSources({
         repoRoot: bare,
         contentRoot: join(bare, 'content'),
@@ -68,8 +79,8 @@ describe('sitemapSources', () => {
         base: '/',
       });
 
-      // 内容目录为空也照样有首页和更新日志页（后者不依赖内容集合）
-      expect(bareSources.map((source) => source.path)).toEqual(['/', '/update-log/']);
+      // 内容目录为空也照样有首页、更新日志页和 Agent Skill 页（后两者不依赖内容集合）
+      expect(bareSources.map((source) => source.path)).toEqual(['/', '/update-log/', '/agent-skill/']);
     } finally {
       rmSync(bare, { recursive: true, force: true });
     }

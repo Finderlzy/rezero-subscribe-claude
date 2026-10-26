@@ -4,6 +4,7 @@ import Logo from '../components/Logo.astro';
 import Mascot from '../components/Mascot.astro';
 import UpdateEntry from '../components/UpdateEntry.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { AGENT_SKILL_PATH } from '../lib/agent-skill/index';
 import { pathOf } from '../lib/route/route-map';
 import { describe, HOME_KEY } from '../lib/seo';
 import { loadSite } from '../lib/site';
@@ -76,6 +77,8 @@ function chapterEntryId(chapter: (typeof chapters)[number]): string {
         <a class="button home-start" href={withBase(pathOf(site.start))} data-home-start
           >从第 00 章开始<span class="button-arrow" aria-hidden="true">→</span></a
         >
+        <!-- Agent Skill 入口（v0.16、FR-116）：首屏只多这一个次要链接，不改五章简介和最近更新 -->
+        <a class="button button-secondary" href={withBase(AGENT_SKILL_PATH)} data-home-agent-skill>让 AI Agent 带你做</a>
       </p>
       <GroupInvite compact />
     </section>

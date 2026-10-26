@@ -24,10 +24,13 @@ export const DESCRIPTION_MIN = 40;
 export const DESCRIPTION_MAX = 118;
 
 /**
- * 页面键 → 摘要。`/` 和 `/update-log/` 是固定键：它们没有正文文件，但同样是独立页面，也需要自己的摘要。
+ * 页面键 → 摘要。`/`、`/update-log/` 和 `/agent-skill/` 是固定键：
+ * 它们没有正文文件，但同样是独立页面，也需要自己的摘要。
  */
 export const HOME_KEY = '/';
 export const UPDATE_LOG_KEY = '/update-log/';
+/** Agent Skill 页的页面键（v0.16、FR-115），值就是 src/lib/agent-skill 的 AGENT_SKILL_PATH */
+export const AGENT_SKILL_KEY = '/agent-skill/';
 
 /** 校验问题：key 是页面键（或出错的那一行），和构建报错的口径一致 */
 export interface SeoProblem {
