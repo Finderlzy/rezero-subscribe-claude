@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /**
@@ -59,14 +59,26 @@ function linkPackages(dir: string): void {
 
 /** 套上夹具：普通文件覆盖 src/content/，`@root/` 覆盖仓库根下的文件，`@delete` 里列出的文件删掉。 */
 function applyFixture(source: string, dir: string): void {
+  // 夹具只能动临时工程里自己的文件：不能逃出临时目录，也不能写进链接到主仓库的 node_modules
+  const inside = (path: string, where: string) => {
+    const target = resolve(dir, path);
+    const rel = relative(dir, target);
+    if (rel === '' || rel.startsWith('..') || isAbsolute(rel) || rel.split(sep)[0] === 'node_modules') {
+      throw new Error(`${where}：${path} 不在临时工程里，或者落在 node_modules 下`);
+    }
+    return target;
+  };
   for (const entry of readdirSync(source)) {
     const from = join(source, entry);
-    if (entry === FIXTURE_ROOT) cpSync(from, dir, { recursive: true });
+    if (entry === FIXTURE_ROOT) {
+      for (const file of readdirSync(from, { recursive: true, encoding: 'utf8' })) inside(file, from);
+      cpSync(from, dir, { recursive: true });
+    }
     else if (entry === FIXTURE_DELETE) {
       for (const line of readFileSync(from, 'utf8').split(/\r?\n/)) {
         const path = line.trim();
         if (path === '' || path.startsWith('#')) continue;
-        const target = join(dir, path);
+        const target = inside(path, from);
         if (!existsSync(target)) throw new Error(`${from}：要删的 ${path} 不存在`);
         rmSync(target, { recursive: true });
       }

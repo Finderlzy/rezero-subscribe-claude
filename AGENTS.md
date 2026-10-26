@@ -1,6 +1,6 @@
 # 仓库指南
 
-「Re:从零开始订阅 claude」是把《如何订阅claude》做成分步引导的静态网站。当前状态：**v3.2 已规划、未实现（2026-10-26：订阅 Skill，能力地图 M8，需求 FR-100–FR-117，架构 §16、ADR-0007；实施计划 §0.0，Issues #41–#45，首个任务 #41）**；**v3.1 已完成（V13，2026-10-23：新增更新日志模块 M7；2026-10-25 SEO 逐页摘要与分享卡片、顶栏改为固定在视口顶端；站点版本 3.1.3）**；v3 已完成（V01–V12）并上线，站点版本 3.0.0（2026-10-22 正式上线），正式地址 <https://re0claude.us.ci/>（见 [docs/delivery.md](docs/delivery.md)）。
+「Re:从零开始订阅 claude」是把《如何订阅claude》做成分步引导的静态网站。当前状态：**v3.2 实施中（2026-10-26：#41 订阅 Skill 骨架已完成；订阅 Skill，能力地图 M8，需求 FR-100–FR-117，架构 §16、ADR-0007；实施计划 §0.0，Issues #41–#45，首个任务 #41）**；**v3.1 已完成（V13，2026-10-23：新增更新日志模块 M7；2026-10-25 SEO 逐页摘要与分享卡片、顶栏改为固定在视口顶端；站点版本 3.1.3）**；v3 已完成（V01–V12）并上线，站点版本 3.0.0（2026-10-22 正式上线），正式地址 <https://re0claude.us.ci/>（见 [docs/delivery.md](docs/delivery.md)）。
 
 v3（2026-10-21 需求定稿，2026-10-22 按作者新稿收口）把站点改成参考站 VuePress 默认文档主题的样子（保留紫色和 Astro，去掉页头色带，≥720px 常驻侧边栏，加站内搜索、昼夜切换），并按作者重写好的 `docs/v3-rewrite/` 换成 11 页单版本：一章一页、没有操作版/原理版切换，方案三、独立常见问题、附录不再收录，IP 质量实测合集和 6 篇实测保留为参考页。V01–V09 已合并 main；**V10** 换成 11 页、5 章、2 个分叉点，选项卡片改由 frontmatter 生成；**V11** 把全部 47 条旧网址（37 条旧页面含 6 条手机分流、8 条旧常见问题路径和旧 `faq` 目录）写进 `route.yaml` 的 `moved:`，更新验收和文档、同步 Writing 和大肥鱼、删除旧稿 `docs/rewrite/`。**V12** 按 design §7 做了 360/768/1280、深浅两色的逐页截图对照和 AC-01–AC-33 全量回归，升 3.0.0 并打标签。**2026-10-22 收尾**：清掉 v2 遗留的 28 张未引用截图和一张旧说明图、合并后的本地分支，README 换成大 logo + 徽章 + QQ 群 + 截图的样式，以 3.0.0 正式上线。**2026-10-23：v3.1 加上更新日志模块（V13、M7）**——一个独立页面 `/update-log/`，按公告/内容/站点三类加「全部」四个分类看条目，首页五章简介下面列最近 5 条，每个有目录的页面在侧边栏底部有常驻入口；条目写在 `src/content/update-log.yaml`，写错时构建失败。站点版本 3.0.0 → 3.1.0。标“计划”的条目由对应任务建立，建立后改成现状。
 
@@ -61,8 +61,8 @@ v3（2026-10-21 需求定稿，2026-10-22 按作者新稿收口）把站点改�
 - `src/lib/`：纯逻辑模块，单元测试放在旁边（`*.test.ts`；组件的渲染测试用 Astro Container API，放在组件旁边）。其中 `content/` 是 M1，`route/` 是 M2，`reader-state/` 是 M4；`search/` 是 M6 站内搜索（V06、V08 现状：构建时生成索引、浏览器里匹配，索引由静态端点 `src/pages/search-index.json.ts` 输出，顶栏的搜索框由 `src/components/SiteSearch.astro` 和 `src/scripts/search.ts` 接上）。
 - `src/pages/`、`src/layouts/`、`src/components/`、`src/styles/`：页面（M3）。`src/scripts/` 放打包进页面的浏览器脚本（如 `code-zoom.ts`），和根目录放一次性开发脚本的 `scripts/` 不是一回事。
 - `agent-skill/`（v3.2、M8，架构 §16、ADR-0007；V14 建立了生成和对照，zip、方法文件和行为规则是计划）：读者装进自己 AI Agent 的**订阅 Skill**（不是 `.claude/skills/` 里那些开发用的 Skill）。`source/` 是手写的 `SKILL.md` 模板和 Agent 方法文件（`references/agent-*.md`），只写流程和规矩，不写重写稿以外的教程内容；`rezero-subscribe-claude/` 是生成物，由 `npm run skill`（`scripts/build-skill.mjs`，用 Vite 的 `runnerImport` 加载 `src/lib/agent-skill/`）从重写稿、路线图和 `source/` 生成，**入库、不手改**。构建时重新生成并逐字核对，对不上就失败；zip 在构建结束时写到 `dist/agent-skill/rezero-subscribe-claude.zip`。
-- `tests/e2e/`：Playwright 测试，文件按验收编号命名，如 `ac-09-unchosen.spec.ts`；`tests/build/`：构建级用例（AC-14）；`tests/fixtures/`：构建级用例用的坏内容，每个用例一个目录，按 `src/content/` 的相对路径覆盖（计划，v3.2：`@root/` 下的文件按仓库相对路径覆盖，`@delete` 逐行列出要删掉的仓库相对路径）。
-- `docs/`：文档；新的难以逆转的决策写进 `docs/adr/NNNN-slug.md`。`docs/v3-rewrite/` 是作者维护的重写稿（v3 素材来源），站点代码不直接读它；v1/v2 的 `docs/rewrite/` 已在 V11 删除。一次性的开发脚本放在 `scripts/`（`import-rewrite.mjs`，测试在旁边；`compare-migration.mjs` 对照新稿和产物；`build-logo.mjs`，生成 logo、README 横幅和编号转曲，字体放在不提交的 `.cache/fonts/`，下载地址写在脚本开头；`build-og-image.mjs`，生成分享卡片图 `public/og-image.png`）。
+- `tests/e2e/`：Playwright 测试，文件按验收编号命名，如 `ac-09-unchosen.spec.ts`；`tests/build/`：构建级用例（AC-14）；`tests/fixtures/`：构建级用例用的坏内容，每个用例一个目录，按 `src/content/` 的相对路径覆盖；`@root/` 下的文件按仓库相对路径覆盖，`@delete` 逐行列出要删掉的仓库相对路径（V14）。
+- `docs/`：文档；新的难以逆转的决策写进 `docs/adr/NNNN-slug.md`。`docs/v3-rewrite/` 是作者维护的重写稿（v3 素材来源），站点页面不直接读它（订阅 Skill 的生成和构建对照例外，M8 直接读重写稿，ADR-0007）；v1/v2 的 `docs/rewrite/` 已在 V11 删除。一次性的开发脚本放在 `scripts/`（`import-rewrite.mjs`，测试在旁边；`compare-migration.mjs` 对照新稿和产物；`build-logo.mjs`，生成 logo、README 横幅和编号转曲，字体放在不提交的 `.cache/fonts/`，下载地址写在脚本开头；`build-og-image.mjs`，生成分享卡片图 `public/og-image.png`）。
 
 ## 构建、测试与开发命令
 

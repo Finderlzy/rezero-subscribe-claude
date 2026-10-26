@@ -138,7 +138,8 @@ describe('AC-14 坏内容让构建失败并报出文件', () => {
     },
     {
       // 订阅 Skill（AC-41、FR-113）：改了重写稿一页的一句话、没有重新生成 → 报出这一页的生成物和重写稿
-      // 夹具用 @root/ 按仓库相对路径覆盖 docs/v3-rewrite/10-后记.md（真实重写稿的副本，只改了第一句）
+      // 夹具用 @root/ 按仓库相对路径覆盖 docs/v3-rewrite/10-后记.md：真实重写稿的副本，只差第 4 行；
+      // 作者改了后记的链接或小标题时，这份副本要跟着同步，否则会先报“找不到小标题”而不是“对不上”
       fixture: 'skill-stale',
       file: 'agent-skill/rezero-subscribe-claude/references/afterword.md',
       messages: ['和 docs/v3-rewrite/10-后记.md 对不上，运行 npm run skill 重新生成', '订阅 Skill 校验失败'],
