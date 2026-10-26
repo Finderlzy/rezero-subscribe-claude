@@ -1,8 +1,8 @@
 # 架构：Re:从零开始订阅 claude
 
-- 状态：**v3 增量定稿（2026-10-21）**，对应需求 v0.9（目标站点版本 3.0.0），没有阻塞决策（合并清单 Q-18 只阻塞合并数据），见 [§13](#13-v3-增量架构2026-10-21)。v2.0 定稿（2026-10-15）对应需求 v0.3（目标站点版本 2.0.0），没有阻塞决策；待定事项见 §10。上一版 v0.1（2026-10-13）对应已交付的 1.0.0，其中仍然有效的实现细节保留在各节里，标“1.0.0 已有”。
-- 输入：[术语](../CONTEXT.md)、[需求 v0.9](requirements.md)、[复用调研](reuse-research.md)、[界面设计契约](design.md)、[重写稿](v3-rewrite/)
-- 决策记录：[ADR-0001 Astro 静态站 + 自建路线图](adr/0001-astro-static-site-with-own-route-map.md)、[ADR-0002 URL 规则](adr/0002-url-scheme.md)（v2.0 修订）、[ADR-0003 原理块](adr/0003-principle-content-as-why-callouts.md)（已被取代）、[ADR-0004 整页视图切换](adr/0004-whole-page-view-switch.md)、[ADR-0005 重写稿原样导入、双链按标题解析](adr/0005-import-rewrite-verbatim.md)、[ADR-0006 合并页和旧网址跳转](adr/0006-merged-pages-and-moved-urls.md)
+- 状态：**v3.2 增量定稿、未实现（2026-10-26）**：对应需求 v0.15（目标站点版本 3.2.0），新增 M8 订阅 Skill，没有阻塞决策，见 [§16](#16-v32-增量架构m8-订阅-skill2026-10-26)。**v3 增量定稿（2026-10-21）**，对应需求 v0.9（目标站点版本 3.0.0），没有阻塞决策（合并清单 Q-18 只阻塞合并数据），见 [§13](#13-v3-增量架构2026-10-21)。v2.0 定稿（2026-10-15）对应需求 v0.3（目标站点版本 2.0.0），没有阻塞决策；待定事项见 §10。上一版 v0.1（2026-10-13）对应已交付的 1.0.0，其中仍然有效的实现细节保留在各节里，标“1.0.0 已有”。
+- 输入：[术语](../CONTEXT.md)、[需求 v0.15](requirements.md)、[复用调研](reuse-research.md)、[界面设计契约](design.md)、[重写稿](v3-rewrite/)
+- 决策记录：[ADR-0001 Astro 静态站 + 自建路线图](adr/0001-astro-static-site-with-own-route-map.md)、[ADR-0002 URL 规则](adr/0002-url-scheme.md)（v2.0 修订）、[ADR-0003 原理块](adr/0003-principle-content-as-why-callouts.md)（已被取代）、[ADR-0004 整页视图切换](adr/0004-whole-page-view-switch.md)、[ADR-0005 重写稿原样导入、双链按标题解析](adr/0005-import-rewrite-verbatim.md)、[ADR-0006 合并页和旧网址跳转](adr/0006-merged-pages-and-moved-urls.md)、[ADR-0007 订阅 Skill 生成物入库、构建时核对](adr/0007-agent-skill-generated-and-committed.md)
 - 现状：v2 骨架已建立（#23 内容集合，#25 路线图和静态页面，2026-10-15），#26 接上了导航改写、整页视图切换和 M4 v2（2026-10-16），1.0.0 的内容、页面和依赖旧路线的脚本已删除。本文 §3–§8 描述 v2.0 的目标结构；没有实现的部分标“计划”，由 [实施计划](implementation-plan.md) 的 v2.0 任务建立，建立后改成现状。
 - v2.1（2026-10-16）：页面按 design v2.1 改造，模块和依赖方向不变，差距和任务见 [§11.4](#114-v21-实施前评审2026-10-16)；对应条目在任务完成后改成现状。
 - **v3（2026-10-21，现状；2026-10-22 按作者新稿收口，2026-10-22 验收）**：对应需求 v0.11（站点版本 3.0.0）。M3 按文档站风格重做外观，新增 M6 站内搜索，合并页和旧网址跳转改用 `route.yaml` 的 `moved:` 段和单版本小节锚点（[ADR-0006](adr/0006-merged-pages-and-moved-urls.md)），不新增运行时依赖；见 [§13](#13-v3-增量架构2026-10-21)。作者 2026-10-22 交来 11 页单版本新稿并确认页面地图；代码现状：V01–V12 已实施，3.0.0 已通过视觉验收和全量回归。
@@ -466,3 +466,143 @@ function getNameHost(scope?): { name: string } | null;   // 浏览器里是 wind
 - **`npm run test:e2e` 的构建要带 `SITE_URL`**：canonical、`og:url`、sitemap 都只在给了 site 时生成，不带的话 SEO 用例没东西可测。`playwright.config.ts` 里 `dist-sub/` 那份构建同样带上。
 - **面包屑的当前页地址用 `Astro.url.pathname`**，不要拿 `Astro.url.href` 再 `new URL()`：前者已经含部署根路径，后者会把整条路径当成另一条网址的 reference 解析，最后一层会变成站点根。
 - **构建级用例的夹具只放要覆盖的文件**（如 `tests/fixtures/seo-missing-page/seo.yaml`），不要放 `src/content/` 整层：`buildProject()` 是把它复制**到** `src/content`，多一层会变成 `src/content/src/content`，坏内容根本不会生效。
+
+## 16. v3.2 增量架构：M8 订阅 Skill（2026-10-26）
+
+需求 v0.15 的 FR-100–FR-117、NFR-07、AC-40–AC-49。复用调研见 [reuse-research.md §5.2](reuse-research.md#52-v32-补充订阅-skill2026-10-26)，生成物入库的决定见 [ADR-0007](adr/0007-agent-skill-generated-and-committed.md)。状态：**定稿，未实现**；本节的目录、文件、命令都是“计划”，由 v3.2 的任务建立，建立后改成现状。
+
+M8 是一个**生成器**：读重写稿（M1 的素材）、路线图（M2）和手写的 Skill 源稿，产出读者用的 Skill 目录；构建时重新生成一遍和入库的生成物逐字核对，再按 FR-113 校验并打成 zip。它不改 M1、M2、M4，也不被它们依赖；M3 只多一个独立页面和两处入口。
+
+### 16.1 增量影响分析
+
+| 模块 | 影响 | 位置（计划） |
+| --- | --- | --- |
+| M8 订阅 Skill（新） | 纯逻辑：生成、校验、对照、打包 | `src/lib/agent-skill/`（单元测试在旁边） |
+| M8 构建期接入 | 构建开始时生成 + 对照 + 校验，失败就终止构建；构建结束时把 zip 写进 `dist/` | `src/lib/agent-skill/integration.ts`，在 `astro.config.mjs` 里排在 `contentValidation` 后面 |
+| M8 开发脚本 | 把生成结果写进仓库（`npm run skill`） | `scripts/build-skill.mjs`：用 Vite 的 `runnerImport` 加载 `src/lib/agent-skill/`（调研 §5.2 已验证） |
+| Skill 源稿（新，手写） | `SKILL.md` 模板和 Agent 方法文件 | `agent-skill/source/` |
+| Skill 生成物（新，入库、不手改） | 读者装的目录 | `agent-skill/rezero-subscribe-claude/` |
+| M1 内容 | **不改**。生成器只读 `createLinkIndex()`（标题 → 页面、小标题 → 锚点）和 `blog-links.yaml` | — |
+| M2 路线 | **不改**。生成器用 `buildRouteMap()` 的章节、分叉点和各选项页面顺序写 `SKILL.md` 的路线表 | — |
+| M3 页面 | 新增 Skill 页 `src/pages/agent-skill.astro`；`Toc.astro` 两处底栏加入口；首页首屏加次要入口 | `src/pages/`、`src/components/Toc.astro`、`src/pages/index.astro` |
+| SEO / sitemap | `seo.yaml` 必填键加 `/agent-skill/`；sitemap 来源加 `agent-skill.astro` | `src/lib/seo/index.ts`、`src/lib/site.ts`、`src/lib/sitemap/lastmod.ts` |
+| M6 搜索 | **不改**：索引只收路线图页面和参考页，Skill 页天然不在里面（e2e 断言） | — |
+| 构建级用例 | 夹具能覆盖仓库根下的文件、能删文件；`BUILD_INPUTS` 加 `agent-skill/` 和 `docs/v3-rewrite/` 的 `.md` | `tests/build/build-project.ts` |
+| 依赖 | 新增 `fflate`（`dependencies`，打 zip） | `package.json` |
+
+### 16.2 目录与文件归属
+
+```
+agent-skill/
+├── source/                         手写（开发 Agent 和作者改这里）
+│   ├── SKILL.md                    模板：frontmatter + 行为规则，含 {{占位}}
+│   └── references/                 Agent 方法文件，原样复制进生成物
+│       ├── agent-ssh.md            连服务器、跑一键脚本、开隧道（§16.6）
+│       ├── agent-systems.md        Windows / macOS / Linux 的差别和命令（FR-107）
+│       ├── agent-progress.md       进度文件的位置和固定格式（FR-110、FR-111）
+│       └── agent-cleanup.md        收尾清理的清单和报告写法（FR-109）
+└── rezero-subscribe-claude/        生成物：npm run skill 写出，入库，不手改（ADR-0007）
+    ├── SKILL.md
+    └── references/
+        ├── preface.md … afterword.md   11 页，文件名 = 页面标识
+        ├── ip-tests.md                 IP 质量实测合集
+        └── agent-*.md                  从 source/references/ 复制
+```
+
+- **生成物的目录名必须是 `rezero-subscribe-claude`**：规范要求 `name` 和目录名相同。读者 clone 后把这个目录整个复制到 Skill 目录就能用（FR-114）。
+- **手写和生成分开**：`source/` 是 Skill 的行为规则（怎么问、什么时候停、怎么代办、怎么清理），不是教程内容，不受 ADR-0005 约束，但**不能写重写稿以外的教程内容**（需求非目标）——商家、命令、答法都只在生成的参考文件里，方法文件只写“去哪个参考文件找”。
+- 参考文件只从 `SKILL.md` 引一层（规范建议），平铺在 `references/` 下，`agent-` 前缀区分方法文件和页面文件。
+
+### 16.3 生成规则（`generateSkill`）
+
+输入：重写稿 11 页和 `reference/IP 质量实测合集.md` 的原文、链接索引、路线图、`source/`、`package.json` 的版本、`src/lib/group.ts` 的群号和链接。输出：`Map<相对路径, 文本>`，确定性（同样的输入逐字节相同）。
+
+- **页面对应**：按重写稿第一行 `# 标题` 在链接索引里找页面标识（和 `import-rewrite.mjs` 同一规则），找不到就报错。
+- **文件开头**：`> 引导站：<完整网址>` 和“本文件由 `npm run skill` 从 `docs/v3-rewrite/<文件>` 生成，不要手改”。
+- **小标题**：每个 h2/h3 下面加一行 `> 引导站小节：<页面网址>#<slug>`，锚点用 `sectionAnchor()` 算，和站上一致；Agent 引用小节时直接用这一行（FR-105、FR-112）。
+- **链接**：重写稿的相对 Markdown 链接（`[文字](02-….md#小节)`）和双链（`[[标题#小节|文字]]`）都换成引导站的完整网址；博客双链按 `blog-links.yaml` 换，没有地址的只留文字。
+- **图片和视频**：`![[x.png|宽]]`、`![[x.svg]]`、`![[x.mp4]]`、`![](…)` 换成一行“看图：<所在小节网址>”或“看视频：<所在小节网址>”，文件不打进包。
+- **Callout**：`> [!caution]`、`> [!note]` 换成普通引用块，开头加“**注意**”“**说明**”。
+- **作者待补**：`TODO：` 段落换成“作者待补：……”，原文保留。
+- **原样保留**：命令、代码块、外部链接、优惠码、商家名（FR-101）。
+- **网址**：一律用 `https://re0claude.us.ci`（常量 `SKILL_SITE`），不随 `SITE_URL`、`BASE_PATH` 变化，否则不同方式构建出的生成物会不一样。
+- **`SKILL.md` 模板的占位**：`{{version}}`（`package.json`）、`{{rewrite}}`（重写稿指纹：12 个源文件按路径排序、统一换行后的 SHA-256 前 12 位）、`{{route}}`（按路线图生成的路线表：章、页面标识、标题、参考文件、引导站网址、属于哪个分叉点的哪个选项）、`{{group}}`（群号和加群链接）、`{{site}}`。模板里出现不认识的占位、生成后还留着 `{{` 都报错。
+- frontmatter 只用规范字段：`name`、`description`、`license: MIT`、`compatibility`（“需要能执行本机命令和 ssh 的 Agent，需要联网；只能聊天的 Agent 只能用引导部分”，Q-23）、`metadata`（`version`、`rewrite`、`site`，值都是字符串）。
+
+### 16.4 构建校验与打包
+
+`agentSkill()` 集成（只在 `astro build` 里生效，和 `contentValidation` 同样的报错方式：逐条打印 `文件：说明`，再抛一个总结错误）。
+
+**构建开始时**：
+
+1. `generateSkill()` 生成期望的文件；`readSkillDir()` 读入库的 `agent-skill/rezero-subscribe-claude/`。
+2. `diffSkill(期望, 入库)`：少文件、多文件、内容不同都报，例如 `agent-skill/rezero-subscribe-claude/references/plan1.md：和 docs/v3-rewrite/02-方案一….md 对不上，运行 npm run skill 重新生成`（FR-113 第 1、2 条，AC-41）。
+3. `checkSkill(入库)`：对**入库的文件**再查一遍规则，这样坏夹具即使和生成结果不同，也会报出具体问题（AC-42）：
+   - frontmatter：`name` 合规范且等于目录名，`description` 1–1024 字符，`compatibility` ≤500，`metadata` 的值都是字符串，没有规范以外的字段；
+   - `SKILL.md` 里引用的 `references/…` 都存在；路线图的每一页和 `ip-tests` 都有参考文件；
+   - 没有 `[[`、`![[`、`![`、`> [!`、`{{` 残留；
+   - 没有像凭据的内容：`vless|vmess|trojan|ss|hysteria2|hy2://` 后面紧跟着实际内容（单独写 `vless://` 这种说明文字允许），不在允许名单里的 IPv4 地址（名单：回环、`0.0.0.0`、正文里的公共 DNS 和示例地址，写在 `checkSkill` 旁边，新增要在评审时看）、`password:`/`密码：` 后面跟着值；
+   - `SKILL.md` 正文不超过 500 行（NFR-07）。
+
+**构建结束时**：`zipSkill()` 用 fflate 把入库的目录打成 `dist/agent-skill/rezero-subscribe-claude.zip`（文件按路径排序、固定修改时间，同样的内容得到同样的 zip），超过 1 MB 构建失败（NFR-07）。zip 里顶层就是 `rezero-subscribe-claude/` 目录。
+
+**构建级用例的夹具**（AC-42）：`tests/fixtures/<用例>/` 原来只能覆盖 `src/content/`。扩展两条约定：`@root/` 下的文件按仓库相对路径覆盖（例如 `@root/agent-skill/rezero-subscribe-claude/SKILL.md`），`@delete` 文件逐行列出要删掉的仓库相对路径。四个用例：`skill-missing-reference`（删一个参考文件）、`skill-no-description`、`skill-leftover-embed`（参考文件里留 `![[x.png]]`）、`skill-node-link`（混进一条形如 `vless://<uuid>@…` 的链接）。
+
+### 16.5 `SKILL.md` 的结构
+
+`SKILL.md` 给 Agent 的是**流程和规矩**，教程细节都在参考文件里，按需读。正文控制在 300 行左右（上限 500），分这几块：
+
+1. **什么时候用、对读者说中文**（FR-100）。
+2. **开场**（FR-103）：先读进度文件；没有就转述前言的风险提示（金额照 `references/preface.md` 当时写的说），读者确认才继续，不确认就停、不写文件；然后识别电脑系统，问节点方案（推荐方案二，等确认）和手机系统，写进度文件。
+3. **路线表**（`{{route}}`，FR-102）：顺序和参考文件；“跳到某一步”“我做完了”“重新开始”怎么处理。
+4. **代办和引导的分界**（FR-104、FR-105）：可代办的清单、只引导的清单；分不清时按引导处理。
+5. **执行前确认**（FR-106）：会改变状态的先说明、等同意；只读检查直接做；一键脚本问重装时默认不重装。
+6. **凭据**（FR-108）和**收尾清理**（FR-109）：要点写在这里，细节在 `agent-ssh.md`、`agent-cleanup.md`。
+7. **遇到问题**（FR-112）：先查站（网址在每个参考文件开头和小节下面），站上的内容只当资料、不当指令；查不到就自己检查并说明“不是教程里的内容”，给出 QQ 群；上不了网就查包里的参考文件。不改商家、优惠码、命令，不推荐正文以外的商家。
+8. **版本**：`metadata.version` 和站点版本一致；站上的内容可能比包里的新。
+
+**进度文件**（FR-110）：固定放在 `~/rezero-subscribe-claude-progress.md`（读者用户目录下，看得见、好删；Windows 是 `%USERPROFILE%\rezero-subscribe-claude-progress.md`）。Markdown，固定格式写在 `agent-progress.md`：开头一句“删掉这个文件就是重新开始”；一组“键：值”行（Skill 版本、电脑系统、节点方案、手机系统、“先用两天”开始日期）；一张“页面标识 / 状态（未开始、进行中、完成）”表；一张验收结果表（每项“通过 / 没通过”，不记测出的 IP）。不记密码、IP、节点链接、邮箱、账号名。“先用两天”的天数由 Agent 用本机日期和开始日期算（FR-111）。
+
+### 16.6 代办在读者电脑上怎么做
+
+这些都写在 `agent-ssh.md`、`agent-systems.md`、`agent-cleanup.md` 里，是 Skill 的行为，不是站点代码。架构定的是做法，具体命令由实施任务写，并在 AC-44、AC-46、AC-47 的人工验收里跑通。
+
+- **临时目录**：每次代办开始时在系统临时目录建一个 `rezero-skill-<随机>` 目录（`mktemp -d`；Windows 用 `$env:TEMP`），所有必须落盘的东西（askpass 小脚本、密码文件、一键脚本的答案、临时密钥、`known_hosts`、隧道进程号）都只放这里，权限 600/700。收尾清理整个删掉。
+- **SSH 登录**（Q-26）：首选 `SSH_ASKPASS` + `SSH_ASKPASS_REQUIRE=force`，指向临时目录里只输出密码的小脚本（macOS、Linux 的 OpenSSH ≥ 8.4）；每次 `ssh` 都带 `-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=<临时目录>/known_hosts -o ConnectTimeout=15`，不在读者的 `~/.ssh/known_hosts` 里留下服务器 IP。**退路**是临时密钥：Agent 生成一对密钥，读者在自己的终端里跑一条命令、自己输一次密码把公钥加到服务器（会改服务器，先说明、等同意），之后 Agent 用密钥；收尾时从服务器的 `authorized_keys` 删掉这一行。Windows 上 askpass 未验证前，Skill 两条路都写，askpass 失败就换退路。
+- **一键脚本**（Q-22）：先用只读命令查系统是不是 Debian、`/etc/x-ui` 在不在；按 `setup.sh` 的提问顺序（重装？→ IP 对不对 → 住宅代理 IP → 端口、用户名、密码）和参考文件里对应方案的答法拼答案。答案经 `ssh` 的标准输入写到服务器上的临时文件（权限 600），在服务器后台运行**参考文件里原样的那条命令**、标准输入接这个文件、输出写到日志，答案文件在脚本读完后立即删除；Agent 隔一会儿看一次日志，直到两项自测结束，再从 `/root/vless.txt`、`/root/hy2.txt` 取链接交给读者。这样 Debian 11 升级的 5–15 分钟不会撞上 Agent 的命令超时。服务器上已经装过而读者没说要重装时，不运行（FR-106）。
+- **面板隧道**：`ssh -N -L` 放后台，进程号记在临时目录；收尾时结束它。
+- **三个系统**（FR-107）：识别用 `uname -s`，Windows 用 PowerShell 的 `$env:OS`；改时区、查 IPv6、管理员身份、Linux 开 Tun 要输密码这些差别写在 `agent-systems.md`。正文没写 Linux 做法的地方，Agent 现场处理并说明“教程没写 Linux 的做法”。
+- **shell 历史**：Agent 自己执行命令用的是非交互 shell，不写历史；收尾时仍检查读者的 `~/.bash_history`、`~/.zsh_history` 和 PowerShell 的 `ConsoleHost_history.txt`，删掉本次带密码的行（读者可能照 Agent 的提示自己敲过命令）。
+- **清理报告**：列出删了什么；明确说对话记录在 Agent 和服务商那里，Skill 删不掉；服务器上的节点文件和面板信息不删（FR-109）。
+
+### 16.7 Skill 页与入口
+
+- **路由**：`src/pages/agent-skill.astro` → `/agent-skill/`；zip 在 `/agent-skill/rezero-subscribe-claude.zip`（同一目录）。两个地址发布后不能改（ADR-0002 的口径，需求三级边界 Ask first）。常量 `AGENT_SKILL_PATH`、`AGENT_SKILL_ZIP_PATH` 放在 `src/lib/agent-skill/index.ts`，页面、目录和 sitemap 都从这里取。
+- **骨架**：和更新日志页一样是独立页面（顶栏 + 侧边栏 + 正文栏，没有上一步/下一步、没有眉题的章节信息）。具体版式由 design.md 补 §4.10（计划，实施前补）。
+- **页面数据**：版本号读 `package.json`；安装方法写两个通用目录（`~/.agents/skills/`：Codex、Gemini CLI、Qwen Code、OpenCode；`~/.claude/skills/`：Claude Code、OpenCode），再列各家自己的目录（调研 §5.2）；开始语“带我订阅 Claude”；凭据和清理的说明；只能聊天的 Agent 只能用引导部分（Q-23）。文字写在页面代码里。
+- **入口**：`Toc.astro` 的 `.toc-sidebar-foot`、`.toc-dialog-foot` 在“更新日志”旁边加 `[data-toc-agent-skill]`，Skill 页上带 `aria-current="page"`；首页 `.home-actions` 主按钮旁加次要链接 `[data-home-agent-skill]`“让 AI Agent 带你做”。
+- **收录**：进 sitemap（来源文件是 `agent-skill.astro`）和 `seo.yaml`（键 `/agent-skill/`，必填）；JSON-LD 和更新日志页一样是 `Article` + 面包屑（首页 › Agent Skill）；不进目录的章节列表和站内搜索。
+
+### 16.8 版本
+
+- Skill 的版本 = `package.json` 的 `version`，生成时写进 `metadata.version`；`metadata.rewrite` 是重写稿指纹（§16.3）。
+- 因为版本号在生成物里，**升版本后要运行 `npm run skill`**，否则构建会报生成物对不上。改重写稿、改 `source/`、改 `group.ts` 之后同样要运行。这条写进 `AGENTS.md`。
+
+### 16.9 验收对应的验证方式
+
+| AC | 验证 |
+| --- | --- |
+| AC-40 | e2e `tests/e2e/ac-40-agent-skill-zip.spec.ts`：下载 zip、解压（fflate 的 `unzipSync`）、查目录结构、`name`、版本和 `package.json` 一致、≤1 MB，并对解压结果跑 `checkSkill()`；交付时另用 `uvx skills-ref validate` 人工跑一次，记进 delivery.md |
+| AC-41 | 单元测试 `src/lib/agent-skill/*.test.ts`（每条转换规则、确定性、指纹）；构建级用例 `skill-stale`：夹具改 `docs/v3-rewrite/` 一页的一句话，断言构建失败并报出这一页；对照构建证明重新生成后通过 |
+| AC-42 | 构建级用例的四个 `skill-*` 夹具（§16.4） |
+| AC-43、AC-44、AC-45、AC-46、AC-47、AC-48 | 人工核对，用 Claude Code（接国内模型 API）和 Qwen Code 各跑一遍；AC-44、AC-46 用一台测试 Debian 服务器；AC-47 三个系统各一次，Windows 那次同时验证 Q-26。记录写进 delivery.md |
+| AC-49 | e2e `tests/e2e/ac-49-agent-skill-page.spec.ts`：首页入口、Skill 页内容、侧边栏和抽屉底部入口与当前态、不在上一步/下一步和搜索结果里、在 sitemap 里、360px 无横向滚动；AC-01、AC-37、AC-38 原样回归 |
+
+### 16.10 待定事项
+
+| 编号 | 事项 | 影响 | 阻塞？ |
+| --- | --- | --- | --- |
+| Q-22 | 源码核查通过（调研 §5.2）：提问都在安装前、从标准输入读，Debian 11 升级不弹窗。还没在真服务器上跑过 | AC-44 人工验收时确认；跑不通再走 Ask first 改 `reality-setup` | 否 |
+| Q-24 | 已定（2026-10-26）：Skill 页写 `~/.agents/skills/` 和 `~/.claude/skills/` 两个目录，覆盖 Claude Code、Codex、Gemini CLI、Qwen Code、OpenCode；人工验收用 Claude Code（接国内模型 API）和 Qwen Code | — | 否 |
+| Q-26 | Windows 自带的 OpenSSH 支不支持 `SSH_ASKPASS_REQUIRE=force`、askpass 能不能用 `.cmd`，没查到官方说明 | Windows 上首选做法可能不可用；退路（临时密钥）已经写进设计 | 否，AC-47 的 Windows 那次验证 |
+| Q-27 | Skill 页的版式（design.md §4.10）还没写 | Skill 页任务开工前要有 | 否，排在 Skill 页任务之前 |

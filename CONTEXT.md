@@ -95,7 +95,7 @@ _Avoid_: 推荐、精选
 ### 订阅 Skill（v3.2 计划）
 
 **订阅 Skill**:
-给读者装进自己 AI Agent 的技能包（开放的 Agent Skills 格式：一个目录，含 `SKILL.md` 和参考文件），名为 `rezero-subscribe-claude`。Agent 按**路线**陪读者走完教程：判断走到哪一步、讲清这一步，电脑上能做的经读者同意后**代办**。参考文件由脚本从**重写稿**生成，和引导站同一个来源。规则见 [docs/requirements.md](docs/requirements.md) 的 FR-100 系列。
+给读者装进自己 AI Agent 的技能包（开放的 Agent Skills 格式：一个目录，含 `SKILL.md` 和参考文件），名为 `rezero-subscribe-claude`。Agent 按**路线**陪读者走完教程：判断走到哪一步、讲清这一步，电脑上能做的经读者同意后**代办**。参考文件由脚本从**重写稿**生成，和引导站同一个来源；`SKILL.md` 的行为规则和 Agent 方法文件是手写的（`agent-skill/source/`），生成物在 `agent-skill/rezero-subscribe-claude/`（架构 §16）。规则见 [docs/requirements.md](docs/requirements.md) 的 FR-100 系列。
 _Avoid_: 插件、机器人、订阅助手、开发用的 Skill（仓库 `.claude/skills/` 里那些是给开发 Agent 用的工作方法，不是这个产品）
 
 **代办**:

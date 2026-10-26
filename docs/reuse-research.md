@@ -5,6 +5,7 @@
 - 检索方式：网页检索 + 官方文档 + npm registry 元数据（`npm view`）。本机没有 `gh`，没有用 GitHub API；没有克隆、安装或运行任何第三方代码。
 - v2.0 补充（2026-10-15）：只为新增的 logo 转曲需求补做检索，见 §5；其余能力没有新的复用需求，沿用下文结论。本次用 `gh api` 和 npm registry 查询。
 - v3 补充（2026-10-21）：只为站内搜索、文档站外观和合并页补做检索，见 §5.1。
+- v3.2 补充（2026-10-26）：只为订阅 Skill 补做检索（格式与校验、各家 Agent 的目录、打 zip、非交互跑一键脚本、SSH 密码），见 §5.2。
 - 结论标记：**文档/源码核查** = 只读过 README、官方文档或 npm 元数据，没有实际运行过；**已验证** = 在本项目里跑通过（2026-10-13 检索时没有这一类；#2 的实测见 §4.1）。
 
 ## 1. 检索词
@@ -130,6 +131,73 @@
 
 缺口：没有。中文搜索的匹配质量（例如“时区”能否命中“改时区”）由 M6 的单元测试和 AC-28 覆盖。
 
+## 5.2 v3.2 补充：订阅 Skill（2026-10-26）
+
+依据需求 v0.15 的 FR-100–FR-117（M8）。新的复用需求有四个：Skill 包的格式和校验、各家 Agent 放 Skill 的目录（Q-24）、构建时打 zip、Agent 在读者电脑上非交互地跑一键脚本（Q-22）。检索方式：官方文档 + npm/PyPI 元数据（2026-10-26）+ 读本机 `~/Workspace/reality-setup` 的源码；另在仓库里试跑了一次 Vite 的 `runnerImport`（见下文“已验证”）。没有克隆、安装或运行第三方代码。
+
+检索词：`agentskills.io specification SKILL.md frontmatter`、`skills-ref validate`、`Agent Skills supported agents skills directory Codex Gemini CLI Copilot OpenCode Qwen Code`、`node zip deterministic fflate yazl archiver`、`Windows OpenSSH SSH_ASKPASS SSH_ASKPASS_REQUIRE force`。
+
+### 格式与校验
+
+| 候选 | 覆盖 | 缺口 | 许可证 / 维护 | 结论 |
+| --- | --- | --- | --- | --- |
+| [Agent Skills 规范](https://agentskills.io/specification) | 目录 = `SKILL.md` + 可选 `references/`、`scripts/`、`assets/`；frontmatter 必填 `name`（1–64 字符，小写字母、数字和单个连字符，不以连字符开头结尾，**必须和目录名相同**）、`description`（1–1024 字符）；可选 `license`、`compatibility`（≤500）、`metadata`（字符串到字符串的映射）、`allowed-tools`（实验）；正文建议 <500 行、<5000 token，参考文件只从 `SKILL.md` 引一层 | 没有规定版本号字段，放进 `metadata` | 开放规范 | **采用**（文档核查）。需求 FR-100 的格式就是它 |
+| [skills-ref](https://github.com/agentskills/agentskills/tree/main/skills-ref)（PyPI 0.1.1；npm 上另有同名包 0.1.5，来源未核实） | 官方参考校验器 `skills-ref validate <目录>`，查 frontmatter 和命名 | Python 工具，本项目工具链是 Node；只查 frontmatter，不查 FR-113 的其他几条（参考文件存在、Obsidian 写法残留、凭据） | 官方仓库；版本很新 | **仅作人工核对**（AC-40 “用校验工具检查通过”在交付时跑一次 `uvx skills-ref validate`）；构建里按规范自己实现同样的规则（约 30 行），不加 Python 依赖 |
+
+### 各家 Agent 放 Skill 的目录（Q-24，官方文档核查）
+
+| Agent | 用户级目录 | 说明 | 来源 |
+| --- | --- | --- | --- |
+| Claude Code | `~/.claude/skills/<name>/` | 另有一批 Claude Code 独有的 frontmatter 字段，不认识的字段会被忽略；订阅 Skill 只用规范字段 | [code.claude.com/docs/en/skills](https://code.claude.com/docs/en/skills) |
+| Codex | `~/.agents/skills/<name>/` | 说明基于开放的 Agent Skills 标准；`agents/openai.yaml` 是可选的 Codex 专用元数据，不需要 | [learn.chatgpt.com/docs/build-skills](https://learn.chatgpt.com/docs/build-skills) |
+| Gemini CLI | `~/.gemini/skills/` 或别名 `~/.agents/skills/` | 有 `/skills enable/disable`；文档没写默认是否启用 | [geminicli.com/docs/cli/skills](https://geminicli.com/docs/cli/skills/) |
+| Qwen Code | `~/.qwen/skills/` 或 `~/.agents/skills/` | 文档没写“遵循 Agent Skills 规范”，但格式相同（目录 + `SKILL.md` + YAML frontmatter）；国内直接能用 | [qwenlm.github.io/qwen-code-docs](https://qwenlm.github.io/qwen-code-docs/en/users/features/skills/) |
+| OpenCode | `~/.config/opencode/skills/`、`~/.claude/skills/`、`~/.agents/skills/` | 命名规则和规范一致（`^[a-z0-9]+(-[a-z0-9]+)*$`，必须等于目录名） | [opencode.ai/docs/skills](https://opencode.ai/docs/skills/) |
+
+结论：**两个目录覆盖五家**——`~/.agents/skills/`（Codex、Gemini CLI、Qwen Code、OpenCode）和 `~/.claude/skills/`（Claude Code、OpenCode）。Skill 页按这两个目录写安装方法，再列出各家自己的目录作补充。GitHub Copilot、Cursor、Kimi CLI、Trae 等**本次未核实**官方文档，不写进 Skill 页。
+
+人工验收（AC-43）选两家**读者在订阅成功之前就用得上**的：**Claude Code 接国内模型的 API**（读者群里最常见的用法）和 **Qwen Code**。Codex、Gemini CLI 要先能连上海外服务，作为补充。
+
+### 打 zip
+
+| 候选 | 覆盖 | 许可证 / 维护 | 结论 |
+| --- | --- | --- | --- |
+| [fflate](https://github.com/101arrowz/fflate) 0.8.3 | 纯 JS、零依赖，`zipSync` 一次生成整个 zip，可给每个文件固定 `mtime`，输出可重复 | MIT；2026-07 有发布 | **采用**（文档核查）。和 Astro、yaml 一样放进 `dependencies`（部署构建要用） |
+| [archiver](https://github.com/archiverjs/node-archiver) 8.0.0 | 流式打包，功能最全 | MIT；2026-05 | 不采用：依赖树大，流式接口对几十 KB 的包没有收益 |
+| [yazl](https://github.com/thejoshwolfe/yazl) 3.3.1 | 小巧的流式 zip 写入 | MIT；2024-11 | 不采用：维护较慢，流式接口同上 |
+| JSZip 3.10.2 | 读写都支持 | MIT 或 GPL-3.0 | 不采用：异步接口、体积大，只需要写 |
+| 自己写（`node:zlib` 的 `deflateRawSync` + `crc32`） | 不加依赖 | — | 不采用：zip 的中央目录、本地头和 Windows 资源管理器的兼容细节容易写错，省一个 8 KB 的依赖不值得 |
+
+### 在构建外运行 TypeScript 的生成逻辑（已验证）
+
+生成器要和站点共用 `src/lib/content/link-index.ts`（标题 → 页面标识、小标题 → 锚点）和 `src/lib/route/`。这些模块用不带扩展名的相对导入，Node 24 自带的类型剥离跑不了。**Vite 8.3.4 自带的 `runnerImport`**（Astro 已经依赖它）能按 Vite 的解析规则加载这些 TS 模块：2026-10-26 在仓库里试跑，`createLinkIndex()` 读出 18 个页面，正常。所以开发脚本 `scripts/build-skill.mjs` 用它加载 `src/lib/agent-skill/`，不加 `tsx` 之类的新依赖（**已验证**）。
+
+### 一键脚本能不能非交互地跑（Q-22，源码核查）
+
+读的是 `reality-setup` v2.0.1 的 `setup.sh`：
+
+- 所有提问都在安装开始之前、用 `read -rp` 从标准输入读：①只有服务器上已经有 `/etc/x-ui` 时才问“删掉旧的重新装吗”；②服务器 IP 对不对（回车接受）；③住宅代理 IP（方案二回车跳过）；④填了住宅代理 IP 才继续问端口、用户名、密码。脚本注释写明“真正删除放在所有问题问完之后”。
+- `read -p` 的提示只在标准输入是终端时显示；用管道喂答案时**看不到提问，但答案照常读入**。所以 Agent 要先用只读命令查 `/etc/x-ui` 在不在，再按上面的顺序拼答案。
+- Debian 11 升级用 `DEBIAN_FRONTEND=noninteractive` 和 `--force-confold`，不弹对话框；之后的 `apt install -y` 没设这个变量，但到那时标准输入已经读完（EOF），debconf 会取默认值。
+- 结论：**源码上看能跑通，不需要改 `reality-setup`**；Debian 11 升级要 5–15 分钟，会超过多数 Agent 单条命令的超时，所以放到服务器后台跑、再看日志（[architecture.md §16.6](architecture.md#166-代办在读者电脑上怎么做)）。还没在真服务器上跑过，留给 AC-44 的人工验收；跑不通再按需求的 Ask first 去改 `reality-setup`。
+
+### SSH 怎么用读者贴来的密码（Q-26，新）
+
+Agent 执行命令时没有终端，`ssh` 的密码提示读的是 `/dev/tty`，会卡住。候选：
+
+| 做法 | 适用 | 问题 | 结论 |
+| --- | --- | --- | --- |
+| `SSH_ASKPASS` + `SSH_ASKPASS_REQUIRE=force`（OpenSSH ≥ 8.4），指向临时目录里一个只输出密码的小脚本 | macOS（系统自带 OpenSSH 9.x）、Linux | 密码要短暂落盘（权限 600、放系统临时目录、收尾删掉，符合 FR-108） | **采用**为首选（[OpenSSH 8.4 发布说明](https://www.openssh.com/txt/release-8.4)，文档核查） |
+| 同上，Windows 自带的 Win32-OpenSSH | Windows | **没查到官方说明它是否支持 `SSH_ASKPASS_REQUIRE`**；askpass 程序要是 `.cmd` 能否被直接调起也没核实 | 待验证（Q-26），不能定为已采用 |
+| 临时密钥：Agent 生成一对临时密钥，读者在自己的终端里跑**一条**命令（自己输一次密码）把公钥加到服务器，之后 Agent 用密钥；收尾时从 `authorized_keys` 删掉这一行、删掉本地私钥 | 三个系统都行，密码不经过 Agent | 读者要自己敲一条命令；会改服务器（要先征得同意，FR-106） | **采用**为退路：askpass 不可用（Windows 未验证、读者不想贴密码）时用它 |
+| `sshpass` | Linux、macOS 需另装 | 要装软件；密码出现在命令行或环境变量里 | 不采用 |
+
+### 推荐方向与缺口
+
+- **自研**生成器、校验和 Skill 页（模块 M8），复用 M1 的链接索引和 M2 的路线图；只新增 `fflate` 一个依赖。
+- Skill 内容只用规范字段，版本号和重写稿指纹放 `metadata`；Skill 页的安装方法写两个通用目录。
+- 缺口：Windows 上 askpass 是否可用（Q-26）、一键脚本在真服务器上的非交互运行（Q-22）都要在测试服务器和 Windows 机器上人工验证；在那之前 Skill 里两条路都写上。
+
 ## 6. 证据链接
 
 - Material for MkDocs 维护期：<https://discuss.privacyguides.net/t/mkdocs-material-is-now-in-maintenance-mode/32736>
@@ -151,3 +219,4 @@
 - 字体许可：<https://github.com/google/fonts/tree/main/ofl/cinzel>、<https://github.com/google/fonts/tree/main/ofl/cormorantgaramond>、<https://github.com/google/fonts/tree/main/ofl/robotocondensed>、<https://github.com/adobe-fonts/source-han-sans/blob/release/LICENSE.txt>（2026-10-15）
 - v3 搜索候选（2026-10-21）：<https://pagefind.app/docs/>、<https://github.com/lucaong/minisearch>、<https://github.com/nextapps-de/flexsearch>、<https://github.com/krisk/Fuse>；npm registry 元数据 2026-10-21 查询
 - VuePress 1 默认主题（搜索范围、侧边栏、首页）：<https://v1.vuepress.vuejs.org/theme/default-theme-config.html>；参考站：<https://docs.wallpaperengine.io/en/scene/first/gettingstarted.html>
+- v3.2 订阅 Skill（2026-10-26）：<https://agentskills.io/specification>、<https://github.com/agentskills/agentskills/tree/main/skills-ref>、<https://code.claude.com/docs/en/skills>、<https://learn.chatgpt.com/docs/build-skills>、<https://geminicli.com/docs/cli/skills/>、<https://qwenlm.github.io/qwen-code-docs/en/users/features/skills/>、<https://opencode.ai/docs/skills/>、<https://github.com/101arrowz/fflate>、<https://www.openssh.com/txt/release-8.4>、<https://lists.mindrot.org/pipermail/openssh-bugs/2020-December/022174.html>（Windows 上 askpass 的讨论）；npm/PyPI 元数据 2026-10-26 查询；`reality-setup` 源码为本机 `~/Workspace/reality-setup` 的 v2.0.1
