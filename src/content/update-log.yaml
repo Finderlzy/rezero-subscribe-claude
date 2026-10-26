@@ -19,6 +19,11 @@
 # 不写多段正文、图片和代码块。更新日志是用来告诉读者“哪里变了”的，不是第二份教程。
 
 - date: 2026-10-26
+  type: notice
+  title: 新增订阅 Skill：可以让 Agent 带你走完整条路
+  body: 它替你跑电脑上的命令、配置和收尾清理，手机、账号和付款只引导。装之前先看清风险提示和凭据清理说明；Skill 页和 README 都有安装方法。
+  pinned: true
+- date: 2026-10-26
   type: site
   title: Skill 可以交给 Agent 自己装
   body: Skill 页和 README 里各有一段提示词，复制给 Codex、Qwen Code 这类能执行命令的 Agent，它会自己下载到当前项目并开始，不用手动下载解压。
