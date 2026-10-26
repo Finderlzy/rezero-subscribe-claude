@@ -22,6 +22,23 @@
 
 《如何订阅 Claude》原本是一篇很长的文章。这个站点把它拆成按章阅读的引导，打开网页就能读。每页只读一章，按自己的情况选路线（节点方案、手机系统），然后一路点“下一步”走到后记。
 
+## 让 AI Agent 带你做
+
+站里有一份**订阅 Skill**：装进你自己的 AI Agent，它按路线带你走每一步——电脑上的命令、配置和收尾清理替你办，手机、账号和付款只引导你操作。
+
+用 **Codex、Gemini CLI、Qwen Code、OpenCode** 这类**能执行命令**的 Agent 的读者：把下面这段整个复制给它，它会自己下载到当前项目里（不写全局目录），然后直接开始。Claude Code 或想自己装的，看 [Skill 页](https://re0claude.us.ci/agent-skill/) 的手动安装；只能聊天、不能执行命令的 Agent（网页版聊天）用不了这段，只能用引导部分。
+
+```text
+我是《Re:从零开始订阅 claude》的读者。请帮我装好这个教程的 Skill，然后开始：
+
+1. 下载 https://re0claude.us.ci/agent-skill/rezero-subscribe-claude.zip
+2. 解压到当前工作目录下的 .agents/skills/，得到 .agents/skills/rezero-subscribe-claude/；
+   不要写 ~/.agents、~/.claude、~/.config/opencode 这些全局目录，已有同名目录就先问我。
+3. 读 .agents/skills/rezero-subscribe-claude/SKILL.md，按它的开场流程开始，带我订阅 Claude。
+```
+
+装好以后也可以直接说“带我订阅 Claude”“继续”或“上次做到哪了”。
+
 ## QQ 群
 
 有问题？进群问**大肥鱼**。

@@ -1,15 +1,18 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { AGENT_SKILL_PATH, AGENT_SKILL_ZIP_PATH } from '../../src/lib/agent-skill/index';
+import { AGENT_INSTALL_PROMPT } from '../../src/lib/agent-skill/install-prompt';
 import { AGENT_SKILL_KEY, DESCRIPTION_MAX, DESCRIPTION_MIN } from '../../src/lib/seo';
 import { hasSidebar, tocButton } from './toc-helpers';
 
-// AC-49（FR-115、FR-116）：Skill 页 /agent-skill/ 和两处入口。页上有下载按钮、版本号、安装方法、
-// 开始语和凭据说明；首页首屏主按钮旁多一个“让 AI Agent 带你做”（AC-01、AC-29 的断言照旧）；
+// AC-49（FR-115、FR-116）：Skill 页 /agent-skill/ 和两处入口。页上有安装提示词（Claude Code 以外，
+// 复制给 Agent 自己下载到项目目录）、下载按钮、版本号、安装方法、开始语和凭据说明；
+// 首页首屏主按钮旁多一个“让 AI Agent 带你做”（AC-01、AC-29 的断言照旧）；
 // 侧边栏和抽屉底部在“更新日志”旁边有“Agent Skill”，Skill 页自己是当前态；不进搜索结果，进 sitemap。
 // sitemap 只在给了 SITE_URL 时生成（ac-33 的口径），这里直接读构建产物核对。
 
-test.use({ storageState: { cookies: [], origins: [] } });
+// 安装提示词的复制按钮要读剪贴板：Playwright 的 Chromium 需要显式授权（同 nfr-02-copy-zoom）
+test.use({ storageState: { cookies: [], origins: [] }, permissions: ['clipboard-read', 'clipboard-write'] });
 
 test('首页首屏主按钮旁有“让 AI Agent 带你做”，链到 Skill 页', async ({ page }) => {
   await page.goto('./');
@@ -46,6 +49,44 @@ test('Skill 页有下载按钮、版本号、安装方法、开始语和凭据�
   // 凭据和清理（FR-108、FR-109）
   await expect(page.getByRole('heading', { name: '凭据和清理' })).toBeVisible();
   await expect(page.getByText('对话记录留在 Agent 和服务商那里')).toBeVisible();
+
+  // 五块 h2 的顺序：先让 Agent 自己装，再手动安装，最后是说明（design §4.10）
+  await expect(page.locator('.agent-skill-heading')).toHaveText([
+    '让 Agent 自己装（Claude Code 以外）',
+    '手动安装（Claude Code 等）',
+    '它能做什么、不做什么',
+    '装好以后',
+    '凭据和清理',
+  ]);
+});
+
+test('Skill 页有可复制的安装提示词（Claude Code 以外的 Agent 自己装）', async ({ page }) => {
+  await page.goto('./agent-skill/');
+  const block = page.locator('[data-agent-skill-prompt]');
+  await expect(block).toBeVisible();
+  const pre = block.locator('pre');
+  // 提示词原文：下载地址、项目级目录、不写全局目录、读 SKILL.md 开始，都在这段里
+  expect(await pre.textContent()).toBe(AGENT_INSTALL_PROMPT);
+
+  // 复制按钮和 Markdown 代码块共用 initCodeCopy：先等“已复制”，再读剪贴板（writeText 是异步的）
+  const copy = block.getByRole('button', { name: '复制', exact: true });
+  await expect(copy).toBeVisible();
+  await copy.click();
+  await expect(block.getByRole('button', { name: '已复制', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(AGENT_INSTALL_PROMPT);
+});
+
+test.describe('没有 JS', () => {
+  test.use({ javaScriptEnabled: false });
+
+  test('提示词照常可读、可手动复制，但没有复制按钮（design §5 渐进增强）', async ({ page }) => {
+    await page.goto('./agent-skill/');
+    const block = page.locator('[data-agent-skill-prompt]');
+    await expect(block).toBeVisible();
+    await expect(block.locator('pre')).toContainText('下载 https://re0claude.us.ci/agent-skill/rezero-subscribe-claude.zip');
+    // 按钮由脚本挂上：没有 JS 时不会出现点不动的空按钮
+    await expect(block.getByRole('button', { name: '复制', exact: true })).toHaveCount(0);
+  });
 });
 
 test('1280px 打开 /plan1/：侧边栏底部“更新日志”旁边有“Agent Skill”', async ({ page }) => {

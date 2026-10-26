@@ -256,7 +256,7 @@
 
 | 组件 | 规则（v3） |
 | --- | --- |
-| 代码块 | `--surface-muted` 底、无边框、6px 圆角、内边距 16px 20px；单色，不做语法高亮（沿用，理由见 §8 v2.2 第 4 条）。右上角幽灵“复制”按钮（13px `--text-faint`，悬停 `--border` 底，可点区域 44px），成功后“已复制”2 秒并 `aria-live` 播报；长行块内横向滚动，`<pre>` 可聚焦。右内边距额外给复制按钮留出位置（桌面 84px、手机 60px，至少是 44px 按钮加两侧 8px；横向滚到最右时命令末尾停在按钮左边） |
+| 代码块 | `--surface-muted` 底、无边框、6px 圆角、内边距 16px 20px；单色，不做语法高亮（沿用，理由见 §8 v2.2 第 4 条）。右上角幽灵“复制”按钮（13px `--text-faint`，悬停 `--border` 底，可点区域 44px），成功后“已复制”2 秒并 `aria-live` 播报；长行块内横向滚动，`<pre>` 可聚焦。右内边距额外给复制按钮留出位置（桌面 84px、手机 60px，至少是 44px 按钮加两侧 8px；横向滚到最右时命令末尾停在按钮左边）。**例外**：Agent Skill 页的安装提示词块（§4.10）是长句，改成自动折行（`white-space: pre-wrap`），不横向滚动 |
 | 行内代码 | `--surface-muted` 底、0.875em、上下 2px 左右 6px、4px 圆角 |
 | 截图（图版） | 保持原文宽度（`|262`、`|600`）且不超过正文栏；1px `--border` 边框（白底截图在白底上要有边界）、4px 圆角，上下各 24px。编号“图 02-1”写在截图下方（13px `--text-faint`），规则沿用。点击看大图沿用 |
 | 说明图 | 沿用 v2.2：单色线稿 1.5px、只用 `--accent` 标出本页讲的那一环、1:1 显示、宽 ≤328px、左对齐、无边框、上下 32px、编号同截图 |
@@ -320,18 +320,21 @@
 │ (侧边栏)  │ Agent Skill                       ← h1 --fs-title     │
 │ Agent    │ 把整份教程装进你自己的 AI Agent…    ← 14px --text-muted  │
 │ Skill ←  │ ────────────────────────────────────────────────────   │
-│ 更新日志  │ [下载 rezero-subscribe-claude.zip]  ← 主按钮 48px       │
-│          │ 当前版本 3.2.0（和 zip 里的一致）    ← 13px --text-faint  │
-│          │ 能做什么 / 不做什么        ← h2 + 两列清单（手机一列）   │
-│          │ 安装方法                  ← h2 + 目录表格               │
-│          │ 装好以后                  ← h2（开始语“带我订阅 Claude”）│
-│          │ 凭据和清理                ← h2 + 段落                  │
+│ 更新日志  │ 让 Agent 自己装（Claude Code 以外） ← h2 --fs-h3        │
+│          │ 把下面这段整个发给你的 Agent…       ← 段落               │
+│          │ ┌ 下载 zip、放进当前项目、读 SKILL.md ┐ ← 代码块 + 复制  │
+│          │ 手动安装（Claude Code 等）        ← h2 + 段落            │
+│          │ [下载 rezero-subscribe-claude.zip] ← 主按钮 48px        │
+│          │ 当前版本 3.2.0（和 zip 里的一致）   ← 13px --text-faint  │
+│          │ 能做什么 / 不做什么  ← h2 + 两列清单（手机一列）        │
+│          │ 装好以后            ← h2（开始语“带我订阅 Claude”）    │
+│          │ 凭据和清理          ← h2 + 段落                        │
 └──────────┴───────────────────────────────────────────────────────┘
 ```
 
 - **外壳**：和更新日志页一样（顶栏 + 侧边栏 | 正文栏）；h1 纯文字（`--fs-title`），不写眉题；没有上一步/下一步，正文末尾不加“回到”指引。JSON-LD 是 `Article` + 面包屑（首页 › Agent Skill）。
-- **首屏**：h1 下面一句 14px `--text-muted` 的引子；下面一行放主按钮“下载 rezero-subscribe-claude.zip”（`.button`，高 48px）——这是这一页的核心动作，紫色仍只用在主按钮（§2 第 4 条）；按钮下一行 13px `--text-faint` 的“当前版本 <版本>（和 zip 里的一致）”，版本号由页面读 `package.json`。
-- **章节**：四块各一个 h2（`--fs-h3`），只有文字和清单，不用卡片边框、图标（§6）。能做什么 / 不做什么用两列 `<ul>`（<720px 一列），每条一句话；安装方法用 §4.7 的表格（两列：Agent、Skill 放的目录），一行一家 Agent，先写它认的通用目录（`~/.agents/skills/` 覆盖 Codex、Gemini CLI、Qwen Code、OpenCode，`~/.claude/skills/` 覆盖 Claude Code、OpenCode），再写各家自己的目录，末尾一句“只能聊天、不能执行命令的 Agent（网页版聊天）只能用引导部分”；装好以后写开始语“带我订阅 Claude”（代码样式）；凭据和清理写清会怎么用、结束时清什么、清不了什么（对话记录在 Agent 和服务商那里，Skill 删不掉）。
+- **首屏**：h1 下面一句 14px `--text-muted` 的引子；下面第一块是“让 Agent 自己装（Claude Code 以外）”——一句说明加一块安装提示词（§4.7 的代码块外观加右上角“复制”按钮，长句自动折行；提示词文字在 `src/lib/agent-skill/install-prompt.ts`，README 里是同一段，单元测试核对）。提示词让读者把整段发给 Agent：下载 zip、解压到当前项目的 `.agents/skills/`（不写全局目录），再读 `SKILL.md` 开始。
+- **章节**：五块各一个 h2（`--fs-h3`），只有文字和清单，不用卡片边框、图标（§6），顺序是：让 Agent 自己装 → 手动安装 → 能做/不做 → 装好以后 → 凭据和清理。手动安装块放 §4.7 的主按钮“下载 rezero-subscribe-claude.zip”（高 48px，紫色只用在主按钮）和版本行（13px `--text-faint`），下面用 §4.7 的表格（两列：Agent、Skill 放的目录），一行一家 Agent，先写它认的通用目录（`~/.agents/skills/` 覆盖 Codex、Gemini CLI、Qwen Code、OpenCode，`~/.claude/skills/` 覆盖 Claude Code、OpenCode），再写各家自己的目录，末尾一句“只能聊天、不能执行命令的 Agent（网页版聊天）只能用引导部分”；能做什么 / 不做什么用两列 `<ul>`（<720px 一列），每条一句话；装好以后写开始语“带我订阅 Claude”（代码样式），并说明用提示词自己装的不必再说；凭据和清理写清会怎么用、结束时清什么、清不了什么（对话记录在 Agent 和服务商那里，Skill 删不掉）。
 - **首页入口**（FR-116）：`.home-actions` 主按钮后面加次要链接 `.button-secondary`（`[data-home-agent-skill]`）“让 AI Agent 带你做”。首屏只多这一个链接，不改五章简介和最近更新（AC-01、AC-29 的断言照旧）。
 - **侧边栏/抽屉底部入口**（FR-116）：`.toc-sidebar-foot`、`.toc-dialog-foot` 里“更新日志”旁边再加一条“Agent Skill”（`[data-toc-agent-skill]`），样式和“更新日志”相同（两条入口共用底部入口的 `.toc-foot-link` 样式）；Skill 页自己上这一条是当前态（`aria-current="page"` + 主色字 + 左边 4px 主色竖线，同一套辨认方式）。
 

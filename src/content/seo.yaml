@@ -22,7 +22,7 @@
   description: 这里记着教程正文和站点本身都改了什么：哪一节新增了录屏、哪家商家失效了、哪里修过，按公告、内容、站点分类翻看。
 
 /agent-skill/:
-  description: 把整份订阅教程装进你自己的 AI Agent：它替你做电脑上的步骤、手机和账号只引导，下载 zip、看安装方法、说一句开始语就能用。
+  description: 把整份订阅教程装进你自己的 AI Agent：用 Codex、Qwen Code 这类 Agent 就复制页上的提示词让它自己装，Claude Code 下载 zip；装好后它按路线带你。
 
 # 第 1 章：开始
 preface:

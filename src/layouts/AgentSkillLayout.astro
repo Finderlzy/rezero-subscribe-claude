@@ -1,7 +1,10 @@
 ---
+import '../styles/prose.css';
+import CodeCopy from '../components/CodeCopy.astro';
 import SiteHeader from '../components/SiteHeader.astro';
 import Toc from '../components/Toc.astro';
 import { AGENT_SKILL_PATH, AGENT_SKILL_ZIP_PATH, SKILL_NAME } from '../lib/agent-skill/index';
+import { AGENT_INSTALL_DIR, AGENT_INSTALL_PROMPT } from '../lib/agent-skill/install-prompt';
 import { describe, AGENT_SKILL_KEY, SITE_NAME } from '../lib/seo';
 import { loadSite } from '../lib/site';
 import { withBase } from '../lib/with-base';
@@ -15,7 +18,9 @@ import BaseLayout from './BaseLayout.astro';
  * 页面文字写在站点代码里，不从重写稿导入（FR-115）。
  *
  * 侧边栏/抽屉底部的两条常驻入口里，这一页自己的“Agent Skill”是当前态（currentAgentSkill）。
- * 这一页没有浏览器脚本逻辑（没有 tab、没有进度），目录脚本照常跑（架构 §14.5：独立页面也要跑 initToc）。
+ * 首屏下面先给“让 Agent 自己装”的提示词（Claude Code 以外）：文字在 src/lib/agent-skill/install-prompt.ts，
+ * README 里是同一段；提示词块套用 Markdown 代码块的样式和复制按钮（CodeCopy + initCodeCopy）。
+ * 目录脚本照常跑（架构 §14.5：独立页面也要跑 initToc）。
  */
 const site = await loadSite();
 // 目录按“未选”画（和更新日志页一样，Skill 页不上路线图）；浏览器里的目录脚本要这份数据
@@ -45,12 +50,51 @@ const { version } = await import('../../package.json');
           手机、账号和付款只引导你自己操作。
         </p>
 
-        <p class="agent-skill-download">
-          <a class="button" href={withBase(AGENT_SKILL_ZIP_PATH)} download data-agent-skill-download
-            >下载 {SKILL_NAME}.zip</a
-          >
-        </p>
-        <p class="agent-skill-version">当前版本 {version}（和 zip 里的一致）</p>
+        <section class="agent-skill-section" aria-labelledby="agent-skill-prompt">
+          <h2 class="agent-skill-heading" id="agent-skill-prompt">让 Agent 自己装（Claude Code 以外）</h2>
+          <p>
+            用 Codex、Gemini CLI、Qwen Code、OpenCode 这类能执行命令的 Agent 的读者，不用自己下载：
+            把下面这段整个发给你的 Agent，它会下载 zip、解压到当前项目的 <code>{AGENT_INSTALL_DIR}</code>（不写全局目录），
+            然后直接开始。
+          </p>
+          <p>
+            只能聊天、不能在你电脑上执行命令的 Agent（网页版聊天）用不了这段，只能按下面的手动安装用引导部分。
+          </p>
+          <div class="prose agent-skill-prompt" data-agent-skill-prompt>
+            <pre><code>{AGENT_INSTALL_PROMPT}</code></pre>
+          </div>
+        </section>
+
+        <section class="agent-skill-section" aria-labelledby="agent-skill-install">
+          <h2 class="agent-skill-heading" id="agent-skill-install">手动安装（Claude Code 等）</h2>
+          <p>
+            Claude Code 或想自己装的读者：下载 zip，把里面的 <code>{SKILL_NAME}</code> 目录整个放进 Skill 目录。
+            大部分 Agent 认下面两个目录之一：
+          </p>
+          <p class="agent-skill-download">
+            <a class="button" href={withBase(AGENT_SKILL_ZIP_PATH)} download data-agent-skill-download
+              >下载 {SKILL_NAME}.zip</a
+            >
+          </p>
+          <p class="agent-skill-version">当前版本 {version}（和 zip 里的一致）</p>
+          <!-- 横向可滚的表格要能用键盘聚焦（axe 的 scrollable-region-focusable，和 Markdown 表格的 rehype 处理一致） -->
+          <table tabindex="0">
+            <thead>
+              <tr><th>Agent</th><th>Skill 放的目录</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Codex</td><td><code>~/.agents/skills/</code></td></tr>
+              <tr><td>Gemini CLI</td><td><code>~/.agents/skills/</code>（或自己的 <code>~/.gemini/skills/</code>）</td></tr>
+              <tr><td>Qwen Code</td><td><code>~/.agents/skills/</code>（或自己的 <code>~/.qwen/skills/</code>）</td></tr>
+              <tr><td>OpenCode</td><td><code>~/.agents/skills/</code>、<code>~/.claude/skills/</code> 或 <code>~/.config/opencode/skills/</code></td></tr>
+              <tr><td>Claude Code</td><td><code>~/.claude/skills/</code></td></tr>
+            </tbody>
+          </table>
+          <p>
+            只能聊天、不能在你电脑上执行命令的 Agent（网页版聊天）装了也只能用引导部分：
+            它没法替你跑命令和清理，代办的部分要换能执行命令的 Agent。
+          </p>
+        </section>
 
         <section class="agent-skill-section" aria-labelledby="agent-skill-can">
           <h2 class="agent-skill-heading" id="agent-skill-can">它能做什么、不做什么</h2>
@@ -76,36 +120,14 @@ const { version } = await import('../../package.json');
           </div>
         </section>
 
-        <section class="agent-skill-section" aria-labelledby="agent-skill-install">
-          <h2 class="agent-skill-heading" id="agent-skill-install">安装方法</h2>
-          <p>
-            解压 zip，把里面的 <code>{SKILL_NAME}</code> 目录整个放进你所用 Agent 的 Skill 目录。
-            大部分 Agent 认下面两个目录之一：
-          </p>
-          <!-- 横向可滚的表格要能用键盘聚焦（axe 的 scrollable-region-focusable，和 Markdown 表格的 rehype 处理一致） -->
-          <table tabindex="0">
-            <thead>
-              <tr><th>Agent</th><th>Skill 放的目录</th></tr>
-            </thead>
-            <tbody>
-              <tr><td>Codex</td><td><code>~/.agents/skills/</code></td></tr>
-              <tr><td>Gemini CLI</td><td><code>~/.agents/skills/</code>（或自己的 <code>~/.gemini/skills/</code>）</td></tr>
-              <tr><td>Qwen Code</td><td><code>~/.agents/skills/</code>（或自己的 <code>~/.qwen/skills/</code>）</td></tr>
-              <tr><td>OpenCode</td><td><code>~/.agents/skills/</code>、<code>~/.claude/skills/</code> 或 <code>~/.config/opencode/skills/</code></td></tr>
-              <tr><td>Claude Code</td><td><code>~/.claude/skills/</code></td></tr>
-            </tbody>
-          </table>
-          <p>
-            只能聊天、不能在你电脑上执行命令的 Agent（网页版聊天）装了也只能用引导部分：
-            它没法替你跑命令和清理，代办的部分要换能执行命令的 Agent。
-          </p>
-        </section>
-
         <section class="agent-skill-section" aria-labelledby="agent-skill-start">
           <h2 class="agent-skill-heading" id="agent-skill-start">装好以后</h2>
-          <p>对你的 Agent 说一句开始语：</p>
+          <p>手动装好以后，对你的 Agent 说一句开始语：</p>
           <p class="agent-skill-phrase"><code>带我订阅 Claude</code></p>
-          <p>它会先问你几个问题（确认风险提示、识别电脑系统、选节点方案和手机系统），然后按路线带你走。</p>
+          <p>
+            用上面的提示词让 Agent 自己装的，它会直接进入开场，不用再说。它先问你几个问题
+            （确认风险提示、识别电脑系统、选节点方案和手机系统），然后按路线带你走。
+          </p>
         </section>
 
         <section class="agent-skill-section" aria-labelledby="agent-skill-credentials">
@@ -124,16 +146,20 @@ const { version } = await import('../../package.json');
       </div>
     </main>
   </div>
+  <CodeCopy />
   <script type="application/json" id="route-data" set:html={routeJson} />
 </BaseLayout>
 
 <script>
   import { initToc } from '../scripts/toc';
   import { pageReaderStore, readRouteData } from '../scripts/reader-store';
+  import { initCodeCopy } from '../scripts/code-zoom';
 
   // Agent Skill 页也有目录：<720px 的抽屉、“目录”按钮和侧边栏当前项都靠目录脚本（和参考页一样）
   const data = readRouteData(document);
   if (data) initToc(document, data, pageReaderStore(data));
+  // 安装提示词块是手写的 .prose pre：复制按钮和 Markdown 代码块走同一个脚本
+  initCodeCopy(document);
 </script>
 
 <style>
@@ -164,6 +190,25 @@ const { version } = await import('../../package.json');
     color: var(--text-muted);
     font-size: var(--fs-meta);
     line-height: var(--lh-tagline);
+  }
+
+  /*
+   * 安装提示词块（design §4.10）：套用 §4.7 的代码块外观和复制按钮（.prose pre + initCodeCopy），
+   * 但长句自动折行——提示词不是命令，不该让读者横向滚着读，也不该在 360px 撑出滚动区。
+   */
+  .agent-skill-prompt {
+    margin: 0 0 var(--space-3);
+  }
+
+  .agent-skill-page .agent-skill-prompt pre {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  /* 提示词块和 Markdown 代码块同样用正文的字号：页面级 .agent-skill-page code 的 0.875em 只给正文行内代码 */
+  .agent-skill-page .agent-skill-prompt pre code {
+    font-size: inherit;
   }
 
   .agent-skill-download {
