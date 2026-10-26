@@ -5,7 +5,7 @@ license: MIT
 compatibility: 需要能执行本机命令和 ssh 的 Agent，需要联网；只能聊天的 Agent 只能用引导部分
 metadata:
   version: "3.1.3"
-  rewrite: "489690490153"
+  rewrite: "1e1472bdf2cd"
   site: "https://re0claude.us.ci"
 ---
 
@@ -171,6 +171,10 @@ metadata:
 引导的做法：讲清这一步做什么、附上引导站小节链接、给出要填的值，然后等读者说做完再往下。**不操作读者的浏览器和手机。**
 
 读者做完引导类的步骤，能核对的就帮他对一下（比如让他把测出来的结果告诉你，你判断合不合格），不要只看一句「做好了」。
+
+### 代理软件怎么选
+
+读者还没装代理软件、问用哪个时，**优先推荐 v2rayN**：Windows、macOS 和 Linux 都有官方安装包，正文里的导入、Tun 和规则设置也以它为例。Clash Verge Rev 是备选，只在读者已经在用、或者明确想用时才提，不要一上来先推 Clash。各系统的安装包和权限差别见 `references/agent-systems.md`。
 
 ## 执行前确认
 

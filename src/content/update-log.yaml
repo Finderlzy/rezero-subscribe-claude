@@ -19,6 +19,11 @@
 # 不写多段正文、图片和代码块。更新日志是用来告诉读者“哪里变了”的，不是第二份教程。
 
 - date: 2026-10-26
+  type: content
+  title: 电脑端优先推荐 v2rayN
+  body: 装代理软件时先看 v2rayN，Windows、macOS、Linux 都有官方包，正文补了三个系统的下载和权限说明；Clash Verge Rev 改为备选。
+  page: client-desktop
+- date: 2026-10-26
   type: site
   title: 新增读者反馈页
   body: 读者照着教程做成以后发来的聊天截图，原样贴在新的读者反馈页上；首页也放了几张，侧边栏和抽屉底部有入口。

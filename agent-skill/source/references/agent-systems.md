@@ -122,6 +122,16 @@ sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
 - **Windows：代理软件要以管理员身份运行。** 开 Tun 模式要虚拟网卡，普通权限不够。提醒读者右键程序选「以管理员身份运行」，这是读者自己在图形界面上做的，Agent 不代劳。
 - **Linux：每次打开 Tun，系统都会要求输入密码。** 由读者自己在弹窗里输入，Agent 不索取、不代输。
 
+## 代理软件按系统
+
+读者还没装代理软件时，**优先推荐 v2rayN**；下载包名和正文步骤见 `references/client-desktop.md` 的「安装代理软件」。
+
+- **Windows**：用 `v2rayN-windows-64.zip`，解压后右键 `v2rayN.exe` 选「以管理员身份运行」。
+- **macOS**：用 `v2rayN-macos-arm64.dmg`（Apple 芯片）或 `v2rayN-macos-64.dmg`（Intel 芯片），打开后把 app 拖进「应用程序」；第一次打开、第一次开 Tun 会有系统权限弹窗，由读者自己允许。
+- **Linux**：用 `v2rayN-linux-64.deb`（Debian、Ubuntu）或 `v2rayN-linux-64.zip`；开 Tun 要授权，密码由读者自己输入。
+
+Clash Verge Rev 是备选，读者已经在用或者明确想用时才引导，做法同样在 `references/client-desktop.md` 里。
+
 ## 正文没写 Linux 做法的地方
 
 参考文件是按 Windows 和 macOS 写的；遇到只有这两个系统写法的步骤（时区、IPv6、代理软件的图形界面等），按同样的思路现场处理，并明确告诉读者：
