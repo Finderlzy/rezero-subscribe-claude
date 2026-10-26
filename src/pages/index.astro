@@ -77,7 +77,7 @@ function chapterEntryId(chapter: (typeof chapters)[number]): string {
         <a class="button home-start" href={withBase(pathOf(site.start))} data-home-start
           >从第 00 章开始<span class="button-arrow" aria-hidden="true">→</span></a
         >
-        <!-- Agent Skill 入口（v0.16、FR-116）：首屏只多这一个次要链接，不改五章简介和最近更新 -->
+        <!-- Agent Skill 入口（v0.15、FR-116）：首屏只多这一个次要链接，不改五章简介和最近更新 -->
         <a class="button button-secondary" href={withBase(AGENT_SKILL_PATH)} data-home-agent-skill>让 AI Agent 带你做</a>
       </p>
       <GroupInvite compact />
@@ -177,8 +177,15 @@ function chapterEntryId(chapter: (typeof chapters)[number]): string {
     line-height: var(--lh-tagline);
   }
 
-  /* 一句话到主按钮；按钮下面是 QQ 群小字（GroupInvite 的紧凑版） */
+  /*
+   * 一句话到主按钮；按钮下面是 QQ 群小字（GroupInvite 的紧凑版）。
+   * v0.15 起主按钮旁边还有“让 AI Agent 带你做”（FR-116）：两个按钮同一行，窄屏放不下时换行居中。
+   */
   .home-actions {
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-3);
     margin: var(--space-7) 0 0;
   }
 

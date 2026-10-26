@@ -8,7 +8,7 @@ import { withBase } from '../lib/with-base';
 import BaseLayout from './BaseLayout.astro';
 
 /**
- * Agent Skill 页的骨架（v0.16，design §4.10，FR-115、FR-116）。
+ * Agent Skill 页的骨架（v0.15，design §4.10，FR-115、FR-116）。
  *
  * 和更新日志页一样是“顶栏 + 侧边栏 | 正文区”的独立页面（design §4.10）：h1 是“Agent Skill”，
  * 不进上一步/下一步、目录的章节列表和站内搜索，进 sitemap 和 seo.yaml（键 AGENT_SKILL_KEY）。
@@ -59,7 +59,7 @@ const { version } = await import('../../package.json');
               <h3 class="agent-skill-sub">能做（替你做）</h3>
               <ul>
                 <li>按路线图一步步引导，记住你做到哪了（进度记在你本机的一个文件里）</li>
-                <li>电脑上的命令、配置文件和一键脚本的回答，经你确认后替你执行</li>
+                <li>电脑上的命令、配置文件和一键脚本，经你确认后替你执行</li>
                 <li>装好代理软件后帮你查系统、改时区、核对节点自测结果</li>
                 <li>结束时清理临时文件、shell 历史里的密码和临时 SSH 密钥</li>
               </ul>
@@ -67,8 +67,8 @@ const { version } = await import('../../package.json');
             <div>
               <h3 class="agent-skill-sub">不做（只引导）</h3>
               <ul>
-                <li>手机上的操作：订阅、代理 App 和系统设置都由你自己点</li>
-                <li>买服务器、付款、注册 Claude 账号：不代办购买、付款和 KYC</li>
+                <li>手机上的全部步骤：注册、订阅、代理 App 和系统设置都由你自己点</li>
+                <li>买服务器、买 ISP 代理和住宅服务器、注册账号和过 KYC：只讲怎么做，不代办</li>
                 <li>不操作你的浏览器和图形界面，代理软件的界面要你自己配</li>
                 <li>不改商家的命令、优惠码，也不推荐教程以外的商家</li>
               </ul>
@@ -82,7 +82,8 @@ const { version } = await import('../../package.json');
             解压 zip，把里面的 <code>rezero-subscribe-claude</code> 目录整个放进你所用 Agent 的 Skill 目录。
             大部分 Agent 认下面两个目录之一：
           </p>
-          <table>
+          <!-- 横向可滚的表格要能用键盘聚焦（axe 的 scrollable-region-focusable，和 Markdown 表格的 rehype 处理一致） -->
+          <table tabindex="0">
             <thead>
               <tr><th>Agent</th><th>Skill 放的目录</th></tr>
             </thead>
@@ -180,6 +181,57 @@ const { version } = await import('../../package.json');
 
   .agent-skill-section p {
     margin: 0 0 var(--space-3);
+  }
+
+  /*
+   * 行内代码和表格照 design §4.7（更新日志页那种手写页面不走 Markdown 的 .prose，
+   * 规则抄在这里）：行内代码浅底 4px 圆角；表格全格线 + 隔行底色、表头不折行、
+   * 在自己的容器里横向滚动（360px 不撑破页面），第一列粘性固定。
+   */
+  .agent-skill-page code {
+    font-family: var(--font-mono);
+    font-size: var(--fs-code);
+  }
+
+  .agent-skill-page :not(pre) > code {
+    padding: 2px 6px;
+    border-radius: var(--radius-inline);
+    background: var(--surface-muted);
+  }
+
+  .agent-skill-page table {
+    display: block;
+    overflow-x: auto;
+    border-collapse: collapse;
+    margin: 0 0 var(--space-3);
+  }
+
+  .agent-skill-page th,
+  .agent-skill-page td {
+    padding: var(--space-2) calc(var(--space-3) + 2px);
+    border: var(--border-width) solid var(--border);
+    text-align: left;
+  }
+
+  .agent-skill-page th {
+    color: var(--text);
+    background: var(--surface-muted);
+    font-weight: var(--fw-heading);
+    white-space: nowrap;
+  }
+
+  .agent-skill-page :is(th, td):first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+  }
+
+  .agent-skill-page td:first-child {
+    background: var(--bg);
+  }
+
+  .agent-skill-page tbody tr:nth-child(even) > * {
+    background: var(--surface-muted);
   }
 
   /* 能做 / 不做：两列清单（design §4.10），<720px 一列堆叠 */

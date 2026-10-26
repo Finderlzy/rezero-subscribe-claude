@@ -16,7 +16,7 @@ beforeEach(() => {
   writeFileSync(join(root, 'pages', 'index.astro'), '');
   // 更新日志页（v0.13、FR-80）：独立页面，源文件是路由文件
   writeFileSync(join(root, 'pages', 'update-log.astro'), '');
-  // Agent Skill 页（v0.16、FR-115）：同样是独立页面
+  // Agent Skill 页（v0.15、FR-115）：同样是独立页面
   writeFileSync(join(root, 'pages', 'agent-skill.astro'), '');
 });
 afterEach(() => fx.cleanup());

@@ -52,14 +52,18 @@ test('1280px 打开 /plan1/：侧边栏底部“更新日志”旁边有“Agent
   test.skip(page.viewportSize()!.width < 720, '侧边栏只在 ≥720px 常驻');
   await page.goto('./plan1/');
   const entry = page.locator('aside[data-toc-sidebar] [data-toc-agent-skill]');
+  // 和“更新日志”并排，在目录滚动区之外（常驻），不是当前页时没有当前态
+  await expect(page.locator('aside[data-toc-sidebar] .toc-sidebar-foot [data-toc-update-log]')).toBeVisible();
   await expect(entry).toBeVisible();
+  await expect(entry).toBeInViewport();
   await expect(entry).toHaveAccessibleName('Agent Skill');
   await expect(entry).toHaveAttribute('href', AGENT_SKILL_PATH);
   await expect(entry).not.toHaveAttribute('aria-current', 'page');
 });
 
 test('719px 打开抽屉：底部两条入口都在', async ({ page }) => {
-  test.skip(page.viewportSize()!.width >= 720, '抽屉只在 <720px');
+  // AC-49 点名 719px：这一档没有常驻侧边栏，两条入口都在抽屉底部
+  await page.setViewportSize({ width: 719, height: 800 });
   await page.goto('./plan1/');
   const drawer = page.getByRole('dialog', { name: '目录' });
   await expect(drawer.locator('[data-toc-update-log]')).toBeHidden();
@@ -67,6 +71,7 @@ test('719px 打开抽屉：底部两条入口都在', async ({ page }) => {
   await tocButton(page).click();
   await expect(drawer.locator('[data-toc-update-log]')).toBeVisible();
   await expect(drawer.locator('[data-toc-agent-skill]')).toBeVisible();
+  await expect(drawer.locator('[data-toc-agent-skill]')).toBeInViewport();
 });
 
 test('Skill 页自己是侧边栏底部的当前态，没有上一步/下一步', async ({ page }) => {

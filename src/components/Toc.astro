@@ -38,14 +38,14 @@ interface Props {
   openChapterId?: string;
   /** 当前页就是更新日志（v0.13、FR-88）：侧边栏底部的入口显示成当前态 */
   currentUpdateLog?: boolean;
-  /** 当前页就是 Agent Skill 页（v0.16、FR-116）：侧边栏底部的入口显示成当前态 */
+  /** 当前页就是 Agent Skill 页（v0.15、FR-116）：侧边栏底部的入口显示成当前态 */
   currentAgentSkill?: boolean;
 }
 
 const { outline, references, sections = [], currentReference, referencesChapter, openChapterId, currentUpdateLog = false, currentAgentSkill = false } = Astro.props;
 // 更新日志入口的文字：和分类名同一个来源（CONTEXT.md 的“更新日志”）
 const UPDATE_LOG_LABEL = '更新日志';
-// Agent Skill 入口的文字（v0.16、FR-116）
+// Agent Skill 入口的文字（v0.15、FR-116）
 const AGENT_SKILL_LABEL = 'Agent Skill';
 ---
 

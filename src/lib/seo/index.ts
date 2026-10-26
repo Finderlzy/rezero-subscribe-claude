@@ -9,6 +9,8 @@
  * 这一层补的是搜索结果里的两行摘要、分享到微信/Telegram/X 等地方时的卡片，以及 Article/BreadcrumbList 结构化数据。
  */
 
+import { AGENT_SKILL_PATH } from '../agent-skill/index';
+
 /** 一条摘要：`seo.yaml` 里的一页，校验通过后就是这个形状 */
 export interface SeoEntry {
   /** 页面键：路线图页面标识、参考页标识（`ip-tests/<id>`），或 `/`、`/update-log/` 这类没有正文文件的页面 */
@@ -29,8 +31,8 @@ export const DESCRIPTION_MAX = 118;
  */
 export const HOME_KEY = '/';
 export const UPDATE_LOG_KEY = '/update-log/';
-/** Agent Skill 页的页面键（v0.16、FR-115），值就是 src/lib/agent-skill 的 AGENT_SKILL_PATH */
-export const AGENT_SKILL_KEY = '/agent-skill/';
+/** Agent Skill 页的页面键（v0.15、FR-115）：直接用页面自己的路径常量，不另写一份，避免两处漂移 */
+export const AGENT_SKILL_KEY = AGENT_SKILL_PATH;
 
 /** 校验问题：key 是页面键（或出错的那一行），和构建报错的口径一致 */
 export interface SeoProblem {
@@ -41,7 +43,7 @@ export interface SeoProblem {
 /**
  * 校验 `seo.yaml` 解析出来的对象。
  *
- * `pageKeys` 是构建时所有需要摘要的页面键：路线图的页面、参考页、首页和更新日志页。
+ * `pageKeys` 是构建时所有需要摘要的页面键：路线图的页面、参考页、首页、更新日志页和 Agent Skill 页。
  * 少写一页、写了一个不存在的键、摘要太长或太短都算问题——内容出错必须让构建失败。
  */
 export function parseSeo(raw: unknown, pageKeys: readonly string[]): { entries: SeoEntry[]; problems: SeoProblem[] } {
