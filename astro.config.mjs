@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 import { unified } from '@astrojs/markdown-remark';
+import { agentSkill } from './src/lib/agent-skill/integration';
 import { contentValidation } from './src/lib/content/integration';
 import { createLinkIndex } from './src/lib/content/link-index';
 import { markdownPipeline } from './src/lib/content/markdown';
@@ -42,6 +43,8 @@ export default defineConfig({
   // sitemap 要有 site 才生成（部署时由 SITE_URL 给出）；找不到页和跳转页不进 sitemap，其余补上 lastmod。
   integrations: [
     contentValidation({ base, linkIndex }),
+    // 订阅 Skill（M8，架构 §16.4）：构建开始时从重写稿重新生成一遍，和入库的 agent-skill/rezero-subscribe-claude/ 逐字对照
+    agentSkill({ repoRoot }),
     sitemap({
       filter: (page) => {
         const { pathname } = new URL(page);

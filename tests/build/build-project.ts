@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, symlinkSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,8 +10,17 @@ import { fileURLToPath } from 'node:url';
  */
 const repo = fileURLToPath(new URL('../../', import.meta.url));
 const fixtures = join(repo, 'tests/fixtures');
-/** 构建需要的全部输入（不存在的跳过）；新增构建输入时同步这里。node_modules 另行链接，见 linkPackages。 */
-const BUILD_INPUTS = ['src', 'public', 'astro.config.mjs', 'tsconfig.json', 'package.json'];
+/**
+ * 构建需要的全部输入（不存在的跳过）；新增构建输入时同步这里。node_modules 另行链接，见 linkPackages。
+ * `scripts/import-rewrite.mjs`：订阅 Skill 的生成器复用它的 convertRelativeLinks()（架构 §16.11 R3）。
+ */
+const BUILD_INPUTS = ['src', 'public', 'agent-skill', 'scripts/import-rewrite.mjs', 'astro.config.mjs', 'tsconfig.json', 'package.json'];
+/** 订阅 Skill 的生成器读重写稿（架构 §16.4）：只要 `.md`，附件里的图和视频用不上 */
+const REWRITE_INPUT = 'docs/v3-rewrite';
+/** 夹具里按仓库相对路径覆盖的目录（如 `@root/docs/v3-rewrite/10-后记.md`），其余文件覆盖 src/content/ */
+const FIXTURE_ROOT = '@root';
+/** 夹具里逐行列出要删掉的仓库相对路径（空行和 # 开头的行忽略） */
+const FIXTURE_DELETE = '@delete';
 /** 略小于 vitest.build.config.ts 的 testTimeout，测试超时前先结束构建进程，不留下仍在写临时目录的子进程 */
 const BUILD_TIMEOUT = 110_000;
 
@@ -23,7 +32,10 @@ export interface BuildResult {
 }
 
 export interface BuildOptions {
-  /** tests/fixtures/ 下的用例名：它的内容覆盖 src/content/（通常只有坏掉的 route.yaml 或页面） */
+  /**
+   * tests/fixtures/ 下的用例名：它的内容覆盖 src/content/（通常只有坏掉的 route.yaml 或页面）；
+   * `@root/` 下的文件按仓库相对路径覆盖，`@delete` 逐行列出要删掉的仓库相对路径（架构 §16.4）。
+   */
   fixture?: string;
   /** 追加/覆盖的环境变量，例如 `{ SITE_URL: 'https://example.test' }`；BASE_PATH 默认 `/` */
   env?: Record<string, string>;
@@ -45,14 +57,35 @@ function linkPackages(dir: string): void {
   }
 }
 
+/** 套上夹具：普通文件覆盖 src/content/，`@root/` 覆盖仓库根下的文件，`@delete` 里列出的文件删掉。 */
+function applyFixture(source: string, dir: string): void {
+  for (const entry of readdirSync(source)) {
+    const from = join(source, entry);
+    if (entry === FIXTURE_ROOT) cpSync(from, dir, { recursive: true });
+    else if (entry === FIXTURE_DELETE) {
+      for (const line of readFileSync(from, 'utf8').split(/\r?\n/)) {
+        const path = line.trim();
+        if (path === '' || path.startsWith('#')) continue;
+        const target = join(dir, path);
+        if (!existsSync(target)) throw new Error(`${from}：要删的 ${path} 不存在`);
+        rmSync(target, { recursive: true });
+      }
+    } else cpSync(from, join(dir, 'src/content', entry), { recursive: true });
+  }
+}
+
 /** 复制一份工程，套上坏内容（不传则原样），执行 astro build。 */
 export function buildProject({ fixture, env: extraEnv, keep = false }: BuildOptions = {}): Promise<BuildResult> {
   const dir = mkdtempSync(join(tmpdir(), 'rezero-build-'));
   for (const input of BUILD_INPUTS) {
     if (existsSync(join(repo, input))) cpSync(join(repo, input), join(dir, input), { recursive: true });
   }
+  cpSync(join(repo, REWRITE_INPUT), join(dir, REWRITE_INPUT), {
+    recursive: true,
+    filter: (source) => statSync(source).isDirectory() || source.endsWith('.md'),
+  });
   linkPackages(dir);
-  if (fixture !== undefined) cpSync(join(fixtures, fixture), join(dir, 'src/content'), { recursive: true });
+  if (fixture !== undefined) applyFixture(join(fixtures, fixture), dir);
 
   const env = { ...process.env, BASE_PATH: '/', ...extraEnv };
   return new Promise((resolve) => {

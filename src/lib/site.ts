@@ -1,9 +1,10 @@
 import { getCollection, type CollectionEntry } from 'astro:content';
 import routeText from '../content/route.yaml?raw';
 import { scanHeadings } from './content/headings';
-import { buildRouteMap, movedEntries, RouteValidationError } from './route/route-map';
+import { assembleRoute, pageTitle } from './route/assemble';
+import { movedEntries, RouteValidationError } from './route/route-map';
 import { parseRouteYaml } from './route/route-yaml';
-import type { ForkId, OptionId, PageId, PageMeta, RouteMap, RouteSpecMovedTarget, Stop } from './route/types';
+import type { ForkId, OptionId, PageId, RouteMap, RouteSpecMovedTarget, Stop } from './route/types';
 import { sectionAnchor, type AnchorHeading } from './section-anchor';
 import { describe, HOME_KEY, UPDATE_LOG_KEY, type SeoEntry } from './seo';
 import { loadSeo } from './seo/load';
@@ -12,6 +13,7 @@ import type { ResolvedUpdateEntry } from './update-log';
 
 /**
  * 构建时装配（架构 §3 M3）：读取 M1 的内容集合和 route.yaml，交给 M2 编译成 RouteMap。
+ * 条目到 M2 输入的映射（`assembleRoute`、`pageTitle`）在不依赖 astro:content 的 route/assemble.ts（架构 §16.11 R1）。
  * 页面都从 `loadSite()` 取数据；M2 不引用 M1 的类型，两边的形状在这里映射。
  */
 
@@ -92,39 +94,6 @@ export interface TocReference {
 const TOC_REFERENCES = ['ip-tests'];
 /** 参考页挂在目录的哪一章末尾（章标识，见 route.yaml） */
 const REFERENCE_CHAPTER_ID = 'maintenance';
-
-/** 只取映射需要的字段，单元测试可以直接传普通对象。 */
-export type PrincipleEntry = Pick<CollectionEntry<'principle'>, 'id' | 'body'> & {
-  data: Pick<CollectionEntry<'principle'>['data'], 'principleOnly' | 'skippable' | 'skipLabel' | 'options'>;
-};
-
-/**
- * 页面标题：正文第一个非空行的 `# 标题`（架构 §3 M1）。缺标题由构建开始时的内容校验（checkPages）报错，
- * 这里只在绕过那一层时兜底。
- */
-export function pageTitle(body: string | undefined, file: string): string {
-  const first = (body ?? '').split('\n').find((line) => line.trim() !== '');
-  const match = first === undefined ? null : /^# +(.+?)[ \t]*$/.exec(first);
-  if (!match) throw new Error(`${file}：缺少第一行标题“# 页面标题”`);
-  return match[1]!;
-}
-
-/**
- * 把原理版条目映射成 M2 的输入并编译。路线图有错时抛出 `RouteValidationError`（第三层校验，FR-61），
- * 它的 message 每行一条“文件：说明”，构建输出里直接可读。
- */
-export function assembleRoute(spec: unknown, entries: readonly PrincipleEntry[]): RouteMap {
-  const pages: PageMeta[] = entries.map(({ id, body, data }) => ({
-    id,
-    title: pageTitle(body, `src/content/principle/${id}.md`),
-    principleOnly: data.principleOnly,
-    skippable: data.skippable,
-    ...(data.skipLabel !== undefined && { skipLabel: data.skipLabel }),
-    // 对象键按书写顺序；选项标识以字母开头，不会被 JS 按整数键重排（schemas.ts ID_PATTERN）。
-    ...(data.options !== undefined && { options: Object.entries(data.options).map(([option, { title }]) => ({ id: option, title })) }),
-  }));
-  return buildRouteMap(spec, pages);
-}
 
 /** 路线的第一页。路线图校验保证第一项是普通页面。 */
 export function startOf(route: RouteMap): Stop {

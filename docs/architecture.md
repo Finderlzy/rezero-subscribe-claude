@@ -469,26 +469,26 @@ function getNameHost(scope?): { name: string } | null;   // 浏览器里是 wind
 
 ## 16. v3.2 增量架构：M8 订阅 Skill（2026-10-26）
 
-需求 v0.15 的 FR-100–FR-117、NFR-07、AC-40–AC-49。复用调研见 [reuse-research.md §5.2](reuse-research.md#52-v32-补充订阅-skill2026-10-26)，生成物入库的决定见 [ADR-0007](adr/0007-agent-skill-generated-and-committed.md)。状态：**定稿，未实现**；本节的目录、文件、命令都是“计划”，由 v3.2 的任务建立，建立后改成现状。
+需求 v0.15 的 FR-100–FR-117、NFR-07、AC-40–AC-49。复用调研见 [reuse-research.md §5.2](reuse-research.md#52-v32-补充订阅-skill2026-10-26)，生成物入库的决定见 [ADR-0007](adr/0007-agent-skill-generated-and-committed.md)。状态：**定稿，部分实现**。V14（#41，2026-10-26）建立了骨架：§16.11 R1 的重构、`src/lib/agent-skill/` 的生成和对照、`npm run skill`、构建开始时的对照、最小的 `SKILL.md` 模板和入库的生成物（§16.3、§16.4 第 1–2 步，下文标“现状”）；`checkSkill`、zip、方法文件、行为规则、Skill 页和入口仍是“计划”，由后续任务建立，建立后改成现状。
 
 M8 是一个**生成器**：读重写稿（M1 的素材）、路线图（M2）和手写的 Skill 源稿，产出读者用的 Skill 目录；构建时重新生成一遍和入库的生成物逐字核对，再按 FR-113 校验并打成 zip。它不改 M1、M2、M4，也不被它们依赖；M3 只多一个独立页面和两处入口。
 
 ### 16.1 增量影响分析
 
-| 模块 | 影响 | 位置（计划） |
+| 模块 | 影响 | 位置（未标“现状”的是计划） |
 | --- | --- | --- |
-| M8 订阅 Skill（新） | 纯逻辑：生成、校验、对照、打包 | `src/lib/agent-skill/`（单元测试在旁边） |
-| M8 构建期接入 | 构建开始时生成 + 对照 + 校验，失败就终止构建；构建结束时把 zip 写进 `dist/` | `src/lib/agent-skill/integration.ts`，在 `astro.config.mjs` 里排在 `contentValidation` 后面 |
-| M8 开发脚本 | 把生成结果写进仓库（`npm run skill`） | `scripts/build-skill.mjs`：用 Vite 的 `runnerImport` 加载 `src/lib/agent-skill/`（调研 §5.2 已验证） |
+| M8 订阅 Skill（新） | 纯逻辑：生成、校验、对照、打包 | `src/lib/agent-skill/`（单元测试在旁边）。现状（V14）：`index.ts`（常量）、`generate.ts`、`diff.ts`、`load.ts`、`integration.ts`；校验 `checkSkill` 和打包 `zipSkill` 待 V15 |
+| M8 构建期接入 | 构建开始时生成 + 对照 + 校验，失败就终止构建；构建结束时把 zip 写进 `dist/` | `src/lib/agent-skill/integration.ts`，在 `astro.config.mjs` 里排在 `contentValidation` 后面。现状（V14）：`agentSkill({ repoRoot })` 只做生成 + 对照 |
+| M8 开发脚本 | 把生成结果写进仓库（`npm run skill`） | 现状（V14）：`scripts/build-skill.mjs` 用 Vite 的 `runnerImport`（`configFile: false`）加载 `src/lib/agent-skill/load.ts`、`index.ts`；只写有变化的文件，删掉生成结果里没有的文件 |
 | Skill 源稿（新，手写） | `SKILL.md` 模板和 Agent 方法文件 | `agent-skill/source/` |
 | Skill 生成物（新，入库、不手改） | 读者装的目录 | `agent-skill/rezero-subscribe-claude/` |
 | M1 内容 | **不改**。生成器只读 `createLinkIndex()`（标题 → 页面、小标题 → 锚点）和 `blog-links.yaml` | — |
 | M2 路线 | **不改**。生成器用 `buildRouteMap()` 的章节、分叉点和各选项页面顺序写 `SKILL.md` 的路线表 | — |
-| 构建期装配（先重构） | `assembleRoute()`、`pageTitle()` 从 `src/lib/site.ts` 挪到不依赖 `astro:content` 的 `src/lib/route/assemble.ts`，`site.ts` 改为引用；M8 从这里拿路线图（§16.11 R1） | `src/lib/route/assemble.ts`、`src/lib/site.ts` |
+| 构建期装配（先重构） | 现状（V14）：`assembleRoute()`、`pageTitle()` 和条目类型 `PrincipleEntry` 在不依赖 `astro:content` 的 `src/lib/route/assemble.ts`（测试 `assemble.test.ts`），`site.ts` 改为引用；M8 从这里拿路线图（§16.11 R1） | `src/lib/route/assemble.ts`、`src/lib/site.ts` |
 | M3 页面 | 新增 Skill 页 `src/pages/agent-skill.astro`；`Toc.astro` 两处底栏加入口；首页首屏加次要入口 | `src/pages/`、`src/components/Toc.astro`、`src/pages/index.astro` |
 | SEO / sitemap | `seo.yaml` 必填键加 `/agent-skill/`；sitemap 来源加 `agent-skill.astro` | `src/lib/seo/index.ts`、`src/lib/site.ts`、`src/lib/sitemap/lastmod.ts` |
 | M6 搜索 | **不改**：索引只收路线图页面和参考页，Skill 页天然不在里面（e2e 断言） | — |
-| 构建级用例 | 夹具能覆盖仓库根下的文件、能删文件；`BUILD_INPUTS` 加 `agent-skill/` 和 `docs/v3-rewrite/` 的 `.md` | `tests/build/build-project.ts` |
+| 构建级用例 | 夹具能覆盖仓库根下的文件、能删文件；`BUILD_INPUTS` 加 `agent-skill/` 和 `docs/v3-rewrite/` 的 `.md` | `tests/build/build-project.ts`。现状（V14）：`@root/`、`@delete` 已支持；`BUILD_INPUTS` 另加了 `scripts/import-rewrite.mjs`（生成器复用它的 `convertRelativeLinks()`，R3） |
 | 依赖 | 新增 `fflate`（`dependencies`，打 zip） | `package.json` |
 
 ### 16.2 目录与文件归属
@@ -531,9 +531,19 @@ agent-skill/
 - **`SKILL.md` 模板的占位**：`{{version}}`（`package.json`）、`{{rewrite}}`（重写稿指纹：12 个源文件按路径排序、统一换行后的 SHA-256 前 12 位）、`{{route}}`（按路线图生成的路线表：章、页面标识、标题、参考文件、引导站网址、属于哪个分叉点的哪个选项）、`{{group}}`（群号和加群链接）、`{{site}}`。模板里出现不认识的占位、生成后还留着 `{{` 都报错。
 - frontmatter 只用规范字段：`name`、`description`、`license: MIT`、`compatibility`（“需要能执行本机命令和 ssh 的 Agent，需要联网；只能聊天的 Agent 只能用引导部分”，Q-23）、`metadata`（`version`、`rewrite`、`site`，值都是字符串）。
 
+**现状（V14，`src/lib/agent-skill/generate.ts`）**，上面没写死、实现时定下的细节：
+
+- 接口：`generateSkill(inputs: SkillInputs): GeneratedSkill`，`files` 和 `sources` 都是“相对生成物目录的路径 → …”的 `Map`（按路径排序）；`sources` 记每个生成文件的源文件，`diffSkill` 报“对不上”时用。有问题时抛 `SkillGenerateError`，`problems` 逐条是 `{ file, line?, message }`。输入由 `load.ts` 的 `loadSkillInputs(repoRoot)` 从磁盘读，`generateFromRepo(repoRoot)` 是两者的组合。
+- 参与生成的源文件：重写稿根目录的每一页（标题必须对应站内的 `principle/` 页面，否则报错）加 `reference/` 里属于 `SKILL_REFERENCE_PAGES`（现在只有 `ip-tests`）的参考页；`reference/` 的其他实测页只用来解析链接目标的标题和小标题。指纹按这些源文件算，每个文件按“路径、换行、正文、换行”进 SHA-256。
+- 文件开头两行引用块：`> 引导站：<网址>`、`> 本文件由 \`npm run skill\` 从 \`<重写稿>\` 生成，不要手改。`，空一行后是重写稿正文（第一行 `# 标题` 保留）。
+- 小节网址行只加在 h2/h3 下面，前后各空一行；“看图/看视频”指向它上面最近的 h2/h3（没有就是页面网址），后面紧跟文字时网址后空一格。逐行扫描和 `scanHeadings()` 的标题数对不上时报错，不生成错位的锚点。
+- 链接写成 `[文字](完整网址)`；没写文字时用目标标题（带小节时是“标题 > 小节”，和站上一致）；参考页链接不带站上的 `?from=`。
+- Callout 第一行写成 `> **注意**：<标题>` / `> **说明**：<标题>`（没有标题就只有加粗的那两个字），后面几行原样；只认 `caution`、`note`，其他类型报错。`TODO：` 开头的段落写成 `作者待补：<原文>`。
+- `agent-skill/source/references/` 下的方法文件名必须是 `agent-<小写英文>.md`，否则报错。
+
 ### 16.4 构建校验与打包
 
-`agentSkill()` 集成（只在 `astro build` 里生效，和 `contentValidation` 同样的报错方式：逐条打印 `文件：说明`，再抛一个总结错误）。
+`agentSkill()` 集成（只在 `astro build` 里生效，和 `contentValidation` 同样的报错方式：逐条打印 `文件：说明`，再抛一个总结错误）。现状（V14）：第 1、2 步已接入，`verifySkill(repoRoot)` 返回逐条的“文件：说明”，空数组表示通过；生成失败（如重写稿新增了一页还没导入）也按同样方式报出。第 3 步和构建结束时的 zip 由 V15 加。
 
 **构建开始时**：
 
@@ -548,7 +558,7 @@ agent-skill/
 
 **构建结束时**：`zipSkill()` 用 fflate 把入库的目录打成 `dist/agent-skill/rezero-subscribe-claude.zip`（文件按路径排序、固定修改时间，同样的内容得到同样的 zip），超过 1 MB 构建失败（NFR-07）。zip 里顶层就是 `rezero-subscribe-claude/` 目录。
 
-**构建级用例的夹具**（AC-42）：`tests/fixtures/<用例>/` 原来只能覆盖 `src/content/`。扩展两条约定：`@root/` 下的文件按仓库相对路径覆盖（例如 `@root/agent-skill/rezero-subscribe-claude/SKILL.md`），`@delete` 文件逐行列出要删掉的仓库相对路径。四个用例：`skill-missing-reference`（删一个参考文件）、`skill-no-description`、`skill-leftover-embed`（参考文件里留 `![[x.png]]`）、`skill-node-link`（混进一条形如 `vless://<uuid>@…` 的链接）。
+**构建级用例的夹具**（AC-41、AC-42）：`tests/fixtures/<用例>/` 原来只能覆盖 `src/content/`。扩展两条约定：`@root/` 下的文件按仓库相对路径覆盖（例如 `@root/agent-skill/rezero-subscribe-claude/SKILL.md`），`@delete` 文件逐行列出要删掉的仓库相对路径。现状（V14）：两条约定已实现，`skill-stale`（`@root/docs/v3-rewrite/10-后记.md` 改了第一句）报出 `references/afterword.md` 和 `docs/v3-rewrite/10-后记.md`。计划（V15）的四个用例：`skill-missing-reference`（删一个参考文件）、`skill-no-description`、`skill-leftover-embed`（参考文件里留 `![[x.png]]`）、`skill-node-link`（混进一条形如 `vless://<uuid>@…` 的链接）。
 
 ### 16.5 `SKILL.md` 的结构
 
@@ -615,7 +625,7 @@ agent-skill/
 
 | 编号 | 发现 | 影响 | 处理 |
 | --- | --- | --- | --- |
-| R1 | `assembleRoute()`、`pageTitle()` 在 `src/lib/site.ts` 里，而 `site.ts` 引用了 `astro:content` 和 `?raw`，`runnerImport` 在 Astro 之外加载不了 | 生成脚本拿不到路线图 | 先重构：挪到 `src/lib/route/assemble.ts`（纯函数，frontmatter 用 `@astrojs/markdown-remark` 的 `parseFrontmatter` 读），`site.ts` 改引用；排在 V14 的第一步。M8 不得引用 `site.ts` |
+| R1 | `assembleRoute()`、`pageTitle()` 在 `src/lib/site.ts` 里，而 `site.ts` 引用了 `astro:content` 和 `?raw`，`runnerImport` 在 Astro 之外加载不了 | 生成脚本拿不到路线图 | 先重构：挪到 `src/lib/route/assemble.ts`（纯函数，frontmatter 用 `@astrojs/markdown-remark` 的 `parseFrontmatter` 读），`site.ts` 改引用；排在 V14 的第一步。M8 不得引用 `site.ts`。**已完成（V14）**：frontmatter 在 `agent-skill/load.ts` 里读，只取装配要的几个字段、不跑内容集合的 schema（写错时交给站点构建报） |
 | R2 | §16.3 原来按 `src/content/` 的小标题算锚点，重写稿改了标题而还没导入时，生成物会和重写稿不一致，却不会被发现 | AC-41 的“和重写稿对得上”不严格 | 锚点改为扫重写稿本身（§16.3 已改） |
 | R3 | 重写稿用相对 Markdown 链接，`import-rewrite.mjs` 已有转换函数 | 再写一份解析会和导入规则分叉 | 复用 `convertRelativeLinks()`（tsconfig 已开 `allowJs`），§16.3 已改 |
 | R4 | `seo.yaml` 的必填键 `/agent-skill/` 和 Skill 页必须同一次提交：只加键不加页面，或只加页面不加键，构建都会失败；首页加入口后 AC-01 的首屏断言要照旧通过（FR-116） | 任务边界 | Skill 页、入口、SEO、sitemap 放在同一个任务（V17） |

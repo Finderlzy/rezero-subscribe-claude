@@ -1,0 +1,93 @@
+> 引导站：https://re0claude.us.ci/android-prepare/
+> 本文件由 `npm run skill` 从 `docs/v3-rewrite/06-客户端配置与环境验证-安卓端.md` 生成，不要手改。
+
+# 客户端配置与环境验证：安卓端
+---
+
+安卓手机的情况比 iPhone 杂一些：不同品牌的系统菜单不一样，很多国行机型出厂时也没有 Google 服务。但代理软件本身的配置不复杂。
+
+这一章要完成：安装 v2rayNG、导入节点、准备 Google Play、改时区，最后做连通性测试。
+
+```text
+安装 v2rayNG
+   ↓
+导入节点，设置分流
+   ↓
+准备 Google Play
+   ↓
+改时区，做连通性测试
+   ↓
+下载 Gmail
+```
+
+## 安装 v2rayNG
+
+> 引导站小节：https://re0claude.us.ci/android-prepare/#安装-v2rayng
+
+---
+
+v2rayNG 是安卓上比较成熟的开源代理客户端。
+
+打开 [v2rayNG 的 Releases](https://github.com/2dust/v2rayNG/releases)，下载最新版的 `.apk` 安装包。通常选 `v2rayNG_x.x.x_arm64-v8a.apk`，不确定就选名字里带 `universal` 的版本；手机打不开 GitHub 的话，在已经配置好代理的**电脑**上下载 APK，再通过数据线、微信传输助手之类的方式传到手机。
+
+在手机上打开安装包，系统可能会提示“禁止安装未知来源应用”，按提示允许当前文件管理器或浏览器安装。
+
+### 导入节点
+
+> 引导站小节：https://re0claude.us.ci/android-prepare/#导入节点
+
+复制节点链接：方案一、二复制脚本最后打印的主节点（`vless://` 开头）；如果你还有别的住宅节点，复制商家给的订阅链接。
+
+打开 v2rayNG，点右上角的“＋”，选择 **从剪贴板导入**。列表里会出现你的节点，点一下配置卡片，让它处于选中状态（左侧通常会有绿色竖条）；点右下角的圆形按钮启动代理。第一次会弹出“网络连接请求”，点 **确定**，允许建立 VPN 连接。
+
+**视频 06-1：安装 v2rayNG、导入节点、启动代理**
+
+连接后，手机流量会经过 v2rayNG。和电脑一样，固定用这一个节点，不要频繁切换。
+
+### 分流
+
+> 引导站小节：https://re0claude.us.ci/android-prepare/#分流
+
+在 v2rayNG 里打开左上角菜单 → **设置** → **路由模式**，选 **绕过局域网及大陆地址**。
+
+这样微信、淘宝、抖音等国内应用直接走手机本地网络，不经过节点；只有访问海外服务时才走节点。既不影响国内应用的速度，也不会浪费节点的流量。
+
+## 准备 Google Play
+
+> 引导站小节：https://re0claude.us.ci/android-prepare/#准备-google-play
+
+---
+
+安卓上下载 Gmail、Claude 这些 Google 系应用，要靠 **Google Play**。很多国行手机没有预装，需要先装上。
+
+确认手机的代理已经打开（Google Play 要连 Google 的服务器，不走代理打不开），先看看手机有没有 Google 基础服务：部分国行机型在设置里搜索“Google”或“谷歌”，能看到一个开关，有就打开。
+
+然后在手机自带的应用商店里搜“Google Play”，有的话直接下载安装；没有的话用浏览器搜索，注意跳过搜索结果最前面的“广告”“推广”，也不要在不知名的小网站下载安装包。安装包可能被人改过，里面藏了什么你很难看出来。
+
+装好 Google Play 后，需要登录 Google 账号才能下载。如果你还没有账号，可以先在浏览器打开 [google.com](https://google.com) 创建一个，或者先完成下一章的注册，再回来下载 Gmail。
+
+## 改时区
+
+> 引导站小节：https://re0claude.us.ci/android-prepare/#改时区
+
+---
+
+打开设置 → 系统 → 日期和时间（不同品牌可能写作“系统与更新”“更多设置”，找不到就在设置里搜“时区”），关闭 **自动设置时区**，手动选择 Claude 支持的地区，比如台湾、新加坡；不确定就选住宅 IP 所在城市的时区。**中国大陆和香港不行。**
+
+时区不只要对得上时差，名字也要对。北京是 `Asia/Shanghai`，台北是 `Asia/Taipei`；Claude 能读到这个名字。
+
+### 验收
+
+> 引导站小节：https://re0claude.us.ci/android-prepare/#验收
+
+保持 v2rayNG 连接，用手机浏览器打开 [ipinfo.io](https://ipinfo.io/)，确认页面顶部的 IP 是你的节点出口，**AS Type 是 `isp`**，**Privacy 是 `false`**；再打开 [ipleak.net](https://ipleak.net/)，确认没有出现国内的 DNS 或 IPv6 地址。
+
+如果几个网站显示的 IP 不一样，先看[日常维护与故障处理](https://re0claude.us.ci/maintenance/#测出来好几个不同的-ip)里的“测出来好几个不同的 IP”。
+
+## 下载 Gmail
+
+> 引导站小节：https://re0claude.us.ci/android-prepare/#下载-gmail
+
+---
+
+确认 v2rayNG 已经连接，打开 Google Play，搜索 **Gmail**，认准开发者是 Google，下载安装。很多安卓手机自带 Gmail，已经有的就不用再下。

@@ -137,6 +137,13 @@ describe('AC-14 坏内容让构建失败并报出文件', () => {
       messages: ['src/content/seo.yaml 的 preface：description 有 228 个字符，超过 118 个'],
     },
     {
+      // 订阅 Skill（AC-41、FR-113）：改了重写稿一页的一句话、没有重新生成 → 报出这一页的生成物和重写稿
+      // 夹具用 @root/ 按仓库相对路径覆盖 docs/v3-rewrite/10-后记.md（真实重写稿的副本，只改了第一句）
+      fixture: 'skill-stale',
+      file: 'agent-skill/rezero-subscribe-claude/references/afterword.md',
+      messages: ['和 docs/v3-rewrite/10-后记.md 对不上，运行 npm run skill 重新生成', '订阅 Skill 校验失败'],
+    },
+    {
       fixture: 'bad-metadata',
       file: 'src/content/principle/maintenance.md',
       messages: ['principle → maintenance data does not match collection schema', 'Unrecognized key: "skipable"'],

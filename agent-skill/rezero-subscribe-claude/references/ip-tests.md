@@ -1,0 +1,29 @@
+> 引导站：https://re0claude.us.ci/ip-tests/
+> 本文件由 `npm run skill` 从 `docs/v3-rewrite/reference/IP 质量实测合集.md` 生成，不要手改。
+
+# IP 质量实测合集
+
+这里收集了文中出现过的每一家商家的 IP 实测，选方案、选商家之前可以先看看。
+
+先说清楚几件事：
+
+- 每家只测了一次，只能代表测试那一刻、那一个 IP 的情况，不代表长期表现。
+- 每个人拿到的 IP 都不一样。别人测出来好，不代表你拿到的也好，反过来也一样。
+- 各检测网站的数据库和评分标准都不同，分数不能跨网站比较。怎么看各项结果，见 [客户端配置与环境验证：电脑端 > 验收清单](https://re0claude.us.ci/client-desktop/#验收清单)。
+
+| 商家 | 卖的是什么 | 对应方案 | 实测结果 |
+| --- | --- | --- | --- |
+| [实测：proxy.qsu.hk 白嫖 ISP](https://re0claude.us.ci/ip-tests/qsu-free-isp/) | 免费的 ISP 代理 | 方案一（2026-10-17 断连，已不推荐） | 我的：ISP 类型，Scamalytics 0 分；一位读者的：Scamalytics 100 分 |
+| [实测：丽萨住宅服务器](https://re0claude.us.ci/ip-tests/lisahost/) | 住宅服务器 | 方案二 | 我的：ISP 类型，Scamalytics 5 分 |
+| [实测：VoyraCloud 住宅服务器](https://re0claude.us.ci/ip-tests/voyracloud/) | 住宅服务器 | 方案二 | 我的第一台：机房 IP，Scamalytics 16 分；第二台：ISP 类型，Scamalytics 3 分；第三台（现在用的，华盛顿）：ISP 类型，IPPure 认成住宅 IP，Scamalytics 0 分 |
+| [实测：QSU 住宅服务器](https://re0claude.us.ci/ip-tests/qsu-residential/) | 住宅服务器 | 方案二 | 还没有实测，有朋友说质量不错 |
+| [实测：ipequal 住宅节点](https://re0claude.us.ci/ip-tests/ipequal/) | 现成的住宅节点 | 方案三（旧编号，已不推荐） | 一位读者的：住宅 IP，Scamalytics 20 分，延迟偏高 |
+| [实测：Decodo ISP](https://re0claude.us.ci/ip-tests/decodo/) | 付费的 ISP 代理 | 方案一 | 我没用过，没有实测 |
+
+VoyraCloud 的云 VPS（方案一买的普通服务器）没有放进来，因为它本来就是机房 IP，访问 Claude 时走的是 ISP，不用测它。
+
+你测过哪一家，也欢迎把结果发给我，我整理进来。
+
+---
+
+回到：[日常维护、风控应对与常见故障](https://re0claude.us.ci/maintenance/)

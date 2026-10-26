@@ -12,6 +12,7 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
+    "skill": "node scripts/build-skill.mjs",
     "test": "vitest run",
     "test:build": "vitest run --config vitest.build.config.ts",
     "test:e2e": "SITE_URL=https://re0claude.us.ci astro build && playwright test",
