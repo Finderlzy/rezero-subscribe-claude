@@ -1,6 +1,6 @@
 # 实施计划：Re:从零开始订阅 claude
 
-- 状态：**v3.1（2026-10-23，M7 更新日志，需求 v0.13、FR-80–FR-89；2026-10-25 补 SEO 与顶栏固定，站点版本 3.1.3）已完成并合并 main**；v3 已完成（2026-10-22 实施，2026-10-22 验收并正式上线；版本 3.0.0）**，把代码从 v2.2 改到 v3：文档站风格（design v3）、站内搜索（M6）、按作者新稿 `docs/v3-rewrite/` 换成单版本内容、旧网址跳转（ADR-0006）。对应需求 FR-05、FR-16、FR-18、FR-24、FR-25、FR-72 和 AC-26–AC-33（AC-31 是全量回归），架构 [§13](architecture.md#13-v3-增量架构2026-10-21)，实施前评审见[架构 §13.11](architecture.md#1311-v3-实施前评审2026-10-21)（通过，没有阻塞项）。站点版本 **3.0.0**（V12 验收通过后升版），收尾提交以同一版本正式部署到 <https://re0claude.us.ci/>。
+- 状态：**v3.2（2026-10-26，订阅 Skill，M8）已规划、未实施**，见 [§0.0](#00-v32订阅-skill2026-10-26)；**v3.1（2026-10-23，M7 更新日志，需求 v0.13、FR-80–FR-89；2026-10-25 补 SEO 与顶栏固定，站点版本 3.1.3）已完成并合并 main**；v3 已完成（2026-10-22 实施，2026-10-22 验收并正式上线；版本 3.0.0）**，把代码从 v2.2 改到 v3：文档站风格（design v3）、站内搜索（M6）、按作者新稿 `docs/v3-rewrite/` 换成单版本内容、旧网址跳转（ADR-0006）。对应需求 FR-05、FR-16、FR-18、FR-24、FR-25、FR-72 和 AC-26–AC-33（AC-31 是全量回归），架构 [§13](architecture.md#13-v3-增量架构2026-10-21)，实施前评审见[架构 §13.11](architecture.md#1311-v3-实施前评审2026-10-21)（通过，没有阻塞项）。站点版本 **3.0.0**（V12 验收通过后升版），收尾提交以同一版本正式部署到 <https://re0claude.us.ci/>。
 - 任务记录：[GitHub Issues](https://github.com/Finderlzy/rezero-subscribe-claude/issues)，标题以 `[v3]` 开头（**草稿，未发布**；发布后在 §3 回填编号）。任务范围、状态和完成证据以 Issue 为准，本文只保留里程碑、顺序和链接；§4 是发布时的正文草稿。
 - 档位规则见开发流程契约“模型档位”：`强` / `标准`。
 - 历史：v2.2 已完成（2026-10-19，[v2.2 改版计划](v2.2-plan.md)，没有建 Issue）；v2.1（#32–#40）、v2.0（#23–#31）和 1.0.0 的计划在文末附录。
@@ -8,6 +8,22 @@
 > **2026-10-22 修订：作者交来新稿 `docs/v3-rewrite/`，计划按它调整。** 新稿 11 个文件，一章一页，已经按章合并好，只有一版正文；文件之间用相对 Markdown 链接，不再有双链。方案三、独立常见问题、附录不再收录（常见问题并入各章和 `09` 的小节）；IP 质量实测合集保留为参考页。因此：V10 从“机械合并脚本”改为“换成 v3 单版本的页面和路线图”；V11 从“按清单合并页面”改为“旧网址、验收和文档/仓库同步”；V06–V09 去掉两种视图，V07 不再切视图。V01–V05 已完成，样式不动。页面标识、章节和旧网址去向见 §3.1，**作者 2026-10-22 已确认**。
 
 > **2026-10-22 实施情况：V10、V11 已完成**（V10 换成 11 页单版本；V11 填满 47 条旧网址、更新验收和文档、同步 Writing 和大肥鱼、删除旧稿 `docs/rewrite/`）。**2026-10-22：V12 已完成**（视觉验收和全量回归通过，升 3.0.0）。V06–V09 已于 2026-10-22 合并 main。**同日收尾**：清掉 v2 遗留的未引用截图和旧说明图，重做 README，以 3.0.0 正式上线（见 [delivery.md](delivery.md)）。
+
+## 0.0 v3.2：订阅 Skill（2026-10-26）
+
+需求 v0.15（FR-100–FR-117、NFR-07、AC-40–AC-49），架构 [§16](architecture.md#16-v32-增量架构m8-订阅-skill2026-10-26)、[ADR-0007](adr/0007-agent-skill-generated-and-committed.md)，实施前评审见[架构 §16.11](architecture.md#1611-实施前评审2026-10-26project-plan)（通过，没有阻塞项）。目标站点版本 **3.2.0**。任务范围、状态和完成证据以 Issue 为准，本节只保留里程碑、顺序和链接。
+
+**首个可开工任务：V14 [#41](https://github.com/Finderlzy/rezero-subscribe-claude/issues/41)**（建议档位：强）。开工方式：新开会话，用 `task-implement` 指定 #41。
+
+| 里程碑 | 任务 | 交付的可用能力 | 覆盖 | 依赖 | 档位 | Issue |
+| --- | --- | --- | --- | --- | --- | --- |
+| MS24 Skill 骨架 | V14 | 仓库里有从重写稿生成的 `agent-skill/rezero-subscribe-claude/`，clone 后可直接装；`npm run skill` 重新生成；重写稿改了没重新生成时构建失败 | FR-100、FR-101、FR-113（1–2）、FR-114（入库）、AC-41 | 无（含前置重构：`assembleRoute` 挪出 `site.ts`） | 强 — 首个端到端骨架、跨模块接口 | [#41](https://github.com/Finderlzy/rezero-subscribe-claude/issues/41) |
+| MS25 校验和 zip | V15 | 坏 Skill 让构建失败并报出文件；站点发布 `/agent-skill/rezero-subscribe-claude.zip`（≤1 MB） | FR-113（2–6）、FR-114、NFR-07、AC-40、AC-42 | V14 | 标准 — 规则已在架构写死，照已有校验模式 | [#42](https://github.com/Finderlzy/rezero-subscribe-claude/issues/42) |
+| MS26 Skill 的行为 | V16 | Agent 装上后会转述风险、按路线引导、经同意代办、管好凭据并收尾清理 | FR-100、FR-102–FR-112 | V14 | 强 — 凭据与安全、未定的取舍 | [#43](https://github.com/Finderlzy/rezero-subscribe-claude/issues/43) |
+| MS27 Skill 页和入口 | V17 | 读者能从首页和侧边栏进 `/agent-skill/`，看到说明并下载 | FR-115、FR-116、AC-49 | V15 | 标准 — 照更新日志页的模式 | [#44](https://github.com/Finderlzy/rezero-subscribe-claude/issues/44) |
+| MS28 人工验收和上线 | V18 | 两家 Agent、三个系统、测试服务器上跑通 AC-43–AC-48；更新日志、3.2.0、交付记录 | AC-43–AC-48、FR-117、Q-22、Q-26 | V16、V17 | 强 — 真实凭据和服务器、可能的未知根因 | [#45](https://github.com/Finderlzy/rezero-subscribe-claude/issues/45) |
+
+**顺序**：V14 → { V15、V16 } 并行 → V17（在 V15 之后，可与 V16 并行）→ V18。V16 和 V15 只在 `agent-skill/` 的生成物上会碰到：两边都要重新跑 `npm run skill`，后合并的一方在合并前重新生成一次。V18 需要作者准备测试用的 Debian 服务器和 Windows、macOS、Linux 三台机器。
 
 ## 0. v3.1：更新日志（2026-10-23）
 

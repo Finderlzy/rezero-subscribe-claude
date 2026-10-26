@@ -484,6 +484,7 @@ M8 是一个**生成器**：读重写稿（M1 的素材）、路线图（M2）�
 | Skill 生成物（新，入库、不手改） | 读者装的目录 | `agent-skill/rezero-subscribe-claude/` |
 | M1 内容 | **不改**。生成器只读 `createLinkIndex()`（标题 → 页面、小标题 → 锚点）和 `blog-links.yaml` | — |
 | M2 路线 | **不改**。生成器用 `buildRouteMap()` 的章节、分叉点和各选项页面顺序写 `SKILL.md` 的路线表 | — |
+| 构建期装配（先重构） | `assembleRoute()`、`pageTitle()` 从 `src/lib/site.ts` 挪到不依赖 `astro:content` 的 `src/lib/route/assemble.ts`，`site.ts` 改为引用；M8 从这里拿路线图（§16.11 R1） | `src/lib/route/assemble.ts`、`src/lib/site.ts` |
 | M3 页面 | 新增 Skill 页 `src/pages/agent-skill.astro`；`Toc.astro` 两处底栏加入口；首页首屏加次要入口 | `src/pages/`、`src/components/Toc.astro`、`src/pages/index.astro` |
 | SEO / sitemap | `seo.yaml` 必填键加 `/agent-skill/`；sitemap 来源加 `agent-skill.astro` | `src/lib/seo/index.ts`、`src/lib/site.ts`、`src/lib/sitemap/lastmod.ts` |
 | M6 搜索 | **不改**：索引只收路线图页面和参考页，Skill 页天然不在里面（e2e 断言） | — |
@@ -517,10 +518,11 @@ agent-skill/
 
 输入：重写稿 11 页和 `reference/IP 质量实测合集.md` 的原文、链接索引、路线图、`source/`、`package.json` 的版本、`src/lib/group.ts` 的群号和链接。输出：`Map<相对路径, 文本>`，确定性（同样的输入逐字节相同）。
 
-- **页面对应**：按重写稿第一行 `# 标题` 在链接索引里找页面标识（和 `import-rewrite.mjs` 同一规则），找不到就报错。
+- **页面对应**：按重写稿第一行 `# 标题` 在链接索引里找页面标识（和 `import-rewrite.mjs` 同一规则），找不到就报错（新页面要先按导入流程建好 `principle/<id>.md`）。
+- **锚点按重写稿算**（§16.11 R2）：小节网址的 slug 用 `scanHeadings()` 扫**重写稿**的正文得到，不用 `src/content/` 里导入过的版本；指向别页的链接，先按文件名或标题找到目标重写稿，再在它的小标题里算锚点。重写稿和站点正文差一次导入时，生成物仍和重写稿一致。
 - **文件开头**：`> 引导站：<完整网址>` 和“本文件由 `npm run skill` 从 `docs/v3-rewrite/<文件>` 生成，不要手改”。
 - **小标题**：每个 h2/h3 下面加一行 `> 引导站小节：<页面网址>#<slug>`，锚点用 `sectionAnchor()` 算，和站上一致；Agent 引用小节时直接用这一行（FR-105、FR-112）。
-- **链接**：重写稿的相对 Markdown 链接（`[文字](02-….md#小节)`）和双链（`[[标题#小节|文字]]`）都换成引导站的完整网址；博客双链按 `blog-links.yaml` 换，没有地址的只留文字。
+- **链接**：重写稿的相对 Markdown 链接（`[文字](02-….md#小节)`）先用 `scripts/import-rewrite.mjs` 导出的 `convertRelativeLinks()` 统一成双链（§16.11 R3），再和原有双链（`[[标题#小节|文字]]`）一起换成引导站的完整网址；博客双链按 `blog-links.yaml` 换，没有地址的只留文字。
 - **图片和视频**：`![[x.png|宽]]`、`![[x.svg]]`、`![[x.mp4]]`、`![](…)` 换成一行“看图：<所在小节网址>”或“看视频：<所在小节网址>”，文件不打进包。
 - **Callout**：`> [!caution]`、`> [!note]` 换成普通引用块，开头加“**注意**”“**说明**”。
 - **作者待补**：`TODO：` 段落换成“作者待补：……”，原文保留。
@@ -606,3 +608,17 @@ agent-skill/
 | Q-24 | 已定（2026-10-26）：Skill 页写 `~/.agents/skills/` 和 `~/.claude/skills/` 两个目录，覆盖 Claude Code、Codex、Gemini CLI、Qwen Code、OpenCode；人工验收用 Claude Code（接国内模型 API）和 Qwen Code | — | 否 |
 | Q-26 | Windows 自带的 OpenSSH 支不支持 `SSH_ASKPASS_REQUIRE=force`、askpass 能不能用 `.cmd`，没查到官方说明 | Windows 上首选做法可能不可用；退路（临时密钥）已经写进设计 | 否，AC-47 的 Windows 那次验证 |
 | Q-27 | Skill 页的版式（design.md §4.10）还没写 | Skill 页任务开工前要有 | 否，排在 Skill 页任务之前 |
+
+### 16.11 实施前评审（2026-10-26，project-plan）
+
+范围：沿“作者改重写稿 → `npm run skill` → `npm run check` → 部署 → 读者下载 zip、装进 Agent、走完路线”这条流程，对照 FR-100–FR-117、NFR-07、AC-40–AC-49 检查 §16 和现有代码。只做了文档和代码阅读，没有运行。结论：**通过，没有阻塞项**；下面四条已在 §16 原地修正或写进任务。
+
+| 编号 | 发现 | 影响 | 处理 |
+| --- | --- | --- | --- |
+| R1 | `assembleRoute()`、`pageTitle()` 在 `src/lib/site.ts` 里，而 `site.ts` 引用了 `astro:content` 和 `?raw`，`runnerImport` 在 Astro 之外加载不了 | 生成脚本拿不到路线图 | 先重构：挪到 `src/lib/route/assemble.ts`（纯函数，frontmatter 用 `@astrojs/markdown-remark` 的 `parseFrontmatter` 读），`site.ts` 改引用；排在 V14 的第一步。M8 不得引用 `site.ts` |
+| R2 | §16.3 原来按 `src/content/` 的小标题算锚点，重写稿改了标题而还没导入时，生成物会和重写稿不一致，却不会被发现 | AC-41 的“和重写稿对得上”不严格 | 锚点改为扫重写稿本身（§16.3 已改） |
+| R3 | 重写稿用相对 Markdown 链接，`import-rewrite.mjs` 已有转换函数 | 再写一份解析会和导入规则分叉 | 复用 `convertRelativeLinks()`（tsconfig 已开 `allowJs`），§16.3 已改 |
+| R4 | `seo.yaml` 的必填键 `/agent-skill/` 和 Skill 页必须同一次提交：只加键不加页面，或只加页面不加键，构建都会失败；首页加入口后 AC-01 的首屏断言要照旧通过（FR-116） | 任务边界 | Skill 页、入口、SEO、sitemap 放在同一个任务（V17） |
+
+没有发现循环依赖：M8 只读 M1、M2，M3 只读 M8 的常量。人工验收（AC-43–AC-48）需要测试用的 Debian 服务器和 Windows、macOS、Linux 三台机器，由作者提供，放在最后一个任务（V18）。
+
