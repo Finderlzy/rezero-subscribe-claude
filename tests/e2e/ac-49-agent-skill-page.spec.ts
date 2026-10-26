@@ -41,7 +41,7 @@ test('Skill 页有下载按钮、版本号、安装方法、开始语和凭据�
   // 安装方法：两个通用目录和只能聊天的 Agent 的边界（Q-23、Q-24）
   await expect(page.getByText('~/.agents/skills/').first()).toBeVisible();
   await expect(page.getByText('~/.claude/skills/').first()).toBeVisible();
-  await expect(page.getByText('只能聊天、不能在你电脑上执行命令的 Agent')).toBeVisible();
+  await expect(page.getByText('装了也只能用引导部分')).toBeVisible();
 
   // 开始语（FR-115）
   await expect(page.locator('.agent-skill-phrase')).toHaveText('带我订阅 Claude');
