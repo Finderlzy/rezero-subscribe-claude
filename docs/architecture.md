@@ -543,7 +543,7 @@ agent-skill/
 
 ### 16.4 构建校验与打包
 
-`agentSkill()` 集成（只在 `astro build` 里生效，和 `contentValidation` 同样的报错方式：逐条打印 `文件：说明`，再抛一个总结错误）。现状（V14）：第 1、2 步已接入，`verifySkill(repoRoot)` 返回逐条的“文件：说明”，空数组表示通过；生成失败（如重写稿新增了一页还没导入）也按同样方式报出。第 3 步和构建结束时的 zip 由 V15 加。
+`agentSkill()` 集成（只在 `astro build` 里生效，和 `contentValidation` 同样的报错方式：逐条打印 `文件：说明`，再抛一个总结错误）。现状：三步校验和构建结束时的 zip 都已接入（V14 建立第 1、2 步，V15 加第 3 步和 zip），`verifySkill(repoRoot)` 返回逐条的“文件：说明”，空数组表示通过；生成失败（如重写稿新增了一页还没导入）也按同样方式报出。
 
 **构建开始时**：
 
@@ -552,13 +552,13 @@ agent-skill/
 3. `checkSkill(入库)`：对**入库的文件**再查一遍规则，这样坏夹具即使和生成结果不同，也会报出具体问题（AC-42）：
    - frontmatter：`name` 合规范且等于目录名，`description` 1–1024 字符，`compatibility` ≤500，`metadata` 的值都是字符串，没有规范以外的字段；
    - `SKILL.md` 里引用的 `references/…` 都存在；路线图的每一页和 `ip-tests` 都有参考文件；
-   - 没有 `[[`、`![[`、`![`、`> [!`、`{{` 残留；
-   - 没有像凭据的内容：`vless|vmess|trojan|ss|hysteria2|hy2://` 后面紧跟着实际内容（单独写 `vless://` 这种说明文字允许），不在允许名单里的 IPv4 地址（名单：回环、`0.0.0.0`、正文里的公共 DNS 和示例地址，写在 `checkSkill` 旁边，新增要在评审时看）、`password:`/`密码：` 后面跟着值；
+   - 没有 `[[`、`![[`、`![`、`> [!`、`{{` 残留（每行只报最具体的一种：`![[` 覆盖 `![` 和 `[[`）；
+   - 没有像凭据的内容：`vless|vmess|trojan|ss|hysteria2|hy2://` 后面紧跟着实际内容（单独写 `vless://` 这种说明文字允许），不在允许名单里的 IPv4 地址（名单：回环、`0.0.0.0`、正文里的公共 DNS 和示例地址、方法文件里用的文档示例网段 `203.0.113.10`，写在 `check.ts` 旁边，新增要在评审时看）、`password:`/`密码：` 后面跟着值（后面是「输入 root 密码」这类说明文字允许）；
    - `SKILL.md` 正文不超过 500 行（NFR-07）。
 
-**构建结束时**：`zipSkill()` 用 fflate 把入库的目录打成 `dist/agent-skill/rezero-subscribe-claude.zip`（文件按路径排序、固定修改时间，同样的内容得到同样的 zip），超过 1 MB 构建失败（NFR-07）。zip 里顶层就是 `rezero-subscribe-claude/` 目录。
+**构建结束时**：`zipSkill()` 用 fflate 把入库的目录打成 `dist/agent-skill/rezero-subscribe-claude.zip`（文件按路径排序、修改时间固定在 2026-01-01，同样的内容得到同样的 zip），超过 1 MB 构建失败（NFR-07）。zip 里顶层就是 `rezero-subscribe-claude/` 目录。
 
-**构建级用例的夹具**（AC-41、AC-42）：`tests/fixtures/<用例>/` 原来只能覆盖 `src/content/`。扩展两条约定：`@root/` 下的文件按仓库相对路径覆盖（例如 `@root/agent-skill/rezero-subscribe-claude/SKILL.md`），`@delete` 文件逐行列出要删掉的仓库相对路径。现状（V14）：两条约定已实现，`skill-stale`（`@root/docs/v3-rewrite/10-后记.md` 改了第一句）报出 `references/afterword.md` 和 `docs/v3-rewrite/10-后记.md`。计划（V15）的四个用例：`skill-missing-reference`（删一个参考文件）、`skill-no-description`、`skill-leftover-embed`（参考文件里留 `![[x.png]]`）、`skill-node-link`（混进一条形如 `vless://<uuid>@…` 的链接）。
+**构建级用例的夹具**（AC-41、AC-42）：`tests/fixtures/<用例>/` 原来只能覆盖 `src/content/`。两条约定：`@root/` 下的文件按仓库相对路径覆盖（例如 `@root/agent-skill/rezero-subscribe-claude/SKILL.md`），`@delete` 文件逐行列出要删掉的仓库相对路径。skill-* 用例：`skill-stale`（`@root/docs/v3-rewrite/10-后记.md` 改了第一句）、`skill-missing-reference`（`@delete` 删一个参考文件）、`skill-no-description`（`@root/` 覆盖的 `SKILL.md` 删掉 description 整行）、`skill-leftover-embed`（参考文件里留 `![[x.png]]`）、`skill-node-link`（混进一条形如 `vless://<uuid>@…` 的链接），各自让构建失败并报出文件。
 
 ### 16.5 `SKILL.md` 的结构
 
