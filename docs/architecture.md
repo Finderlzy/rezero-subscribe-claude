@@ -431,14 +431,14 @@ function getNameHost(scope?): { name: string } | null;   // 浏览器里是 wind
 | SEO 纯逻辑（新） | 校验、摘要查找、Article/WebSite/BreadcrumbList 的结构化数据、JSON-LD 序列化 | `src/lib/seo/index.ts`（单元测试在旁边） |
 | SEO 构建期读取 | 读 `seo.yaml`、按页面键校验 | `src/lib/seo/load.ts`（由 `loadSite()` 调用） |
 | `loadSite()` | 新字段 `seo`；`SitePage`、`SiteReference` 各多一个 `description`，页面不用再自己查表 | `src/lib/site.ts` |
-| M3 页面 | `BaseLayout` 统一输出 description、canonical、OG/Twitter、JSON-LD；`PageLayout`/`ReferenceLayout`/`UpdateLogLayout`/`index.astro` 传摘要、类型和面包屑 | `src/layouts/`、`src/pages/` |
+| M3 页面 | `BaseLayout` 统一输出 description、canonical、OG/Twitter、JSON-LD；`PageLayout`/`ReferenceLayout`/`UpdateLogLayout`/`AgentSkillLayout`/`index.astro` 传摘要、类型和面包屑 | `src/layouts/`、`src/pages/` |
 | 静态资源 | 分享图 1200×630，由 `node scripts/build-og-image.mjs` 生成（不进构建） | `public/og-image.png` |
 
 ### 15.2 数据形状（`src/content/seo.yaml`）
 
 一组“页面键 → `{ description, title? }`”的映射：
 
-- 键：路线图的页面标识、参考页标识（`ip-tests/<id>`），以及两个没有正文文件的固定键 `/`（首页）、`/update-log/`（更新日志）。
+- 键：路线图的页面标识、参考页标识（`ip-tests/<id>`），以及三个没有正文文件的固定键 `/`（首页）、`/update-log/`（更新日志）、`/agent-skill/`（Agent Skill 页，V17 起）。
 - `description`：一段话，40–118 个字符（按字符数，中文一个字算一个）。太短搜索引擎会改从正文里取，太长会被截断。
 - `title`：可选，只在分享卡片里当大标题；不写就用页面标题。
 
@@ -449,7 +449,7 @@ function getNameHost(scope?): { name: string } | null;   // 浏览器里是 wind
 - `<meta name="description">`：来自 `seo.yaml`，所有收录的页面都有。
 - `<link rel="canonical">`、`og:url`、分享图：只在给了 `SITE_URL`（`Astro.site`）时输出。
 - Open Graph：`og:type=article`、`og:site_name`、`og:locale=zh_CN`、`og:title`、`og:description`、`og:url`、`og:image`（带 1200×630 尺寸和 alt）；Twitter 用 `summary_large_image`。
-- JSON-LD：首页是 `WebSite`；正文页、参考页、更新日志是 `Article`（`isPartOf` 指向 WebSite，不写没有可信来源的 `datePublished`）+ `BreadcrumbList`。面包屑是 首页 › 章节 › 页面，参考页多一层“IP 质量实测合集”。
+- JSON-LD：首页是 `WebSite`；正文页、参考页、更新日志和 Agent Skill 页是 `Article`（`isPartOf` 指向 WebSite，不写没有可信来源的 `datePublished`）+ `BreadcrumbList`。面包屑是 首页 › 章节 › 页面，参考页多一层“IP 质量实测合集”。
 - 找不到页和跳转页：只有 `noindex`，不写 canonical、分享卡片和结构化数据。
 
 ### 15.4 验收对应的验证方式
@@ -611,7 +611,7 @@ agent-skill/
 - **路由**：`src/pages/agent-skill.astro` → `/agent-skill/`；zip 在 `/agent-skill/rezero-subscribe-claude.zip`（同一目录）。两个地址发布后不能改（ADR-0002 的口径，需求三级边界 Ask first）。常量 `AGENT_SKILL_PATH`、`AGENT_SKILL_ZIP_PATH` 放在 `src/lib/agent-skill/index.ts`，页面、目录和 sitemap 都从这里取。
 - **骨架**：和更新日志页一样是独立页面（顶栏 + 侧边栏 + 正文栏，没有上一步/下一步、没有眉题的章节信息）。**现状（V17，`src/layouts/AgentSkillLayout.astro`）**：版式见 design.md §4.10（Q-27 已收口）——首屏引子 + 主按钮“下载 rezero-subscribe-claude.zip” + 版本行，下面四块各一个 h2（能做/不做两列清单、安装方法表格、装好以后、凭据和清理）。
 - **页面数据**：版本号读 `package.json`；安装方法写两个通用目录（`~/.agents/skills/`：Codex、Gemini CLI、Qwen Code、OpenCode；`~/.claude/skills/`：Claude Code、OpenCode），再列各家自己的目录（调研 §5.2）；开始语“带我订阅 Claude”；凭据和清理的说明；只能聊天的 Agent 只能用引导部分（Q-23）。文字写在页面代码里。
-- **入口**：`Toc.astro` 的 `.toc-sidebar-foot`、`.toc-dialog-foot` 在“更新日志”旁边加 `[data-toc-agent-skill]`（现状 V17，两条入口共用 `.toc-update-log` 的样式），Skill 页上带 `aria-current="page"`；首页 `.home-actions` 主按钮旁加次要链接 `[data-home-agent-skill]`“让 AI Agent 带你做”（现状 V17，`.button-secondary`）。
+- **入口**：`Toc.astro` 的 `.toc-sidebar-foot`、`.toc-dialog-foot` 在“更新日志”旁边加 `[data-toc-agent-skill]`（现状 V17，两条入口共用 `.toc-foot-link` 的样式），Skill 页上带 `aria-current="page"`；首页 `.home-actions` 主按钮旁加次要链接 `[data-home-agent-skill]`“让 AI Agent 带你做”（现状 V17，`.button-secondary`）。
 - **收录**：进 sitemap（来源文件是 `agent-skill.astro`）和 `seo.yaml`（键 `/agent-skill/`，必填）；JSON-LD 和更新日志页一样是 `Article` + 面包屑（首页 › Agent Skill）；不进目录的章节列表和站内搜索。
 
 ### 16.8 版本

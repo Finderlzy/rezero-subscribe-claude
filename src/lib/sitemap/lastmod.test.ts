@@ -65,7 +65,7 @@ describe('sitemapSources', () => {
     expect(paths()).toEqual(['/', '/a/', '/agent-skill/', '/update-log/']);
   });
 
-  it('内容目录是空的或不存在时只输出首页，不报错', () => {
+  it('内容目录是空的或不存在时只输出首页、更新日志页和 Agent Skill 页，不报错', () => {
     const bare = mkdtempSync(join(tmpdir(), 'rezero-sitemap-'));
     try {
       mkdirSync(join(bare, 'pages'));

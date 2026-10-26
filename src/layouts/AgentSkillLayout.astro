@@ -1,7 +1,7 @@
 ---
 import SiteHeader from '../components/SiteHeader.astro';
 import Toc from '../components/Toc.astro';
-import { AGENT_SKILL_PATH, AGENT_SKILL_ZIP_PATH } from '../lib/agent-skill/index';
+import { AGENT_SKILL_PATH, AGENT_SKILL_ZIP_PATH, SKILL_NAME } from '../lib/agent-skill/index';
 import { describe, AGENT_SKILL_KEY, SITE_NAME } from '../lib/seo';
 import { loadSite } from '../lib/site';
 import { withBase } from '../lib/with-base';
@@ -47,7 +47,7 @@ const { version } = await import('../../package.json');
 
         <p class="agent-skill-download">
           <a class="button" href={withBase(AGENT_SKILL_ZIP_PATH)} download data-agent-skill-download
-            >下载 rezero-subscribe-claude.zip</a
+            >下载 {SKILL_NAME}.zip</a
           >
         </p>
         <p class="agent-skill-version">当前版本 {version}（和 zip 里的一致）</p>
@@ -79,7 +79,7 @@ const { version } = await import('../../package.json');
         <section class="agent-skill-section" aria-labelledby="agent-skill-install">
           <h2 class="agent-skill-heading" id="agent-skill-install">安装方法</h2>
           <p>
-            解压 zip，把里面的 <code>rezero-subscribe-claude</code> 目录整个放进你所用 Agent 的 Skill 目录。
+            解压 zip，把里面的 <code>{SKILL_NAME}</code> 目录整个放进你所用 Agent 的 Skill 目录。
             大部分 Agent 认下面两个目录之一：
           </p>
           <!-- 横向可滚的表格要能用键盘聚焦（axe 的 scrollable-region-focusable，和 Markdown 表格的 rehype 处理一致） -->
@@ -111,8 +111,13 @@ const { version } = await import('../../package.json');
         <section class="agent-skill-section" aria-labelledby="agent-skill-credentials">
           <h2 class="agent-skill-heading" id="agent-skill-credentials">凭据和清理</h2>
           <p>
-            替你登录服务器时需要服务器密码：密码只在本次对话里用，落在你电脑临时目录里的副本会在收尾时删掉。
-            收尾清理会删掉临时目录、临时 SSH 密钥和 shell 历史里带密码的行，服务器上的节点文件和面板信息不删。
+            替你登录服务器时需要服务器密码，住宅 ISP 代理还需要地址、端口、用户名和密码：这些只在执行需要它们的命令时用，
+            对话里回显会打码，必须落盘时放在你的系统临时目录、用完就删。进度文件里只记做到哪一步和你的系统、方案，
+            不写密码、服务器 IP、节点链接和邮箱。
+          </p>
+          <p>
+            结束时做收尾清理：删掉临时目录和临时 SSH 密钥，删掉 shell 历史里带密码的行，关掉为面板开的 SSH 隧道和留在后台的连接，
+            再核对进度文件里没有凭据。服务器上的节点文件和面板信息不删，你以后还要用。
           </p>
           <p>清不掉的：对话记录留在 Agent 和服务商那里，Skill 删不掉它们；介意的话结束时新建对话。</p>
         </section>
@@ -132,7 +137,10 @@ const { version } = await import('../../package.json');
 </script>
 
 <style>
-  /* 正文栏：和参考页一样的宽度和边距（design §3.3、§4.6） */
+  /*
+   * 独立页面的正文栏：和 UpdateLogLayout 的骨架同一套（正文宽度、上下边距、h1）。
+   * 两处都是手写页面、结构一样，先各留一份，改 design §3.3、§4.6 时两处一起改。
+   */
   .page-body {
     box-sizing: border-box;
     max-width: var(--content-width);

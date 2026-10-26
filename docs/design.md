@@ -1,6 +1,6 @@
 # 界面设计契约：Re:从零开始订阅 claude
 
-- 状态：**v3 定稿（2026-10-21），已实施并验收**（V01–V12，2026-10-22），对应需求 v0.9 的 FR-72、FR-16、FR-18、FR-24、FR-05、FR-25 和第 0.1 节，以及架构 [§13](architecture.md#13-v3-增量架构2026-10-21)。**v3.1 增量（2026-10-23/25）**：更新日志页（§4.9，V13）、SEO 与固定顶栏（V19）。**v3.2 增量（2026-10-26）**：Agent Skill 页与两处入口（§4.10，V17）。v3 把 v2.2 的“精确工具”（白底、浅紫页头色带、黑色主按钮）换成**参考站 [Wallpaper Engine 设计师文档](https://docs.wallpaperengine.io/en/scene/first/gettingstarted.html) 用的 VuePress 1 默认文档主题的样子**：白色顶栏、左侧侧边栏、一栏纯文字正文、文字链接翻页。主色仍是 logo 的紫色，框架仍是 Astro（作者 2026-10-21 选定）。**代码现状是 v3 已实施**，v2.2 的契约见 git 历史（`v2.0.0` 标签之后、本次提交之前的 `docs/design.md`），决定记录留在 §8。
+- 状态：**v3 定稿（2026-10-21），已实施并验收**（V01–V12，2026-10-22），对应需求 v0.9 的 FR-72、FR-16、FR-18、FR-24、FR-05、FR-25 和第 0.1 节，以及架构 [§13](architecture.md#13-v3-增量架构2026-10-21)。**v3.1 增量（2026-10-23/25）**：更新日志页（§4.9，V13）、固定顶栏（V19），逐页摘要与分享卡片见架构 §15。**v3.2 增量（2026-10-26）**：Agent Skill 页与两处入口（§4.10，V17）。v3 把 v2.2 的“精确工具”（白底、浅紫页头色带、黑色主按钮）换成**参考站 [Wallpaper Engine 设计师文档](https://docs.wallpaperengine.io/en/scene/first/gettingstarted.html) 用的 VuePress 1 默认文档主题的样子**：白色顶栏、左侧侧边栏、一栏纯文字正文、文字链接翻页。主色仍是 logo 的紫色，框架仍是 Astro（作者 2026-10-21 选定）。**代码现状是 v3 已实施**，v2.2 的契约见 git 历史（`v2.0.0` 标签之后、本次提交之前的 `docs/design.md`），决定记录留在 §8。
 - 关联：[需求](requirements.md)、[架构](architecture.md)、[术语](../CONTEXT.md)、[ADR-0006](adr/0006-merged-pages-and-moved-urls.md)
 - 用途：实现页面（M3）时以本文为准。本文规定**做什么、为什么这么做**；具体值以 `src/styles/tokens.css` 为准，两边改动要同步，对比度由 `src/styles/tokens.test.ts` 实测。
 
@@ -331,9 +331,9 @@
 
 - **外壳**：和更新日志页一样（顶栏 + 侧边栏 | 正文栏）；h1 纯文字（`--fs-title`），不写眉题；没有上一步/下一步，正文末尾不加“回到”指引。JSON-LD 是 `Article` + 面包屑（首页 › Agent Skill）。
 - **首屏**：h1 下面一句 14px `--text-muted` 的引子；下面一行放主按钮“下载 rezero-subscribe-claude.zip”（`.button`，高 48px）——这是这一页的核心动作，紫色仍只用在主按钮（§2 第 4 条）；按钮下一行 13px `--text-faint` 的“当前版本 <版本>（和 zip 里的一致）”，版本号由页面读 `package.json`。
-- **章节**：四块各一个 h2（`--fs-h3`），只有文字和清单，不用卡片边框、图标（§6）。能做什么 / 不做什么用两列 `<ul>`（<720px 一列），每条一句话；安装方法用 §4.7 的表格（两列：Agent、Skill 放的目录），先写 `~/.agents/skills/`（Codex、Gemini CLI、Qwen Code、OpenCode）和 `~/.claude/skills/`（Claude Code、OpenCode）两个通用目录，再列各家自己的目录，末尾一句“只能聊天、不能执行命令的 Agent（网页版聊天）只能用引导部分”；装好以后写开始语“带我订阅 Claude”（代码样式）；凭据和清理写清会怎么用、结束时清什么、清不了什么（对话记录在 Agent 和服务商那里，Skill 删不掉）。
+- **章节**：四块各一个 h2（`--fs-h3`），只有文字和清单，不用卡片边框、图标（§6）。能做什么 / 不做什么用两列 `<ul>`（<720px 一列），每条一句话；安装方法用 §4.7 的表格（两列：Agent、Skill 放的目录），一行一家 Agent，先写它认的通用目录（`~/.agents/skills/` 覆盖 Codex、Gemini CLI、Qwen Code、OpenCode，`~/.claude/skills/` 覆盖 Claude Code、OpenCode），再写各家自己的目录，末尾一句“只能聊天、不能执行命令的 Agent（网页版聊天）只能用引导部分”；装好以后写开始语“带我订阅 Claude”（代码样式）；凭据和清理写清会怎么用、结束时清什么、清不了什么（对话记录在 Agent 和服务商那里，Skill 删不掉）。
 - **首页入口**（FR-116）：`.home-actions` 主按钮后面加次要链接 `.button-secondary`（`[data-home-agent-skill]`）“让 AI Agent 带你做”。首屏只多这一个链接，不改五章简介和最近更新（AC-01、AC-29 的断言照旧）。
-- **侧边栏/抽屉底部入口**（FR-116）：`.toc-sidebar-foot`、`.toc-dialog-foot` 里“更新日志”旁边再加一条“Agent Skill”（`[data-toc-agent-skill]`），样式和 `.toc-update-log` 相同（两条选择器并列进同一条规则）；Skill 页自己上这一条是当前态（`aria-current="page"` + 主色字 + 左边 4px 主色竖线，同一套辨认方式）。
+- **侧边栏/抽屉底部入口**（FR-116）：`.toc-sidebar-foot`、`.toc-dialog-foot` 里“更新日志”旁边再加一条“Agent Skill”（`[data-toc-agent-skill]`），样式和“更新日志”相同（两条入口共用底部入口的 `.toc-foot-link` 样式）；Skill 页自己上这一条是当前态（`aria-current="page"` + 主色字 + 左边 4px 主色竖线，同一套辨认方式）。
 
 ## 5. 交互、反馈与可访问性
 

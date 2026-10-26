@@ -412,7 +412,7 @@ aside.toc-sidebar {
   background: var(--surface);
 }
 
-.toc-update-log {
+.toc-foot-link {
   display: block;
   padding: 8px var(--space-2) 8px var(--space-4);
   border-radius: var(--radius);
@@ -422,12 +422,12 @@ aside.toc-sidebar {
   text-decoration: none;
 }
 
-.toc-update-log:hover {
+.toc-foot-link:hover {
   color: var(--accent);
   background: var(--surface-muted);
 }
 
-.toc-update-log[aria-current='page'] {
+.toc-foot-link[aria-current='page'] {
   color: var(--accent);
   font-weight: var(--fw-heading);
   box-shadow: inset 4px 0 0 var(--accent);
