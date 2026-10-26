@@ -125,6 +125,18 @@ describe('AC-14 坏内容让构建失败并报出文件', () => {
       messages: ['第 1 条：page 写的 no-such-page 不是路线图里的页面或参考页'],
     },
     {
+      // 读者反馈（v0.16、FR-125）：登记了一张不存在的截图
+      fixture: 'feedback-missing-image',
+      file: 'src/content/feedback.yaml',
+      messages: ['src/content/feedback.yaml 第 1 条：image 写的 no-such-shot.png 不在 src/assets/feedback/ 里'],
+    },
+    {
+      // 读者反馈：截图放进目录却忘了登记
+      fixture: 'feedback-orphan-image',
+      file: 'src/content/feedback.yaml',
+      messages: ['src/content/feedback.yaml：src/assets/feedback/forgot-to-register.png 没有写进 feedback.yaml'],
+    },
+    {
       // SEO 摘要（2026-10-25）：seo.yaml 少写一页，构建失败并指出是哪一页
       fixture: 'seo-missing-page',
       file: 'src/content/seo.yaml',

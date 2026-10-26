@@ -1,0 +1,112 @@
+---
+import FeedbackShot from '../components/FeedbackShot.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import Toc from '../components/Toc.astro';
+import { FEEDBACK_PATH } from '../lib/feedback/index';
+import { describe, FEEDBACK_KEY, SITE_NAME } from '../lib/seo';
+import { loadSite } from '../lib/site';
+import { withBase } from '../lib/with-base';
+import BaseLayout from './BaseLayout.astro';
+
+/**
+ * 读者反馈页的骨架（v0.16，design §4.11，FR-118、FR-120、FR-122）。
+ *
+ * 和更新日志页、Agent Skill 页一样是“顶栏 + 侧边栏 | 正文区”的独立页面：h1 是“读者反馈”，
+ * 一句说明下面是全部截图，按 feedback.yaml 的顺序排成两栏的截图墙（窄屏一栏）。
+ * 截图原样放、不加文字说明，也不点开放大：读者发来的截图多半只有几百像素宽，原尺寸就是最清楚的。
+ * 侧边栏/抽屉底部的“读者反馈”入口在这一页是当前态（currentFeedback）。
+ */
+const site = await loadSite();
+const total = site.feedback.length;
+// 目录按“未选”画（和更新日志页一样，这一页不上路线图）；浏览器里的目录脚本要这份数据
+const outline = site.route.outline({}, null, 'principle');
+const routeJson = JSON.stringify(site.route.data).replace(/</g, '\\u003c');
+const siteRoot = new URL(withBase('/'), Astro.site ?? Astro.url).href;
+const pageUrl = new URL(withBase(FEEDBACK_PATH), Astro.site ?? Astro.url).href;
+---
+
+<BaseLayout
+  title="读者反馈"
+  description={describe(site.seo, FEEDBACK_KEY)}
+  jsonLd="article"
+  breadcrumbs={[{ name: SITE_NAME, url: siteRoot }, { name: '读者反馈', url: pageUrl }]}
+>
+  <SiteHeader toc />
+  <Toc outline={outline} references={site.tocReferences} referencesChapter={site.referenceChapter.id} currentFeedback />
+  <div class="page-view">
+    <main id="main" class="feedback-page">
+      <div class="page-body">
+        <h1 class="step-title">读者反馈</h1>
+        <p class="feedback-intro">
+          读者照着这份教程走完以后，在群里和私信里发来的话，共 {total} 张截图，原样贴出。
+        </p>
+        {
+          total === 0 ? (
+            <p class="feedback-empty">还没有反馈。</p>
+          ) : (
+            <div class="feedback-wall" data-feedback-wall>
+              {site.feedback.map((entry) => (
+                <FeedbackShot entry={entry} />
+              ))}
+            </div>
+          )
+        }
+      </div>
+    </main>
+  </div>
+  <script type="application/json" id="route-data" set:html={routeJson} />
+</BaseLayout>
+
+<script>
+  import { initToc } from '../scripts/toc';
+  import { pageReaderStore, readRouteData } from '../scripts/reader-store';
+
+  // 这一页也有目录：<720px 的抽屉、“目录”按钮和侧边栏当前项都靠目录脚本（和更新日志页一样）
+  const data = readRouteData(document);
+  if (data) initToc(document, data, pageReaderStore(data));
+</script>
+
+<style>
+  /* 正文栏：和更新日志页一样的宽度和边距（design §3.3、§4.6） */
+  .page-body {
+    box-sizing: border-box;
+    max-width: var(--content-width);
+    margin: 0 auto;
+    padding: var(--content-pad-top) var(--gutter) var(--space-7);
+  }
+
+  .step-title {
+    margin: 0 0 var(--space-4);
+    font-size: var(--fs-title);
+    line-height: var(--lh-title);
+    font-weight: var(--fw-heading);
+  }
+
+  .page-view {
+    min-width: 0;
+  }
+
+  .feedback-intro,
+  .feedback-empty {
+    margin: 0 0 var(--space-6);
+    color: var(--text-muted);
+    font-size: var(--fs-meta);
+    line-height: var(--lh-tagline);
+  }
+
+  /*
+   * 截图墙（design §4.11）：截图大小差得很远（一行字的小条到整屏聊天），用多栏让它们从上往下自然排，
+   * 每栏至少 300px：正文栏 820px 时两栏，手机一栏。一张截图不拆到两栏里。
+   */
+  .feedback-wall {
+    columns: 300px 2;
+    column-gap: var(--space-6);
+  }
+
+  .feedback-wall :global(.feedback-shot) {
+    display: block;
+    width: fit-content;
+    margin: 0 0 var(--space-5);
+    break-inside: avoid;
+  }
+</style>

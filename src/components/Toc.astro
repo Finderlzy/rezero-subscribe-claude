@@ -3,6 +3,7 @@ import type { OutlineChapter } from '../lib/route/types';
 import type { TocReference } from '../lib/site';
 import type { TocSection } from '../lib/toc-sections';
 import { AGENT_SKILL_PATH } from '../lib/agent-skill/index';
+import { FEEDBACK_PATH } from '../lib/feedback/index';
 import { UPDATE_LOG_PATH } from '../lib/update-log';
 import { withBase } from '../lib/with-base';
 import TocNav from './TocNav.astro';
@@ -24,6 +25,7 @@ import '../styles/toc.css';
  *
  * 更新日志入口（v0.13，FR-88）：侧边栏最底部和抽屉最底部各一条，**不跟着目录滚走**（侧边栏里它和滚动区
  * .toc-sidebar-scroll 是兄弟节点，滚动条只滚上面的列表），在更新日志页自己上是当前态（aria-current="page"）。
+ * 底部后来又加了“Agent Skill”（v0.15、FR-116）和“读者反馈”（v0.16、FR-123），规则相同。
  */
 interface Props {
   outline: OutlineChapter[];
@@ -40,13 +42,17 @@ interface Props {
   currentUpdateLog?: boolean;
   /** 当前页就是 Agent Skill 页（v0.15、FR-116）：侧边栏底部的入口显示成当前态 */
   currentAgentSkill?: boolean;
+  /** 当前页就是读者反馈页（v0.16、FR-123）：侧边栏底部的入口显示成当前态 */
+  currentFeedback?: boolean;
 }
 
-const { outline, references, sections = [], currentReference, referencesChapter, openChapterId, currentUpdateLog = false, currentAgentSkill = false } = Astro.props;
+const { outline, references, sections = [], currentReference, referencesChapter, openChapterId, currentUpdateLog = false, currentAgentSkill = false, currentFeedback = false } = Astro.props;
 // 更新日志入口的文字：和分类名同一个来源（CONTEXT.md 的“更新日志”）
 const UPDATE_LOG_LABEL = '更新日志';
 // Agent Skill 入口的文字（v0.15、FR-116）
 const AGENT_SKILL_LABEL = 'Agent Skill';
+// 读者反馈入口的文字（v0.16、FR-123）
+const FEEDBACK_LABEL = '读者反馈';
 ---
 
 <aside class="toc-sidebar" data-toc-sidebar aria-label="步骤目录">
@@ -71,6 +77,9 @@ const AGENT_SKILL_LABEL = 'Agent Skill';
     </a>
     <a class="toc-foot-link" href={withBase(AGENT_SKILL_PATH)} data-toc-agent-skill aria-current={currentAgentSkill ? 'page' : undefined}>
       {AGENT_SKILL_LABEL}
+    </a>
+    <a class="toc-foot-link" href={withBase(FEEDBACK_PATH)} data-toc-feedback aria-current={currentFeedback ? 'page' : undefined}>
+      {FEEDBACK_LABEL}
     </a>
   </div>
 </aside>
@@ -101,6 +110,9 @@ const AGENT_SKILL_LABEL = 'Agent Skill';
     </a>
     <a class="toc-foot-link" href={withBase(AGENT_SKILL_PATH)} data-toc-agent-skill aria-current={currentAgentSkill ? 'page' : undefined}>
       {AGENT_SKILL_LABEL}
+    </a>
+    <a class="toc-foot-link" href={withBase(FEEDBACK_PATH)} data-toc-feedback aria-current={currentFeedback ? 'page' : undefined}>
+      {FEEDBACK_LABEL}
     </a>
   </div>
 </dialog>

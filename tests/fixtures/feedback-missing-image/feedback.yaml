@@ -1,0 +1,25 @@
+- image: no-such-shot.png
+  alt: 群聊截图：何梦吉他说“稳的老哥，目前方案三 pro 已经存活 2 周”
+- image: appeal-success.png
+  alt: 聊天截图：读者说稳了一天后收到停用邮件，申诉后成功恢复
+- image: thanks-author.png
+  alt: 读者留言“感谢作者”
+- image: thanks-boss.png
+  alt: 读者留言“老大，太感谢了”
+- image: subscribed.png
+  alt: 读者留言“首先谢谢作者的教程，我已经订阅上了”
+- image: thanks-tutorial.png
+  alt: 读者留言“感谢你的教程”
+- image: thanks-tutorial-2.png
+  alt: 读者留言“感谢教程！”
+- image: open-source-using.png
+  alt: 读者留言“感谢 up 开源，已经用上了”
+  featured: true
+- image: succeeded-by-method.png
+  alt: 读者留言“兄弟我按照你的方法成功了，感谢感谢”
+  featured: true
+- image: purchase-success.png
+  alt: 读者留言“support it!”，附 Claude 订阅 Pro 付款成功的截图
+  featured: true
+- image: just-paid-web-only.png
+  alt: 读者问“up 推荐用桌面端还是 cli”，说“我刚充好只敢用网页端”

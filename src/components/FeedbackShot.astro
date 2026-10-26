@@ -1,0 +1,40 @@
+---
+import { Image } from 'astro:assets';
+import type { ResolvedFeedbackEntry } from '../lib/feedback/load';
+
+/**
+ * 一张反馈截图（v0.16、FR-120）：按截图原本的像素宽度显示，不放大（读者发来的截图多半很小，放大会糊），
+ * 窄屏放不下时缩到容器宽度。截图原样放，不加文字说明；alt 只给读屏用。
+ *
+ * 标记契约（e2e 用）：[data-feedback-shot]，data-feedback-image 是文件名。
+ */
+interface Props {
+  entry: ResolvedFeedbackEntry;
+  /** 首页精选在首屏下面不远，不必懒加载；独立页的截图懒加载 */
+  eager?: boolean;
+}
+
+const { entry, eager = false } = Astro.props;
+---
+
+<figure class="feedback-shot" data-feedback-shot data-feedback-image={entry.image}>
+  <Image src={entry.src} alt={entry.alt} width={entry.src.width} loading={eager ? 'eager' : 'lazy'} />
+</figure>
+
+<style>
+  .feedback-shot {
+    display: inline-block;
+    max-width: 100%;
+    margin: 0;
+    vertical-align: top;
+    line-height: 0;
+  }
+
+  /* 截图自带底色（深浅都有），统一加一圈细线和圆角，和站里的正文截图一致 */
+  .feedback-shot :global(img) {
+    max-width: 100%;
+    height: auto;
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-image);
+  }
+</style>

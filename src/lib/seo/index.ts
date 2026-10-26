@@ -10,6 +10,7 @@
  */
 
 import { AGENT_SKILL_PATH } from '../agent-skill/index';
+import { FEEDBACK_PATH } from '../feedback/index';
 
 /** 一条摘要：`seo.yaml` 里的一页，校验通过后就是这个形状 */
 export interface SeoEntry {
@@ -33,6 +34,8 @@ export const HOME_KEY = '/';
 export const UPDATE_LOG_KEY = '/update-log/';
 /** Agent Skill 页的页面键（v0.15、FR-115）：直接用页面自己的路径常量，不另写一份，避免两处漂移 */
 export const AGENT_SKILL_KEY = AGENT_SKILL_PATH;
+/** 读者反馈页的页面键（v0.16、FR-118）：同样直接用页面路径常量 */
+export const FEEDBACK_KEY = FEEDBACK_PATH;
 
 /** 校验问题：key 是页面键（或出错的那一行），和构建报错的口径一致 */
 export interface SeoProblem {

@@ -5,7 +5,7 @@
 #
 # 写法：
 #   - 键就是页面标识：principle/<id>.md 和 reference/<id>.md 去掉 .md（参考页保留一层目录，如 ip-tests/decodo）。
-#     首页写 `/`，更新日志页写 `/update-log/`，Agent Skill 页写 `/agent-skill/`（它们没有对应的正文文件）。
+#     首页写 `/`，更新日志页写 `/update-log/`，Agent Skill 页写 `/agent-skill/`，读者反馈页写 `/feedback/`（它们没有对应的正文文件）。
 #   - 每一页都必须有一条，少写一页、多写一个不存在的标识，构建都会失败。
 #   - 一段话，40–118 个字符（中文一个字算一个）：再短搜索引擎会另从正文里取，再长在结果列表里会被截断。
 #   - 写给还没打开这页的人看：说清这一页讲什么、看完能做什么，不重复页面标题（标题已经在搜索结果上方）。
@@ -23,6 +23,9 @@
 
 /agent-skill/:
   description: 把整份订阅教程装进你自己的 AI Agent：用 Codex、Qwen Code 这类 Agent 就复制页上的提示词让它自己装，Claude Code 下载 zip；装好后它按路线带你。
+
+/feedback/:
+  description: 读者照着这份教程订阅成功后发来的聊天截图，原样贴出：有人开通了 Pro，有人被停用后申诉找回，也有人只是来道声谢。
 
 # 第 1 章：开始
 preface:

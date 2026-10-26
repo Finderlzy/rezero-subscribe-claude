@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { AGENT_SKILL_PATH } from '../agent-skill/index';
+import { FEEDBACK_PATH } from '../feedback/index';
 import { UPDATE_LOG_PATH } from '../update-log';
 import { joinBase } from '../with-base';
 
@@ -60,6 +61,8 @@ export function sitemapSources(options: {
   add(join(pagesRoot, 'update-log.astro'), joinBase(base, UPDATE_LOG_SITEMAP_PATH));
   // Agent Skill 页（v0.15、FR-115）：同样独立的页面，源文件也是路由
   add(join(pagesRoot, 'agent-skill.astro'), joinBase(base, AGENT_SKILL_PATH));
+  // 读者反馈页（v0.16、FR-118）：同上；截图和 feedback.yaml 变了不算这一页改过
+  add(join(pagesRoot, 'feedback.astro'), joinBase(base, FEEDBACK_PATH));
   for (const name of markdownNames(join(contentRoot, 'principle'))) {
     add(join(contentRoot, 'principle', name), joinBase(base, `/${name.slice(0, -'.md'.length)}/`));
   }

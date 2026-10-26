@@ -1,0 +1,10 @@
+---
+import FeedbackLayout from '../layouts/FeedbackLayout.astro';
+
+/**
+ * 读者反馈页（v0.16，FR-118）：/feedback/。地址写死在 src/lib/feedback/index.ts 的 FEEDBACK_PATH，
+ * 发布后不能改（ADR-0002 的口径）；它不进上一步/下一步、不进目录条目和站内搜索，进 sitemap 和 seo.yaml。
+ */
+---
+
+<FeedbackLayout />

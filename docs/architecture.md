@@ -651,3 +651,16 @@ agent-skill/
 
 没有发现循环依赖：M8 只读 M1、M2，M3 只读 M8 的常量。人工验收（AC-43–AC-48）需要测试用的 Debian 服务器和 Windows、macOS、Linux 三台机器，由作者提供，放在最后一个任务（V18）。
 
+## 17. v3.3 增量架构：M9 读者反馈（2026-10-26）
+
+需求 v0.16 的 FR-118–FR-125、AC-50。状态：**已实现**（2026-10-26，和需求同一次交付）。
+
+M9 照搬 M7 更新日志的做法：作者手写的 YAML 是唯一来源，纯函数校验，构建期读文件，写错构建失败；M3 多一个独立页面、首页一节和侧边栏底部一条入口。不改 M1、M2、M4、M8。
+
+- **数据**：`src/content/feedback.yaml`（字段规则写在文件开头的注释），截图在 `src/assets/feedback/`。
+- **纯逻辑**：`src/lib/feedback/index.ts`——`parseFeedback(value, images)` 校验（FR-125，包括“目录里有截图没登记”，所以它要拿到目录里的文件名）、`featuredEntries()`、`FEEDBACK_PATH`、`FEATURED_MAX`、`ALT_MAX`；单元测试在旁边。
+- **构建期读取**：`src/lib/feedback/load.ts` 用 `?raw` 读 YAML，用 `import.meta.glob` 取 `src/assets/feedback/*` 的 `ImageMetadata`（交给 `astro:assets` 出 webp、写宽高），校验通过后挂到 `loadSite()` 的 `site.feedback`。
+- **页面**：`src/pages/feedback.astro` → `src/layouts/FeedbackLayout.astro`（同 `UpdateLogLayout` 的外壳，跑 `initToc`）；单张截图是 `src/components/FeedbackShot.astro`；首页 `src/pages/index.astro` 的 `#home-feedback`；`Toc.astro` 底部加 `[data-toc-feedback]`（prop `currentFeedback`）。
+- **收录**：`seo.yaml` 必填键 `/feedback/`（`FEEDBACK_KEY`）；sitemap 的 lastmod 来源是 `feedback.astro`（`src/lib/sitemap/lastmod.ts`）；不进站内搜索（索引只收路线图页面和参考页，天然不含）。
+- **测试**：单元（`src/lib/feedback/index.test.ts`）、构建级（`tests/fixtures/feedback-missing-image`、`feedback-orphan-image`，后者用 `@root/` 往 `src/assets/feedback/` 放一张没登记的图）、e2e（`tests/e2e/ac-50-feedback.spec.ts`）。
+- **安全**：截图不打码昵称和头像，但 IP、节点链接、账号密码靠入库前人工过目（FR-124），构建不检测图片内容。

@@ -6,7 +6,8 @@ import { movedEntries, RouteValidationError } from './route/route-map';
 import { parseRouteYaml } from './route/route-yaml';
 import type { ForkId, OptionId, PageId, RouteMap, RouteSpecMovedTarget, Stop } from './route/types';
 import { sectionAnchor, type AnchorHeading } from './section-anchor';
-import { describe, HOME_KEY, UPDATE_LOG_KEY, AGENT_SKILL_KEY, type SeoEntry } from './seo';
+import { loadFeedback, type ResolvedFeedbackEntry } from './feedback/load';
+import { describe, HOME_KEY, UPDATE_LOG_KEY, AGENT_SKILL_KEY, FEEDBACK_KEY, type SeoEntry } from './seo';
 import { loadSeo } from './seo/load';
 import { loadUpdateLog } from './update-log/load';
 import type { ResolvedUpdateEntry } from './update-log';
@@ -56,6 +57,11 @@ export interface Site {
    * 条目里 `page` 已经解析出页面标题。它不进路线图，也不进目录、站内搜索和上一步/下一步。
    */
   updateLog: ResolvedUpdateEntry[];
+  /**
+   * 读者反馈（M9，v0.16、FR-118–FR-125）：`src/content/feedback.yaml` 登记的全部截图，按文件里的顺序；
+   * 首页精选交给 src/lib/feedback 的 featuredEntries()。不进路线图、目录和站内搜索。
+   */
+  feedback: ResolvedFeedbackEntry[];
   /**
    * 每页的搜索摘要（SEO 2026-10-25）：`src/content/seo.yaml` 的全部条目，按页面键查找。
    * 首页和更新日志页的键是 `/`、`/update-log/`，其余同页面标识。缺任何一页时构建就失败（loadSeo）。
@@ -239,12 +245,12 @@ async function readSite(): Promise<Site> {
   // 跳转表的 section 用 M1 的小标题扫描（和双链解析同一套规则，架构 §13.4）。直接扫内容集合里的正文：
   // Astro 构建把页面代码打包到 <outDir>/.prerender/ 再执行，不能靠 import.meta.url 找 src/content。
   const principleHeadings = new Map(principles.map((entry) => [entry.id, scanHeadings(entry.body ?? '')]));
-  // 搜索摘要（SEO 2026-10-25）：路线图页面、参考页、首页、更新日志页和 Agent Skill 页，每一页都必须有一条（loadSeo 校验）
+  // 搜索摘要（SEO 2026-10-25）：路线图页面、参考页、首页、更新日志页、Agent Skill 页和读者反馈页，每一页都必须有一条（loadSeo 校验）
   // 参考页只有 IP 质量实测合集和各篇实测（SEARCH_REFERENCE_ROOT 那一支），其余不进目录也不进 sitemap
   const referenceKeys = [...referenceById.keys()].filter(
     (id) => id === SEARCH_REFERENCE_ROOT || id.startsWith(`${SEARCH_REFERENCE_ROOT}/`),
   );
-  const seo = loadSeo([HOME_KEY, UPDATE_LOG_KEY, AGENT_SKILL_KEY, ...Object.keys(route.data.pages), ...referenceKeys]);
+  const seo = loadSeo([HOME_KEY, UPDATE_LOG_KEY, AGENT_SKILL_KEY, FEEDBACK_KEY, ...Object.keys(route.data.pages), ...referenceKeys]);
   return {
     route,
     start: startOf(route),
@@ -265,6 +271,7 @@ async function readSite(): Promise<Site> {
     }),
     referenceChapter: referenceChapterOf(route),
     seo,
+    feedback: loadFeedback(),
     // 更新日志（M7）：page 要按页面标题解析，所以放在路线图和参考页都读出来之后（FR-83、FR-86）。
     // 可以指向路线图里的页面，也可以指向参考页（如 ip-tests），不能指向跳转页。
     updateLog: loadUpdateLog(
