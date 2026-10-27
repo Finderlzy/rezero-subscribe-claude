@@ -66,7 +66,7 @@ VPS 是整个节点的地基。在 [VoyraCloud](https://www.voyracloud.com/?ref_
 
 有的商家最高只提供 Debian 11。Debian 11 已经停止支持，软件源也用不了了；选 Debian 11 也可以，脚本会先把它原地升级到 Debian 12，再装节点，多花 5～15 分钟。
 
-看视频：https://re0claude.us.ci/plan1/#为什么只选-debian （待修改：删除前言以及最开始点进博客的片段。直接黑屏文字展示"打开网站，点击文章中的链接”。然后直接跟着进入voyra官网的视频）
+**视频 02-1：购买海外 VPS**
 
 ## 购买静态住宅 ISP 代理
 
@@ -133,7 +133,8 @@ ssh -p 38221 root@你的服务器IP
 > 引导站小节：https://re0claude.us.ci/plan1/#如果提示connection-closed-by-
 
 提示`Connection closed by (你的服务器IP)`，说明你可能挂着梯子，把梯子关了就可以了。
-看视频：https://re0claude.us.ci/plan1/#如果提示connection-closed-by- （待修改：只放上第一节第三步的内容）
+
+**视频 02-4：SSH 连接服务器**
 
 ## 运行一键脚本
 
@@ -171,7 +172,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Finderlzy/reality-setup/v2.0
 
 最后脚本会打印两样东西，都要保存好：**主节点链接**以 `vless://` 开头，平时用这个，忘了可以在服务器上运行 `cat /root/vless.txt` 再看一次；**备用节点链接**以 `hysteria2://` 开头，主节点连不上或很慢时换它，忘了就运行 `cat /root/hy2.txt`。还有面板的登录信息，记下来，后面打开面板要用。
 
-看视频：https://re0claude.us.ci/plan1/#部署成功的标志 （待修改：放上第一节的内容）
+**视频 02-5：运行脚本装节点**
 
 > **注意**：节点链接就是钥匙
 > 节点链接里写着服务器的地址和凭证。脚本会随机生成一个 UUID 作为凭证，只要你不把链接发给别人，别人就拿不到你的节点。不要截图发群，也不要放进公开的仓库。

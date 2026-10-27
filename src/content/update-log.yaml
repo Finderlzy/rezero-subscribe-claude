@@ -19,6 +19,11 @@
 # 不写多段正文、图片和代码块。更新日志是用来告诉读者“哪里变了”的，不是第二份教程。
 
 - date: 2026-10-27
+  type: content
+  title: 安卓端补上支付步骤
+  body: 群友走通并分享了流程：先在 Google Play 付款方式里绑卡，再在 Claude App 选套餐，在弹出的 Google Play 窗口核对金额后点订阅。国内卡有风控风险，正文里写了。
+  page: android-subscription
+- date: 2026-10-27
   type: notice
   title: 方案二住宅服务器商家换了顺序
   body: 群友反馈丽萨主机和 VoyraCloud 也要抽卡了，QSU 挪到第一位。已经买到好的住宅服务器不用换，到期直接续费。

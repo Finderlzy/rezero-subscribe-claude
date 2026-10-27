@@ -4,9 +4,9 @@
 # 账号注册与订阅全流程：安卓端
 ---
 
-如果你用的是安卓手机，这一章带你完成从注册 Gmail 到安装 Claude 的过程。
+如果你用的是安卓手机，这一章带你完成从注册 Gmail 到订阅 Claude 的全过程。
 
-需要先说清楚一件事：**我自己的订阅走的是 iOS 路线，安卓的支付环节我没有走通，也没有验证过。** 下面只写到我已经确认的部分；付款那一段会明确标出来，不会把没试过的方法写成教程。
+需要先说清楚：**我自己的订阅走的是 iOS 路线，安卓支付的步骤是一位群友走通之后分享的**，下面按他的操作写；我本人没有在安卓上付过款，用到这一步时请自己判断。
 
 ```text
 注册 Gmail
@@ -19,7 +19,9 @@
    ↓
 在 Google Play 安装 Claude
    ↓
-支付（待补）
+在 Google Play 添加付款方式
+   ↓
+在 Claude App 内订阅
 ```
 
 ## 注册 Gmail
@@ -100,13 +102,50 @@ Google Play 会根据 IP 和账号地区显示不同的应用。如果搜不到 
 
 ---
 
-**这一段我还没有验证过，不能给你一个“照着做就能成”的方案。**
+安卓的付款走的是 Google Play：先在 Google Play 里绑好能用的付款方式，再到 Claude App 里选套餐，最后在弹出的 Google Play 窗口里确认付款。钱由 Google Play 收，Claude 那边只认你登录的账号。
 
-我听说过可以用美区 Google Play 礼品卡充值，再在 App 内订阅，但我没有试过，也没有认真研究过。具体会遇到什么，我没有一手经验，所以不把它写成步骤。
+下面这组截图是一位群友走通之后提供的，他允许我写进教程。他已经订阅了 Pro，所以截图里的套餐页面用 Max 演示，操作流程和 Pro 一样。
 
-所以有两个选择：
+### 在 Google Play 添加付款方式
 
-- **去别处找走过安卓路线的人的经验。** 看的时候注意区分“他成功了”和“他听说可以”，也注意教程的发布时间。
-- **借一台 iPhone 完成首次付款。** 这是我自己走通的路。Claude 账号是用 Google 账号注册的，和 Apple ID 无关，所以在 iPhone 上订阅，之后回到安卓手机或电脑网页使用，Pro 权益是跟着 Claude 账号走的。具体步骤看 [注册和订阅那章的“注册美区 Apple ID”到“在 App 内订阅”](https://re0claude.us.ci/iphone-subscription/#注册美区-apple-id)。
+> 引导站小节：https://re0claude.us.ci/android-subscription/#在-google-play-添加付款方式
 
-如果你走通了安卓的支付，欢迎把步骤和录屏发给我，我把它补进这一章。
+打开 Google Play，点右上角头像 → **付款和订阅** → **付款方式**，添加一张你手里能用的卡。这位群友用的是国内发行的万事达卡，绑上去就能用；听说国内发行的卡有被封的风险，他目前暂时先用着，能不能长期用我也没有把握。
+
+看图：https://re0claude.us.ci/android-subscription/#在-google-play-添加付款方式
+
+注意看截图里的两行：**Google Play 余额是 US$0.00**，真正扣款的是下面那张卡；**备用支付方式**默认是关的，打开之后这张卡扣款失败时会自动走备用方式。
+
+### 在 Claude App 内选套餐
+
+> 引导站小节：https://re0claude.us.ci/android-subscription/#在-claude-app-内选套餐
+
+付款方式绑好以后，回到 Claude App，点升级，选择要订阅的套餐。以 Max 为例，同一个套餐有两种用量：**US$125.00** 是 Pro 用量的 5 倍，**US$250.00** 是 20 倍，都按月计费。Pro 的额度一般够用，价格以 App 里显示的为准。
+
+看图：https://re0claude.us.ci/android-subscription/#在-claude-app-内选套餐
+
+选好之后点 **获取 Max 套餐**（订阅 Pro 时按钮会写成 **获取 Pro 套餐**）。
+
+### 在弹出的 Google Play 窗口里确认
+
+> 引导站小节：https://re0claude.us.ci/android-subscription/#在弹出的-google-play-窗口里确认
+
+点完按钮会弹出 Google Play 的付款窗口。这里先核对三件事：
+
+- 订阅的是不是 `Claude Pro` 或 `Claude Max`，开发者是不是 Anthropic；
+- **即将收取的费用**：今天扣多少、之后每月多少，这里写的都是“税费另计”，实际扣款会比显示的多一点，以结算页为准；
+- 下面的付款方式是不是你在 Google Play 里绑好的那张卡。
+
+看图：https://re0claude.us.ci/android-subscription/#在弹出的-google-play-窗口里确认
+
+都对得上，点最下面的 **订阅**，按提示验证（密码、指纹或面容），这笔款就从卡里扣了。用礼品卡余额付款的，这一步能看到余额被扣减。
+
+订阅成功后，随时可以在 Google Play → 右上角头像 → **订阅** 里管理或取消。以后回到安卓手机或电脑网页打开 Claude，订阅权益都跟着这个 Claude 账号走。
+
+### 关于风险
+
+> 引导站小节：https://re0claude.us.ci/android-subscription/#关于风险
+
+用国内发行的卡在 Google Play 上付款，等于让 Google 和 Anthropic 看到一笔来自国内的支付，被风控的可能存在。我的建议是：可以用，但**不要在订阅成功之后反复改付款方式，也不要连续重试失败的订单**。如果之后想换成更稳妥的方式，可以看 [iOS 端那章的“注册美区 Apple ID”到“在 App 内订阅”](https://re0claude.us.ci/iphone-subscription/#注册美区-apple-id)，借一台 iPhone 用礼品卡订阅；Claude 账号是用 Google 账号注册的，和 Apple ID 无关，在哪边付款权益都跟着 Claude 账号。
+
+如果你在安卓上走通了，或者遇到了我没写到的问题，欢迎把步骤和截图发给我，我把它补进这一章。

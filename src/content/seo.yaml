@@ -55,7 +55,7 @@ android-prepare:
   description: 在安卓手机上装 v2rayNG、导入节点、准备 Google Play、改时区，最后做连通性测试，确认出口 IP 已经是对的地区。
 
 android-subscription:
-  description: 安卓端的账号到订阅流程：注册 Gmail、在 Chrome 登录并完善资料、注册 Claude、从 Google Play 安装，支付部分标明未验证。
+  description: 安卓端的账号到订阅流程：注册 Gmail、在 Chrome 登录并完善资料、注册 Claude、从 Google Play 安装，以及在 Google Play 添加付款方式并用国内发行的卡在 App 内订阅。
 
 # 第 4 章：日常维护
 maintenance:

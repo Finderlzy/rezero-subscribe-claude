@@ -78,7 +78,7 @@ Claude 官方服务器
 
 另外，如果你在这台电脑上用过 Claude Code，换另一个 Agent，让它清掉本机 Claude Code 的缓存和配置（比如 `~/.claude.json` 及相关文件）。
 
-看视频：https://re0claude.us.ci/overview/#清理旧账号和配置
+**视频 01-1：清理旧账号和配置**
 
 ## 方案一和方案二
 
