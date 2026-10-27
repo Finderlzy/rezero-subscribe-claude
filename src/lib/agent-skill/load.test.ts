@@ -48,7 +48,7 @@ describe('真实仓库的订阅 Skill', () => {
   });
 
   it('一键脚本的命令和重写稿逐字相同', () => {
-    const command = 'bash <(curl -fsSL https://raw.githubusercontent.com/Finderlzy/reality-setup/v2.0.3/setup.sh)';
+    const command = 'bash <(curl -fsSL https://raw.githubusercontent.com/Finderlzy/reality-setup/v2.0.4/setup.sh)';
     expect(generated.files.get('references/plan2-residential-server.md')).toContain(`\`\`\`bash\n${command}\n\`\`\``);
   });
 });

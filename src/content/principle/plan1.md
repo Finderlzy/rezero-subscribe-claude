@@ -120,7 +120,7 @@ ssh -p 38221 root@你的服务器IP
 登录服务器后，复制下面这行命令，粘贴进去，回车：
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Finderlzy/reality-setup/v2.0.3/setup.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Finderlzy/reality-setup/v2.0.4/setup.sh)
 ```
 
 脚本会安装 Xray （把你的服务器作为代理节点）和管理面板（方便你自由配置管理节点），然后把 ISP 代理套到节点上；安装过程中会在终端里问你几个问题。
