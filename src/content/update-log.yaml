@@ -19,6 +19,11 @@
 # 不写多段正文、图片和代码块。更新日志是用来告诉读者“哪里变了”的，不是第二份教程。
 
 - date: 2026-10-27
+  type: notice
+  title: 安卓端的订阅方案补齐了，感谢群友
+  body: 安卓手机现在也能照着教程从头走到付款：在 Google Play 绑卡，再从 Claude App 里订阅。这套流程是群友亲自走通后整理截图分享出来的，特别感谢！做成了也欢迎在群里说一声。
+  page: android-subscription
+- date: 2026-10-27
   type: content
   title: 安卓端补上支付步骤
   body: 群友走通并分享了流程：先在 Google Play 付款方式里绑卡，再在 Claude App 选套餐，在弹出的 Google Play 窗口核对金额后点订阅。国内卡有风控风险，正文里写了。
