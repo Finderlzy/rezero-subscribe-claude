@@ -113,7 +113,7 @@ ssh -p 38221 root@你的服务器IP
 复制下面这行命令，粘贴到终端，回车：
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Finderlzy/reality-setup/v2.0.1/setup.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Finderlzy/reality-setup/v2.0.2/setup.sh)
 ```
 
 脚本会安装 Xray 和管理面板，然后把服务器变成节点；安装过程中会问几个问题。
