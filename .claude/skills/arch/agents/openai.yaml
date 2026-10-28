@@ -1,0 +1,5 @@
+interface:
+  display_name: "Arch"
+  short_description: "按无聊程度选技术栈并写 ADR"
+policy:
+  allow_implicit_invocation: false

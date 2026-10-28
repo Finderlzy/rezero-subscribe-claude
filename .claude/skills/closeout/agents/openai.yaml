@@ -1,0 +1,5 @@
+interface:
+  display_name: "Closeout"
+  short_description: "里程碑收尾：核对任务、合并分支、勾选里程碑"
+policy:
+  allow_implicit_invocation: false
