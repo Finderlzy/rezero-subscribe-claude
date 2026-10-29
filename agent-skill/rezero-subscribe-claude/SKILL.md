@@ -5,7 +5,7 @@ license: MIT
 compatibility: 需要能执行本机命令和 ssh 的 Agent，需要联网；只能聊天的 Agent 只能用引导部分
 metadata:
   version: "3.1.3"
-  rewrite: "d92f5de39228"
+  rewrite: "85fd308eb211"
   site: "https://re0claude.us.ci"
 ---
 
