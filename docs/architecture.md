@@ -74,7 +74,7 @@
 | --- | --- | --- |
 | `src/content/route.yaml` | **路线图**：章节、分叉点、各选项的页面顺序、跳转表（`moved:`） | 由 M2 校验 |
 | `src/content/principle/<id>.md` | 一个页面：11 页（前言、整体思路、方案一/二、电脑端、iOS 准备/订阅、安卓准备/订阅、日常维护、后记）。正文第一行是 `# <标题>`，和重写稿文件标题相同 | frontmatter（Zod `strictObject`，都可省）：`video: { bilibili?, youtube? }`、`skippable`/`skipLabel`（v3 没有可跳过页，字段休眠）、`options: { <option-id>: { title } }`（选择页必填） |
-| `src/content/reference/ip-tests.md`、`ip-tests/<id>.md` | 参考页：IP 质量实测合集和 6 篇实测，只有一版正文 | 不写 frontmatter |
+| `src/content/reference/ip-tests.md`、`ip-tests/<id>.md` | 参考页：IP 质量实测合集和 5 篇实测，只有一版正文 | 不写 frontmatter |
 | `src/content/blog-links.yaml` | 指向博客其他文章的链接目标 → 博客 URL；地址待作者提供时写 `null`（Q-11） | 由 M1 校验 |
 | `src/assets/screenshots/` | 截图（从重写稿的 `附件/` 导入，只导入被引用的） | — |
 | `src/assets/diagrams/` | 说明图 SVG（从重写稿的 `附件/` 导入，附件里的是原稿，变了就覆盖） | — |
@@ -82,7 +82,7 @@
 - **标题**：页面标题取正文第一行的 `# <标题>`（导入时原样保留），渲染时从正文里去掉，由布局输出 `<h1>`。全站标题不能重复，因为双链按标题解析。缺少第一行标题、标题重复都让构建失败。
 - **单一正文**：v3 删除 `operation/` 和 `principleOnly` 的运行路径，`[page].astro` 只渲染这一份正文；M2/M4 的 `view` 字段暂时保留，但固定按 `principle` 计算（§13.12）。
 - **选择页的选项卡片**（FR-12，V10 现状）：选项写在页面 frontmatter 的 `options`（标识 → 标题），`[page].astro` 用 M2 的 `view(选择页, { 分叉点: 选项 })` 算出每个选项的第一步，交给 `ChoiceCards.astro` 渲染在正文末尾；卡片整块可点，路线图的 `default` 标“推荐”。`ChoiceCards` 的容器带 `id="下一步"`，旧“选择手机系统”和手机旧页的兜底都落到这里（`site.ts` 的 `resolveMovedTarget` 单独认这个锚点，因为它不在导入的正文标题里）。
-- **参考页**：只有 `ip-tests` 和 6 篇实测；`site.ts` 的 `TOC_REFERENCES` 只列合集，挂在 `maintenance` 章末；参考页没有上一步/下一步。
+- **参考页**：只有 `ip-tests` 和 5 篇实测；`site.ts` 的 `TOC_REFERENCES` 只列合集，挂在 `maintenance` 章末；参考页没有上一步/下一步。
 - **导入**（ADR-0005）：`scripts/import-rewrite.mjs` 从 `docs/v3-rewrite/` 原样导入 11 页和 `reference/` 的 7 个文件，把相对 Markdown 链接转成站内链接，复制被引用的截图和说明图；第二次运行应无改动。`docs/rewrite/` 已在 V11 同步 Writing 后删除。
 - **校验**：站内双链、同页锚点、图片、路线图、跳转表、参考页目录都在构建时核对；跳转表的目标页和小节不存在、旧标识被新页面复用、`choice` 的选项和分叉点不一致时构建失败（FR-61）。
 

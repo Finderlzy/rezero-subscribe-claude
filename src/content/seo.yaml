@@ -65,7 +65,7 @@ maintenance:
 afterword:
   description: 走到这里的一些话：这份教程的局限、遇到问题可以进群问，以及帮过这份教程的人和信息来源。
 
-# 参考页：IP 质量实测合集和 6 篇实测
+# 参考页：IP 质量实测合集和 5 篇实测
 ip-tests:
   description: 教程里出现过的商家，逐个实测 IP 质量和风险评分，给出截图和结论；选方案、选商家之前先看这几页。
 
@@ -78,11 +78,8 @@ ip-tests/ipequal:
 ip-tests/lisahost:
   description: 丽萨主机美国 9929 双 ISP 住宅 IP 服务器的实测：套餐、价格和各项 IP 质量检测的截图，配方案二用。
 
-ip-tests/qsu-free-isp:
-  description: proxy.qsu.hk 免费 ISP 代理的实测记录：2026-10-17 已断连、教程不再推荐，这里保留实测供对照和换 IP 参考。
-
 ip-tests/qsu-residential:
-  description: QSU 住宅服务器的实测记录：主站这台作者没有亲自用过，质量参考群友的说法，和子站的免费代理不是一回事。
+  description: QSU 住宅服务器的实测记录：主站这台作者没有亲自用过，质量参考群友的说法，买之前先看结论。
 
 ip-tests/voyracloud:
   description: VoyraCloud 美国住宅服务器的实测：从下单到拿到 IP 的全过程，配上各项 IP 质量检测的截图和结论。

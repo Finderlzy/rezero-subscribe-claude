@@ -14,7 +14,7 @@ Astro 会把 `astro dev`/`astro preview` 转入后台（Windows 除外），用 
 
 ## 目录
 
-- `src/content/`（集合定义在 `src/content.config.ts`）：`route.yaml` 是路线图（章节、分叉点、页面顺序、旧网址跳转表 `moved:`）；`principle/<标识>.md` 是 11 页单版本正文，元数据在 frontmatter（选择页写 `options`）；`reference/` 只留 IP 质量实测合集和 6 篇实测共 7 页；`blog-links.yaml` 是博客外链映射。
+- `src/content/`（集合定义在 `src/content.config.ts`）：`route.yaml` 是路线图（章节、分叉点、页面顺序、旧网址跳转表 `moved:`）；`principle/<标识>.md` 是 11 页单版本正文，元数据在 frontmatter（选择页写 `options`）；`reference/` 只留 IP 质量实测合集和 5 篇实测共 6 页；`blog-links.yaml` 是博客外链映射。
 - `src/lib/`：纯逻辑模块，单元测试放旁边（`*.test.ts`；组件渲染测试用 Astro Container API）。按能力地图分：`content/`（M1）、`route/`（M2）、`reader-state/`（M4）、`search/`（M6）、`update-log/`（M7）、`agent-skill/`（M8）、`feedback/`（M9）；`seo/`、`sitemap/`、`video/`、`code-zoom/` 是各模块用的小块。
 - `src/pages/`、`src/layouts/`、`src/components/`、`src/styles/`：页面（M3）。`src/scripts/` 是打包进页面的浏览器脚本；根目录 `scripts/` 是一次性开发脚本。
 - `agent-skill/`：读者装进自己 AI Agent 的**订阅 Skill**（不是 `.claude/skills/` 里开发用的 Skill）。`source/` 是手写模板，`rezero-subscribe-claude/` 是生成物，入库不手改，构建时逐字核对。见 [ADR-0007](../adr/0007-agent-skill-generated-and-committed.md)。

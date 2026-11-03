@@ -13,7 +13,6 @@
 
 | 商家 | 卖的是什么 | 对应方案 | 实测结果 |
 | --- | --- | --- | --- |
-| [实测：proxy.qsu.hk 白嫖 ISP](https://re0claude.us.ci/ip-tests/qsu-free-isp/) | 免费的 ISP 代理 | 方案一（2026-10-17 断连，已不推荐） | 我的：ISP 类型，Scamalytics 0 分；一位读者的：Scamalytics 100 分 |
 | [实测：丽萨住宅服务器](https://re0claude.us.ci/ip-tests/lisahost/) | 住宅服务器 | 方案二 | 我的：ISP 类型，Scamalytics 5 分 |
 | [实测：VoyraCloud 住宅服务器](https://re0claude.us.ci/ip-tests/voyracloud/) | 住宅服务器 | 方案二 | 我的第一台：机房 IP，Scamalytics 16 分；第二台：ISP 类型，Scamalytics 3 分；第三台（现在用的，华盛顿）：ISP 类型，IPPure 认成住宅 IP，Scamalytics 0 分 |
 | [实测：QSU 住宅服务器](https://re0claude.us.ci/ip-tests/qsu-residential/) | 住宅服务器 | 方案二 | 还没有实测，有朋友说质量不错 |
