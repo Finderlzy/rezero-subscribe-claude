@@ -15,7 +15,6 @@
 | --- | --- | --- | --- |
 | [实测：丽萨住宅服务器](https://re0claude.us.ci/ip-tests/lisahost/) | 住宅服务器 | 方案二 | 我的：ISP 类型，Scamalytics 5 分 |
 | [实测：VoyraCloud 住宅服务器](https://re0claude.us.ci/ip-tests/voyracloud/) | 住宅服务器 | 方案二 | 我的第一台：机房 IP，Scamalytics 16 分；第二台：ISP 类型，Scamalytics 3 分；第三台（现在用的，华盛顿）：ISP 类型，IPPure 认成住宅 IP，Scamalytics 0 分 |
-| [实测：QSU 住宅服务器](https://re0claude.us.ci/ip-tests/qsu-residential/) | 住宅服务器 | 方案二 | 还没有实测，有朋友说质量不错 |
 | [实测：ipequal 住宅节点](https://re0claude.us.ci/ip-tests/ipequal/) | 现成的住宅节点 | 方案三（旧编号，已不推荐） | 一位读者的：住宅 IP，Scamalytics 20 分，延迟偏高 |
 | [实测：Decodo ISP](https://re0claude.us.ci/ip-tests/decodo/) | 付费的 ISP 代理 | 方案一 | 我没用过，没有实测 |
 

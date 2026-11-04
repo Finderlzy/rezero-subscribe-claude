@@ -517,8 +517,11 @@ test('内容组件：代码、提示块、表格、截图、作者待补和 QQ �
   });
 
   // 作者待补：浅黄底 + 4px 左边线、右侧 6px 圆角，标签 13px 600
-  // （新稿正文没有 TODO，保留的实测参考页里有一处）
-  await page.goto('./ip-tests/qsu-residential/');
+  // （正文和参考页现在都没有 TODO，按 remark-obsidian 输出的结构插一个进来量样式）
+  await page.goto('./ip-tests/voyracloud/');
+  await page.locator('.prose').evaluate((el) => {
+    el.insertAdjacentHTML('afterbegin', '<aside class="author-todo"><strong class="author-todo-label">作者待补</strong> TODO：样式检查。</aside>');
+  });
   const todo = await page.locator('.prose aside.author-todo').evaluate((el) => {
     const s = getComputedStyle(el);
     const label = getComputedStyle(el.querySelector('.author-todo-label')!);
