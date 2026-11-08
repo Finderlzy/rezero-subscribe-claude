@@ -55,7 +55,7 @@
 ## 规则来源
 
 - 本仓库的规则以本文件为准。`CLAUDE.md` 只作入口，不复制正文，也不新增 `agent.md`、`AGENT.md` 这类同类文件。
-- 通用行为约定来自作者的全局规则 `~/Workspace/Tools/AGENTS.md`；本文件不重复它，只写本仓库特有的约定。
+- 通用行为约定来自作者的全局规则 `/run/media/finderzly/E/WorkSpace/Tools/AGENTS.md`；本文件不重复它，只写本仓库特有的约定。
 
 <!-- 维护说明（不进入 Claude 的上下文）：这里只放每次会话都会用、且 Claude 推不出的规则。
 多步流程、单模块规矩、能从代码查到的内容都不放；长内容放 docs/agents/project.md。 -->
