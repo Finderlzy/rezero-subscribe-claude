@@ -27,13 +27,19 @@
 | 检查 | 命令 | 结果 |
 | --- | --- | --- |
 | 类型、单元、构建级、构建 | `npm run check` | 通过：astro check 0 错误；单元测试 666 通过（51 个文件）；构建级 39 个；构建 68 页 |
-| e2e | `npm run test:e2e` | 1079 通过、0 失败、26 跳过（360、768、1280 + `/sub/` 子路径） |
+| e2e | `npm run test:e2e` | 推送前重跑：1105 个用例，1079 通过、0 失败、26 跳过（360、768、1280 + `/sub/` 子路径） |
 | 可搜性 | 构建产物 `search-index.json` | 177 条索引；「延迟 -1」「KYC」「礼品卡」都能命中新问题（删掉机器人那一问后少一条） |
 | 跳转 | 打开 `/faq/` 和 8 条 `/faq/<id>/` | 落到各章「常见问题」里的对应一条；`/faq/` 仍回日常维护 |
 
-### 没有动的东西
+### 上线（3.4.0）
 
-- 工作区里已有的未提交改动（`.claude/skills/` 的删除、`AGENTS.md`、`docs/agents/sync.md` 的本地路径）不是这次改的，没有提交。
+- **版本**：3.1.3 → **3.4.0**。3.2 订阅 Skill、3.3 读者反馈、3.4 常见问题三个增量一起发；`package.json`、`package-lock.json`、README 版本徽章、`npm run skill` 的生成物都同步到 3.4.0。
+- **提交**：`b878326`（`main`），已推送；GitHub Pages 由 `deploy.yml` 按 `main` 重新构建。
+- **CI**：部署运行 [42456153748](https://github.com/Finderlzy/rezero-subscribe-claude/actions/runs/42456153748)，build 和 deploy 都成功。
+- **发布**：附注标签 `v3.4.0` 指向 `b878326`，已推送；GitHub Release [v3.4.0](https://github.com/Finderlzy/rezero-subscribe-claude/releases/tag/v3.4.0)。
+- **线上核对**：`/agent-skill/` 显示「当前版本 3.4.0」，zip 里 SKILL.md 的 `metadata.version` 也是 3.4.0；`/`、`/maintenance/`、`/afterword/` 里没有「大肥鱼 / AI 嘉宾」；`/afterword/` 是新的群说明；`/update-log/` 能读到这次的公告和四条内容更新；`search-index.json` 177 条；`/faq/` 仍是跳转页，sitemap 返回 200。
+- **公告**：`promo/开发公告-3.4.0.md` 是这次的上线公告，可以直接贴到群里。
+- **没动**：工作区里已有的未提交改动（`.claude/skills/` 的删除、`AGENTS.md`、`docs/agents/sync.md` 的本地路径）不是这次改的，没有提交。
 
 ## 2026-10-25 顶栏固定在视口顶端
 
