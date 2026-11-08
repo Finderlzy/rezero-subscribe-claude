@@ -11,7 +11,7 @@
 
 [![在线站点](https://img.shields.io/badge/%E5%9C%A8%E7%BA%BF%E7%AB%99%E7%82%B9-re0claude.us.ci-6F42C1?style=flat-square)](https://re0claude.us.ci/)
 [![QQ 群](https://img.shields.io/badge/QQ%E7%BE%A4-1131606770-12B7F5?style=flat-square&logo=tencentqq&logoColor=white)](https://qm.qq.com/q/a00aEmiu2I)
-[![版本](https://img.shields.io/badge/version-3.1.3-6F42C1?style=flat-square)](https://github.com/Finderlzy/rezero-subscribe-claude/releases)
+[![版本](https://img.shields.io/badge/version-3.4.0-6F42C1?style=flat-square)](https://github.com/Finderlzy/rezero-subscribe-claude/releases)
 [![许可](https://img.shields.io/badge/license-MIT%20%2B%20CC%20BY--NC%204.0-3DA639?style=flat-square)](LICENSE-CONTENT.md)
 
 [开始阅读](https://re0claude.us.ci/) · [QQ 群](#qq-群) · [许可](#许可)
@@ -20,7 +20,7 @@
 
 ## 这是什么
 
-《如何订阅 Claude》原本是一篇很长的文章。这个站点把它拆成按章阅读的引导，打开网页就能读。每页只读一章，按自己的情况选路线（节点方案、手机系统），然后一路点“下一步”走到后记。
+《如何订阅 Claude》原本是一篇很长的文章。这个站点把它拆成按章阅读的引导，打开网页就能读。每页只读一章，按自己的情况选路线（节点方案、手机系统），然后一路点“下一步”走到后记。每章末尾有一节「常见问题」，卡住了先翻那里；站内搜索也能直接搜到。
 
 ## 让 AI Agent 带你做
 
@@ -39,9 +39,11 @@
 
 装好以后也可以直接说“带我订阅 Claude”“继续”或“上次做到哪了”。
 
+Skill 跟着正文一起更新：站上版本号变了，就重新下载一份，包里的正文和常见问题都是新的。
+
 ## QQ 群
 
-有问题？进群问**大肥鱼**。
+有问题？进群问。
 
 <p>
   <a href="https://qm.qq.com/q/a00aEmiu2I"><strong>QQ 群 1131606770</strong></a>
@@ -49,9 +51,9 @@
   <a href="https://qm.qq.com/q/a00aEmiu2I">加入群聊 →</a>
 </p>
 
-大肥鱼是群里的 AI 嘉宾，24 小时在线。教程哪一步卡住了都可以问她，也可以随便聊。她比我靠谱多了。
+群是给大家交流用的：教程哪一步卡住了可以问，也可以看看别人怎么解决的。
 
-问之前建议先看看站里的正文和“日常维护、风控应对与常见故障”，很多坑已经写在里面了。实在不行再在群里问，说清楚卡在哪一页、做了什么、看到了什么；有报错就截图，**截图记得把 IP、节点链接和密码打码**。
+问之前建议先看看站里的正文和各章末尾的“常见问题”，很多坑已经写在里面了。实在不行再在群里问，说清楚卡在哪一页、做了什么、看到了什么；有报错就截图，**截图记得把 IP、节点链接和密码打码**。
 
 ## 给读者的话
 

@@ -7,7 +7,7 @@ import { openToc } from './toc-helpers';
 // 是两行文字链接（design §4.6），不是实心按钮。
 //
 // V10（作者新稿）只剩 IP 实测这一组参考页：/ip-tests/ 和 5 篇 /ip-tests/<id>/；眉题“日常维护 · …”，
-// 合集页脚回“日常维护、风控应对与常见故障”，各篇实测页脚回“IP 质量实测合集”；目录把它挂在“日常维护”章末尾。
+// 合集页脚回“日常维护、风控与常见问题”，各篇实测页脚回“IP 质量实测合集”；目录把它挂在“日常维护”章末尾。
 // 步骤页正文不再链到参考页，也没有常见问题、附录、旁支页（google-appeal）和方案三：原来“从方案三进入常见问题/
 // 实测页”“从后记进入附录”等依赖这些页面和正文链接的用例随 V10 删除，参考页改为从目录或直接地址进入。
 // `?from=` 的机制由 src/lib/reference-return.test.ts 和组件测试覆盖；e2e 没有正文入口，只保留直接带 ?from=
@@ -41,7 +41,7 @@ test('从目录进入 IP 质量实测合集：页脚回到日常维护，没有�
   await expectReady(page);
   await noBrowseButtons(page);
   // design §4.6：页脚“← 回到”，写出上级页面的标题
-  const back = page.getByRole('link', { name: /^回到 日常维护、风控应对与常见故障$/ });
+  const back = page.getByRole('link', { name: /^回到 日常维护、风控与常见问题$/ });
   await expect(back).toHaveAttribute('href', /\/maintenance\/$/);
   // design §5：可点区域 ≥44px
   expect((await back.boundingBox())!.height).toBeGreaterThanOrEqual(44);
@@ -67,7 +67,7 @@ test('从实测合集的表格进入一篇实测：页脚回到实测合集', as
 
 // 步骤页没有链到参考页的正文链接（V10），这里直接带 ?from= 打开，核对返回块本身
 for (const { path, href, title } of [
-  { path: './ip-tests/?from=maintenance', href: /\/maintenance\/$/, title: '日常维护、风控应对与常见故障' },
+  { path: './ip-tests/?from=maintenance', href: /\/maintenance\/$/, title: '日常维护、风控与常见问题' },
   { path: './ip-tests/voyracloud/?from=client-desktop', href: /\/client-desktop\/$/, title: '客户端配置与环境验证：电脑端' },
 ]) {
   test(`直接带 ?from= 打开 ${path}：有两块“返回刚才的步骤”`, async ({ page }) => {

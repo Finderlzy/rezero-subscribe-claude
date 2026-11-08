@@ -39,17 +39,17 @@ plan1:
   description: 买一台海外 VPS，配一个静态住宅 ISP 代理，用脚本把它变成专属节点，拿到 VLESS Reality 和 Hysteria2 两条节点链接。
 
 plan2-residential-server:
-  description: 买一台自带海外住宅 IP 的云服务器，跑一次脚本就变成节点，不用同时维护 VPS 和 ISP 两个服务商，步骤比方案一少。
+  description: 买一台自带海外住宅 IP 的云服务器，跑一次脚本就变成节点，不用同时维护 VPS 和 ISP 两个服务商；SSH 报错、重装和面板的问题在章末。
 
 # 第 3 章：客户端配置与订阅
 client-desktop:
-  description: 把节点链接装进电脑的代理软件，处理 DNS、WebRTC、IPv6 三处容易漏的地方，再把系统时区改到 Claude 支持的地区。
+  description: 把节点链接装进电脑的代理软件，处理 DNS、WebRTC、IPv6 三处容易漏的地方，再把时区改到 Claude 支持的地区；Tun、延迟 -1、测出来好几个 IP 都在章末。
 
 iphone-prepare:
-  description: 在 iPhone 或 iPad 上装 V2Box、导入节点，准备一个能下载代理软件的 App Store，让手机环境和小节里的节点对得上。
+  description: 在 iPhone 或 iPad 上装 V2Box、导入节点，准备一个能下载代理软件的 App Store，让手机环境和小节里的节点对得上；小火箭连不上怎么换在章末。
 
 iphone-subscription:
-  description: 走完 iPhone 上订阅 Claude 的全过程：注册 Gmail、准备美区 Apple ID、用礼品卡充值，最后在 App 里完成订阅。
+  description: 走完 iPhone 上订阅 Claude 的全过程：注册 Gmail、准备美区 Apple ID、用礼品卡充值，最后在 App 里完成订阅；礼品卡、购买未完成和退款的疑问在章末。
 
 android-prepare:
   description: 在安卓手机上装 v2rayNG、导入节点、准备 Google Play、改时区，最后做连通性测试，确认出口 IP 已经是对的地区。
@@ -59,7 +59,7 @@ android-subscription:
 
 # 第 4 章：日常维护
 maintenance:
-  description: 订阅之后怎么用才不像机器、账号受限了怎么申诉、常见故障怎么一步步排查，都在这一章。
+  description: 订阅之后怎么用才不像机器、账号受限了怎么申诉、换 IP 和额度怎么算、合租和反代哪些不能做，这些常被问到的问题都在这一章。
 
 # 第 5 章：结尾
 afterword:

@@ -62,7 +62,7 @@ ipinfo 这一关算过了，Privacy 也是 false，没被识别成代理。不�
 - 这台在华盛顿。IPPure 里有几个数据库给的是纽约，但 ipinfo 和 MaxMind 都显示华盛顿，以这两个为准。
 - ipinfo 和 IPPure 都显示这台机器的 ASN 属于 Quantumbeam，Scamalytics 的说明里写的是 Bunny Communications。两家对同一个 IP 的归属判断不一样，以 ipinfo 为准，不影响使用。
 - 和另外两台一样，严格说它是“ISP IP”，不是家庭宽带。
-- 换 IP 之后，账号上该做的检查还是要做一遍（见 [[日常维护、风控应对与常见故障]]），不要以为换了 IP 就没事了。
+- 换 IP 之后，账号上该做的检查还是要做一遍（见 [[日常维护、风控与常见问题]]），不要以为换了 IP 就没事了。
 
 截图（IP 已遮盖）：
 

@@ -37,12 +37,6 @@ iPhone 和 iPad 上的代理比电脑简单一些。iOS 的代理软件以 **VPN
 
 换好之后，在 App Store 搜索 **V2Box**，下载安装。V2Box 免费，带一点广告。下完可以把地区改回中国大陆，已经下载的 App 不受影响；以后更新 V2Box 时，可能需要再切回外区。
 
-### 小火箭用不了怎么办
-
-> 引导站小节：https://re0claude.us.ci/iphone-prepare/#小火箭用不了怎么办
-
-小火箭（Shadowrocket）也能用，但有的群友导入节点后怎么都连不上。脚本装出来的主节点是 VLESS 协议，可能某些版本的小火箭和它配合得不好。遇到这种情况，直接换 V2Box，不用排查。
-
 ## 在 V2Box 里导入节点
 
 > 引导站小节：https://re0claude.us.ci/iphone-prepare/#在-v2box-里导入节点
@@ -69,7 +63,6 @@ iPhone 和 iPad 上的代理比电脑简单一些。iOS 的代理软件以 **VPN
 
 iOS 的时区有两个开关，都要关。先打开设置 → 隐私与安全性 → 定位服务 → 系统服务（滑到最底下）→ 关闭“设定时区”；再打开设置 → 通用 → 日期与时间 → 关闭“自动设置” → 手动选择城市。
 
-**视频 05-3：改 iOS 时区**
 
 只关“自动设置”、不关定位服务里的“设定时区”的话，手机可能还会根据定位把时区改回来。时区选 Claude 支持的地区，比如台湾、新加坡；不确定就选住宅 IP 所在城市的时区。中国大陆和香港不行。
 
@@ -79,21 +72,13 @@ iOS 的时区有两个开关，都要关。先打开设置 → 隐私与安全�
 
 设置 → 通用 → 语言与地区。这一项不是必须的，但如果你希望手机看起来更像一个海外用户，可以把“地区”改成和时区一致的地方。
 
-### iCloud 专用代理
-
-> 引导站小节：https://re0claude.us.ci/iphone-prepare/#icloud-专用代理
-
-如果你开通了 iCloud+，并且打开了“专用代理（Private Relay）”，建议在使用 Claude 期间关掉它：设置 → 最上方 Apple ID → iCloud → 专用代理 → 关闭。
-
-专用代理可能接管 Safari 的流量，让请求从另一个出口出去，导致你的 IP 频繁变化。不是每个账号都有这个功能，没有就不用管。
-
 ### 验收
 
 > 引导站小节：https://re0claude.us.ci/iphone-prepare/#验收
 
 保持 V2Box 连接，用 Safari 打开 [ipinfo.io](https://ipinfo.io/)，确认页面顶部显示的 IP 是你的节点出口，AS Type 是 `isp`，Privacy 是 `false`。再打开 [ipleak.net](https://ipleak.net/)，确认没有出现国内的 DNS 或 IPv6 地址。
 
-如果几个网站显示的 IP 不一样，先看[日常维护与故障处理](https://re0claude.us.ci/maintenance/#测出来好几个不同的-ip)里的“测出来好几个不同的 IP”。
+如果几个网站显示的 IP 不一样，先看[电脑端那章的“测出来好几个不同的 IP”](https://re0claude.us.ci/client-desktop/#测出来好几个不同的-ip)。
 
 ## 下载 Gmail
 
@@ -102,3 +87,20 @@ iOS 的时区有两个开关，都要关。先打开设置 → 隐私与安全�
 ---
 
 确认 V2Box 已经连接，在 App Store 里搜索 **Gmail**，认准开发者是 Google，下载。很多 iPhone 自带 Gmail，已经有的就不用再下。
+
+## 常见问题
+
+> 引导站小节：https://re0claude.us.ci/iphone-prepare/#常见问题
+
+---
+
+### 小火箭导入节点后连不上
+
+> 引导站小节：https://re0claude.us.ci/iphone-prepare/#小火箭导入节点后连不上
+
+小火箭（Shadowrocket）也能用，但有的版本和脚本装出来的主节点（VLESS）配合不好，导入后怎么都连不上。遇到这种情况，不用排查，直接换一个代理软件：
+
+- **V2Box**：免费，有一点广告。这一章用的就是它。
+- **Tunna**：免费，没有广告，但很多群友反馈搜索不到。
+
+下载方式见上面“准备一个能下载代理软件的 App Store”：临时换到奥地利，付款方式选 **EPS**，Bank 选 **Bank Austria**，PLZ 填 `1010`，下载完可以把地区改回中国大陆。换区会取消这个账户上正在自动续期的订阅，先想清楚再换。

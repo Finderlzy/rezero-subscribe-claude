@@ -25,7 +25,7 @@ metadata:
 | 客户端配置与订阅 | `iphone-subscription` | 账号注册与订阅全流程：iOS 端 | `references/iphone-subscription.md` | https://re0claude.us.ci/iphone-subscription/ | 分叉点 `phone` 选 `iphone`（iPhone / iPad）时走 |
 | 客户端配置与订阅 | `android-prepare` | 客户端配置与环境验证：安卓端 | `references/android-prepare.md` | https://re0claude.us.ci/android-prepare/ | 分叉点 `phone` 选 `android`（安卓）时走 |
 | 客户端配置与订阅 | `android-subscription` | 账号注册与订阅全流程：安卓端 | `references/android-subscription.md` | https://re0claude.us.ci/android-subscription/ | 分叉点 `phone` 选 `android`（安卓）时走 |
-| 日常维护 | `maintenance` | 日常维护、风控应对与常见故障 | `references/maintenance.md` | https://re0claude.us.ci/maintenance/ | — |
+| 日常维护 | `maintenance` | 日常维护、风控与常见问题 | `references/maintenance.md` | https://re0claude.us.ci/maintenance/ | — |
 | 结尾 | `afterword` | 后记与致谢 | `references/afterword.md` | https://re0claude.us.ci/afterword/ | — |
 
 不在路线里、需要时再读的参考页：

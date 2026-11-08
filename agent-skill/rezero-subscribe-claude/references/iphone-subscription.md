@@ -186,3 +186,63 @@ iPhone 上有两个地方可以登录 Apple ID：“设置”里的和“App Sto
 > 反复点支付只会让风控更怀疑，可能把账号彻底锁住。
 
 之后在电脑浏览器打开 [claude.ai](https://claude.ai)，用同一个 Google 账号登录，Pro 权益会自动生效。
+
+## 常见问题
+
+> 引导站小节：https://re0claude.us.ci/iphone-subscription/#常见问题
+
+---
+
+### 创建美区 Apple ID 时提示“此时无法创建你的账户”
+
+> 引导站小节：https://re0claude.us.ci/iphone-subscription/#创建美区-apple-id-时提示此时无法创建你的账户
+
+多半和当前网络环境、以及同一台设备短时间内建过账号有关。换一台设备（手机换电脑）、换一个干净的住宅出口再试，隔一两天再来。
+
+### 账单地址填免税州的地址，算不算资料造假
+
+> 引导站小节：https://re0claude.us.ci/iphone-subscription/#账单地址填免税州的地址算不算资料造假
+
+不算。地址要真实存在、格式正确，选哪个州只影响要不要额外交销售税。付款走的是 App Store，Claude 那边看不到你的账单地址。
+
+### 礼品卡能不能换个渠道买，比如亚马逊
+
+> 引导站小节：https://re0claude.us.ci/iphone-subscription/#礼品卡能不能换个渠道买比如亚马逊
+
+不推荐亚马逊：它不支持支付宝，对礼品卡的购买风控也很严。教程用的是 Pockyt Shop，能用支付宝付。换别的正规渠道也可以，但别买来路不明的便宜卡，便宜得离谱的很可能是黑卡，兑换之后 Apple ID 可能被锁。
+
+### 兑换礼品卡时提示“地区不支持”
+
+> 引导站小节：https://re0claude.us.ci/iphone-subscription/#兑换礼品卡时提示地区不支持
+
+先确认两件事：兑换时 App Store 里登录的是**美区**账号；兑换时开着住宅节点，出口不是机房。两件都对还失败，就是这张卡本身的问题，找卖家换一张——这类问题没有通用解法，别反复试，失败的次数多了账号更危险。
+
+### 没有苹果设备，能借一台 iPhone 订阅吗
+
+> 引导站小节：https://re0claude.us.ci/iphone-subscription/#没有苹果设备能借一台-iphone-订阅吗
+
+可以。订阅是挂在 Claude 账号上的，和 Apple ID 无关：在借来的 iPhone 上登录你的美区 Apple ID，在 Claude App 里付完款，退出登录就行，之后你在自己电脑上照样用。注意只在 **App Store** 里登录美区账号，不要在“设置”顶部登录。不想借设备，就走[安卓端](https://re0claude.us.ci/android-subscription/)的 Google Play。
+
+### iOS 这条路一定要有外币卡吗
+
+> 引导站小节：https://re0claude.us.ci/iphone-subscription/#ios-这条路一定要有外币卡吗
+
+不需要。这条路线全程用礼品卡余额付款，不填任何卡。要用卡的是安卓的 Google Play 那一路，以及你自己想用网页端订阅的情况。
+
+### 退款能退到卡里吗，封号了能退吗
+
+> 引导站小节：https://re0claude.us.ci/iphone-subscription/#退款能退到卡里吗封号了能退吗
+
+退款一般只退回 App Store 的余额，提不出来。封号之后能不能退，要看 Apple 客服的判断，不是必然；退款也是走 Apple 支持，流程和“购买未完成”一样靠客服沟通。别打算退完款换个号接着用同一套环境。
+
+### 一个美区 Apple ID 能付几个 Claude 账号的订阅
+
+> 引导站小节：https://re0claude.us.ci/iphone-subscription/#一个美区-apple-id-能付几个-claude-账号的订阅
+
+技术上可以，但没必要。一个 IP 上冒出几个新号，看起来就是在批量注册；教程里也写了，一个 IP 只注册和使用一个主力账号。真要帮家人订，至少给另一个账号准备独立的出口。
+
+### 遇到 KYC 身份验证
+
+> 引导站小节：https://re0claude.us.ci/iphone-subscription/#遇到-kyc-身份验证
+
+KYC 是身份验证，要求你证明“你是你”。很抱歉，我没有遇到过 KYC，也没有找到可靠的解决方法，所以没法给出验证过的步骤。遇到的话，可以去官方支持中心看看，或者到社区里找有实际经验的人。

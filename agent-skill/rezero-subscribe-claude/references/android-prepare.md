@@ -82,7 +82,7 @@ v2rayNG 是安卓上比较成熟的开源代理客户端。
 
 保持 v2rayNG 连接，用手机浏览器打开 [ipinfo.io](https://ipinfo.io/)，确认页面顶部的 IP 是你的节点出口，**AS Type 是 `isp`**，**Privacy 是 `false`**；再打开 [ipleak.net](https://ipleak.net/)，确认没有出现国内的 DNS 或 IPv6 地址。
 
-如果几个网站显示的 IP 不一样，先看[日常维护与故障处理](https://re0claude.us.ci/maintenance/#测出来好几个不同的-ip)里的“测出来好几个不同的 IP”。
+如果几个网站显示的 IP 不一样，先看[电脑端那章的“测出来好几个不同的 IP”](https://re0claude.us.ci/client-desktop/#测出来好几个不同的-ip)。
 
 ## 下载 Gmail
 

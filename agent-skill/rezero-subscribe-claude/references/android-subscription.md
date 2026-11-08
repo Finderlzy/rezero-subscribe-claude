@@ -149,3 +149,39 @@ Google Play 会根据 IP 和账号地区显示不同的应用。如果搜不到 
 用国内发行的卡在 Google Play 上付款，等于让 Google 和 Anthropic 看到一笔来自国内的支付，被风控的可能存在。我的建议是：可以用，但**不要在订阅成功之后反复改付款方式，也不要连续重试失败的订单**。如果之后想换成更稳妥的方式，可以看 [iOS 端那章的“注册美区 Apple ID”到“在 App 内订阅”](https://re0claude.us.ci/iphone-subscription/#注册美区-apple-id)，借一台 iPhone 用礼品卡订阅；Claude 账号是用 Google 账号注册的，和 Apple ID 无关，在哪边付款权益都跟着 Claude 账号。
 
 如果你在安卓上走通了，或者遇到了我没写到的问题，欢迎把步骤和截图发给我，我把它补进这一章。
+
+## 常见问题
+
+> 引导站小节：https://re0claude.us.ci/android-subscription/#常见问题
+
+---
+
+### 没有 Google 服务的国行手机，能订阅吗
+
+> 引导站小节：https://re0claude.us.ci/android-subscription/#没有-google-服务的国行手机能订阅吗
+
+先按[上一章](https://re0claude.us.ci/android-prepare/)把 Google Play 装上；实在装不上，可以借一台带 Google 服务的手机或模拟器完成订阅，订阅跟着 Claude 账号走，之后回到自己手机上登录照样用。也可以看 iOS 那章，借一台 iPhone 走礼品卡。
+
+### Google Play 绑什么卡，国内卡有风险吗
+
+> 引导站小节：https://re0claude.us.ci/android-subscription/#google-play-绑什么卡国内卡有风险吗
+
+教程里的群友用的是国内发行的万事达卡，绑上就能用。国内发行的卡有被风控的可能，我的建议是：能用，但订阅成功之后不要反复改付款方式，也不要连续重试失败的订单。
+
+### 支付宝能不能直接给 Google Play 充值
+
+> 引导站小节：https://re0claude.us.ci/android-subscription/#支付宝能不能直接给-google-play-充值
+
+不能。Google Play 的余额要用 Google Play 礼品卡充，而礼品卡兑换对地区和网络的要求很死：卡区、账号国家必须一致，兑换时的出口也不能像机房。所以安卓这条路，多数人还是直接用卡付。
+
+### 安卓能不能用礼品卡余额付款
+
+> 引导站小节：https://re0claude.us.ci/android-subscription/#安卓能不能用礼品卡余额付款
+
+不确定是否可以，有群友给 Google Play 礼品卡充值了，但是无法使用。推荐走绑卡路线。
+
+### 换了手机或者重装 App，订阅会丢吗
+
+> 引导站小节：https://re0claude.us.ci/android-subscription/#换了手机或者重装-app订阅会丢吗
+
+不会。订阅跟着 Google 账号和 Claude 账号走，换手机重新登录 Google Play 和 Claude，在“订阅”里就能看到；扣款也照旧。换了设备记得代理和时区重新设一遍，别在新手机上裸连着登录。

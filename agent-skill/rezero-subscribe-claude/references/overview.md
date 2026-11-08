@@ -34,7 +34,7 @@
 3. 导入代理软件，测 IP 质量，防泄漏，改时区（[客户端配置与环境验证：电脑端](https://re0claude.us.ci/client-desktop/)）
 4. 配置手机，注册 Gmail，登录 Chrome，先用两天，修改 Google 账号地区，注册 Claude
 5. 订阅（iPhone 走 [iOS 端](https://re0claude.us.ci/iphone-subscription/)，安卓走 [安卓端](https://re0claude.us.ci/android-subscription/)）
-6. [日常维护与故障处理](https://re0claude.us.ci/maintenance/)
+6. [日常维护与常见问题](https://re0claude.us.ci/maintenance/)
 
 ## 账号和链路的关系
 
@@ -112,3 +112,27 @@ Claude 官方服务器
 - 想省事，直接买一台自带住宅 IP 的服务器：去 [方案二](https://re0claude.us.ci/plan2-residential-server/)。
 
 不管选哪个，最后都要回到电脑上导入代理软件、测 IP、防泄漏、改时区。那部分在 [客户端配置与环境验证：电脑端](https://re0claude.us.ci/client-desktop/)。
+
+## 常见问题
+
+> 引导站小节：https://re0claude.us.ci/overview/#常见问题
+
+---
+
+### 整套方案大概要花多少钱
+
+> 引导站小节：https://re0claude.us.ci/overview/#整套方案大概要花多少钱
+
+订阅本身每月 20 美元。网络这边，方案二是一台住宅 IP 服务器，我买的每月 9 美元左右；方案一是一台普通 VPS 加一个住宅 ISP 代理，ISP 代理往往比 VPS 贵，两个加起来和方案二差不多。再算上礼品卡的汇率、手续费，以及买错、换机这类试错成本，第一个月准备 30～50 美元比较稳妥。想省钱的话，先用免费号把前面的步骤走完，确认自己能撑下来，再付订阅费。
+
+### 先走方案一，以后想换成方案二可以吗
+
+> 引导站小节：https://re0claude.us.ci/overview/#先走方案一以后想换成方案二可以吗
+
+可以，但节点那一段要从头再做一遍：换一台自带住宅 IP 的服务器，重新跑脚本，拿到新的节点链接，导进客户端。账号不用重新注册——Claude 账号是用 Google 账号注册的，和节点无关。不过出口 IP 会变，换完之后按[日常维护那章的“保持出口 IP 稳定”](https://re0claude.us.ci/maintenance/#保持出口-ip-稳定)做：先退出登录，隔一会儿再从新出口登录，新 IP 也按第 2 章的标准重新测一遍。
+
+### 买别人做好的账号行不行
+
+> 引导站小节：https://re0claude.us.ci/overview/#买别人做好的账号行不行
+
+不建议。账号不是从零注册的，你不知道它之前的 IP、设备和使用记录，也不知道原来的主人还会不会登；接手之后环境突然一变，反而更容易被判成有问题。这份教程是从注册开始自己走一遍，麻烦，但每一项都在你自己手里。

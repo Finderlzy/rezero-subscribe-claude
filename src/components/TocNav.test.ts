@@ -18,7 +18,7 @@ const step = (id: string, title: string, current = false): OutlineStep => ({
 const outline = (current = 'plan1'): OutlineChapter[] => [
   { id: 'start', title: '开始', items: [step('preface', '前言', current === 'preface')] },
   { id: 'node-and-ip', title: '准备节点和住宅 IP', items: [step('plan1', '方案一：搭建专属住宅代理节点', current === 'plan1')] },
-  { id: 'maintenance', title: '日常维护', items: [step('maintenance', '日常维护、风控应对与常见故障', current === 'maintenance')] },
+  { id: 'maintenance', title: '日常维护', items: [step('maintenance', '日常维护、风控与常见问题', current === 'maintenance')] },
 ];
 const references = [{ id: 'ip-tests', title: 'IP 质量实测合集' }];
 const referencesChapter = 'maintenance';

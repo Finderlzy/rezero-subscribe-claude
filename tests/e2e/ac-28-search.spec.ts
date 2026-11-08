@@ -79,6 +79,21 @@ test('搜“时区”：下拉列出“改时区”小标题，下键选中、�
   await expect(listbox(page)).toBeHidden();
 });
 
+test('搜“延迟 -1”落到电脑端「常见问题」里的那一条（AC-51）', async ({ page }) => {
+  await page.goto('./plan1/');
+  await openSearch(page);
+  // 各章「常见问题」的每一条都是 h3，读者用群里的说法就能搜到（AC-51）
+  await searchInput(page).fill('延迟 -1');
+
+  const option = options(page).filter({ hasText: '主节点延迟 -1' }).first();
+  await expect(option).toBeVisible();
+  await expect(option.locator('.search-option-heading')).toHaveText('› 主节点延迟 -1，或者一直超时，怎么办');
+
+  await option.click();
+  await expect(page).toHaveURL(/\/client-desktop\/#/);
+  await expect(page.locator('h3#主节点延迟--1或者一直超时怎么办')).toBeInViewport();
+});
+
 test('鼠标点结果也能打开（design §4.8 的结果是链接）', async ({ page }) => {
   await page.goto('./plan1/');
   await openSearch(page);

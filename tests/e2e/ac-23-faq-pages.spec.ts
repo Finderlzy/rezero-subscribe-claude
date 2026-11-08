@@ -20,7 +20,7 @@ test('/ip-tests/ 按重写稿的顺序列出 4 篇实测，每篇链到 /ip-test
     await expect(links.nth(i)).toHaveAttribute('href', new RegExp(`/ip-tests/${item.id}/$`));
   }
   await expect(page.locator('main .eyebrow')).toHaveText('日常维护 · IP 质量实测合集');
-  await expect(page.getByRole('link', { name: /^回到 日常维护、风控应对与常见故障$/ })).toHaveAttribute('href', /\/maintenance\/$/);
+  await expect(page.getByRole('link', { name: /^回到 日常维护、风控与常见问题$/ })).toHaveAttribute('href', /\/maintenance\/$/);
 });
 
 for (const { id, title } of ITEMS) {
