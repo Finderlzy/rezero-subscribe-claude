@@ -33,10 +33,10 @@ preface:
 
 # 第 2 章：准备节点和住宅 IP
 overview:
-  description: 先弄清 Claude 的风控在看什么，再在方案一和方案二之间挑：自己搭住宅代理节点，还是直接买住宅 IP 服务器。
+  description: 先弄清 Claude 的风控在看什么，再在方案一和方案二之间挑：自己搭住宅代理节点，还是直接买住宅 IP 服务器；要花多少钱、能不能换方案、买号行不行，都在章末。
 
 plan1:
-  description: 买一台海外 VPS，配一个静态住宅 ISP 代理，用脚本把它变成专属节点，拿到 VLESS Reality 和 Hysteria2 两条节点链接。
+  description: 买一台海外 VPS，配一个静态住宅 ISP 代理，用脚本把它变成专属节点，拿到 VLESS Reality 和 Hysteria2 两条节点链接；低价小鸡、确认独享和节点连不上怎么排查在章末。
 
 plan2-residential-server:
   description: 买一台自带海外住宅 IP 的云服务器，跑一次脚本就变成节点，不用同时维护 VPS 和 ISP 两个服务商；SSH 报错、重装和面板的问题在章末。
@@ -55,7 +55,7 @@ android-prepare:
   description: 在安卓手机上装 v2rayNG、导入节点、准备 Google Play、改时区，最后做连通性测试，确认出口 IP 已经是对的地区。
 
 android-subscription:
-  description: 安卓端的账号到订阅流程：注册 Gmail、在 Chrome 登录并完善资料、注册 Claude、从 Google Play 安装，以及在 Google Play 添加付款方式并用国内发行的卡在 App 内订阅。
+  description: 安卓端的账号到订阅流程：注册 Gmail、在 Chrome 登录并完善资料、注册 Claude、从 Google Play 安装，以及绑卡和 App 内订阅；国行无 Google、礼品卡和换机的问题在章末。
 
 # 第 4 章：日常维护
 maintenance:
