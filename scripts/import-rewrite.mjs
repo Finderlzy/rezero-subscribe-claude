@@ -233,7 +233,7 @@ function printReport(report) {
   section('站内文件缺少第一行的 # 标题，无法匹配', report.untitled);
   section('重写稿文件带 frontmatter，导入时已去掉', report.droppedFrontmatter);
   section('相对链接的目标找不到，按原样保留（要改重写稿的链接）', report.badLinks);
-  section('新复制的截图和更新的说明图：截图请逐张核对打码，记进 docs/migration-checklist.md', report.copied);
+  section('新复制的截图和更新的说明图：截图请逐张核对打码，记进 docs/delivery.md', report.copied);
   section('附件里也找不到的图：截图请作者提供打码后的文件，放进 src/assets/screenshots/；说明图放进重写稿的附件/', report.missingImages);
 }
 

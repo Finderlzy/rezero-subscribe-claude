@@ -45,4 +45,3 @@ Astro 会把 `astro dev`/`astro preview` 转入后台（Windows 除外），用 
 
 - TypeScript（固定 6.x）、原生 CSS，不引入 UI 框架和 CSS 框架。颜色、间距只用 `src/styles/tokens.css` 里的令牌。
 - 页面（步骤、选择页）和分叉点的标识用英文 kebab-case，同时也是文件名和 URL。**v2.0 发布后标识不能改**（[ADR-0002](../adr/0002-url-scheme.md)）；删掉或合并掉的旧标识登记在 `route.yaml` 的 `moved:` 段，旧网址仍然生成跳转页，不能再分给新页面（[ADR-0006](../adr/0006-merged-pages-and-moved-urls.md)）。
-- 页面标识、旧网址去向和迁移口径的清单在 [migration-checklist.md](../migration-checklist.md)。
